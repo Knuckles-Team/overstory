@@ -1,23 +1,43 @@
-# overstory constitution
+# Overstory constitution
 
-Status: PROPOSED. Drafted: 2026-09-28. Version: 0.1.0. Specification index: [specs/README.md](../../specs/README.md).
+This repository inherits the [organization constitution](https://github.com/Knuckles-Team/pipelines/blob/main/.specify/memory/constitution.md) version 1.0.0. Every article of that constitution applies here. This file adds only the rules and limits of this repository.
 
-## I. Single owner and reusable architecture
+**Inherits**: organization constitution v1.0.0 | **Version**: 1.0.0 | **Ratified**: 2026-10-31 | **Last amended**: 2026-10-31
 
-This repository owns browser presentation and interaction. A design must inventory existing public components and callers before adding code, name one legal owner, preserve dependency direction, and reuse the existing live wiring. Cross-repository capabilities cite the owner spec by stable ID; no second authority or dormant parallel implementation is accepted.
+## Organization standards
 
-## II. Complete specification before construction
+- [Spec standard](https://github.com/Knuckles-Team/pipelines/blob/main/reference/spec-standard.md): one owning spec per capability, computed states, `Spec:` trailers.
+- [Ecosystem boundaries](https://github.com/Knuckles-Team/pipelines/blob/main/reference/ecosystem-boundaries.md): which repository owns which requirement.
+- [Wording standard](https://github.com/Knuckles-Team/pipelines/blob/main/reference/ste.md): sentences of 20 words or fewer, with `must`, `should`, or `may`.
 
-A contribution records behavior and acceptance in `spec.md`, architecture/data/security/failure design in `plan.md`, exact positive and negative proof in `test-spec.md`, and sequenced work in `tasks.md`. Unresolved choices are explicit. The checked-in spec, not a local plan draft or generated report, is the contributor-facing build contract.
+## Repository articles
 
-## III. Observable integration and evidence
+### R-I. The browser shows; arbora decides
 
-Acceptance follows a real entrypoint through the intended owner and effect boundary. Tests cover refusal, authorization, idempotency and recovery where applicable. Evidence names the exact revision, command, environment and result; source-only success never claims served or release acceptance.
+Overstory presents and takes input. It reads data and sends commands only through the arbora client. It computes no decision and imports no engine, harness or other interface package.
 
-## IV. Quality and release discipline
+**Enforced by:** [Ecosystem boundaries](https://github.com/Knuckles-Team/pipelines/blob/main/reference/ecosystem-boundaries.md), overstory row and forbidden-import matrix.
 
-Apply this repository's CCCC, jscpd, dupehound, KISS, language-native, contract, package and release gates as relevant. Fix real complexity and duplication at the owner; do not suppress findings or split logic merely to satisfy a scanner. Update public docs and delete superseded paths after consumers move.
+**Plan check:** Does every data access in the change go through the arbora client?
 
-## V. Amendment and status
+### R-II. No fabricated data in the interface
 
-Amend this constitution in a reviewed change that states the reason and impact. Mark a spec `LANDED` only when its source is merged at an exact owning-repository revision. Mark it `ACCEPTED` only after the required consumer, runtime, quality and release receipts meet the checked-in spec's acceptance gates. Record both states separately.
+A view shows real served data or an honest empty, loading or error state. It never shows invented values.
+
+**Enforced by:** Pre-commit hook `no-fabrication-gate` (`scripts/no_fabrication_gate.mjs`).
+
+**Plan check:** Does each new view show served data or an honest state?
+
+### R-III. The frontend type-checks, lints and builds
+
+The TypeScript sources pass the type check, lint and build before a change lands.
+
+**Enforced by:** Pre-commit hooks `typecheck`, `lint`, `eslint-staged` and `pnpm-build`; `eslint.config.ts` and `tsconfig.json`.
+
+**Plan check:** Does the change pass the type check, lint and build?
+
+## Repository limits
+
+This repository sets no numeric limit of its own. It follows the organization limits table.
+
+Amend this file in a reviewed change. State the impact in the pull request. When the organization constitution changes its version, update the **Inherits** line in the same change.
