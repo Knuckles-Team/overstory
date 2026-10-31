@@ -4,7 +4,7 @@
  *
  * WIRING (honest): the engine RBAC admin — durable roles + role hierarchy +
  * resource/action grants over per-agent RLS/ACL with a hash-chained audit
- * (CONCEPT:EG-092), persisted to redb and reloaded at boot (CONCEPT:EG-303) —
+ * (CONCEPT:MEDULLA-092), persisted to redb and reloaded at boot (CONCEPT:MEDULLA-303) —
  * is a `Method::RbacAdmin` engine op reachable ONLY over the epistemic_graph
  * UDS/MessagePack client (`client.rbac.*`). There is no browser-facing REST twin
  * yet, so this panel PROBES the closest existing surface
@@ -51,7 +51,7 @@ function UnwiredNotice() {
           RBAC admin not exposed over REST yet
         </CardTitle>
         <CardDescription>
-          The engine RBAC admin surface (EG-092 roles/grants + EG-303 durable persistence) is reachable today only over
+          The engine RBAC admin surface (MEDULLA-092 roles/grants + MEDULLA-303 durable persistence) is reachable today only over
           the epistemic-graph UDS client (<code>client.rbac.*</code> — AddRole / RemoveRole / AddGrant / RemoveGrant /
           List). This panel will render the live policy — and enable editing where the API allows — as soon as the REST
           twin is wired; until then it is read-only by design and shows no fabricated data.
@@ -62,7 +62,7 @@ function UnwiredNotice() {
         <ul className="list-disc pl-5 space-y-1">
           <li>
             <span className="font-medium text-foreground">Roles</span> — durable named roles with a role hierarchy
-            (EG-092), persisted to redb and reloaded at boot (EG-303).
+            (MEDULLA-092), persisted to redb and reloaded at boot (MEDULLA-303).
           </li>
           <li>
             <span className="font-medium text-foreground">Grants</span> — resource/action grants bound to a role,
@@ -202,7 +202,7 @@ export default function RbacPanel() {
             RBAC
           </h2>
           <p className="text-muted-foreground text-sm">
-            Roles, resource/action grants and agent identities (EG-092 / EG-303).
+            Roles, resource/action grants and agent identities (MEDULLA-092 / MEDULLA-303).
           </p>
         </div>
         <Button

@@ -24,7 +24,7 @@
  *     all 404. `docs/reference/openapi.json` (191 routes) has no
  *     identity/role/rbac/principal path at all beyond `/api/oauth/*` and
  *     `/api/enhanced/sessions/*` (chat sessions, unrelated). The engine's
- *     `RbacAdmin`/`GetIdentity` methods (EG-092/EG-303) are reachable only
+ *     `RbacAdmin`/`GetIdentity` methods (MEDULLA-092/MEDULLA-303) are reachable only
  *     over the epistemic-graph UDS/MessagePack client, not from the browser.
  *
  * Given that, this module: (a) keeps probing the closest surface, exactly

@@ -2,7 +2,7 @@
  * Host-mediated postMessage JSON-RPC-ish bridge for MCP Apps
  * (`io.modelcontextprotocol/ui`).
  *
- * CONCEPT:AU-ECO.ui.mcp-apps-host
+ * CONCEPT:MERISTEM-ECO.ui.mcp-apps-host
  *
  * An MCP App's HTML runs inside a sandboxed iframe with NO direct MCP
  * connection of its own (see `McpAppFrame.tsx`: `sandbox="allow-scripts"`,

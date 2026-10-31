@@ -705,7 +705,7 @@ class ApiClient {
     )
 
   // The ontology's own TYPE schema (TBox) as a Cytoscape-elements graph
-  // (SchemaView, CONCEPT:AU-KG.ontology.schema-graph-visualization). Unlike the
+  // (SchemaView, CONCEPT:MERISTEM-KG.ontology.schema-graph-visualization). Unlike the
   // routes above this hits the CANONICAL gateway surface directly
   // (`/api/ontology/*`, mounted onto this same backend by
   // `register_graph_routes`) rather than the `/api/enhanced/ontology/*`
@@ -717,7 +717,7 @@ class ApiClient {
     )
 
   // Classify a skill (skill_type: skill|workflow|graph) and persist the
-  // choice (SkillsView, CONCEPT:AU-KG.ingest.skill-classification-writeback).
+  // choice (SkillsView, CONCEPT:MERISTEM-KG.ingest.skill-classification-writeback).
   // Hits the canonical `/api/*` gateway surface directly, like
   // `getOntologySchemaGraph` above -- `skill_classify` is agent-utilities
   // core capability, reached here as a thin caller with no re-implemented

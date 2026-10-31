@@ -1,7 +1,7 @@
 /**
  * Host-side CSP intersection and srcDoc construction for MCP Apps.
  *
- * CONCEPT:AU-ECO.ui.mcp-apps-host
+ * CONCEPT:MERISTEM-ECO.ui.mcp-apps-host
  *
  * The server's declared `_meta.ui.csp` (`McpUiMeta.csp`) is a claim the
  * server made about what domains ITS app needs -- it is never applied

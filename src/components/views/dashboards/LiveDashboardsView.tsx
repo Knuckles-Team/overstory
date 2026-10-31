@@ -6,10 +6,10 @@
  * canonical gateway `/graph/*` surface via the shared typed layer (lib/gateway.ts).
  *
  * Panel → API wiring:
- *   - Metrics (PromQL): POST /graph/promql — LIVE (EG-172/302, KG-2.310)
- *   - Traces:           POST /graph/traces — LIVE (EG-163, KG-2.310)
+ *   - Metrics (PromQL): POST /graph/promql — LIVE (MEDULLA-172/302, KG-2.310)
+ *   - Traces:           POST /graph/traces — LIVE (MEDULLA-163, KG-2.310)
  *   - Logs:             POST /graph/logs   — PLACEHOLDER / read-only until the
- *                       engine log-query surface (EG-162) is exposed as a REST twin.
+ *                       engine log-query surface (MEDULLA-162) is exposed as a REST twin.
  *   - Chart (viz):      POST /graph/viz    — LIVE (GOC-88, D-VZ-1 V5): renders a
  *                       live KG SQL query server-side through the eg-viz LOD
  *                       pipeline (`Method::Viz`) — no client-side charting

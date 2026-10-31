@@ -299,7 +299,7 @@ export const codeMetricsToGraphNodes = (
   })),
 })
 
-// ── Ontology schema-graph mapping (SchemaView, CONCEPT:AU-KG.ontology.schema-graph-visualization) ──
+// ── Ontology schema-graph mapping (SchemaView, CONCEPT:MERISTEM-KG.ontology.schema-graph-visualization) ──
 // GET /api/ontology/schema-graph returns the interface + link-type registries as
 // a Cytoscape.js elements payload ({nodes: [{data}], edges: [{data}]}) — the
 // ontology TYPE schema (TBox), not instance data. Map it into the same

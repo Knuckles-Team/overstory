@@ -91,7 +91,7 @@ overstory = ["dist/**", "icon.png", "skills/**/*"]
 [tool.setuptools.packages.find]
 where = ["agent"]
 
-# CONCEPT:AU-ECO.ui.overstory-skill-provider — contribute the kg-webui-* skills to the meristem hub via
+# CONCEPT:MERISTEM-ECO.ui.overstory-skill-provider — contribute the kg-webui-* skills to the meristem hub via
 # the shared skill-provider entry-point group (resolved by core/providers.py).
 [project.entry-points."meristem.skill_providers"]
 overstory = "overstory.skills"

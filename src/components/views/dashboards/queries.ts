@@ -5,14 +5,14 @@
  * Every call goes through the shared {@link gatewayPost} helper (the SAME typed
  * gateway layer the other `/graph/*` views use) — this module invents no second
  * API mechanism. It targets the engine's observability action-twins:
- *   - PromQL  → `POST /graph/promql`  (real, CONCEPT:KG-2.310 / EG-172,302)
- *   - Traces  → `POST /graph/traces`  (real, CONCEPT:KG-2.310 / EG-163)
+ *   - PromQL  → `POST /graph/promql`  (real, CONCEPT:KG-2.310 / MEDULLA-172,302)
+ *   - Traces  → `POST /graph/traces`  (real, CONCEPT:KG-2.310 / MEDULLA-163)
  *   - Logs    → `POST /graph/logs`    (route is registered — the previous
  *                HTTP 405 was a genuinely unregistered path, D-W6-ISO-2 — but
  *                the engine build's own log-QUERY surface, distinct from its
  *                log-INGEST listener, doesn't exist on the wire client yet, so
  *                it still answers a clean `{degraded: true}` at HTTP 200 and
- *                the panel still degrades read-only; EG-162)
+ *                the panel still degrades read-only; MEDULLA-162)
  *
  * The adapters tolerate several upstream shapes and NEVER fabricate points: an
  * unrecognised/empty payload yields an empty result, not synthetic data.

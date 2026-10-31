@@ -1,7 +1,7 @@
 /**
  * The browser-side MCP client for overstory.
  *
- * CONCEPT:AU-ECO.ui.mcp-apps-client
+ * CONCEPT:MERISTEM-ECO.ui.mcp-apps-client
  *
  * This is what `McpAppFrame`'s `callTool` and its app-HTML fetch are wired to.
  * It deliberately does NOT open an MCP connection from the browser. Two hard

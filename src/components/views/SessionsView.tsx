@@ -480,7 +480,7 @@ export default function SessionsView() {
             Durable Sessions Console
           </h1>
           <p className="text-muted-foreground text-sm">
-            Monitor, inspect, and reply to terminal-attached or backgrounded SQLite-backed agent runs (TUI-20).
+            Monitor, inspect, and reply to terminal-attached or backgrounded SQLite-backed agent runs (TUIG-20).
           </p>
         </div>
         <Button
