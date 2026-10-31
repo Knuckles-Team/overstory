@@ -218,7 +218,9 @@ export default function BackupPanel() {
             <DatabaseBackup className="size-5" />
             Backup &amp; PITR
           </h2>
-          <p className="text-muted-foreground text-sm">Online backups and point-in-time restore (CONCEPT:MEDULLA-090).</p>
+          <p className="text-muted-foreground text-sm">
+            Online backups and point-in-time restore (CONCEPT:MEDULLA-090).
+          </p>
         </div>
         <BackupToolbar
           loading={backup.loading}

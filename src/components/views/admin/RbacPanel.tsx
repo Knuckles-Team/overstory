@@ -51,10 +51,10 @@ function UnwiredNotice() {
           RBAC admin not exposed over REST yet
         </CardTitle>
         <CardDescription>
-          The engine RBAC admin surface (MEDULLA-092 roles/grants + MEDULLA-303 durable persistence) is reachable today only over
-          the epistemic-graph UDS client (<code>client.rbac.*</code> — AddRole / RemoveRole / AddGrant / RemoveGrant /
-          List). This panel will render the live policy — and enable editing where the API allows — as soon as the REST
-          twin is wired; until then it is read-only by design and shows no fabricated data.
+          The engine RBAC admin surface (MEDULLA-092 roles/grants + MEDULLA-303 durable persistence) is reachable today
+          only over the epistemic-graph UDS client (<code>client.rbac.*</code> — AddRole / RemoveRole / AddGrant /
+          RemoveGrant / List). This panel will render the live policy — and enable editing where the API allows — as
+          soon as the REST twin is wired; until then it is read-only by design and shows no fabricated data.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-2 text-sm text-muted-foreground">
