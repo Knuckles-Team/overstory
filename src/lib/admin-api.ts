@@ -9,7 +9,7 @@
  * `unavailable` degradation (HTTP 404/501) are identical to every other view.
  *
  * The epistemic-graph engine (roadmap "Admin console UI") exposes admin surfaces
- * for tenants, shards, RBAC (EG-092/EG-303) and online backup/PITR (EG-090).
+ * for tenants, shards, RBAC (MEDULLA-092/MEDULLA-303) and online backup/PITR (MEDULLA-090).
  * Some of those are reachable today over the browser-facing REST surface and
  * some are only reachable over the engine's UDS/MessagePack client — this module
  * documents, per call, which is which so panels can honestly mark themselves
@@ -155,20 +155,20 @@ export function fetchCodeInstances(): Promise<GatewayResult<CodeInstances>> {
 }
 
 // ── RBAC (PLACEHOLDER / read-only probe) ─────────────────────────────────────
-// The engine RBAC admin (EG-092 roles/grants + EG-303 durable persistence) is a
+// The engine RBAC admin (MEDULLA-092 roles/grants + MEDULLA-303 durable persistence) is a
 // `Method::RbacAdmin` op reachable only over the epistemic_graph UDS client
 // (`client.rbac.*`) — there is NO browser-facing REST route yet. We probe the
 // closest existing surface (`POST /api/graph/configure` action=rbac_list); when
 // the backend has not wired it the result resolves to `unavailable` and the
 // panel renders a clearly-labeled read-only state instead of inventing grants.
 
-/** A durable RBAC role (EG-092). */
+/** A durable RBAC role (MEDULLA-092). */
 export interface RbacRole {
   name: string
   description?: string
 }
 
-/** A resource/action grant bound to a role (EG-092). */
+/** A resource/action grant bound to a role (MEDULLA-092). */
 export interface RbacGrant {
   role: string
   resource?: string
@@ -198,7 +198,7 @@ export function fetchRbacPolicy(): Promise<GatewayResult<RbacPolicy>> {
 }
 
 // ── Backup / PITR (PLACEHOLDER / read-only probe) ────────────────────────────
-// Online backup + point-in-time restore is EG-090 — a `Method::Backup` engine
+// Online backup + point-in-time restore is MEDULLA-090 — a `Method::Backup` engine
 // op reachable over the UDS client, not (yet) over REST. We probe
 // `POST /api/graph/configure` action=backup_status and degrade to a labeled
 // placeholder; trigger controls stay disabled until the REST twin exists.
@@ -212,7 +212,7 @@ export interface BackupRecord {
   lsn?: string
 }
 
-/** Backup subsystem status (EG-090). */
+/** Backup subsystem status (MEDULLA-090). */
 export interface BackupStatus {
   backups: BackupRecord[]
   pitr_window?: { earliest?: string; latest?: string }

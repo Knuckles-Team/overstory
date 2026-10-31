@@ -26,8 +26,8 @@ observability views assimilated from agentsview.
   (token/cost/session analytics).
 
 ## Backing endpoints (from src/lib/api.ts + dashboards panels)
-- Metrics: `POST /api/graph/promql` (PromqlPanel — LIVE, EG-172/302).
-- Traces: `POST /api/graph/traces` (TracesPanel — LIVE, EG-163).
+- Metrics: `POST /api/graph/promql` (PromqlPanel — LIVE, MEDULLA-172/302).
+- Traces: `POST /api/graph/traces` (TracesPanel — LIVE, MEDULLA-163).
 - Logs: `POST /api/graph/logs` (LogsPanel — placeholder/read-only until wired).
 - Usage/cost (all under `/api/observability`): `/summary`, `/by-model`,
   `/by-project`, `/by-agent`, `/analytics/tools`, `/analytics/activity`,

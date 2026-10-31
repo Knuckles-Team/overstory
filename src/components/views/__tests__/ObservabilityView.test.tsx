@@ -9,7 +9,7 @@ import { renderWithProviders } from '@/__tests__/fixtures'
  * (that dead surface — `CapabilityWorkbench`/`RunInspector`/`capabilities-api.ts`
  * — was removed) — it is rendered here, in the existing Observability tab, from
  * the canonical `POST /graph/traces` route (`graph_traces`,
- * CONCEPT:AU-KG.coordination.engine-message-broker). Every KG-native trace IS
+ * CONCEPT:MERISTEM-KG.coordination.engine-message-broker). Every KG-native trace IS
  * one chat/agent-graph execution run; `action='waterfall'` returns that run's
  * flattened Span/Generation nodes with a `parentId` per node, which is the DAG.
  *

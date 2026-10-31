@@ -1,7 +1,7 @@
 """Chokepoint gate: no production caller of ``create_agent_web_app`` may
 construct ``workspace_helpers`` empty (GOC-60-W04b acceptance gate 4).
 
-CONCEPT:AU-ECO.mcp.webui-governed-mcp-delegation
+CONCEPT:MERISTEM-ECO.mcp.webui-governed-mcp-delegation
 
 GOC-60 lane evidence E2 (break 2): ``agent/overstory/server.py``'s
 standalone CLI entrypoint (``main()``) called

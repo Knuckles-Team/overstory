@@ -1,7 +1,7 @@
 /**
  * Sandboxed MCP App iframe host.
  *
- * CONCEPT:AU-ECO.ui.mcp-apps-host
+ * CONCEPT:MERISTEM-ECO.ui.mcp-apps-host
  *
  * Renders a `ui://` resource's HTML (already fetched by the caller via
  * `resources/read` -- this component never fetches on its own) in a

@@ -2,7 +2,7 @@
  * Wire types for the MCP Apps extension (`io.modelcontextprotocol/ui`) and
  * the host<->iframe postMessage bridge this package implements.
  *
- * CONCEPT:AU-ECO.ui.mcp-apps-host
+ * CONCEPT:MERISTEM-ECO.ui.mcp-apps-host
  *
  * `McpUiMeta` mirrors `fastmcp.apps.config.AppConfig`'s wire shape (the
  * agent-utilities server dependency that produces it) and the message

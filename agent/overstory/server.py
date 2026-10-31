@@ -171,7 +171,7 @@ _ADMIN_MUTATION_ROUTE_PREFIXES = (
     # configuration and orchestration as tools), so every POST under
     # ``/api/enhanced/mcp`` requires ``kg:admin``. The GET inventory route
     # (``/mcp/servers/{name}/tools``) stays a ``kg:read``.
-    # CONCEPT:AU-ECO.mcp.webui-governed-mcp-delegation
+    # CONCEPT:MERISTEM-ECO.mcp.webui-governed-mcp-delegation
     '/api/enhanced/mcp',
     '/api/enhanced/skills',
     '/api/enhanced/tools',

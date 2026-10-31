@@ -2002,7 +2002,7 @@ async def _read_mcp_app_resource(
 async def read_mcp_app_resource_route(data: dict[str, Any]) -> dict[str, Any]:
     """Read one ``ui://`` MCP App resource through the governed seam.
 
-    CONCEPT:AU-ECO.mcp.webui-governed-mcp-delegation
+    CONCEPT:MERISTEM-ECO.mcp.webui-governed-mcp-delegation
 
     The returned ``html`` is UNTRUSTED tool output. The only supported way to
     render it is ``McpAppFrame``, which sandboxes it (``allow-scripts`` with no
@@ -2830,7 +2830,7 @@ def _union_nodes_by_label(
 async def _graph_read_engine() -> Any | None:
     """Acquire the read engine for a graph view route.
 
-    CONCEPT:AU-ECO.ui.engine-fallback-reachable -- "no engine" (501) is a
+    CONCEPT:MERISTEM-ECO.ui.engine-fallback-reachable -- "no engine" (501) is a
     distinct condition from a query failing AFTER an engine was acquired (the
     D-W6-10 hardening in each caller, which stays a hard 503 and is NOT
     touched by this). Only a genuine 503 (bounded deadline/capacity)
@@ -4213,7 +4213,7 @@ async def get_graph_stats() -> dict[str, Any]:
         try:
             engine = await get_engine_bounded()
         except FastAPIHTTPException as exc:
-            # CONCEPT:AU-ECO.ui.engine-fallback-reachable -- get_engine()
+            # CONCEPT:MERISTEM-ECO.ui.engine-fallback-reachable -- get_engine()
             # raises HTTPException(501) rather than returning None, so the
             # `if not engine` degrade below was unreachable dead code (every
             # no-engine request 501'd first). Only a genuine 503 (bounded
@@ -5942,7 +5942,7 @@ async def toggle_graph_tool(tool_id: str, request: Request) -> dict[str, Any]:
 
 
 # ─────────────────────────────────────────────────────────────────────────
-#  Sessions & Autonomous Goals Parity (TUI-20, ORCH-5.0)
+#  Sessions & Autonomous Goals Parity (TUIG-20, ORCH-5.0)
 # ─────────────────────────────────────────────────────────────────────────
 
 import sqlite3
@@ -6080,7 +6080,7 @@ def _resolved_session_db_path() -> Path:
 def _migrate_session_owner_column(conn: Any) -> None:
     """Retrofit the `owner` column onto an already-created sessions table.
 
-    `owner` (CONCEPT:AU-ECO.ui.session-owner-visibility) was added after this
+    `owner` (CONCEPT:MERISTEM-ECO.ui.session-owner-visibility) was added after this
     table existed in the wild; CREATE TABLE IF NOT EXISTS does not retrofit a
     column onto an already-created table, so migrate it explicitly.
     Idempotent: sqlite raises "duplicate column name" on a DB that already

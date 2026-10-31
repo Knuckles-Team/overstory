@@ -5,7 +5,7 @@
  *
  * READ-ONLY / PLACEHOLDER: `/graph/logs` is now a registered REST route
  * (D-W6-ISO-2 fixed its prior HTTP 405 — the path did not exist at all), but
- * the engine's own log-QUERY surface (EG-162) still doesn't exist on the wire
+ * the engine's own log-QUERY surface (MEDULLA-162) still doesn't exist on the wire
  * client (only its log-INGEST listener does), so the call resolves
  * `unavailable` and the panel shows a capability notice instead of fabricating
  * log lines. When the engine ships a log-query RPC, the same code path renders
@@ -122,7 +122,7 @@ export function LogsPanel({ title, range, refreshSignal, onRemove }: LogsPanelPr
       {unavailable ? (
         <CapabilityNotice
           label="/graph/logs"
-          detail="The engine log-query surface (EG-162) is not exposed as a REST twin yet — only PromQL and traces are. This panel is read-only until it lands."
+          detail="The engine log-query surface (MEDULLA-162) is not exposed as a REST twin yet — only PromQL and traces are. This panel is read-only until it lands."
         />
       ) : error ? (
         <PanelError message={error} />

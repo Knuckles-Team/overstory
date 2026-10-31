@@ -597,7 +597,7 @@ export default function ObservabilityView() {
 
   /** List execution runs — each KG-native trace IS one run (one chat/agent-graph
    * execution): `POST /graph/traces {action:'search'}` (`graph_traces`,
-   * CONCEPT:AU-KG.coordination.engine-message-broker). There is no separate
+   * CONCEPT:MERISTEM-KG.coordination.engine-message-broker). There is no separate
    * `/api/runs` platform (see PROGRAM.md Phase D) — this is the run list. */
   const loadRuns = async () => {
     setRunsLoading(true)

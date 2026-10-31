@@ -2,7 +2,7 @@
  * The wired MCP Apps host: fetches a `ui://` app's HTML and renders it in
  * `McpAppFrame` with a live tool-call channel.
  *
- * CONCEPT:AU-ECO.ui.mcp-apps-client
+ * CONCEPT:MERISTEM-ECO.ui.mcp-apps-client
  *
  * `McpAppFrame` is deliberately pure — it never fetches, and it never decides
  * what an app may call. This component supplies both of those from the real

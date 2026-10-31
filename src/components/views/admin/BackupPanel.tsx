@@ -2,7 +2,7 @@
  * @file BackupPanel.tsx
  * @description Backup / point-in-time-restore for the Admin console.
  *
- * WIRING (honest): online backup + PITR is CONCEPT:EG-090 — a `Method::Backup`
+ * WIRING (honest): online backup + PITR is CONCEPT:MEDULLA-090 — a `Method::Backup`
  * engine op that streams a per-shard MVCC snapshot, reachable today only over
  * the epistemic_graph UDS client, not over a browser-facing REST route. This
  * panel PROBES `POST /api/graph/configure` action=backup_status and, when it
@@ -101,7 +101,7 @@ function UnwiredNotice() {
           Backup/PITR not exposed over REST yet
         </CardTitle>
         <CardDescription>
-          Online backup / restore (EG-090) is reachable today only over the epistemic-graph UDS client (a
+          Online backup / restore (MEDULLA-090) is reachable today only over the epistemic-graph UDS client (a
           <code> Method::Backup</code> op streaming a per-shard MVCC snapshot). This panel will list snapshots, show
           the PITR window, and enable the trigger control as soon as the REST twin is wired; until then it is read-only
           by design and shows no fabricated backups.
@@ -218,7 +218,7 @@ export default function BackupPanel() {
             <DatabaseBackup className="size-5" />
             Backup &amp; PITR
           </h2>
-          <p className="text-muted-foreground text-sm">Online backups and point-in-time restore (CONCEPT:EG-090).</p>
+          <p className="text-muted-foreground text-sm">Online backups and point-in-time restore (CONCEPT:MEDULLA-090).</p>
         </div>
         <BackupToolbar
           loading={backup.loading}

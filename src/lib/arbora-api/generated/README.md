@@ -10,7 +10,7 @@ exposes). `schema.ts` is generated from it with `pnpm run arbora:client:gen`
 ## Known limitation in this snapshot
 
 The curated ops (`agents.*`, `rlm.*`, `browser.*`, `fleet.*`) carry their real
-Pydantic-derived JSON schemas. The EG-bound generated ops (`eg.<domain>.<Method>`,
+Pydantic-derived JSON schemas. The Medulla-bound generated ops (`eg.<domain>.<Method>`,
 for example `identity.*`'s backing methods) carry a placeholder `{"type":
 "object"}` body in this snapshot: the arbora commit this was built from and
 the `epistemic-graph` checkout used to resolve `eg_schema` pointers were not
@@ -18,7 +18,7 @@ digest-pinned to each other, so `arbora.api.registry.digest.canonical_registry`'
 strict schema-pointer resolution failed for several methods (for example
 `Identity`) and had to be bypassed in favor of `arbora.api.http.openapi.document`,
 which degrades an unresolvable schema to a generic object instead of failing
-closed. Operation **ids and HTTP paths are real and authoritative**; EG-bound
+closed. Operation **ids and HTTP paths are real and authoritative**; Medulla-bound
 operation **field-level schemas are not** until regenerated from a
 digest-matched pair.
 

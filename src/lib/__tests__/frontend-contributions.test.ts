@@ -1,6 +1,6 @@
 /**
  * GOC-24 TCK (WebUI side): schema/hostile-payload proofs for
- * `frontend-contributions.ts`. Mirrors the AU-side fixtures in
+ * `frontend-contributions.ts`. Mirrors the Meristem-side fixtures in
  * `agent-utilities/tests/unit/core/test_frontend_providers.py` (same
  * conforming payload shape) so both sides of the contract agree on what
  * "conforming" and "non-conforming" mean.

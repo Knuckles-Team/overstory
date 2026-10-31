@@ -16,7 +16,7 @@ metadata:
 
 # kg-webui-extraction (surface)
 
-Documents the document→knowledge-graph fact-extraction UI (AU-ECO.connector.git-task-resolver;
+Documents the document→knowledge-graph fact-extraction UI (MERISTEM-ECO.connector.git-task-resolver;
 KG-2.64/2.65/2.66): submit a document, watch a GPU-slot job emit facts round by
 round over SSE, pause/resume it, and export the deduplicated facts.
 

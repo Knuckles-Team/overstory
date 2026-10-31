@@ -61,7 +61,7 @@ const REFRESH_MODES = ['event', 'poll', 'manual'] as const
 const ID_RE = /^[a-z][a-z0-9_.-]{0,127}$/
 const SCOPE_RE = /^[a-z][a-z0-9_.:-]{0,127}$/
 const DIGEST_RE = /^sha256:[0-9a-f]{64}$/
-/** Same reject-list as the AU-side scan (`frontend_providers.scan_unsafe_content`) --
+/** Same reject-list as the Meristem-side scan (`frontend_providers.scan_unsafe_content`) --
  * a second, independent check at the consumer boundary, never a substitute for it. */
 const UNSAFE_CONTENT_RE =
   /javascript:|data:text\/html|data:application\/|<script|<\/script|on[a-z]+\s*=\s*["']|vbscript:|<iframe|file:\/\//i
@@ -122,7 +122,7 @@ const provenanceSchema = z.strictObject({
  * The v1 descriptor shape, mirroring `FrontendContributionV1` in
  * `agent_utilities/core/frontend_providers.py` field for field. `.strictObject`
  * (zod's `extra=forbid` equivalent) rejects an unknown field exactly like the
- * AU-side Pydantic model -- this is a SECOND independent check, not a
+ * Meristem-side Pydantic model -- this is a SECOND independent check, not a
  * relaxed mirror of the first; a descriptor AU already rejected can never
  * reach this far (AU is the discovery authority), but a descriptor this
  * client fetches from an untrusted or stale catalog projection is
@@ -230,7 +230,7 @@ export type FrontendContributionCatalog = z.infer<typeof frontendContributionCat
  * caller could render as real state.
  */
 export async function fetchFrontendContributions(): Promise<FrontendContributionCatalog> {
-  // NOTE (GOC-24 gap, tracked in the AU-side handoff): this REST route does
+  // NOTE (GOC-24 gap, tracked in the Meristem-side handoff): this REST route does
   // not exist on the backend yet -- AU's discover_frontend_contributions()
   // has no REST/MCP twin in this lane (see
   // agent-utilities/docs/architecture/frontend-contributions.md, "What this
