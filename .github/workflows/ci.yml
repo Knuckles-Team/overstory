@@ -8,8 +8,8 @@ name: CI
 #   hooks             -- the shared Knuckles-Team/pipelines gates workflow: this
 #                        repo's .config/pre-commit.yaml at the commit and
 #                        pre-push stages (diff-scoped on a PR, every file on
-#                        main), including the spec hooks. A docs-only PR passes
-#                        in seconds (docs-only-paths).
+#                        main). A spec or docs only PR runs only the spec gate
+#                        set on the touched files (shared change-scope).
 #   tests             -- WebUI-specific: bootstrap, type check and lint, then
 #                        the pr-test-scope subset (PR) or the full suite (main).
 #   workspace-browser -- Playwright journeys; on a PR only when UI paths change.
@@ -99,8 +99,6 @@ jobs:
       # eslint-staged's coverage without a duplicate whole-repository pass.
       skip-hooks: okf-no-legacy-concepts,uv-lock,eslint-staged,no-fabrication-gate
       all-files: ${{ github.event_name != 'pull_request' }}
-      # Bash patterns (`*` crosses `/`); replaces the retired skip companion.
-      docs-only-paths: 'specs/* docs/* *.md plans/* LICENSE'
       timeout-minutes: ${{ github.event_name == 'pull_request' && 15 || 60 }}
 
   workspace-browser:
