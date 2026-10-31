@@ -18,7 +18,7 @@ the proof that closes it), and `status.json` (machine-readable delivery, accepta
 receipts). `status.json` carries a `requirements` array with one entry per requirement ID,
 each with its own `delivery_state` and evidence, in addition to the spec-level
 `delivery_state`/`acceptance_state`.
-Start from [`_template/`](_template/). Keep status and evidence explicit; a planned or tested item
+Start from the templates in `.specify/templates/`. Keep status and evidence explicit; a planned or tested item
 is not a landed item. Put durable evidence links in the spec directory, never local scratch output.
 This follows a specify/plan/tasks flow with an explicit test contract. The tracked [constitution](../.specify/memory/constitution.md) records this repository's governing principles.
 

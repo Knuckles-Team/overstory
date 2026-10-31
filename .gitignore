@@ -60,6 +60,7 @@ playwright/.auth/
 !/.specify/memory/
 /.specify/memory/*
 !/.specify/memory/constitution.md
+!/.specify/templates/
 /agent/.venv/
 /tsconfig.tsbuildinfo
 .env

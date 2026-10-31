@@ -271,7 +271,7 @@ def _contract_errors(root: Path, paths: set[Path]) -> list[str]:
         {
             path.parts[1]
             for path in paths
-            if len(path.parts) > 2 and path.parts[1] != "_template"
+            if len(path.parts) > 2
         }
     )
     for name in names:
@@ -315,12 +315,11 @@ def _link_error(root: Path, path: Path, target: str) -> str | None:
 def _reference_errors(root: Path, path: Path) -> list[str]:
     content = (root / path).read_text(encoding="utf-8")
     errors: list[str] = []
-    if "_template" not in path.parts:
-        errors.extend(
-            f"{path}: private or local reference ({pattern.pattern})"
-            for pattern in FORBIDDEN
-            if pattern.search(content)
-        )
+    errors.extend(
+        f"{path}: private or local reference ({pattern.pattern})"
+        for pattern in FORBIDDEN
+        if pattern.search(content)
+    )
     errors.extend(
         issue
         for target in LINK.findall(content)
