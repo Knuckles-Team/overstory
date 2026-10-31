@@ -11,8 +11,8 @@ RELEASE = (WORKFLOWS / 'release.yml').read_text(encoding='utf-8')
 
 
 class CiConcurrencyTests(unittest.TestCase):
-    def test_ci_cancels_stale_pull_request_and_main_runs(self) -> None:
-        self.assertIn('  cancel-in-progress: true', CI)
+    def test_ci_cancels_stale_pull_request_runs_but_never_main_runs(self) -> None:
+        self.assertIn("  cancel-in-progress: ${{ github.event_name == 'pull_request' }}", CI)
         self.assertIn("format('pr-{0}-{1}'", CI)
         self.assertIn("format('main-{0}-{1}'", CI)
 
