@@ -1,16 +1,25 @@
-# Decision evidence delivery
+# OVERSTORY-DECIDE — Implementation tasks
 
-**State legend:** SPECIFIED means design reviewed. BUILDING means an implementation branch exists. BUILT means exact source is merged. ACCEPTED means every acceptance gate has evidence. Current state: **SPECIFIED**. No acceptance receipt is asserted.
+Governing spec: [spec.md](spec.md). Design: [plan.md](plan.md). Rows: [requirements.md](requirements.md).
 
-- [ ] Inventory current decision UI and generated Arbora read methods on current main. Document the exact operation names here before implementation.
-- [ ] Add typed decision and evaluation adapters with validation, scoped cache keys and race cancellation.
-- [ ] Render selected/why-not/certificate/premises and calibration states using existing view and renderer components.
-- [ ] Add fixture, FastAPI/contract, rendered, browser tenant-isolation and accessibility tests from `test-spec.md`.
-- [ ] Run all specified quality/build gates on the exact implementation commit and fix attributable findings.
-- [ ] Record merged commit and CI/browser evidence, then independently review each requirement and change state to ACCEPTED only when complete.
+Each task line reads `- [ ] T001 [P] [US1] <ID>-R012.4 description`. The task number and the row ID are required.
+`[P]` marks a task that may run in parallel. `[US1]` names the user story. Order tasks producer first.
 
-No task above names a requirement ID individually; together they must close every ID in [requirements.md](requirements.md) — `OVERSTORY-DECIDE-R001`, `OVERSTORY-DECIDE-R002`, `OVERSTORY-DECIDE-R003`, `OVERSTORY-DECIDE-R004`, `OVERSTORY-DECIDE-R005`, `OVERSTORY-DECIDE-R006`, `OVERSTORY-DECIDE-R007`, `OVERSTORY-DECIDE-R008`.
+- [ ] T001 [US2] OVERSTORY-DECIDE-R001 Evaluation dashboard shows calibration and coverage.
+- [ ] T002 [US1] OVERSTORY-DECIDE-R002 Decision explorer surfaces premises, derivations and violations.
+- [ ] T003 [US1] OVERSTORY-DECIDE-R003 Decision explorer cites premises, derivations and certificate.
+- [x] T004 [US1] OVERSTORY-DECIDE-R004 Why-not explanations run on demand within a bounded budget.
+- [ ] T005 [US2] OVERSTORY-DECIDE-R005 Dashboard labels each evaluation field independently.
+- [ ] T006 [US2] OVERSTORY-DECIDE-R006 No coverage claim shown for inadequate evaluation data.
+- [ ] T007 [US2] OVERSTORY-DECIDE-R007 Tenant or purpose change invalidates cached decision queries.
+- [ ] T008 [US2] OVERSTORY-DECIDE-R008 Explanation views work without color, hover or pointer.
+- [ ] T009 [US3] OVERSTORY-DECIDE-R009 Proposal review view (rollup).
+- [ ] T010 [US3] OVERSTORY-DECIDE-R009.1 Typed kinds and evidence.
+- [ ] T011 [P] [US3] OVERSTORY-DECIDE-R009.2 Accept and reject land only as a pull request.
+- [ ] T012 [P] [US3] OVERSTORY-DECIDE-R009.3 Hot-path proof: reviewer decides a proposal.
+- [ ] T013 [US4] OVERSTORY-DECIDE-R010 Artifact graph view (rollup).
+- [ ] T014 [US4] OVERSTORY-DECIDE-R010.1 Render the answers of the served operations.
+- [ ] T015 [P] [US4] OVERSTORY-DECIDE-R010.2 Hot-path proof: follow a goal to its open tasks.
+- [ ] T016 [US4] OVERSTORY-DECIDE-R011 Project mode control.
 
-## Why-not on demand (OVERSTORY-DECIDE-R004)
-
-- [x] Add `DecisionsTransport.getWhyNotOnDemand` plus a bounded-budget request helper in `DecisionDetailPanel.tsx`. An abort past the caller's budget resolves `{ kind: 'timeout' }` instead of rejecting, and a server refusal resolves `{ kind: 'refused', reason }` — neither path mutates the rendered `DecisionRecord` (OVERSTORY-DECIDE-R004). Fixture-level success/timeout/refusal coverage: `src/components/decisions/__tests__/DecisionDetailPanel.test.tsx`. No production Arbora transport is wired up yet (see `decisions-transport.ts`'s file doc). Wiring one is future work.
+The why-not helper `getWhyNotOnDemand` resolves `timeout` or `refused` without changing the rendered record (`OVERSTORY-DECIDE-R004`). Fixture coverage is in `src/components/decisions/__tests__/DecisionDetailPanel.test.tsx`. No production arbora transport is wired yet.
