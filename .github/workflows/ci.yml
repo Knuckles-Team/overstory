@@ -262,10 +262,60 @@ jobs:
       - name: Route census architecture gate
         run: pnpm run gate:route-census
 
+      - name: Resolve the shared hook revision
+        id: hook-rev
+        run: |
+          set -euo pipefail
+          echo "sha=$(git ls-remote https://github.com/Knuckles-Team/pipelines refs/heads/main | cut -f1)" >> "$GITHUB_OUTPUT"
+
+      - name: Restore pre-commit environments
+        id: hook-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/pre-commit
+          key: pre-commit-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('.config/pre-commit.yaml') }}-${{ steps.hook-rev.outputs.sha }}
+          restore-keys: |
+            pre-commit-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('.config/pre-commit.yaml') }}-${{ steps.hook-rev.outputs.sha }}-partial-
+            pre-commit-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('.config/pre-commit.yaml') }}-
+
+      - name: Drop the stale shared-hook environment
+        if: steps.hook-cache.outputs.cache-matched-key != '' && !startsWith(steps.hook-cache.outputs.cache-matched-key, format('pre-commit-{0}-{1}-{2}-{3}', runner.os, runner.arch, hashFiles('.config/pre-commit.yaml'), steps.hook-rev.outputs.sha))
+        run: |
+          set -euo pipefail
+          db="$HOME/.cache/pre-commit/db.db"
+          [[ -f "$db" ]] || exit 0
+          python3 - "$db" <<'PY'
+          import shutil, sqlite3, sys
+          con = sqlite3.connect(sys.argv[1])
+          rows = con.execute("SELECT path FROM repos WHERE repo LIKE '%Knuckles-Team/pipelines%'").fetchall()
+          for (path,) in rows:
+              shutil.rmtree(path, ignore_errors=True)
+          con.execute("DELETE FROM repos WHERE repo LIKE '%Knuckles-Team/pipelines%'")
+          con.commit()
+          PY
+
+      - name: Install pre-commit environments
+        id: hook-install
+        run: |
+          set -euo pipefail
+          uvx pre-commit install-hooks --config .config/pre-commit.yaml
+
+      - name: Save pre-commit environments
+        if: success() && steps.hook-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/pre-commit
+          key: pre-commit-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('.config/pre-commit.yaml') }}-${{ steps.hook-rev.outputs.sha }}
+
+      - name: Save partly installed pre-commit environments
+        if: (failure() || cancelled()) && steps.hook-install.outcome != 'success' && steps.hook-install.outcome != 'skipped'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/pre-commit
+          key: pre-commit-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('.config/pre-commit.yaml') }}-${{ steps.hook-rev.outputs.sha }}-partial-${{ github.run_id }}-${{ github.run_attempt }}
+
       - name: Bootstrap-dependent hooks (siblings, lockfile, Node toolchain)
         timeout-minutes: 15
-        env:
-          PRE_COMMIT_HOME: ${{ runner.temp }}/pre-commit-${{ github.run_id }}-${{ github.run_attempt }}
         run: |
           set -euo pipefail
           for hook in okf-no-legacy-concepts; do
@@ -279,8 +329,6 @@ jobs:
 
       - name: Type check and full lint (manual-stage hooks, always full)
         timeout-minutes: 15
-        env:
-          PRE_COMMIT_HOME: ${{ runner.temp }}/pre-commit-${{ github.run_id }}-${{ github.run_attempt }}
         run: |
           set -euo pipefail
           uvx pre-commit run typecheck --config .config/pre-commit.yaml --hook-stage manual --all-files
