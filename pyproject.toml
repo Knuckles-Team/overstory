@@ -14,7 +14,7 @@ classifiers = [
     "Operating System :: POSIX :: Linux",
     "Programming Language :: Python :: 3", "Programming Language :: Python :: 3.12", "Programming Language :: Python :: 3.13", "Programming Language :: Python :: 3.14"]
 requires-python = ">=3.12"
-dependencies = [
+dependencies = [ "medulla>=3.0.0",
     # The in-run harness: only `meristem.core.paths` (XDG config/data dirs).
     "meristem>=5,<6",
     # Persistence privacy: `scion_sdk.privacy` scrubs values before the

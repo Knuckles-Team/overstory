@@ -2,7 +2,7 @@
 
 Data-only subpackage that contributes the ``kg-webui-*`` skills (graphviz,
 ontology-operator, admin, dashboards, extraction, swe) to the meristem hub via
-the ``meristem.skill_providers`` entry-point, exactly like ``epistemic_graph.skills``
+the ``meristem.skill_providers`` entry-point, exactly like ``medulla.skills``
 and each ``agents/*`` connector. Carries no runtime imports — the hub resolves this
 package's directory through ``importlib.resources`` and reads the ``SKILL.md`` files;
 it never executes webui business logic.
