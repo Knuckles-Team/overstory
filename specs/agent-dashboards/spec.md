@@ -21,6 +21,58 @@ Search: `git grep -n -i "dashboard" -- specs` finds no WebUI row for user-built 
 - Does not own queries or storage. Arbora serves queries and saves. EG stores. The WebUI never reaches a source directly.
 - Does not own the arbora dashboard operations. Those rows live in the arbora specs.
 
+## User scenarios and testing
+
+### User Story 1 - Build a dashboard by hand (Priority: P1)
+
+A person creates a dashboard, adds panels from graph queries and arranges them, so that a business question has one saved view.
+
+**Acceptance scenarios**
+
+1. Given an empty dashboard, When the person adds a table panel with a valid query, Then the panel shows the returned rows and the revision rises by 1.
+2. Given a failing query, When the panel loads, Then the error shows inside that panel and the other panels keep working.
+3. Given keyboard-only use, When the person adds, moves and removes a panel, Then every control is reachable and works.
+
+### User Story 2 - Build with the chat agent (Priority: P1)
+
+The chat agent edits the same dashboard through the page tools, and the person sees and controls every change.
+
+**Acceptance scenarios**
+
+1. Given the dashboards page is open, When the agent adds a panel, Then the activity log shows an entry tagged agent and the person can undo it.
+2. Given an agent request to remove a panel, When the person denies it or the request times out, Then the dashboard stays unchanged.
+
+### User Story 3 - Save and share (Priority: P2)
+
+A person saves a dashboard to the catalog and grants a colleague reader or editor access.
+
+**Acceptance scenarios**
+
+1. Given a saved dashboard, When another editor saved a newer revision, Then the save reports a conflict and does not overwrite.
+2. Given a reader, When the page loads, Then no edit control shows and the edit tools refuse.
+
+### User Story 4 - Browse the catalog (Priority: P3)
+
+A person browses and searches connector assets, glossary terms, lineage, owners, workflows and dashboards.
+
+**Acceptance scenarios**
+
+1. Given a search term, When the person submits it, Then matching catalog entries list with their kind and owner.
+
+## Edge Cases
+
+- A missing arbora operation shows an unavailable state, never an empty chart.
+- A storage failure keeps the in-memory dashboard and says the save did not happen.
+- A query returns more than 500 rows; the panel shows the first 500 and says so.
+- A parameter value fails its type check; the panel shows the validation error.
+- A dashboard holds the maximum of 24 panels; adding another refuses.
+
+## Assumptions
+
+- Arbora serves the dashboard and catalog operations named in the related rows.
+- The local store is a transitional save path until the arbora store lands.
+- Tool results stay under 1,500 bytes so the chat context stays small.
+
 ## Requirements
 
 | ID | Observable requirement | Related IDs |
