@@ -136,7 +136,9 @@ These cases require the real browser route, WebUI host, registered Arbora operat
 | `OVERSTORY-APPS-R001.6.4` | `e2e/bookmark-knowledge-views-served.spec.ts::test_refusal` (planned)                    | Denied nodes, stale cursors and unavailable semantic indexes reveal no hidden counts or relationships. Never fetch embedded URLs or run imported instructions. Exports must not widen the selected scope.                                                                                                                                                    |
 | `OVERSTORY-APPS-R001.6.5` | `e2e/bookmark-knowledge-views-served.spec.ts::test_evidence` (planned)                   | Bind search, mindmap and exports to one query/snapshot revision, source provenance, format version and content digest. Preserve unknown metadata and escape CSV formula-like cells safely.                                                                                                                                                                   |
 | `OVERSTORY-APPS-R001.6.6` | `e2e/bookmark-knowledge-views-served.spec.ts::test_served_acceptance` (planned)          | Import bookmarks through SDK R005.7–.12, then use real browser semantic filtering, mindmap and CSV/JSON export. Independently compare stored records and downloaded bytes; deny one bookmark and prove exclusion everywhere.                                                                                                                                 |
-| `OVERSTORY-APPS-R001.7.1` | `e2e/sandboxed-design-artifacts-served.spec.ts::test_model` (planned)                    | Consume host-discovered executable identities and capabilities, EG-admitted skill sequence and immutable generated artifact references. Bind artifacts to execution, skill and source revisions.                                                                                                                                                             |
+| `OVERSTORY-APPS-R004.9.1` | `e2e/evolution-projection-dashboard-served.spec.ts::test_model` (planned) | Consume Medulla-owned proposal identity and progress state. Measured run metrics remain separate from calibration/coverage. |
+| `OVERSTORY-APPS-R037.1` | `e2e/design-agent-discovery-served.spec.ts::test_model` (planned) | Host discovered executor identity. Medulla-admitted skill sequence and artifact reference. |
+| `OVERSTORY-APPS-R001.7.1` | `e2e/sandboxed-design-artifacts-served.spec.ts::test_model` (planned)                    | Consume host-discovered executable identities and capabilities, Medulla-admitted skill sequence and immutable generated artifact references. Bind artifacts to execution, skill and source revisions.                                                                                                                                                             |
 | `OVERSTORY-APPS-R001.7.2` | `e2e/sandboxed-design-artifacts-served.spec.ts::test_behavior` (planned)                 | Let the user select available coding-agent capabilities for a design flow and inspect skill-transformation progress. Render the resulting artifact only through the existing sandboxed frame.                                                                                                                                                                |
 | `OVERSTORY-APPS-R001.7.3` | `e2e/sandboxed-design-artifacts-served.spec.ts::test_wiring` (planned)                   | Reuse src/components/mcp/McpAppFrame.tsx and McpAppHost.tsx. Arbora discovers PATH executables and hosts effects; EG selects composition; AU runs admitted skills. The browser never probes PATH or chooses policy.                                                                                                                                          |
 | `OVERSTORY-APPS-R001.7.4` | `e2e/sandboxed-design-artifacts-served.spec.ts::test_refusal` (planned)                  | Unavailable executables or refused transformations produce no success preview. Validate artifact digest, origin and message schema. Block parent DOM, credential access, popups and unauthorized network/navigation.                                                                                                                                         |
@@ -743,3 +745,60 @@ must refuse. Change it after successful admission: the child must retain its
 accepted snapshot. A later source append or independent active run must not
 cancel, retarget or alter that child. Missing legacy ordering stays unavailable;
 mutable parent storage alone is not a reason to require a new EG API.
+
+## Display identity and identifier stability
+
+- `OVERSTORY-APPS-R043`: browser tests keep the existing consent and storage keys valid across the display rebrand.
+- `OVERSTORY-APPS-R002`: rendered tests check page titles, metadata, manifest names and primary labels.
+- `OVERSTORY-APPS-R003`: build and packaging tests check that repository, package and runtime identifiers are unchanged.
+
+## Rows awaiting bound tests
+
+- `OVERSTORY-APPS-R042`: planned proof — A first-consumer integration test confirms Markets runs through the shared contract alone. Test: `src/lib/apps/__tests__/apps.test.ts::AppSurface contract`.
+- `OVERSTORY-APPS-R044`: planned proof — An end-to-end accessibility test suite confirms these interaction modes and states. Test: `e2e/accessibility.spec.ts::keyboard, focus, descriptions and layout at ${width}px (${theme})`.
+- `OVERSTORY-APPS-R004.9.2`: planned proof — Planned `e2e/evolution-projection-dashboard-served.spec.ts::test_behavior`; the owning contract in plan.md and test-spec.md defines the served proof.
+- `OVERSTORY-APPS-R004.9.3`: planned proof — Planned `e2e/evolution-projection-dashboard-served.spec.ts::test_wiring`; the owning contract in plan.md and test-spec.md defines the served proof.
+- `OVERSTORY-APPS-R004.9.4`: planned proof — Planned `e2e/evolution-projection-dashboard-served.spec.ts::test_refusal`; the owning contract in plan.md and test-spec.md defines the served proof.
+- `OVERSTORY-APPS-R004.9.5`: planned proof — Planned `e2e/evolution-projection-dashboard-served.spec.ts::test_evidence`; the owning contract in plan.md and test-spec.md defines the served proof.
+- `OVERSTORY-APPS-R004.9.6`: planned proof — Planned `e2e/evolution-projection-dashboard-served.spec.ts::test_served_acceptance`; the owning contract in plan.md and test-spec.md defines the served proof.
+- `OVERSTORY-APPS-R030.9.1`: planned proof — Planned `e2e/graph-changes-stream-served.spec.ts::test_model`; the owning contract in plan.md and test-spec.md defines the served proof.
+- `OVERSTORY-APPS-R030.9.2`: planned proof — Planned `e2e/graph-changes-stream-served.spec.ts::test_behavior`; the owning contract in plan.md and test-spec.md defines the served proof.
+- `OVERSTORY-APPS-R030.9.3`: planned proof — Planned `e2e/graph-changes-stream-served.spec.ts::test_wiring`; the owning contract in plan.md and test-spec.md defines the served proof.
+- `OVERSTORY-APPS-R030.9.4`: planned proof — Planned `e2e/graph-changes-stream-served.spec.ts::test_refusal`; the owning contract in plan.md and test-spec.md defines the served proof.
+- `OVERSTORY-APPS-R030.9.5`: planned proof — Planned `e2e/graph-changes-stream-served.spec.ts::test_evidence`; the owning contract in plan.md and test-spec.md defines the served proof.
+- `OVERSTORY-APPS-R030.9.6`: planned proof — Planned `e2e/graph-changes-stream-served.spec.ts::test_served_acceptance`; the owning contract in plan.md and test-spec.md defines the served proof.
+- `OVERSTORY-APPS-R032.1`: planned proof — Planned `e2e/evolution-dashboard-served.spec.ts::test_model`; the owning contract in plan.md and test-spec.md defines the served proof.
+- `OVERSTORY-APPS-R032.2`: planned proof — Planned `e2e/evolution-dashboard-served.spec.ts::test_behavior`; the owning contract in plan.md and test-spec.md defines the served proof.
+- `OVERSTORY-APPS-R032.3`: planned proof — Planned `e2e/evolution-dashboard-served.spec.ts::test_wiring`; the owning contract in plan.md and test-spec.md defines the served proof.
+- `OVERSTORY-APPS-R032.4`: planned proof — Planned `e2e/evolution-dashboard-served.spec.ts::test_refusal`; the owning contract in plan.md and test-spec.md defines the served proof.
+- `OVERSTORY-APPS-R032.5`: planned proof — Planned `e2e/evolution-dashboard-served.spec.ts::test_evidence`; the owning contract in plan.md and test-spec.md defines the served proof.
+- `OVERSTORY-APPS-R032.6`: planned proof — Planned `e2e/evolution-dashboard-served.spec.ts::test_served_acceptance`; the owning contract in plan.md and test-spec.md defines the served proof.
+- `OVERSTORY-APPS-R033.1`: planned proof — Planned `e2e/large-chart-binning-served.spec.ts::test_model`; the owning contract in plan.md and test-spec.md defines the served proof.
+- `OVERSTORY-APPS-R033.2`: planned proof — Planned `e2e/large-chart-binning-served.spec.ts::test_behavior`; the owning contract in plan.md and test-spec.md defines the served proof.
+- `OVERSTORY-APPS-R033.3`: planned proof — Planned `e2e/large-chart-binning-served.spec.ts::test_wiring`; the owning contract in plan.md and test-spec.md defines the served proof.
+- `OVERSTORY-APPS-R033.4`: planned proof — Planned `e2e/large-chart-binning-served.spec.ts::test_refusal`; the owning contract in plan.md and test-spec.md defines the served proof.
+- `OVERSTORY-APPS-R033.5`: planned proof — Planned `e2e/large-chart-binning-served.spec.ts::test_evidence`; the owning contract in plan.md and test-spec.md defines the served proof.
+- `OVERSTORY-APPS-R033.6`: planned proof — Planned `e2e/large-chart-binning-served.spec.ts::test_served_acceptance`; the owning contract in plan.md and test-spec.md defines the served proof.
+- `OVERSTORY-APPS-R034.1`: planned proof — Planned `e2e/editor-compatibility-served.spec.ts::test_model`; the owning contract in plan.md and test-spec.md defines the served proof.
+- `OVERSTORY-APPS-R034.2`: planned proof — Planned `e2e/editor-compatibility-served.spec.ts::test_behavior`; the owning contract in plan.md and test-spec.md defines the served proof.
+- `OVERSTORY-APPS-R034.3`: planned proof — Planned `e2e/editor-compatibility-served.spec.ts::test_wiring`; the owning contract in plan.md and test-spec.md defines the served proof.
+- `OVERSTORY-APPS-R034.4`: planned proof — Planned `e2e/editor-compatibility-served.spec.ts::test_refusal`; the owning contract in plan.md and test-spec.md defines the served proof.
+- `OVERSTORY-APPS-R034.5`: planned proof — Planned `e2e/editor-compatibility-served.spec.ts::test_evidence`; the owning contract in plan.md and test-spec.md defines the served proof.
+- `OVERSTORY-APPS-R034.6`: planned proof — Planned `e2e/editor-compatibility-served.spec.ts::test_served_acceptance`; the owning contract in plan.md and test-spec.md defines the served proof.
+- `OVERSTORY-APPS-R035.1`: planned proof — Planned `e2e/meeting-transcript-summary-served.spec.ts::test_model`; the owning contract in plan.md and test-spec.md defines the served proof.
+- `OVERSTORY-APPS-R035.2`: planned proof — Planned `e2e/meeting-transcript-summary-served.spec.ts::test_behavior`; the owning contract in plan.md and test-spec.md defines the served proof.
+- `OVERSTORY-APPS-R035.3`: planned proof — Planned `e2e/meeting-transcript-summary-served.spec.ts::test_wiring`; the owning contract in plan.md and test-spec.md defines the served proof.
+- `OVERSTORY-APPS-R035.4`: planned proof — Planned `e2e/meeting-transcript-summary-served.spec.ts::test_refusal`; the owning contract in plan.md and test-spec.md defines the served proof.
+- `OVERSTORY-APPS-R035.5`: planned proof — Planned `e2e/meeting-transcript-summary-served.spec.ts::test_evidence`; the owning contract in plan.md and test-spec.md defines the served proof.
+- `OVERSTORY-APPS-R035.6`: planned proof — Planned `e2e/meeting-transcript-summary-served.spec.ts::test_served_acceptance`; the owning contract in plan.md and test-spec.md defines the served proof.
+- `OVERSTORY-APPS-R036.1`: planned proof — Planned `e2e/bookmark-search-export-served.spec.ts::test_model`; the owning contract in plan.md and test-spec.md defines the served proof.
+- `OVERSTORY-APPS-R036.2`: planned proof — Planned `e2e/bookmark-search-export-served.spec.ts::test_behavior`; the owning contract in plan.md and test-spec.md defines the served proof.
+- `OVERSTORY-APPS-R036.3`: planned proof — Planned `e2e/bookmark-search-export-served.spec.ts::test_wiring`; the owning contract in plan.md and test-spec.md defines the served proof.
+- `OVERSTORY-APPS-R036.4`: planned proof — Planned `e2e/bookmark-search-export-served.spec.ts::test_refusal`; the owning contract in plan.md and test-spec.md defines the served proof.
+- `OVERSTORY-APPS-R036.5`: planned proof — Planned `e2e/bookmark-search-export-served.spec.ts::test_evidence`; the owning contract in plan.md and test-spec.md defines the served proof.
+- `OVERSTORY-APPS-R036.6`: planned proof — Planned `e2e/bookmark-search-export-served.spec.ts::test_served_acceptance`; the owning contract in plan.md and test-spec.md defines the served proof.
+- `OVERSTORY-APPS-R037.2`: planned proof — Planned `e2e/design-agent-discovery-served.spec.ts::test_behavior`; the owning contract in plan.md and test-spec.md defines the served proof.
+- `OVERSTORY-APPS-R037.3`: planned proof — Planned `e2e/design-agent-discovery-served.spec.ts::test_wiring`; the owning contract in plan.md and test-spec.md defines the served proof.
+- `OVERSTORY-APPS-R037.4`: planned proof — Planned `e2e/design-agent-discovery-served.spec.ts::test_refusal`; the owning contract in plan.md and test-spec.md defines the served proof.
+- `OVERSTORY-APPS-R037.5`: planned proof — Planned `e2e/design-agent-discovery-served.spec.ts::test_evidence`; the owning contract in plan.md and test-spec.md defines the served proof.
+- `OVERSTORY-APPS-R037.6`: planned proof — Planned `e2e/design-agent-discovery-served.spec.ts::test_served_acceptance`; the owning contract in plan.md and test-spec.md defines the served proof.
