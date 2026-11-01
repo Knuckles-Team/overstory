@@ -387,3 +387,16 @@ Verify that mounting does not persist a default or overwrite any valid choice.
 Default animation remains capped at 12 FPS; reductions and constrained resources remain static.
 Keep hidden/offscreen cleanup, opaque/forced-color hiding and renderer fallback coverage.
 The original glass golden explicitly selects Off and Canopy; new-default captures receive separate visual review.
+
+## Planned tests
+
+These tests do not exist yet. Each row keeps its cited name until the test lands.
+
+| Test | Requirement | Level and setup | Expected observation |
+|---|---|---|---|
+| `e2e/strict-style-policy.spec.ts::strict_style_policy` | OVERSTORY-DESIGN-R008 | Built bundle served by `SecurityHeadersMiddleware` in headless Chromium; open a dialog, a select and a toast | No `securitypolicyviolation` event for `font-src` or `style-src-elem`. |
+| `e2e/workspace-density.spec.ts::remaining_surface_density` | OVERSTORY-DESIGN-R002.1.2 | Graph, editor, run, administration and authentication surfaces at the declared viewport matrix | Useful panes, readable text and no clipped content. |
+| `e2e/responsive-route-matrix.spec.ts::responsive_route_matrix` | OVERSTORY-DESIGN-R004.1.2 | Cases generated from `ROUTES` and the route census at 320 px, narrow, short landscape, 4:3, 16:9 and 32:9 | Every route and action is reachable without whole-page horizontal overflow. |
+| `e2e/workspace-viewport.browser.ts::resize_device_continuity` | OVERSTORY-DESIGN-R004.2.2 | Resize, fold, keyboard and 200-percent zoom during stream and graph journeys | Draft, selection, history, progress and focus survive. |
+| `src/components/workspace/__tests__/WorkspaceWallpaper.test.tsx::wallpaper_evidence` | OVERSTORY-DESIGN-R005.3.2 | Evidence fixtures: missing, unknown, stale, duplicate, unrelated and out of order | Static scenery stays; no work or topology is invented. |
+| `e2e/performance-budget.spec.ts::performance_budget` | OVERSTORY-DESIGN-R010 | Declared reference device, network and fixture cardinality | INP, LCP, CLS and frame times stay inside the declared budgets. |
