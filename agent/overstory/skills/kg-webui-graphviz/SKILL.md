@@ -10,7 +10,7 @@ license: MIT
 tags: [arbora, webui, visualization, graph, vertex, code-graph]
 tier: surface
 metadata:
-  author: Overstory
+  author: Knuckles-Team
   version: '0.1.0'
 ---
 

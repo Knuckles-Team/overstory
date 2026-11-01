@@ -10,7 +10,7 @@ license: MIT
 tags: [arbora, webui, extraction, facts, documents, entities]
 tier: surface
 metadata:
-  author: Overstory
+  author: Knuckles-Team
   version: '0.1.0'
 ---
 
