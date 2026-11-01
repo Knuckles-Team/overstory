@@ -82,4 +82,3 @@ OVERSTORY-API-R011.1: test_import_preserves_disabled_host_or_routes_enabled_cons
 | `OVERSTORY-API-R008.4` | `src/lib/arbora-api/__tests__/ontology.test.ts::rejects a malformed class result before any view can render it` | Object-set reads reject malformed results. |
 | `OVERSTORY-API-R009` | `src/lib/arbora-api/__tests__/route-census-lint.test.ts::covers every current enhanced host route with a validated row` | Every migrated family has a census row. |
 | `OVERSTORY-API-R010` | `src/lib/arbora-api/__tests__/route-census-lint.test.ts::rejects a newly introduced domain route until it is inventoried` | No unlisted domain route remains. |
-

@@ -10,7 +10,7 @@ license: MIT
 tags: [arbora, webui, extraction, facts, documents, entities]
 tier: surface
 metadata:
-  author: Genius
+  author: Overstory
   version: '0.1.0'
 ---
 
