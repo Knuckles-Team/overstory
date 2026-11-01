@@ -12,7 +12,7 @@ license: MIT
 tags: [arbora, webui, development, build, test, gates, routing]
 tier: repository
 metadata:
-  author: Genius
+  author: Overstory
   version: '0.1.0'
 ---
 

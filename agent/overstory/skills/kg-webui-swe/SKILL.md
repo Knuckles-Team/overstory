@@ -10,7 +10,7 @@ license: MIT
 tags: [arbora, webui, swe, code, workspace, provenance, swe-bench]
 tier: surface
 metadata:
-  author: Genius
+  author: Overstory
   version: '0.1.0'
 ---
 

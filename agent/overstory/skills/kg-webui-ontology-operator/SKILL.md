@@ -11,7 +11,7 @@ license: MIT
 tags: [arbora, webui, ontology, object-set, actions, operator]
 tier: surface
 metadata:
-  author: Genius
+  author: Overstory
   version: '0.1.0'
 ---
 
