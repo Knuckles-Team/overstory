@@ -1,22 +1,75 @@
-# Design-system architecture
+# OVERSTORY-DESIGN — Implementation plan
 
-## Reuse
+Governing spec: [spec.md](spec.md). Rows: [requirements.md](requirements.md).
+
+## Summary
+
+One documented set of tokens, responsive patterns and interaction states serves every browser surface. The live caller is `App` (src/App.tsx:375) wrapping each route in `WorkspaceFrame`. The reuse candidates are the `src/components/ui/` primitives, the `src/index.css` tokens, `ThemeProvider` and `WorkspaceWallpaper`; no new theme API or renderer is added.
+
+## Technical Context
+
+- **Language/Version**: TypeScript with React (Node per package.json); Python 3.14 for the server in agent/overstory
+- **Primary Dependencies**: React, Radix UI primitives, Tailwind, Vite, Vitest, Playwright; FastAPI on the server side
+- **Storage**: N/A (browser preferences in local storage only)
+- **Testing**: Vitest with jsdom (`pnpm test`), Playwright (`pnpm test:e2e`), pytest for the server; coverage thresholds 90 lines, 90 functions, 85 branches
+- **Target Platform**: Phone, tablet and desktop browsers
+- **Project Type**: web application
+- **Performance Goals**: p75 INP at most 200 ms, LCP at most 2.5 s, CLS at most 0.1 (row OVERSTORY-DESIGN-R010)
+- **Constraints**: Same-origin fonts and strict style policy, WCAG 2.2 AA contrast, no unsolicited telemetry, no duplicate primitives
+- **Scale/Scope**: 21 active rows over src/index.css, src/components/ui and src/components/workspace
+
+## Constitution Check
+
+- I One owner per concept: pass. Each row names one owning module.
+- II Extend before you create: pass. Each `Shape:` sentence names the helper to reuse.
+- XXIV Complete rows: pass. Every active row holds a caller chain, a shape and a test reference.
+- XI Code stays small: pass. The Build contract lists the complexity and size limits.
+- XXI Public files stay portable: pass. The spec holds no host data.
+- R-I The browser shows; arbora decides: pass. Data access goes through the arbora client.
+- R-II No fabricated data in the interface: pass. Views show served data or an honest state.
+
+## Project Structure
+
+Existing paths this spec owns:
+
+```text
+src/index.css                              existing  tokens, fonts, focus, reduced motion
+src/components/ui/                         existing  primitives and their audits
+src/components/theme-provider.tsx          existing  theme, motion and wallpaper preferences
+src/components/workspace/                  existing  frame, map, viewport, wallpaper, appearance
+src/lib/csp-nonce.ts                       existing  runtime style nonce
+agent/overstory/server.py                  existing  SecurityHeadersMiddleware
+e2e/                                       existing  browser journeys; gains the planned cases
+docs/design-system.md                      existing  token documentation
+```
+
+## Phase 0: Research
+
+No unknowns. The caller chain, shape and test of every row come from the current code, so this spec adds no research.md.
+
+## Phase 1: Design
+
+The design system reuses the shipped tokens and primitives. The sections below keep the existing design notes and evidence rules.
+
+### Design-system architecture
+
+### Reuse
 
 `src/index.css` defines theme tokens. `src/components/ui/` supplies primitives; `src/lib/nav-registry.ts` supplies navigation; `src/components/atlas/` and `src/Chat.tsx` are the first journey surfaces. Reuse their actual components rather than cloning a button, dialog, filter, tooltip or renderer. Keep interaction rules in a concise local design contract and examples in tests/stories. The design contract defines focus ring, control label, touch target, contrast, responsive breakpoint behavior, reduced-motion replacement and status-language conventions. It should describe the visible behavior rather than prescribe a new framework.
 
-## Interaction model
+### Interaction model
 
 Inputs and actions expose name, role, state and error association. Dynamic results announce concise status through a live region without announcing entire datasets. A dialog receives focus on open and restores it on close. Destructive actions use a confirmation step bound to the selected object. Filter clauses use index/field/operator information in their labels. Keyboard interaction never depends on hidden hover controls. Touch gestures have visible buttons. A progress state has a cancel affordance only if cancellation is safe. Motion is removed or shortened under reduced-motion while state changes remain legible.
 
-## Review evidence
+### Review evidence
 
 Create synthetic chat, Atlas and operational-form fixtures. Cover viewport widths 320, 375, 768 and 1440px, with light/dark and reduced-motion variants. Commit small baseline/after screenshots only if the repository's artifact policy permits. Otherwise publish CI artifacts and record URLs/digests in `tasks.md`. No screenshot may contain real tenant, personal or secret data. Assess contrast and accessible names automatically, then perform keyboard and screen-reader manual review with a short result record. Check copied patterns and external text against licensing before adoption; do not add a telemetry network call.
 
-## Fresh checkout
+### Fresh checkout
 
 Run `pnpm install --frozen-lockfile`, `uv venv --python 3.12`, `uv pip install -e '.[test]'`; browser tests start local host/API fixtures. Existing `pnpm run dev` and `dev:server` support exploratory review. All required evidence is generated from the checkout and CI fixtures, independent of a shared deployment.
 
-## Free-scaling workspace design
+### Free-scaling workspace design
 
 OVERSTORY-DESIGN-R002.1/R004.1/R004.2/R005.1/R010 extend the current token, accessibility and responsive owners. A single focused pane on small screens retains persistent context and a visible pane switcher. Larger screens progressively add related panes. Container/visual viewport constraints, content size and pointer capability determine layout, not a whitelist of device names. Test representative CSS dimensions and generated intermediate sizes; do not invent Galaxy Fold hardware specifications. Internal wide-data regions are labelled and keyboard-scrollable. Every editor, chart, admin action and leaf remains reachable.
 
@@ -24,11 +77,11 @@ Prefer compact native DOM controls and the existing primitives. Coarse-pointer 4
 
 Reuse table virtualization, graph worker layout and LOD transport rather than adding a second renderer/data pipeline. Cancel superseded requests, bound streams and caches, preserve focus during virtualization and supply readable table/list alternatives to visual graphs. Acceptance reports fixture cardinality, browser/device, network, cold/warm state and measurement method. A failed budget remains open even if screenshots look good. Representative mobile and desktop journeys, not a single fast developer machine, determine release qualification.
 
-## Consolidated workspace acceptance
+### Consolidated workspace acceptance
 
 OVERSTORY-APPS-R049.1/R049.2 define three primary contexts instead of page-per-feature navigation. Density and responsiveness must serve that redesigned composition. Preserving an old standalone page under a compact rail is not visual acceptance. Reuse accessible domain widgets inside the new context surfaces. Record task navigation and scrolling outcomes alongside performance, focus and viewport evidence.
 
-## Loaded workspace branch navigation
+### Loaded workspace branch navigation
 
 Extend the existing command catalog for partial OVERSTORY-DESIGN-R005.1 and
 OVERSTORY-APPS-R046.2.2 delivery. Branches and the flat searchable list consume the
@@ -47,7 +100,7 @@ at normal scale. Resizing must keep a retained focused leaf reachable. Pinch zoo
 does not reflow the workspace or force focus scrolling. Keyboard occlusion tests
 using an overridden viewport height remain simulated evidence.
 
-## Persistent loaded workspace frame
+### Persistent loaded workspace frame
 
 Extend the existing workspace requirements without new decomposition. Keep the
 three-context rail and task surfaces. Add a persistent map/list of loaded
@@ -58,7 +111,7 @@ and all existing controls during viewport changes. Narrow layouts stack the map
 and task surface with explicit focus controls. This bounded shell does not
 migrate legacy pages or prove all dynamic leaves and installed providers.
 
-## Canopy Glass workspace continuation — 2026-10-24
+### Canopy Glass workspace continuation
 
 OVERSTORY-DESIGN-R002.1.1/R004.1.1/R005.2 extend the existing token, responsive
 and motion owners. OVERSTORY-APPS-R049.2.1 owns the bounded shared-shell and
@@ -99,7 +152,7 @@ Unsupported blur, reduced transparency, opaque preference and forced colors reta
 the same text, states and controls. No moving wallpaper, perpetual shimmer,
 ornamental graph activity, fake progress or idle animation loop.
 
-### Rollout and acceptance boundary
+#### Rollout and acceptance boundary
 
 First qualify the shared shell and existing Explore search → selection →
 properties/relationships/history → collection journey. Reuse actual returned
@@ -117,7 +170,7 @@ worker, cancellation, bounded-cache and idle-memory work open until proved. A
 bounded screenshot or mounted test neither establishes field percentiles nor
 accepts performance, all-route mobile parity or manual accessibility.
 
-## Glass theme transitions
+### Glass theme transitions
 
 The existing OVERSTORY-DESIGN-R002 token owner includes the glass palette in `src/index.css`.
 `ThemeProvider` must select one theme class and retire the previous palette when the user changes themes.
@@ -125,7 +178,7 @@ The provider must preserve unrelated root classes and resolve system selection f
 Mounted transition tests cover repeated glass-to-light, glass-to-dark and glass-to-system changes.
 These tests do not establish native task contrast or explain the reported glass screenshot defect.
 
-## Command palette cancellation focus
+### Command palette cancellation focus
 
 Under OVERSTORY-DESIGN-R005.1, capture the actual focused opener when the modal opens.
 On cancellation, restore a connected, visible, enabled opener or the visible command trigger.
@@ -133,7 +186,7 @@ The expanded header keeps the command trigger reachable through reflow.
 If an opener is removed, choose a connected, visible fallback without opening a utility disclosure.
 Native selection and URL navigation retain destination-owned focus rather than restoring stale context.
 
-## Documentation screenshot refresh — 2026-10-24
+### Documentation screenshot refresh
 
 OVERSTORY-DESIGN-R011 owns repeatable visual documentation of the workspace.
 Capture the actual Work, Explore and Operate routes at existing narrow and wide sizes.
@@ -145,7 +198,7 @@ A read-only CI job publishes review artifacts, never repository writes.
 Human review precedes committing refreshed images. The six documentation views
 are not full responsive, provider, accessibility or design-system acceptance.
 
-## Hosted Canopy feedback — 2026-10-24
+### Hosted Canopy feedback
 
 R004.1.1 preserves a useful task region after narrow reflow: only the automatic
 wide-screen map default collapses at narrow widths. Explicit Map/Focus map choices
@@ -159,7 +212,7 @@ light for either stored value, not two identical palette choices. Keep the exist
 independent Glass framing/Opaque framing material control.
 Assert effective classes, surface transparency and motion preferences in browsers.
 
-### Work diagram scrollport integration
+#### Work diagram scrollport integration
 
 R004.1.1 must reveal an entire focused diagram scrollport. The expanded header
 exposed clipping in the legacy equal-row Work composition. Size containment on
@@ -170,7 +223,7 @@ embeddings. Keep internal pan, the equivalent dependency list and outer
 workspace scrolling when content exceeds the screen. This is a bounded
 integration correction, not native-chat composition acceptance.
 
-### Forced-color selection readability
+#### Forced-color selection readability
 
 R002.1.1 must preserve readable selected labels under forced colors. Hosted pixels
 exposed white text backplates over selected navigation labels. Use system Canvas
@@ -179,7 +232,7 @@ to mark selection. Keep automatic forced-color adjustment and recapture both
 light and dark system palettes. Computed contrast alone cannot detect backplate
 painting defects; actual screenshot review remains required.
 
-### Work focus clearance correction (2026-10-24)
+#### Work focus clearance correction
 
 Hosted geometry isolated the remaining graph clipping to false launcher clearance.
 Work already places chat in flow, but inherited a six-rem bottom scroll inset.
@@ -196,7 +249,7 @@ Original wide and narrow whole-card visibility checks remain unchanged.
 All viewport cases must expose every details field through keyboard scrolling.
 Oversized low-height and enlarged-text cards require complete reachability, not simultaneous visibility.
 
-### Retain the full viewport continuity obligation
+#### Retain the full viewport continuity obligation
 
 R004.2 now separates bounded source continuity from complete device and surface acceptance.
 R004.2.1 owns the retained implementation and current workspace tests.
@@ -204,7 +257,7 @@ R004.2.2 preserves every unfulfilled parent criterion, including native keyboard
 The canonical generator must leave R004.2 and its responsive ancestor open while that child is unspecified by implementation.
 Preserve every acceptance criterion. Regenerate status with the canonical tool.
 
-### Acceptance rollup correction — 2026-10-24
+#### Acceptance rollup correction
 
 The source-delivery children did not exhaust their original parent acceptance criteria.
 Explicit retained-acceptance children now preserve those obligations in canonical generated rollups.
@@ -212,7 +265,7 @@ Parent requirement text and qualified child evidence remain unchanged.
 Regenerate every spec status and audit ancestor states after source and receipt commits.
 The metadata regression must not create feature-acceptance bindings for retained work.
 
-## Reference-matched Liquid Glass correction — 2026-10-25
+### Reference-matched Liquid Glass correction
 
 R002.1.1/R004.1.1/R005.2 retain their existing owners. The earlier 92 percent
 chrome opacity and solid primary panels did not produce the intended material.
@@ -227,14 +280,14 @@ and a separate reduced-motion fixture. Source tests or mockups alone cannot
 accept visual fidelity. Opaque, unsupported-blur, reduced-transparency and forced
 colors retain readable surfaces and all controls. No backend authority changes.
 
-## Context-aware wallpaper amendment — 2026-10-25
+### Context-aware wallpaper amendment
 
 The browser owns scene presentation, not orchestration, connector state or processing-load inference.
 R005.3/R005.4/R005.5 extend the existing motion owner; R010 retains the complete performance obligation.
 Existing qualified source criteria and receipts remain unchanged.
 The current conversation-first release does not depend on this amendment.
 
-### Reuse and wiring
+#### Reuse and wiring
 
 The live path starts at `src/App.tsx:499` with `ThemeProvider`.
 `src/App.tsx:375` mounts `WorkspaceFrame` for supported workspace routes.
@@ -245,7 +298,7 @@ The workspace stylesheet `WorkspaceFrame.css` owns the shared background beneath
 Future rendering must preserve `src/index.css` tokens, native controls and the approved wallpaper fallback.
 No attachment code, shader framework, weather API or remote asset becomes an implementation dependency through this amendment.
 
-### Scene meaning
+#### Scene meaning
 
 | Appearance element | Functional fit | Allowed visible response | Missing-data behavior |
 |---|---|---|---|
@@ -266,7 +319,7 @@ Future implementation must document event fields, identity scope, ordering and t
 Unavailable contracts block activity effects, not the static option or underlying product feature.
 Every status retains its native text; wallpaper never becomes the sole status channel.
 
-### Motion controls and safety
+#### Motion controls and safety
 
 Settings expose Follow context or a named manual scene, plus Off, Subtle and Expressive wallpaper motion.
 The first proof keeps the released static appearance until the user selects wallpaper motion.
@@ -286,7 +339,7 @@ R005.5 defines a prospective, opt-in ambient exception to R005.2/R010's default 
 Existing default-source motion tests remain idle-free; neither Expressive nor context changes imply consent to ambient playback.
 Continuous playback requires explicit ambience selection and complete R005.4/R005.5 safety plus R010 resource acceptance.
 
-### Weather source and material boundaries
+#### Weather source and material boundaries
 
 Weather following starts only after the user chooses a location, provider and enabled mode.
 Prefer an authorized existing weather source through Arbora; host-mediated MCP may supply that source.
@@ -308,7 +361,7 @@ Heat distorts only the background, never content, layout, hit targets or UI coor
 One renderer/lifecycle serves the background and glass effects; panels never create separate rendering contexts.
 Opaque, reduced-motion, forced-color and resource fallback modes preserve the complete interface without weather effects.
 
-### Resource acceptance and delivery order
+#### Resource acceptance and delivery order
 
 Release obsolete assets, listeners and rendering resources after scene replacement.
 Before performance acceptance, declare device, browser, viewport, pixel ratio, fixture load and measurement method.
@@ -319,7 +372,7 @@ Do not promise 120 FPS, zero overhead or hardware capability without measurement
 First qualify Canopy/Fluid composition and controls, then evidence-bound Roots/Trunk/Knowledge, then opt-in weather.
 No stage closes broader material, accessibility, live-provider or performance acceptance without its own exact-candidate evidence.
 
-### First page-mounted renderer slice — 2026-10-25
+#### First page-mounted renderer slice
 
 The shared `WorkspaceFrame` now mounts one decorative 2D canvas behind task surfaces.
 Existing Appearance settings persist Off/Subtle/Expressive, four abstract scenes
@@ -344,7 +397,7 @@ Scoped renderer tests cover allocation bounds, settings, timer limits, offscreen
 pause, reduction, fallback and cleanup. Hosted visual and input/frame/memory measurements remain required for the exact candidate before R010 performance acceptance.
 This source slice does not close broader design or live-weather requirements.
 
-## Named palette continuation
+### Named palette continuation
 
 Extend OVERSTORY-DESIGN-R002.1.1 through the existing colorizer and Settings.
 The green choice restores the exact accepted CSS baseline. Named alternatives
@@ -353,7 +406,7 @@ typography, wallpaper and glass geometry stay unchanged. Preserve stored legacy
 accent provenance and unknown custom hues. Browser gallery qualification remains
 outstanding until exact-candidate pixels are reviewed.
 
-### Route-derived wallpaper selection (R005.3)
+#### Route-derived wallpaper selection (R005.3)
 
 Add Follow workspace to the existing scene selector without changing the default
 Canopy or Off motion preference. Resolve only the mounted canonical route ID.
@@ -368,7 +421,7 @@ R005.3 now rolls up two distinct obligations without changing its original text.
 R005.3.1 covers route selection and manual overrides; R005.3.2 retains evidence-bound
 activity and topology. The latter remains planned with no fake implementation markers.
 
-### Wallpaper default policy update (R005.4)
+#### Wallpaper default policy update (R005.4)
 
 The latest user direction supersedes the earlier Off-default policy above.
 Missing or invalid motion preferences now use Subtle, capped at 12 frames per second.
@@ -378,3 +431,33 @@ Reduced motion, resource constraints, hidden/offscreen pauses and material safeg
 No weather, audio, live activity or topology defaults change.
 The accepted static glass golden now explicitly selects Off; it is not the animated default capture.
 Review separate new-default screenshots and keep the original golden unchanged.
+
+## Phase 2: Task approach
+
+Order the work producer first: tokens and primitives, then the shell rows, then the planned acceptance rows (R002.1.2, R004.1.2, R004.2.2, R005.3.2, R008, R010). Rows on different files run in parallel. Each task line in tasks.md names one row.
+
+## Complexity Tracking
+
+None. The constitution check passed with no violation.
+
+## Build contract
+
+The change must meet these gate thresholds from the organization constitution table.
+
+- Cyclomatic complexity 10 and cognitive complexity 15 per function (`pipelines_hooks/complexity`).
+- Words per sentence 20 (`ste`).
+- Clone similarity 0.85 blocking at 40 tokens (`dupehound`).
+- KISS limits from `.config/kiss.toml`: 35 statements, 15 locals, 20 calls, 3 positional arguments, 4 indentation levels, 300 lines and 10 functions per file.
+- Pre-land fast set: `format`, `hygiene`, `secrets`, `types`, `tests-fast`; post-land set: `spec`, `tests`, `supply-chain`.
+
+Repository commands: `pnpm lint`, `pnpm typecheck`, `pnpm test:coverage` (thresholds: lines 90, functions 90, branches 85, statements 90 from vitest.config.ts) and `pnpm test:e2e` for browser rows.
+
+No scanner gaming, no suppression and no duplicate implementation: a row reuses the helper named in its `Shape:` sentence.
+
+## Production caller chain
+
+Entry point: the browser loads `src/main.tsx:9`, which installs the style nonce (`src/main.tsx:7`) and mounts `App`; `App` wraps each route in `WorkspaceFrame` (src/App.tsx:375), which renders the map, the wallpaper (src/components/workspace/WorkspaceFrame.tsx:133) and the route content from the `src/components/ui/` primitives. The server sends the policy through `SecurityHeadersMiddleware` (agent/overstory/server.py:762). Obsolete paths to delete: none.
+
+## Cross-repo seams
+
+None. Every row is owned and served inside this repository.
