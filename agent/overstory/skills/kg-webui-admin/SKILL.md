@@ -10,7 +10,7 @@ license: MIT
 tags: [arbora, webui, admin, fleet, tenants, shards, rbac, health]
 tier: surface
 metadata:
-  author: Overstory
+  author: Knuckles-Team
   version: '0.1.0'
 ---
 

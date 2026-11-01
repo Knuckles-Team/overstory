@@ -10,7 +10,7 @@ license: MIT
 tags: [arbora, webui, dashboards, analytics, promql, traces, observability]
 tier: surface
 metadata:
-  author: Overstory
+  author: Knuckles-Team
   version: '0.1.0'
 ---
 
