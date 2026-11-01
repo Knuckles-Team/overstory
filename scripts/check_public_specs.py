@@ -40,7 +40,7 @@ FORBIDDEN = (
     re.compile(r"plans/", re.IGNORECASE),
     re.compile(r"\bgitlab\b", re.IGNORECASE),
     re.compile(r"\bhomelab\b", re.IGNORECASE),
-    re.compile(r"(?:file://|/(?:home|Users|tmp|workspace)/)", re.IGNORECASE),
+    re.compile(r"(?:file://|(?<![\w.-])/(?:home|Users|tmp|workspace)/)", re.IGNORECASE),
     re.compile(r"\b(?:EH-\d{1,3}|RF-\d{3})\b"),
 )
 LINK = re.compile(r"(?<!!)\[[^\]]+\]\(([^)]+)\)")
