@@ -18,7 +18,7 @@ All domain and administrative actions in the browser use one typed, versioned Ar
 | OVERSTORY-API-R007 | Migrate decisions, Markets/apps, WebMCP and console confirmation to typed operations, preserving preview/confirm/step-up for effects | OVERSTORY-API-R001 | Positive/negative effect tests |
 | OVERSTORY-API-R008 | Migrate ontology, graph, Atlas and object-set reads/writes without losing tenant, purpose, paging or error semantics | OVERSTORY-API-R002 | Cross-surface fixtures and browser tests |
 | OVERSTORY-API-R009 | Migrate prompts, SDD, knowledge base, sessions, goals, MCP servers/tools and model management operations | OVERSTORY-API-R003 | Route-census and contract tests |
-| OVERSTORY-API-R010 | Remove direct AU-internal imports and domain handlers from the WebUI host once replacement operations are proven. Preserve browser-local endpoints by explicit inventory | MERISTEM-BOUNDARY-R039, OVERSTORY-API-R001, OVERSTORY-API-R002, OVERSTORY-API-R003 | Static dependency and route-census gate |
+| OVERSTORY-API-R010 | Remove direct Meristem-internal imports and domain handlers from the WebUI host once replacement operations are proven. Preserve browser-local endpoints by explicit inventory | MERISTEM-BOUNDARY-R039, OVERSTORY-API-R001, OVERSTORY-API-R002, OVERSTORY-API-R003 | Static dependency and route-census gate |
 | OVERSTORY-API-R011 | Preserve shared auth, credential delegation, streaming/cancel and error handling. Never expose an Arbora service bearer to JavaScript | all | Host integration and adversarial browser tests |
 
 User stories: a tenant reader can browse graph and Atlas results without changing identity. An operator can preview and confirm an effect with its exact plan reference. A contributor can regenerate the client from a public schema and see CI fail if a required operation disappears. Unsupported operations present a typed unavailable state rather than silently falling back to a legacy direct route.
@@ -44,3 +44,40 @@ Requirement IDs are defined in [requirements.md](requirements.md); delivery stat
 R011.3 extends the existing identity-preserving adapter with the shared backend execution projection.
 Rendering components alone do not establish public summary, tool or child-transcript delivery.
 The browser and host must consume one released contract without deriving child targets or implementing orchestration.
+
+## User Scenarios & Testing
+
+### User Story 1 - Read graph and Atlas results under one identity (Priority: P1)
+
+A tenant reader browses graph and Atlas results through the typed client so that the identity, tenant and purpose stay the same on every surface.
+
+**Acceptance Scenarios**:
+
+1. **Given** a signed-in tenant reader, **When** the reader opens a graph or Atlas page, **Then** the page reads through the generated Arbora operation and shows only that tenant's data.
+
+### User Story 2 - Confirm an effect with its exact plan reference (Priority: P2)
+
+An operator previews an effect and confirms it so that only the previewed effect runs.
+
+**Acceptance Scenarios**:
+
+1. **Given** a server-issued preview and `plan_ref`, **When** the operator confirms with step-up, **Then** the console sends that exact reference and the effect runs once.
+2. **Given** a stale reference, a changed principal or a missing step-up, **When** the operator confirms, **Then** the action is refused and no effect runs.
+
+### User Story 3 - Regenerate the client from a public schema (Priority: P3)
+
+A contributor regenerates the client so that CI fails when a required operation disappears.
+
+**Acceptance Scenarios**:
+
+1. **Given** a pinned schema digest, **When** the contributor regenerates the client, **Then** the diff is empty or CI reports the missing operation.
+
+### Edge Cases
+
+- An operation is missing or the digest differs: the caller shows a typed unavailable state and uses no legacy route.
+- A token expires during a stream: the host keeps auth and the cancel stops the stream safely.
+
+## Assumptions
+
+- Arbora publishes a versioned `/api/v1` schema with a digest.
+- Browser-local endpoints are listed in the route census with an owner and a reason.

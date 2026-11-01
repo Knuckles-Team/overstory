@@ -1,5 +1,64 @@
 # API consumer architecture
 
+Governing spec: [spec.md](spec.md). Rows: [requirements.md](requirements.md).
+
+## Summary
+
+Overstory consumes one typed, versioned Arbora API client and retires host-owned domain routes. The plan reuses `src/lib/arbora-api/` and the host in `agent/overstory/`, found by searching the code first.
+
+## Technical Context
+
+- **Language/Version**: TypeScript with React for the browser; Python 3.14 for the host
+- **Primary Dependencies**: the generated Arbora client in `src/lib/arbora-api/`, Vite, Vitest, Playwright, FastAPI host
+- **Storage**: N/A (browser-local state only; no graph or database access)
+- **Testing**: `pnpm run test`, `pnpm run test:e2e`, `uv run --all-extras pytest agent/overstory/__tests__`
+- **Target Platform**: modern browsers served by the Overstory host
+- **Project Type**: web
+- **Performance Goals**: N/A
+- **Constraints**: no engine or harness import; no fabricated data; Arbora decides
+- **Scale/Scope**: one generated client, one host, the route census
+
+## Constitution Check
+
+- R-I The browser shows; arbora decides: pass. Every read and command goes through the Arbora client.
+- R-II No fabricated data in the interface: pass. Unsupported operations show a typed unavailable state.
+- R-III The frontend type-checks, lints and builds: pass. The build contract below names the commands.
+
+## Project Structure
+
+- `src/lib/arbora-api/` (existing): generated client, `invoke.ts`, `route-census.ts`
+- `agent/overstory/api_extensions.py` (existing): host routes being retired
+- `agent/overstory/server.py` (existing)
+- `specs/arbora-api-consumer/` (existing)
+
+## Phase 0: Research
+
+No unknowns. The dated sections below record each earlier resolution.
+
+## Phase 1: Design
+
+The architecture, ownership, contracts and dated amendments follow in the sections below. Arbora owns authorization and behavior; Overstory owns presentation and the typed client use.
+
+## Phase 2: Task approach
+
+`tasks.md` follows the rows in dependency order. Producer rows come first. Independent view rows may run in parallel.
+
+## Complexity Tracking
+
+None. The constitution check passed.
+
+## Build contract
+
+Run `pnpm run typecheck`, `pnpm run test`, `pnpm run build` and `pre-commit run --config .config/pre-commit.yaml --all-files`. Reuse the existing client and shell seams. Do not duplicate them or game a scanner.
+
+## Production caller chain
+
+A browser page calls `src/lib/arbora-api/invoke.ts`, which sends the typed operation to the same-origin host in `agent/overstory/server.py`. The host binds the caller and calls the Arbora operation. Delete each `api_extensions.py` domain route once its generated operation is proven.
+
+## Cross-repo seams
+
+none
+
 ## Current and target wiring
 
 Current WebUI calls are concentrated in `src/lib/api.ts`, `src/lib/admin-api.ts`, `src/lib/atlas/`, `src/lib/webmcp/`, and the FastAPI `agent/overstory/api_extensions.py` facade. The host is assembled in `agent/overstory/server.py`; `src/lib/nav-registry.ts` is the route authority. Audit every current browser route and host handler before deleting it. Target path: browser → same-origin WebUI session host → generated Arbora `/api/v1` client → Arbora operation registry → authorized owning service. Arbora owns credentials, operation schema, scope, effect gate, audit and stable errors; the WebUI owns rendering, interaction and browser-safe session forwarding.
@@ -22,8 +81,8 @@ This CI change does not establish acceptance of a product requirement.
 
 1. Freeze a route census with classifications: UI-local, session/protocol, generated Arbora operation, and retire. Save the census with this spec when implementation starts.
 2. Introduce the generated client and prove read/error/auth parity for one route family, then migrate decisions/apps/WebMCP, ontology/graph/Atlas/object-set, and remaining domain families.
-3. Move server-side adapters into the same operation path. Delete retired `api_extensions.py` domain blocks and AU-internal imports only after each family's regression tests pass. Do not keep a hidden fallback to the old path.
-4. Add an architecture gate that rejects new browser-domain endpoints in the host and direct AU-internal imports. UI-local endpoints must be allowlisted with owner and reason.
+3. Move server-side adapters into the same operation path. Delete retired `api_extensions.py` domain blocks and Meristem-internal imports only after each family's regression tests pass. Do not keep a hidden fallback to the old path.
+4. Add an architecture gate that rejects new browser-domain endpoints in the host and direct Meristem-internal imports. UI-local endpoints must be allowlisted with owner and reason.
 
 ## Compatibility and failure
 

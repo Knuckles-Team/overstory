@@ -9,7 +9,7 @@
 | Ontology/graph/Atlas/object set | Positive, malformed and two-tenant fixtures | Pagination and shape preserved; denied tenant body absent |
 | Other domain families | Route-census table tests | Every old route classified and required op mapped |
 | Streaming/cancel | Host and browser fixture | Auth retained; cancel stops stream and repeats safely |
-| Architecture | Static import/route census on changed tree | Zero direct AU-internal imports and zero unclassified domain routes |
+| Architecture | Static import/route census on changed tree | Zero direct Meristem-internal imports and zero unclassified domain routes |
 | Architecture lint route introduction | Add a synthetic unclassified domain handler, then a declared UI-local handler | Lint rejects the domain route and accepts only the explicitly inventoried UI-local route |
 | Registry unavailable or mismatched | Remove an operation or change pinned digest in local fixture | Caller presents unavailable/upgrade state. No legacy endpoint, guessed payload or effect request |
 | Confirmation replay | Expired and reused `plan_ref`, changed principal/tenant, missing step-up | Host and Arbora refuse action. No side effect and no sensitive body in logs |
@@ -67,3 +67,19 @@ Missing operations stay unavailable without a fallback. Source fixtures do not e
 ## Embedded tracing and console ownership
 
 OVERSTORY-API-R011.1: test_import_preserves_disabled_host_or_routes_enabled_console imports the actual server in isolated child processes. Disabled mode preserves an existing in-memory host exporter without a configure call. Enabled mode preserves the explicit export policy, emits a real diagnostic on stderr and leaves stdout as one JSON value. These source tests do not qualify a released package pair or browser operation authority.
+
+## Row coverage
+
+| Row | Test | Pass condition |
+|---|---|---|
+| `OVERSTORY-API-R002` | `src/lib/arbora-api/__tests__/ontology.test.ts::validates a well-shaped class page` | Typed ontology, graph, Atlas and object-set reads keep tenant, purpose and cursor semantics. |
+| `OVERSTORY-API-R003.1` | `src/lib/arbora-api/__tests__/route-census.test.ts::refuses a generated-operation row with no owning operation named` | A generated-operation row without an owning operation is refused. |
+| `OVERSTORY-API-R006` | `src/lib/arbora-api/__tests__/invoke.test.ts::preserves a structured server refusal and rejects malformed success` | The generated client keeps the stable error envelope. |
+| `OVERSTORY-API-R007` | `src/components/views/__tests__/ConsoleConfirmView.test.tsx::rejects malformed plan refs without a network call` | Effects keep preview, confirm and step-up. |
+| `OVERSTORY-API-R008.1` | `src/lib/arbora-api/__tests__/ontology.test.ts::validates a well-shaped class page` | Ontology reads keep tenant semantics. |
+| `OVERSTORY-API-R008.2` | `src/lib/arbora-api/__tests__/ontology.test.ts::maps a forbidden scope to a forbidden reply without leaking detail` | Graph reads refuse a forbidden scope without detail. |
+| `OVERSTORY-API-R008.3` | `src/lib/arbora-api/__tests__/ontology.test.ts::maps an unmounted registry route to unavailable, not a thrown error` | Atlas reads show unavailable for a missing operation. |
+| `OVERSTORY-API-R008.4` | `src/lib/arbora-api/__tests__/ontology.test.ts::rejects a malformed class result before any view can render it` | Object-set reads reject malformed results. |
+| `OVERSTORY-API-R009` | `src/lib/arbora-api/__tests__/route-census-lint.test.ts::covers every current enhanced host route with a validated row` | Every migrated family has a census row. |
+| `OVERSTORY-API-R010` | `src/lib/arbora-api/__tests__/route-census-lint.test.ts::rejects a newly introduced domain route until it is inventoried` | No unlisted domain route remains. |
+
