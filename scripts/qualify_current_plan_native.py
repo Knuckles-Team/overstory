@@ -462,7 +462,7 @@ with tempfile.TemporaryDirectory(prefix='current-plan-native-') as temp:
             str(root / 'security'), auth_secret=secret, persist_dir=str(root / 'data')
         )
     )
-    env['EPISTEMIC_GRAPH_ENCRYPTION_KEY'] = secrets.token_hex(32)
+    env['MEDULLA_ENCRYPTION_KEY'] = secrets.token_hex(32)
     with (root / 'server.log').open('w') as log:
         process = subprocess.Popen(
             [
