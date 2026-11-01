@@ -25,8 +25,8 @@ from typing import Annotated, Any, Literal
 from urllib.parse import quote, urlsplit
 
 import msgpack
-from agent_connector_sdk.privacy import sanitize_for_persistence
-from agent_connector_sdk.privacy_reference import persistence_reference
+from scion_sdk.privacy import sanitize_for_persistence
+from scion_sdk.privacy_reference import persistence_reference
 from fastapi import (
     APIRouter,
     File,
