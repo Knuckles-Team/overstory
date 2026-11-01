@@ -1,6 +1,6 @@
 # OVERSTORY — Test and acceptance specification
 
-**Status:** SPECIFIED. Requirements: [spec.md](spec.md). Tests use deterministic public/synthetic fixtures with no credentials or private account exports. Live integration evidence must identify commit, service versions, environment class, date and provider entitlement without disclosing secrets.
+Requirements: [spec.md](spec.md). Tests use deterministic public/synthetic fixtures with no credentials or private account exports. Live integration evidence must identify commit, service versions, environment class, date and provider entitlement without disclosing secrets.
 
 | Test | Requirement | Level and setup | Expected observation |
 |---|---|---|---|
@@ -46,3 +46,12 @@ pre-commit run --config .config/pre-commit.yaml --all-files
 ```
 
 Run `python3 scripts/check_complexity_staged.py` through the staged hook for supported source changes. Record CCCC output. jscpd and dupehound have no configured repository command or threshold at this revision. Document the agreed command/threshold and result before marking source implementation green. KISS review records which existing route, gateway, Atlas renderer and auth mechanisms were reused. Tests or gates omitted because a capability is absent remain PENDING, with a reason and owner in [tasks.md](tasks.md). Every pass must link a commit/PR and output artifact. No self-updating baseline or suppression substitutes for a fix.
+
+## Row coverage entries
+
+| Test | Requirement | Level and setup | Expected observation |
+|---|---|---|---|
+| FIN-T20 | OVERSTORY-R001.2 | Planned browser case in e2e/markets-app.spec.ts at phone and desktop widths | Navigation, groups, detail tabs and range selector are wired and accessible |
+| FIN-T21 | OVERSTORY-R002.2 | Planned in src/apps/markets/__tests__/chart-contract.test.ts against the rendered `OhlcChart` | Full and decimated views give identical finalized output |
+| FIN-T22 | OVERSTORY-R003 | src/apps/markets/__tests__/webmcp.test.ts and MarketsPages.test.tsx with fixture market data | Scanner, search and chart views work and tool calls return expected results |
+| FIN-T23 | OVERSTORY-R008.2 | Planned in src/apps/markets/__tests__/MarketsPages.test.tsx | Unsupported options are hidden or explained |
