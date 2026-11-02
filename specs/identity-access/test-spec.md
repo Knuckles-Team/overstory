@@ -71,3 +71,25 @@ Explicit opt-in with missing prerequisites must fail, not skip.
 | OVERSTORY-IDENTITY-R004.2 | Exercise every original parent account flow against installed browser and native producer versions. Prove session-fixation resistance, CSRF refusal, logout and cookie replay refusal, bounded one-use recovery and no browser-persisted credentials. |
 
 The R004.1 source tests are in `UserMenu.test.tsx` and `AppWorkspaceEntry.test.tsx`. They do not establish native session revocation, installed authentication, measured mobile layout or full screen-reader/accessibility acceptance. The R004 parent and R009 retain those separate obligations.
+
+## Planned tests
+
+These tests do not exist yet. Each row keeps its cited name until the test lands.
+
+| Test | Requirement | Level and setup | Expected observation |
+|---|---|---|---|
+| `tests/qualification/test_oidc_lifecycle.py::test_live_signin_probe` | OVERSTORY-IDENTITY-R001 | Browser sign-in against the provisioned test client and user | The sign-in completes end to end. |
+| `tests/qualification/test_composed_modes.py::test_installed_anonymous_journeys` | OVERSTORY-IDENTITY-R003.1.2 | Installed no-auth stack with declared anonymous policy | In-scope journeys pass; identity-required operations and cross-origin requests refuse. |
+| `tests/qualification/test_composed_modes.py::test_installed_eg_identity_journeys` | OVERSTORY-IDENTITY-R003.2.2 | Installed EG login, session, use and logout with valid, invalid, expired, revoked and wrong-tenant sessions | HTTP and WebSocket carry the same context; no token leaks. |
+| `tests/qualification/test_oidc_lifecycle.py::test_provider_interoperability` | OVERSTORY-IDENTITY-R003.3.2 | Protocol fixtures and each claimed live provider | Wrong issuer, audience, state, replay and unavailable discovery refuse. |
+| `tests/qualification/test_local_accounts.py::test_local_account_session_flows` | OVERSTORY-IDENTITY-R004.2 | Installed register, login, logout, forgot, reset and change-password flows | Session fixation and CSRF refuse; no credential in browser storage. |
+| `src/components/__tests__/MfaEnrollment.test.tsx::MfaEnrollment` | OVERSTORY-IDENTITY-R005 | TOTP and WebAuthn enrollment, challenge, replay and lost device | Recovery codes work once. |
+| `src/components/views/__tests__/ElevationView.test.tsx::ElevationView` | OVERSTORY-IDENTITY-R007 | Request, approve and revoke fixtures | Scope, reason, expiry and receipt show; the binding holds. |
+| `e2e/identity-accessibility.spec.ts::identity_accessibility` | OVERSTORY-IDENTITY-R009 | Keyboard, screen reader and mobile on forms, errors, tabs and modals | Equivalent behavior on desktop and mobile. |
+| `src/lib/__tests__/identity-lifecycle.test.tsx::session_renewal` | OVERSTORY-IDENTITY-R010 | Renewal, expiry, revocation, multiple tabs and mode change | No privilege carryover or duplicate effect. |
+
+## Existing tests by row
+
+| Test | Requirement | Level and setup | Expected observation |
+|---|---|---|---|
+| `src/components/views/__tests__/AdminView.test.tsx::AdminView_identity_tabs` | OVERSTORY-IDENTITY-R006 | Rendered admin tabs with generated-client fixtures for authorized and denied callers | Each tab calls its typed identity operation and honors a denial. |
