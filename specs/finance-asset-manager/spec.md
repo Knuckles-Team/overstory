@@ -1,6 +1,6 @@
 # OVERSTORY — Finance Asset Manager
 
-**Status:** SPECIFIED. Implementation and deployment unverified. **Owner:** `overstory`. Every requirement ID this spec owns, and the cross-repository IDs it depends on, are defined in [requirements.md](requirements.md). Their current delivery and acceptance state, with evidence, is recorded in [status.json](status.json). These identifiers support cross-repository tracking. This document contains the complete WebUI requirements. A specification is not evidence that its feature is built.
+**Owner:** `overstory`. Every requirement ID this spec owns, and the cross-repository IDs it depends on, are defined in [requirements.md](requirements.md). Their current delivery and acceptance state, with evidence, is recorded in [status.json](status.json). These identifiers support cross-repository tracking. This document contains the complete WebUI requirements. A specification is not evidence that its feature is built.
 
 ## Purpose, actors, and priority
 
@@ -37,7 +37,7 @@ The primary actor is an authenticated investor managing personal accounts. They 
 
 ## Boundaries and failure behavior
 
-The WebUI draws and adapts data; it does not calculate lots, cost basis, P&L, benchmark returns, strategies, leverage, signal flips, or provider history. `medulla` is the durable data and compute authority; Emerald Exchange and `agent-connector-sdk` transport market/account data and governed effects; `arbora` authenticates and projects APIs, schedules and delivers; `agent-utilities` orchestrates workflows. The browser uses its own FastAPI host and authenticated gateway path. No vendor credential, broker export, approval lease, or raw account data enters browser storage.
+The WebUI draws and adapts data; it does not calculate lots, cost basis, P&L, benchmark returns, strategies, leverage, signal flips, or provider history. `medulla` is the durable data and compute authority; Emerald Exchange and `scion-sdk` transport market/account data and governed effects; `arbora` authenticates and projects APIs, schedules and delivers; `meristem` orchestrates workflows. The browser uses its own FastAPI host and authenticated gateway path. No vendor credential, broker export, approval lease, or raw account data enters browser storage.
 
 Missing permission, route absence, stale data, partial coverage, bad contract shape, network failure and empty account are distinct states. No fabricated quote, timeframe, logo, account total, recommendation, or success message is allowed. A live leveraged order requires a separate per-instrument policy, pre-trade checks and authorized approval in the owner service; WebUI controls must remain incapable of bypassing it. CFDs unavailable to a US retail account are refused by the owner service and labeled unavailable in the UI. News or video claims never become deterministic strategy rules without a versioned evaluation and evidence.
 
@@ -53,3 +53,42 @@ Missing permission, route absence, stale data, partial coverage, bad contract sh
 This release does not implement a broker, investment-adviser service, proprietary TradingView studies, direct browser-to-provider connections, automatic live trading, trading of manually valued real estate, a Ghostfolio database, or a new frontend shell. A future public product requires separate data-display licensing and regulatory decisions.
 
 Requirement IDs are defined in [requirements.md](requirements.md); delivery state per ID is in `status.json`.
+
+## User Scenarios & Testing
+
+### User Story 1 - Inspect an instrument on any device (Priority: P1)
+
+An investor opens Markets on a phone or desktop and reads price, provenance and chart.
+
+**Acceptance Scenarios**:
+
+1. **Given** a phone viewport, **When** the investor opens Markets, **Then** a bottom bar offers five destinations.
+2. **Given** an instrument with no dividends, **When** its detail opens, **Then** the Dividends tab is withheld.
+
+### User Story 2 - Trust displayed values (Priority: P2)
+
+An investor reads performance, strategy and delivery views.
+
+**Acceptance Scenarios**:
+
+1. **Given** an owner value with a stale valuation, **When** the card renders, **Then** it shows the decimal string verbatim with a stale label.
+
+### Edge Cases
+
+- A missing price shows as unavailable and never as zero.
+- Two instruments with the same ticker on different venues stay distinct by listing ID.
+- Offline, cached facts show a stale label and current-data actions are disabled.
+
+## Requirements
+
+- **FR-001**: The app computes no financial value; it renders owner values verbatim. Rows: `OVERSTORY-R011.1`.
+- **FR-002**: The app never submits an order. Rows: `OVERSTORY-R012.1`.
+
+## Success Criteria
+
+- **SC-001**: Every active row has a bound test or a test-spec entry. Rows: `OVERSTORY-R001.1`.
+
+## Assumptions
+
+- Owner services serve the values the contracts name.
+- TypeScript tests are named in rows by their describe block, with hyphens written as underscores.

@@ -10,6 +10,60 @@
 
 A contributor builds new Arbora browser surfaces from one documented set of tokens, responsive patterns and interaction states. Chat, Atlas and an operational form remain usable by keyboard, screen reader, touch and reduced-motion users. Visual review compares a stable before/after screenshot set, and new components reuse the existing UI primitives. The design guidance can be used with the universal spec/design/accessibility skills, but this spec is complete without installing any external skill or reading a private document.
 
+## User scenarios and testing
+
+### User Story 1 - Complete a task by keyboard and reduced motion (Priority: P1)
+
+A keyboard, screen-reader or reduced-motion user completes the chat, Atlas query and operational form journeys. The user needs visible focus, named controls and distinct state text so that no task depends on color, gesture or animation.
+
+**Acceptance scenarios**
+
+1. Given a keyboard-only user on the chat, Atlas or form journey, When they tab through every control, Then each control has an accessible name and a visible focus indicator, and a closed dialog returns focus to its trigger.
+2. Given `prefers-reduced-motion` is set, When the page loads, Then nonessential animation is off and status feedback stays visible.
+3. Given a read is loading, empty, stale, denied, failed or pending, When the view renders, Then each state shows distinct text in addition to color.
+
+### User Story 2 - Use every route at any viewport (Priority: P2)
+
+A mobile or tablet user reaches every route and action from 320 CSS px to ultrawide, and keeps drafts and focus through resize, fold and zoom.
+
+**Acceptance scenarios**
+
+1. Given a 320 CSS px viewport, When the user opens any route, Then no whole-page horizontal overflow occurs and every required action is reachable.
+2. Given an unsent draft, When the viewport resizes or the on-screen keyboard opens, Then the draft, selection and focus remain.
+
+### User Story 3 - Load the interface under the strict style policy (Priority: P2)
+
+An operator serves the built interface under the strict style policy and sees no blocked font or style.
+
+**Acceptance scenarios**
+
+1. Given the served policy, When the page loads, Then Inter loads from the same origin and no remote font or stylesheet is requested.
+2. Given two HTML responses, When each is read, Then each carries a different style nonce.
+
+### User Story 4 - Choose a calm, bounded wallpaper (Priority: P3)
+
+A user picks a wallpaper scene and motion level, and may preview weather by hand.
+
+**Acceptance scenarios**
+
+1. Given the saved choice Off, When the workspace loads, Then the static scene shows and no wallpaper animation runs.
+2. Given Follow workspace, When the user changes route, Then the scene follows the route and shows no invented activity.
+
+## Edge Cases
+
+- A browser without `VisualViewport` keeps the layout viewport sizing.
+- A browser that denies local storage keeps default appearance and stays usable.
+- Forced-color and reduced-transparency modes replace glass with opaque surfaces.
+- A hidden document or constrained device shows the static wallpaper.
+- A missing or stale evidence record never draws activity or topology.
+
+## Assumptions
+
+- The three named journeys (chat, Atlas query and an operational form) are the first acceptance scope; a new journey adds its own evidence.
+- Contrast targets follow WCAG 2.2 AA and are measured on composited pixels.
+- Weather following needs an explicitly chosen location and an authorized provider; the manual preview needs neither.
+- Native device, manual screen-reader and installed-provider acceptance run on the exact release candidate.
+
 ## Requirements
 
 | ID | Behavior | Proof |
