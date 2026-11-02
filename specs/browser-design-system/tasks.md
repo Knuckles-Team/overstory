@@ -2,39 +2,39 @@
 
 **States:** SPECIFIED → BUILDING → BUILT → ACCEPTED. Current: **SPECIFIED**; no full three-journey acceptance evidence is recorded.
 
-- [ ] Inventory tokens and primitives on current main; publish the local token/interaction contract with light/dark values.
-- [ ] Build synthetic chat, Atlas and operational-form fixtures and capture baseline viewport matrix.
-- [ ] Audit WCAG 2.2 AA, keyboard, screen reader, responsive and reduced-motion behavior; rank defects by user impact.
-- [ ] Repair defects by reusing existing components, including distinct repeated-filter labels and mobile wrapping.
-- [ ] Run tests/quality gates and capture after screenshots on exact commit; verify no telemetry, duplicate primitives or unlicensed text.
-- [ ] Attach merged commit, CI artifact digests and manual review, then mark ACCEPTED only if every listed test passes.
+- [ ] T001 OVERSTORY-DESIGN-R002 Inventory tokens and primitives on current main; publish the local token/interaction contract with light/dark values.
+- [ ] T002 OVERSTORY-DESIGN-R002 Build synthetic chat, Atlas and operational-form fixtures and capture baseline viewport matrix.
+- [ ] T003 OVERSTORY-DESIGN-R002 Audit WCAG 2.2 AA, keyboard, screen reader, responsive and reduced-motion behavior; rank defects by user impact.
+- [ ] T004 OVERSTORY-DESIGN-R002 Repair defects by reusing existing components, including distinct repeated-filter labels and mobile wrapping.
+- [ ] T005 OVERSTORY-DESIGN-R002 Run tests/quality gates and capture after screenshots on exact commit; verify no telemetry, duplicate primitives or unlicensed text.
+- [ ] T006 OVERSTORY-DESIGN-R002 Attach merged commit, CI artifact digests and manual review, then mark ACCEPTED only if every listed test passes.
 
 No task above names a requirement ID individually; together they must close every ID in [requirements.md](requirements.md) — `OVERSTORY-DESIGN-R001`, `OVERSTORY-DESIGN-R002`, `OVERSTORY-DESIGN-R003`, `OVERSTORY-DESIGN-R004`, `OVERSTORY-DESIGN-R005`, `OVERSTORY-DESIGN-R006`, `OVERSTORY-DESIGN-R007`, `OVERSTORY-DESIGN-R008`, `OVERSTORY-DESIGN-R009`.
 
 ## Duplicate-primitive and telemetry audit (OVERSTORY-DESIGN-R007)
 
-- [x] Add `src/components/ui/__tests__/no-duplicate-primitives.test.ts`: every exported primitive name in `src/components/ui/` resolves to exactly one file. Also assert that no telemetry/analytics/session-replay dependency is declared in `package.json` (OVERSTORY-DESIGN-R007).
+- [x] T007 OVERSTORY-DESIGN-R007 Add `src/components/ui/__tests__/no-duplicate-primitives.test.ts`: every exported primitive name in `src/components/ui/` resolves to exactly one file. Also assert that no telemetry/analytics/session-replay dependency is declared in `package.json` (OVERSTORY-DESIGN-R007).
 
 ## Strict style policy (OVERSTORY-DESIGN-R008, OVERSTORY-DESIGN-R009)
 
-- [x] Self-host Inter and remove the remote font import (OVERSTORY-DESIGN-R008).
-- [x] Add a per-document style nonce to `SecurityHeadersMiddleware` with tests (OVERSTORY-DESIGN-R009).
-- [x] Pass the nonce to Radix Select and ScrollArea, and to react-remove-scroll through `__webpack_nonce__` (OVERSTORY-DESIGN-R009).
-- [x] Patch out the sonner runtime style injection and import its bundled stylesheet (OVERSTORY-DESIGN-R009).
-- [x] Add the browser probe as an e2e test that fails on any `securitypolicyviolation` event (OVERSTORY-DESIGN-R008, OVERSTORY-DESIGN-R009).
-- [ ] Open a dialog, a select and a toast under the probe; the shell-only probe covers load-time injectors only.
-- [x] Remove the `script-src` `eval` violation in the `api-validation` chunk; this is outside OVERSTORY-DESIGN-R009 scope.
-- [ ] Rebuild the served bundle on the deployment host after merge.
+- [x] T008 OVERSTORY-DESIGN-R008 Self-host Inter and remove the remote font import (OVERSTORY-DESIGN-R008).
+- [x] T009 OVERSTORY-DESIGN-R009 Add a per-document style nonce to `SecurityHeadersMiddleware` with tests (OVERSTORY-DESIGN-R009).
+- [x] T010 OVERSTORY-DESIGN-R009 Pass the nonce to Radix Select and ScrollArea, and to react-remove-scroll through `__webpack_nonce__` (OVERSTORY-DESIGN-R009).
+- [x] T011 OVERSTORY-DESIGN-R009 Patch out the sonner runtime style injection and import its bundled stylesheet (OVERSTORY-DESIGN-R009).
+- [x] T012 OVERSTORY-DESIGN-R008 Add the browser probe as an e2e test that fails on any `securitypolicyviolation` event (OVERSTORY-DESIGN-R008, OVERSTORY-DESIGN-R009).
+- [ ] T013 OVERSTORY-DESIGN-R008 Open a dialog, a select and a toast under the probe; the shell-only probe covers load-time injectors only.
+- [x] T014 OVERSTORY-DESIGN-R009 Remove the `script-src` `eval` violation in the `api-validation` chunk; this is outside OVERSTORY-DESIGN-R009 scope.
+- [ ] T015 OVERSTORY-DESIGN-R008 Rebuild the served bundle on the deployment host after merge.
 
 ## Responsive workspace extension: implementation and evidence open
 
-- [x] Add container-width panes and bounded reading widths to Work, Explore and Operate under OVERSTORY-DESIGN-R002.1. Add keyboard-operable optional context disclosures. This is partial delivery.
-- [ ] OVERSTORY-DESIGN-R002.1: Complete screenshot/task review and attach merged-revision acceptance evidence.
-- [ ] OVERSTORY-DESIGN-R004.1: Implement full mobile and arbitrary-aspect feature parity. Run the planned acceptance in test-spec.md. Attach the exact merged revision and evidence. No runtime result is claimed by this specification.
-- [x] Add retained workspace visual-viewport sizing, safe-area padding and deferred focused-control reveal under OVERSTORY-DESIGN-R004.2. This is partial delivery.
-- [ ] OVERSTORY-DESIGN-R004.2: Complete fold, native keyboard, 200-percent browser zoom, stream and graph acceptance. Attach the exact merged revision and evidence.
-- [ ] OVERSTORY-DESIGN-R005.1: Implement accessible interruptible semantic zoom. Run the planned acceptance in test-spec.md. Attach the exact merged revision and evidence. No runtime result is claimed by this specification.
-- [ ] OVERSTORY-DESIGN-R010: Implement measured performance under representative load. Run the planned acceptance in test-spec.md. Attach the exact merged revision and evidence. No runtime result is claimed by this specification.
+- [x] T016 OVERSTORY-DESIGN-R002.1 Add container-width panes and bounded reading widths to Work, Explore and Operate under OVERSTORY-DESIGN-R002.1. Add keyboard-operable optional context disclosures. This is partial delivery.
+- [ ] T017 OVERSTORY-DESIGN-R002.1 Complete screenshot/task review and attach merged-revision acceptance evidence.
+- [ ] T018 OVERSTORY-DESIGN-R004.1 Implement full mobile and arbitrary-aspect feature parity. Run the planned acceptance in test-spec.md. Attach the exact merged revision and evidence. No runtime result is claimed by this specification.
+- [x] T019 OVERSTORY-DESIGN-R004.2 Add retained workspace visual-viewport sizing, safe-area padding and deferred focused-control reveal under OVERSTORY-DESIGN-R004.2. This is partial delivery.
+- [ ] T020 OVERSTORY-DESIGN-R004.2 Complete fold, native keyboard, 200-percent browser zoom, stream and graph acceptance. Attach the exact merged revision and evidence.
+- [ ] T021 OVERSTORY-DESIGN-R005.1 Implement accessible interruptible semantic zoom. Run the planned acceptance in test-spec.md. Attach the exact merged revision and evidence. No runtime result is claimed by this specification.
+- [ ] T022 OVERSTORY-DESIGN-R010 Implement measured performance under representative load. Run the planned acceptance in test-spec.md. Attach the exact merged revision and evidence. No runtime result is claimed by this specification.
 
 ## Workspace density validation
 
@@ -74,8 +74,8 @@ not establish authenticated service acceptance.
 
 ## Browser zoom and keyboard continuation
 
-- [x] Reserve scroll range and focus clearance for the former floating assistant trigger in Explore and Operate. The native-assistant continuation supersedes that exclusion with normal document flow.
-- [ ] Complete OVERSTORY-DESIGN-R004.2 acceptance across all workspace journeys and native devices.
+- [x] T023 OVERSTORY-DESIGN-R004.2.1 Reserve scroll range and focus clearance for the former floating assistant trigger in Explore and Operate. The native-assistant continuation supersedes that exclusion with normal document flow.
+- [ ] T024 OVERSTORY-DESIGN-R004.2 Complete OVERSTORY-DESIGN-R004.2 acceptance across all workspace journeys and native devices.
 
 The native Chromium zoom regression reproduces a partially obscured Run Query
 button before this repair. It uses Tab, Shift+Tab, Enter and Space to edit,
@@ -86,10 +86,10 @@ This is partial evidence; the full requirement remains open. It does not establi
 
 ## Loaded destination branch delivery
 
-- [x] Present the existing validated command catalog as native DOM branches and a flat searchable list.
-- [x] Nest only confirmed fleet capabilities and selected-trace nodes beneath their loaded parents.
-- [x] Restore breadcrumb focus, retain the branch while searching, and retire unavailable entries.
-- [ ] Complete OVERSTORY-APPS-R046.2.2 and OVERSTORY-DESIGN-R005.1 acceptance across deepest dynamic leaves, real touch, manual screen readers and installed providers.
+- [x] T025 OVERSTORY-DESIGN-R005.1 Present the existing validated command catalog as native DOM branches and a flat searchable list.
+- [x] T026 OVERSTORY-DESIGN-R005.1 Nest only confirmed fleet capabilities and selected-trace nodes beneath their loaded parents.
+- [x] T027 OVERSTORY-DESIGN-R005.1 Restore breadcrumb focus, retain the branch while searching, and retire unavailable entries.
+- [ ] T028 OVERSTORY-DESIGN-R005.1 Complete `OVERSTORY-APPS-R046.2.2` and OVERSTORY-DESIGN-R005.1 acceptance across deepest dynamic leaves, real touch, manual screen readers and installed providers.
 
 This bounded source implementation uses main `c5c8ce0a3b5b9a09f30c5f9098a83407be396c22`.
 Branch drill-in is instantaneous native DOM navigation, not camera animation.
@@ -120,19 +120,19 @@ The browser test writes these files into its configured output directory.
 
 ## Glass class retirement
 
-- [x] Add glass to the provider theme type and retire its root class when selection changes.
-- [x] Exercise repeated light, dark and both system-preference transitions with four mounted regression cases.
-- [ ] Resolve the reported native glass task contrast gap with rendered regression evidence.
+- [x] T029 OVERSTORY-DESIGN-R002.1.1 Add glass to the provider theme type and retire its root class when selection changes.
+- [x] T030 OVERSTORY-DESIGN-R002.1.1 Exercise repeated light, dark and both system-preference transitions with four mounted regression cases.
+- [ ] T031 OVERSTORY-DESIGN-R002.1.1 Resolve the reported native glass task contrast gap with rendered regression evidence.
 
 All four mounted cases failed before class cleanup and passed after it.
 This result does not prove native task contrast or complete OVERSTORY-DESIGN-R002 acceptance.
 
 ## Palette cancellation focus
 
-- [x] Reproduce shortcut Escape, shortcut Close and desktop-to-narrow hidden-trigger failures in mounted Radix tests.
-- [x] Restore a reachable opener or visible More summary without reopening the compact disclosure.
-- [x] Cover removed opener and native destination focus preservation in mounted tests.
-- [x] Run the focused three-theme rendered cancellation cases on a supported browser runner.
+- [x] T032 OVERSTORY-DESIGN-R005.1 Reproduce shortcut Escape, shortcut Close and desktop-to-narrow hidden-trigger failures in mounted Radix tests.
+- [x] T033 OVERSTORY-DESIGN-R005.1 Restore a reachable opener or visible More summary without reopening the compact disclosure.
+- [x] T034 OVERSTORY-DESIGN-R005.1 Cover removed opener and native destination focus preservation in mounted tests.
+- [x] T035 OVERSTORY-DESIGN-R005.1 Run the focused three-theme rendered cancellation cases on a supported browser runner.
 
 The three original mounted cases failed before the repair and passed afterward.
 All six new mounted cases and thirteen existing command tests passed locally.
@@ -158,9 +158,9 @@ It retains the same 14-rem result and preference-persistence assertions. Fresh f
 
 ## Documentation screenshot refresh
 
-- [x] OVERSTORY-DESIGN-R011: qualify all six synthetic workspace captures in hosted Chromium and inspect the actual pixels.
-- [x] OVERSTORY-DESIGN-R011: import the six reviewed PNGs and provenance; update README/docs images and pass the integrity command.
-- [x] OVERSTORY-DESIGN-R011: qualify the published asset head with hosted lint, tests, hooks and browser verification.
+- [x] T036 OVERSTORY-DESIGN-R011 qualify all six synthetic workspace captures in hosted Chromium and inspect the actual pixels.
+- [x] T037 OVERSTORY-DESIGN-R011 import the six reviewed PNGs and provenance; update README/docs images and pass the integrity command.
+- [x] T038 OVERSTORY-DESIGN-R011 qualify the published asset head with hosted lint, tests, hooks and browser verification.
 
 Hosted [run 40120522758](https://github.com/Knuckles-Team/overstory/actions/runs/40120522758)
 passed all six captures, the screenshot contract tests, and the existing identity/catalog browser journeys.
@@ -179,17 +179,17 @@ Pixel review confirmed the second output. No bit-exact cross-run rasterization g
 Only R011 qualifies for delivery; final PR validation and review remain merge requirements.
 This bounded workflow does not complete the earlier design requirements.
 
-## Canopy Glass continuation — 2026-10-24
+## Canopy Glass continuation
 
-- [x] Define OVERSTORY-DESIGN-R002.1.1/R004.1.1/R005.2 and the original material, expanded-header, density, motion and fallback contract before runtime changes.
-- [ ] R002.1.1: Implement shared token/material and compact/comfortable appearance behavior; qualify actual contrast, coarse-pointer sizing and storage fallback.
-- [ ] R004.1.1: Implement full-width visible context/search/action rows and optional real detail; qualify resize, map sizing, focus, zoom and retained drafts.
-- [ ] R005.2: Implement interruptible state-linked motion and system/in-app reduced effects; qualify initial paint, repeated input, cancellation and idle behavior.
-- [ ] Record exact source, scoped validation results and reviewed rendered artifacts for OVERSTORY-APPS-R049.2.1. Never mark a planned browser test as passed.
-- [ ] R002/R003/R004/R005/R006: Complete graph, editor, run, administration, authentication and remaining route theme/state/accessibility rollout.
-- [ ] R004.1/R004.2/R005.1: Complete all-route mobile, arbitrary-aspect, native zoom/keyboard/fold, touch and manual screen-reader acceptance.
-- [ ] R010: Qualify declared representative loads, interaction/frame budgets, memory/idle behavior and constrained-device fallback.
-- [ ] OVERSTORY-APPS-R049.1.2/R049.2/R050: Complete capability migration, measured redesign and composed-provider acceptance.
+- [x] T039 OVERSTORY-DESIGN-R002.1.1 Define OVERSTORY-DESIGN-R002.1.1/R004.1.1/R005.2 and the original material, expanded-header, density, motion and fallback contract before runtime changes.
+- [ ] T040 OVERSTORY-DESIGN-R002.1.1 Implement shared token/material and compact/comfortable appearance behavior; qualify actual contrast, coarse-pointer sizing and storage fallback.
+- [ ] T041 OVERSTORY-DESIGN-R004.1.1 Implement full-width visible context/search/action rows and optional real detail; qualify resize, map sizing, focus, zoom and retained drafts.
+- [ ] T042 OVERSTORY-DESIGN-R005.2 Implement interruptible state-linked motion and system/in-app reduced effects; qualify initial paint, repeated input, cancellation and idle behavior.
+- [ ] T043 OVERSTORY-DESIGN-R002.1.1 Record exact source, scoped validation results and reviewed rendered artifacts for `OVERSTORY-APPS-R049.2.1`. Never mark a planned browser test as passed.
+- [ ] T044 OVERSTORY-DESIGN-R002 Complete graph, editor, run, administration, authentication and remaining route theme/state/accessibility rollout.
+- [ ] T045 OVERSTORY-DESIGN-R004.1 Complete all-route mobile, arbitrary-aspect, native zoom/keyboard/fold, touch and manual screen-reader acceptance.
+- [ ] T046 OVERSTORY-DESIGN-R010 Qualify declared representative loads, interaction/frame budgets, memory/idle behavior and constrained-device fallback.
+- [ ] T047 OVERSTORY-DESIGN-R002.1.2 Complete capability migration, measured redesign and composed-provider acceptance under `OVERSTORY-APPS-R049.1.2`, `OVERSTORY-APPS-R049.2` and `OVERSTORY-APPS-R050`.
 
 This section records specification work only. Local implementation and synthetic
 source/browser results must be recorded separately when available. Earlier hosted
@@ -198,18 +198,18 @@ acceptance. No broader completion follows from the shared-shell/Explore slice.
 
 ## Viewport continuity evidence partition
 
-- [x] OVERSTORY-DESIGN-R004.2.1: Retain the existing bounded viewport and query source evidence.
-- [ ] OVERSTORY-DESIGN-R004.2.1: Qualify compact native chat after the enlarged-text clipping repair; retain actual browser captures.
-- [ ] OVERSTORY-DESIGN-R004.2.2: Complete every remaining parent obligation with exact-candidate browser and native-device evidence.
+- [x] T048 OVERSTORY-DESIGN-R004.2.1 Retain the existing bounded viewport and query source evidence.
+- [ ] T049 OVERSTORY-DESIGN-R004.2.1 Qualify compact native chat after the enlarged-text clipping repair; retain actual browser captures.
+- [ ] T050 OVERSTORY-DESIGN-R004.2.2 Complete every remaining parent obligation with exact-candidate browser and native-device evidence.
 
 R004.2 remains open until both children meet their complete criteria.
 The residual child retains fold, native keyboard, safe-area, stream, graph and all-surface continuity acceptance.
 Do not infer that authored test bindings complete those journeys.
 
-## Retained acceptance ledger correction — 2026-10-24
+## Retained acceptance ledger correction
 
-- [ ] OVERSTORY-DESIGN-R002.1.2: Complete the remaining density, hierarchy, token documentation and contrast acceptance inherited from R002/R002.1.
-- [ ] OVERSTORY-DESIGN-R004.1.2: Complete the remaining all-route/action responsive acceptance inherited from R004.1.
+- [ ] T051 OVERSTORY-DESIGN-R002.1.2 Complete the remaining density, hierarchy, token documentation and contrast acceptance inherited from R002/R002.1.
+- [ ] T052 OVERSTORY-DESIGN-R004.1.2 Complete the remaining all-route/action responsive acceptance inherited from R004.1.
 
 The original parent obligations and qualified source-child receipts remain intact.
 The generated ancestor state must remain open while either retained acceptance child remains open.
@@ -217,9 +217,9 @@ Metadata guard tests preserve this distinction; they are not feature-acceptance 
 
 ## Context-aware wallpaper delivery
 
-- [ ] OVERSTORY-DESIGN-R005.3: Add context/manual scene selection through the existing provider and shared frame. Qualify Canopy/Fluid first, then evidence-bound connector roots, harness trunk and knowledge branches/leaves.
-- [ ] OVERSTORY-DESIGN-R005.4: Add wallpaper motion controls and lifecycle safeguards. Prove reduction, interruption, contrast and static fallback through real controls. Record exact-candidate R010 resource evidence without closing broader acceptance.
-- [ ] OVERSTORY-DESIGN-R005.5: Add opt-in weather following and labelled manual previews after the scene proof. Qualify provider/location scope, freshness states and glass-safe effects. Keep default idle tests and all broader acceptance open.
+- [ ] T053 OVERSTORY-DESIGN-R005.3 Add context/manual scene selection through the existing provider and shared frame. Qualify Canopy/Fluid first, then evidence-bound connector roots, harness trunk and knowledge branches/leaves.
+- [ ] T054 OVERSTORY-DESIGN-R005.4 Add wallpaper motion controls and lifecycle safeguards. Prove reduction, interruption, contrast and static fallback through real controls. Record exact-candidate R010 resource evidence without closing broader acceptance.
+- [ ] T055 OVERSTORY-DESIGN-R005.5 Add opt-in weather following and labelled manual previews after the scene proof. Qualify provider/location scope, freshness states and glass-safe effects. Keep default idle tests and all broader acceptance open.
 
 ## Named palette source continuation
 
@@ -233,15 +233,15 @@ Metadata guard tests preserve this distinction; they are not feature-acceptance 
 
 ### Route-derived scene follow-on
 
-- [x] Extend R005.3 through the existing appearance selector and canonical route ID, preserving manual overrides and Off by default.
-- [x] Add scoped mapping, static lifecycle and manual override coverage.
-- [ ] Qualify exact-head rendered navigation, draft retention and unchanged default glass in hosted browser CI before merge.
-- [ ] Keep evidence-bound activity and broader R010 performance acceptance open; page selection alone supplies neither.
+- [x] T056 OVERSTORY-DESIGN-R005.3 Extend R005.3 through the existing appearance selector and canonical route ID, preserving manual overrides and Off by default.
+- [x] T057 OVERSTORY-DESIGN-R005.3.1 Add scoped mapping, static lifecycle and manual override coverage.
+- [ ] T058 OVERSTORY-DESIGN-R005.3.1 Qualify exact-head rendered navigation, draft retention and unchanged default glass in hosted browser CI before merge.
+- [ ] T059 OVERSTORY-DESIGN-R010 Keep evidence-bound activity and broader R010 performance acceptance open; page selection alone supplies neither.
 
-- [x] OVERSTORY-DESIGN-R005.3.1: Implement route-derived selection and manual overrides; exact-head hosted qualification remains required.
-- [ ] OVERSTORY-DESIGN-R005.3.2: Connect current Arbora evidence before adding activity or topology; qualify all rejection cases.
+- [x] T060 OVERSTORY-DESIGN-R005.3.1 Implement route-derived selection and manual overrides; exact-head hosted qualification remains required.
+- [ ] T061 OVERSTORY-DESIGN-R005.3.2 Connect current Arbora evidence before adding activity or topology; qualify all rejection cases.
 
-## Overstory documentation capture refresh — 2026-10-25
+## Overstory documentation capture refresh
 
 - OVERSTORY-DESIGN-R011: Import the six successful synthetic browser captures from
   CI run `40230399141`, artifact `12613176256`. The recorded clean source is
@@ -252,3 +252,9 @@ Metadata guard tests preserve this distinction; they are not feature-acceptance 
   All delivered images remain below one million bytes and match captured pixels.
 - This refresh illustrates the branded interface. It does not establish live
   provider availability or close broader design acceptance.
+
+## Row coverage
+
+- [ ] T062 OVERSTORY-DESIGN-R001 implement and prove: Design guidance distilled into component system and skills
+- [ ] T063 OVERSTORY-DESIGN-R003 implement and prove: Controls have accessible names and visible focus
+- [ ] T064 OVERSTORY-DESIGN-R006 implement and prove: Status states are distinguishable by text, not only color
