@@ -37,7 +37,7 @@ automation. `CLAUDE.md` imports it, so edit this file when the contract changes.
 
 - **Owns:** what a person sees in the browser.
 - **Never builds:** data access other than through arbora, or a decision (route decisions to epistemic-graph). Served operations go to arbora.
-- **Allowed dependencies:** `arbora.client` and agent-connector-sdk. It imports no EG or arbora internals in-process.
+- **Allowed dependencies:** `arbora.client` and scion-sdk. It imports no EG or arbora internals in-process.
 
 Route every feature with the [ecosystem boundaries standard](https://github.com/Knuckles-Team/pipelines/blob/main/reference/ecosystem-boundaries.md) before any code. A part this repository does not own goes to its owner's specs.
 
@@ -105,7 +105,7 @@ scripts/bootstrap.sh            # gate tooling, uv >= 0.9, Python, locked .venv,
 cp .env.example .env
 ```
 
-Every locked dependency, agent-utilities and agent-connector-sdk included,
+Every locked dependency, agent-utilities and scion-sdk included,
 resolves from PyPI. `scripts/siblings.lock` pins only the agent-utilities
 checkout under `.uv-workspace-siblings/` that supplies shared gate scripts. The
 bootstrap checks it out and leaves an existing workspace symlink alone.

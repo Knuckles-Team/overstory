@@ -1,7 +1,7 @@
 /**
  * @file csv-import.ts
  * @description Typed CSV import preview contract (OVERSTORY-R014.1), mirroring
- * `agent_connector_sdk.finance.csv_import`: a preview reports the column
+ * `scion_sdk.finance.csv_import`: a preview reports the column
  * mapping, the row count it would produce, and a stable file digest before
  * anything is committed; re-previewing byte-identical content yields the
  * same digest, so a repeated import is idempotent rather than duplicated.
