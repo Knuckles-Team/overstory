@@ -193,9 +193,9 @@ describe('EcosystemView (BUG-008 truthful-state proof)', () => {
  *
  * The `prs[0]`/`workflows[0]`/`mrs[0]`/`pipelines[0]` fixtures below are the
  * *backend-mapped shape* of real, captured GitHub/GitLab API responses --
- * see `agent-utilities` `tests/fixtures/enterprise/github_gitlab/` for the
+ * see `meristem` `tests/fixtures/enterprise/github_gitlab/` for the
  * raw upstream payloads and provenance (sha256 digests, capture method) and
- * `agent_utilities/protocols/enterprise/read_models.py` for the normalizer
+ * `meristem/protocols/enterprise/read_models.py` for the normalizer
  * that maps them into `ChangeRequest`/`Build`. Field values here
  * (`Knucklessg1`, `feat/ontology-operator-ui`, run `#5` "Release", GitLab MR
  * `!250339`, ...) come directly from those captures, not invented.

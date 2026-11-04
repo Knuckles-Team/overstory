@@ -60,7 +60,7 @@ interface CatalogEntry {
 }
 
 interface ToolsData {
-  source: 'epistemic_graph'
+  source: 'medulla'
   servers: MCPTool[]
   components: CatalogEntry[]
   counts: {
@@ -160,7 +160,7 @@ const catalogEntrySchema: z.ZodType<CatalogEntry> = z
     path: ['authority'],
   })
 const toolsDataSchema: z.ZodType<ToolsData> = z.object({
-  source: z.literal('epistemic_graph'),
+  source: z.literal('medulla'),
   servers: looseArray(mcpToolSchema),
   components: looseArray(catalogEntrySchema),
   counts: z.object({
@@ -914,7 +914,7 @@ function renderMcpServerDialog({
 
 export default function SkillsView() {
   const [data, setData] = useState<ToolsData>({
-    source: 'epistemic_graph',
+    source: 'medulla',
     servers: [],
     components: [],
     counts: { servers: 0, tools: 0, skills: 0, workflows: 0 },

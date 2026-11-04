@@ -7,7 +7,7 @@
  * bespoke client for graph rendering. No new backend route: this posts to the
  * same `POST /graph/viz` the dashboards Chart panel calls (see `queries.ts`).
  *
- * CONFIRMED ENGINE LIMITATION (verified directly against epistemic-graph source
+ * CONFIRMED ENGINE LIMITATION (verified directly against medulla source
  * as of this writing — re-check before relying on the "nodes only" caveat
  * still being necessary): `VizRenderRequest` (`crates/eg-types/src/viz.rs`)
  * carries exactly ONE `dataset` field per request, and `MarkKind::Graph`'s

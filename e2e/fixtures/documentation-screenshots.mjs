@@ -68,7 +68,7 @@ export const responses = {
     degraded_reasons: [],
   },
   '/api/enhanced/tools': {
-    source: 'epistemic_graph',
+    source: 'medulla',
     servers: [{ server_id: 'srv:catalog', name: 'catalog', status: 'available', tool_count: 1 }],
     components: [
       {

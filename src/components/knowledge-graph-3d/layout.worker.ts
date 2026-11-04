@@ -64,7 +64,7 @@ export const TOTAL_TICKS = 320
  * time-to-settled inside a few seconds across the whole size range instead of
  * letting a large graph sit there computing.
  *
- * This is the same principle `epistemic-graph`'s own
+ * This is the same principle `medulla`'s own
  * `crates/eg-viz-export/src/graph_layout.rs` states for its static export path,
  * where it is applied far more aggressively: above `FULL_LAYOUT_NODE_CAP`
  * (2,000 nodes) that module abandons force-directed physics ENTIRELY for a

@@ -20,9 +20,9 @@ artifacts, which is how gates earn a reputation for crying wolf and get
 disabled (see BUG-043, where exactly that happened to the workspace_helpers
 chokepoint gate).
 
-Ported verbatim (engine + docstrings) from agent-utilities' original of this
+Ported verbatim (engine + docstrings) from meristem' original of this
 gate (guardrail check-root-hygiene), which already passes green on
-agent-utilities' own ``main`` -- reused rather than reinvented per this
+meristem' own ``main`` -- reused rather than reinvented per this
 fleet's Extend-Before-Invent convention (see MEMORY
 ``gate-tool-published-before-gate-adopted``). CX-HYG-01 generalized the
 original from a hardcoded ``ALLOWED_DIRS``/``ALLOWED_FILES`` pair into a
@@ -30,7 +30,7 @@ manifest-driven engine precisely so this port needs ZERO logic changes: the
 only thing that differs between repos is ``ALLOWED_DOTFILES`` immediately
 below (this repo's own tracked dot-files, mostly its JS/TS toolchain's own
 conventions -- ``.node-version``, ``.npmrc``, ``.prettierignore``,
-``.prettierrc.json``, ``.releaserc.json`` -- rather than agent-utilities'
+``.prettierrc.json``, ``.releaserc.json`` -- rather than meristem'
 Python/Rust ones) and the contents of this repo's own ``.repo-layout.toml``.
 Two holes this engine closed relative to the pre-CX-HYG-01 original, both of
 which let a real tracked artifact sit unchallenged at a repo root:
@@ -38,7 +38,7 @@ which let a real tracked artifact sit unchallenged at a repo root:
 1. Dotfiles used to be allowed as an unenumerated CLASS ("anything starting
    with '.' is conventional config"). That is what let a tracked
    ``.liveness_baseline.json`` -- a self-writing ratchet, not a convention --
-   sit at agent-utilities' root unchallenged. Dotfiles are now split: a
+   sit at meristem' root unchallenged. Dotfiles are now split: a
    conventional, self-describing dot-FILE (``.gitignore``,
    ``.node-version``, ...) is enumerated in ``ALLOWED_DOTFILES``
    below; a dot-DIRECTORY (``.github``, ``.security``, ...) is repo-specific

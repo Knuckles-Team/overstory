@@ -4,7 +4,7 @@
  *
  * WIRING (honest): online backup + PITR is CONCEPT:MEDULLA-090 — a `Method::Backup`
  * engine op that streams a per-shard MVCC snapshot, reachable today only over
- * the epistemic_graph UDS client, not over a browser-facing REST route. This
+ * the medulla UDS client, not over a browser-facing REST route. This
  * panel PROBES `POST /api/graph/configure` action=backup_status and, when it
  * resolves `unavailable` (the common case today), renders a clearly-labeled
  * read-only placeholder with DISABLED trigger controls — it never invents backup
@@ -101,7 +101,7 @@ function UnwiredNotice() {
           Backup/PITR not exposed over REST yet
         </CardTitle>
         <CardDescription>
-          Online backup / restore (MEDULLA-090) is reachable today only over the epistemic-graph UDS client (a
+          Online backup / restore (MEDULLA-090) is reachable today only over the medulla UDS client (a
           <code> Method::Backup</code> op streaming a per-shard MVCC snapshot). This panel will list snapshots, show
           the PITR window, and enable the trigger control as soon as the REST twin is wired; until then it is read-only
           by design and shows no fabricated backups.

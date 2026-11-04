@@ -30,7 +30,7 @@ beforeEach(() => {
   tools.clear()
   window.history.replaceState({}, '', '/workspace/operate')
   payload = {
-    source: 'epistemic_graph',
+    source: 'medulla',
     servers: [
       {
         server_id: 'srv:records',
@@ -87,7 +87,7 @@ it('distinguishes filtering and empty catalog, then withdraws stale data on refu
   refused = false
   tools.clear()
   window.history.replaceState({}, '', '/workspace/operate')
-  payload = { source: 'epistemic_graph', servers: [], components: [] }
+  payload = { source: 'medulla', servers: [], components: [] }
   fireEvent.click(screen.getByRole('button', { name: 'Refresh connector catalog' }))
   expect(await screen.findByText('No connectors in the returned catalog.')).toBeVisible()
   refused = true
@@ -132,10 +132,10 @@ it('retires earlier admission data while the new identity read is pending', asyn
 
 it.each([
   { source: 'legacy', servers: [] },
-  { source: 'epistemic_graph', servers: [{ server_id: 'a', name: 'a', status: 'connected', tool_count: 0 }] },
-  { source: 'epistemic_graph', servers: [{ server_id: 'a', name: 'a', status: 'available', tool_count: -1 }] },
+  { source: 'medulla', servers: [{ server_id: 'a', name: 'a', status: 'connected', tool_count: 0 }] },
+  { source: 'medulla', servers: [{ server_id: 'a', name: 'a', status: 'available', tool_count: -1 }] },
   {
-    source: 'epistemic_graph',
+    source: 'medulla',
     servers: Array(2).fill({ server_id: 'a', name: 'a', status: 'available', tool_count: 0 }),
   },
 ])('rejects malformed or incompatible catalog contracts', async (invalid) => {

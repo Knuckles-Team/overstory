@@ -7,4 +7,4 @@
 # okf-no-legacy-concepts). scripts/bootstrap.sh reads this file.
 #
 # Columns: path  repository  commit  when
-.uv-workspace-siblings/agent-utilities  https://github.com/Knuckles-Team/agent-utilities  f0cd9fd58d168f2c094787b08eab0ef4e06303aa  always
+.uv-workspace-siblings/meristem  https://github.com/Knuckles-Team/meristem  f0cd9fd58d168f2c094787b08eab0ef4e06303aa  always

@@ -102,7 +102,7 @@ interface AttachmentItem {
 
 /**
  * One checkpoint of the core orchestrator's progress stream
- * (`agent_utilities.orchestration.agent_runner.ProgressEvent`, CONCEPT:MERISTEM-ORCH.execution.
+ * (`meristem.orchestration.agent_runner.ProgressEvent`, CONCEPT:MERISTEM-ORCH.execution.
  * messaging-orchestration-transparency), as adapted onto the wire by
  * `agent/overstory/orchestrator_model.py::_progress_event_payload`.
  *
@@ -313,7 +313,7 @@ interface ModelRate {
 
 /**
  * One configured model as returned by the backend registry. Mirrors
- * `agent_utilities.models.ModelDefinition`.
+ * `meristem.models.ModelDefinition`.
  */
 interface RegistryModel {
   id: string

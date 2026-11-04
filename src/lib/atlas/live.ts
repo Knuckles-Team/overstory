@@ -2,7 +2,7 @@
  * @file live.ts
  * @description The ONE live-update interface, so adapters do not each invent polling.
  *
- * There is no single "subscribe to everything" channel in epistemic-graph. GraphQL
+ * There is no single "subscribe to everything" channel in medulla. GraphQL
  * subscriptions (`GET /graphql/subscribe`, SSE) are the only true push; everything
  * else — `Method::CdcRead`, `Watch`, `CepPoll` — is cursor/long-poll. Rather than let
  * twelve adapters each grow their own `setInterval`, an adapter supplies a

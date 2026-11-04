@@ -3,7 +3,7 @@
  * @description Native visualization panel (GOC-88, D-VZ-1 lane V5/V8) — plots
  * a live KG SQL query as a chart through the engine's LOD ColumnStore/export
  * pipeline (`Method::Viz`, `graph_viz(action='plot_from_query')`, the real
- * `agent-utilities` MCP tool's REST twin `POST /graph/viz`). No matplotlib,
+ * `meristem` MCP tool's REST twin `POST /graph/viz`). No matplotlib,
  * no client-side charting library, no per-view chart code — the image is
  * rendered server-side (Rust) at a bounded primitive/byte budget and this
  * panel just displays the bytes and the LOD metadata that came back with
@@ -119,7 +119,7 @@ function renderVizBody({
   yField: string
 }) {
   if (routeUnavailable) {
-    return <CapabilityNotice label="/graph/viz" detail="Wire graph_viz in agent_utilities to see live renders here." />
+    return <CapabilityNotice label="/graph/viz" detail="Wire graph_viz in meristem to see live renders here." />
   }
   if (noDataReason) {
     return (

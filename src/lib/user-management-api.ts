@@ -25,7 +25,7 @@
  *     identity/role/rbac/principal path at all beyond `/api/oauth/*` and
  *     `/api/enhanced/sessions/*` (chat sessions, unrelated). The engine's
  *     `RbacAdmin`/`GetIdentity` methods (MEDULLA-092/MEDULLA-303) are reachable only
- *     over the epistemic-graph UDS/MessagePack client, not from the browser.
+ *     over the medulla UDS/MessagePack client, not from the browser.
  *
  * Given that, this module: (a) keeps probing the closest surface, exactly
  * like `admin-api.ts`'s existing RBAC probe convention, so the panel lights

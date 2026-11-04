@@ -1,6 +1,6 @@
 /**
  * @file gateway.ts
- * @description Thin client for the canonical Agent-Utilities Knowledge-Graph
+ * @description Thin client for the canonical Meristem Knowledge-Graph
  * REST surface (`/graph/*`).
  *
  * The webui backend mounts the SAME canonical gateway route table the API
@@ -68,7 +68,7 @@ function unwrapEnvelope(raw: unknown): unknown {
 
 /**
  * True when an already-unwrapped body is the engine-surface tools'
- * `_degraded(...)` payload (`agent_utilities/mcp/tools/engine_surface_tools.py`):
+ * `_degraded(...)` payload (`meristem/mcp/tools/engine_surface_tools.py`):
  * `{surface, action, degraded: true, error, tried}`. These tools (PromQL,
  * traces, logs, …) never raise on a missing engine capability — they answer
  * HTTP 200 with this shape instead — so an unwrapped body must be inspected

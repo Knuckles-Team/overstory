@@ -170,7 +170,7 @@ export const knowledgeGraphToGraphology = (
   // the whole canvas over ONE bad id. The known live cause is a backend
   // privacy redactor collapsing distinct uuids into the literal
   // `[REDACTED_IBAN]` (a parallel lane owns that root fix in
-  // agent-utilities); this adapter's job is to degrade gracefully for ANY
+  // meristem); this adapter's job is to degrade gracefully for ANY
   // duplicate, not just that one. Mirrors the `hasNode`/`hasEdge` guard the
   // edge loop below already uses. Duplicates are counted and logged — never
   // silently absorbed — because silently de-duping would hide exactly the

@@ -102,14 +102,14 @@ repos:
   hooks:
   - id: okf-no-legacy-concepts
     name: OKF-CIS — no legacy CONCEPT ids
-    entry: python3 scripts/run_agent_utilities_gate.py --gate okf-no-legacy-concepts --script scripts/check_no_legacy_markers.py -- .
+    entry: python3 scripts/run_meristem_gate.py --gate okf-no-legacy-concepts --script scripts/check_no_legacy_markers.py -- .
     language: system
     pass_filenames: false
     always_run: true
   - id: lane-guard
     name: Lane guard — canonical checkout read-only + stray CARGO_TARGET_DIR (D-CP-3/D-CP-4 reach)
     # Maintainer-workspace policy: skipped in a fresh clone, CI and cloud sessions.
-    entry: python3 scripts/run_agent_utilities_gate.py --gate lane-guard --workspace-only --script scripts/check_lane_guard.py
+    entry: python3 scripts/run_meristem_gate.py --gate lane-guard --workspace-only --script scripts/check_lane_guard.py
     language: system
     pass_filenames: false
     always_run: true

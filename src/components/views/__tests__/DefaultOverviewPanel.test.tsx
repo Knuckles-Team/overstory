@@ -39,14 +39,14 @@ describe('DefaultOverviewPanel', () => {
       '/api/enhanced/prompts': { body: [{ name: 'a' }, { name: 'b' }, { name: 'c' }] },
       '/api/enhanced/tools': {
         body: {
-          source: 'epistemic_graph',
+          source: 'medulla',
           counts: { servers: 1, tools: 4, skills: 2, workflows: 1 },
         },
       },
       '/api/enhanced/llm/models': { body: [{ id: 'gpt' }, { id: 'claude' }] },
       '/api/enhanced/graph/stats': { body: { total_nodes: 43579, total_relationships: 91000, by_type: {} } },
       // `checks` is an ARRAY of HealthCheck objects (the real
-      // `agent_utilities.observability.runtime_health.HealthReport` shape,
+      // `meristem.observability.runtime_health.HealthReport` shape,
       // W-12) — not a `name -> status` map.
       '/api/dashboard/health': {
         body: {
@@ -76,7 +76,7 @@ describe('DefaultOverviewPanel', () => {
     global.fetch = mockFetch({
       '/api/enhanced/prompts': { body: [] },
       '/api/enhanced/tools': {
-        body: { source: 'epistemic_graph', counts: { servers: 0, tools: 0, skills: 0, workflows: 0 } },
+        body: { source: 'medulla', counts: { servers: 0, tools: 0, skills: 0, workflows: 0 } },
       },
       '/api/enhanced/llm/models': { body: [] },
       '/api/enhanced/graph/stats': { status: 503 }, // D-W6-10: a real backend failure

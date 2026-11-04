@@ -1,7 +1,7 @@
 """The Markets app routes (EH-420/EH-421) and the apps catalog (EH-429).
 
 The routes run through a real FastAPI app (``build_apps_router``) with a fake
-engine client that has the epistemic-graph client's surface (``finance.market``,
+engine client that has the medulla client's surface (``finance.market``,
 ``timeseries.range``, ``nodes.*``, ``control_leases.*``). The fake answers each
 ``FinanceMarket`` op with the documented result shape and records every call, so
 the tests prove what the app asks the engine for -- it computes no finance math

@@ -50,7 +50,7 @@ test('catalog definitions share deep links, keyboard search and native history a
     if (path === '/api/enhanced/tools')
       return route.fulfill({
         json: {
-          source: 'epistemic_graph',
+          source: 'medulla',
           servers: [{ server_id: 'srv:records', name: 'records', status: 'available', tool_count: 1 }],
           components: withdrawn
             ? []

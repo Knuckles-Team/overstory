@@ -803,7 +803,7 @@ function settingsGroupsCard({
         <div>
           <CardTitle className="text-base font-bold">Settings</CardTitle>
           <CardDescription>
-            Every other AgentConfig field, grouped the same way `agent_utilities/core/config.py` organizes itself.
+            Every other AgentConfig field, grouped the same way `meristem/core/config.py` organizes itself.
           </CardDescription>
         </div>
       </CardHeader>
@@ -1071,7 +1071,7 @@ export default function ConfigurationView() {
     try {
       const res = await fetch('/api/enhanced/reload', { method: 'POST' })
       if (res.ok) {
-        toast.success('Agent-utilities background workers reloaded')
+        toast.success('Meristem background workers reloaded')
       } else {
         toast.error('Reload trigger failed')
       }

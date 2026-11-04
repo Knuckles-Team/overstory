@@ -84,7 +84,7 @@ export function CapabilityNotice({ label, detail }: { label: string; detail?: st
         The <span className="font-mono">{label}</span> gateway route is not activated on this backend yet.{' '}
         {detail ?? (
           <>
-            Wire it in <span className="font-mono">agent_utilities.gateway.graph_api</span> to see live data here.
+            Wire it in <span className="font-mono">meristem.gateway.graph_api</span> to see live data here.
           </>
         )}
       </p>

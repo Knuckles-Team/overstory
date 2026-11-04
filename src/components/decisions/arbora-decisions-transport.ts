@@ -13,7 +13,7 @@ import type { DecisionAggregateOptions, DecisionsTransport, ListDecisionsOptions
  * @description The real `DecisionsTransport` (requirement OVERSTORY-API-R001),
  * calling the five real Arbora decision operations through the shared
  * `invoke()` adapter — no second HTTP/CSRF path, no browser-held service
- * bearer. These were confirmed against the epistemic-graph source of truth
+ * bearer. These were confirmed against the medulla source of truth
  * (not guessed): `eg.coordination.DecisionLog` and `eg.coordination.DecisionEval`
  * each multiplex several named actions through an `op` discriminator field;
  * `eg.query.Decide` and `eg.storage.DecisionCommit` are single-shot. See
@@ -32,10 +32,10 @@ import type { DecisionAggregateOptions, DecisionsTransport, ListDecisionsOptions
  * yet, so it resolves `{ kind: 'refused' }` rather than guessing an op id.
  *
  * `eg.*` operations carry a placeholder `{"type":"object"}` schema in the
- * pinned OpenAPI document until arbora and epistemic-graph are built from
+ * pinned OpenAPI document until arbora and medulla are built from
  * a digest-matched pair (see `src/lib/arbora-api/generated/README.md`), so
  * `invoke()` here validates responses against this repo's own zod schemas
- * (`decision-schemas.ts`), authored directly from the epistemic-graph Rust
+ * (`decision-schemas.ts`), authored directly from the medulla Rust
  * types, not against the generated client's placeholder shape.
  */
 

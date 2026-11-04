@@ -28,7 +28,7 @@ const component = z
 export type OperateComponent = z.infer<typeof component>
 export const OperateCatalogSchema = z
   .object({
-    source: z.literal('epistemic_graph'),
+    source: z.literal('medulla'),
     servers: z.array(server),
     components: z.array(component),
   })

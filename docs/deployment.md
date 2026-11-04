@@ -3,7 +3,7 @@
 Overstory ships only as a Python package on PyPI (wheel and sdist). Arbora
 installs it through its `webui` extra and serves it in-process on port 8080,
 next to MCP and REST. It is the browser-facing presentation service and composes
-the canonical gateway routes provided by Arbora and Agent Utilities.
+the canonical gateway routes provided by Arbora and Meristem.
 
 ## Security boundary
 

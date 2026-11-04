@@ -1,6 +1,6 @@
 # Writing an Atlas modality adapter
 
-Atlas (`/explore`) is one workbench for every epistemic-graph modality. A modality is a
+Atlas (`/explore`) is one workbench for every medulla modality. A modality is a
 **file**: drop `src/lib/atlas/adapters/<id>.ts` with a default export satisfying
 `ModalityAdapter` and it appears in the picker. You never edit a shared registry file —
 discovery is `import.meta.glob` over that directory (`discover.ts`), which is what lets
@@ -238,7 +238,7 @@ Adapter methods take **one typed request object**, never positional arguments.
 `introspect({ctx, signal})`, `compile({filters, ctx})`, `execute({query, ctx, signal})`,
 `pivots({selection, result})`, `LiveSource.poll({query, cursor, ctx, signal})`.
 
-The reason is measured, not aesthetic: agent-utilities currently carries **442 functions
+The reason is measured, not aesthetic: meristem currently carries **442 functions
 with 8+ parameters and 143 with 12+, the worst at 49**, and every one of them began as a
 two-parameter function that someone widened "just once". A request object makes widening
 additive — a new field is ignored for free by every existing adapter and re-orders
