@@ -14,7 +14,7 @@
  *   - `permission-denied`   — the user (or the OS) refused microphone access.
  *   - `backend-unavailable` — the route answered 404/501 (no `transcribe_voice`
  *                             workspace helper registered server-side — see
- *                             `agent_utilities.server.webui_voice_delegation`).
+ *                             `meristem.server.webui_voice_delegation`).
  *   - `error`               — anything else: no microphone hardware, a network
  *                             failure, a non-2xx response, a malformed reply.
  * `idle`/`requesting-permission`/`recording`/`transcribing` are the happy-path

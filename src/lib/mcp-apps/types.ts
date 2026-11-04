@@ -5,9 +5,9 @@
  * CONCEPT:MERISTEM-ECO.ui.mcp-apps-host
  *
  * `McpUiMeta` mirrors `fastmcp.apps.config.AppConfig`'s wire shape (the
- * agent-utilities server dependency that produces it) and the message
+ * meristem server dependency that produces it) and the message
  * shapes below mirror the small bridge protocol documented at the top of
- * `agent_utilities/mcp/tools/mcp_apps.py`'s HTML payload -- keep the two in
+ * `meristem/mcp/tools/mcp_apps.py`'s HTML payload -- keep the two in
  * sync if either changes.
  */
 

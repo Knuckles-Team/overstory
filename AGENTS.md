@@ -36,7 +36,7 @@ automation. `CLAUDE.md` imports it, so edit this file when the contract changes.
 ## Boundaries
 
 - **Owns:** what a person sees in the browser.
-- **Never builds:** data access other than through arbora, or a decision (route decisions to epistemic-graph). Served operations go to arbora.
+- **Never builds:** data access other than through arbora, or a decision (route decisions to medulla). Served operations go to arbora.
 - **Allowed dependencies:** `arbora.client` and scion-sdk. It imports no EG or arbora internals in-process.
 
 Route every feature with the [ecosystem boundaries standard](https://github.com/Knuckles-Team/pipelines/blob/main/reference/ecosystem-boundaries.md) before any code. A part this repository does not own goes to its owner's specs.
@@ -56,8 +56,8 @@ Its public surface includes:
 - the packaged frontend assets, Python wheel, container image, and Pages site.
 
 Keep authority at its owning layer. Arbora owns authentication, composition,
-routing, and gateway contracts. epistemic-graph owns durable graph state,
-queries, reasoning, schemas, and evidence. Agent Utilities owns agent and
+routing, and gateway contracts. medulla owns durable graph state,
+queries, reasoning, schemas, and evidence. Meristem owns agent and
 workflow control-plane behavior. Connector packages own source transport. This
 repository renders and adapts those capabilities; it must not create parallel
 graph, orchestration, connector, or scheduling implementations.
@@ -68,7 +68,7 @@ The runtime path is:
 
 ```text
 browser -> React application -> Overstory FastAPI host
-        -> authenticated Arbora gateway -> epistemic-graph / agent fleet
+        -> authenticated Arbora gateway -> medulla / agent fleet
 ```
 
 - `src/App.tsx` and `src/Chat.tsx`: application shell and streaming chat.
@@ -105,8 +105,8 @@ scripts/bootstrap.sh            # gate tooling, uv >= 0.9, Python, locked .venv,
 cp .env.example .env
 ```
 
-Every locked dependency, agent-utilities and scion-sdk included,
-resolves from PyPI. `scripts/siblings.lock` pins only the agent-utilities
+Every locked dependency, meristem and scion-sdk included,
+resolves from PyPI. `scripts/siblings.lock` pins only the meristem
 checkout under `.uv-workspace-siblings/` that supplies shared gate scripts. The
 bootstrap checks it out and leaves an existing workspace symlink alone.
 
@@ -157,7 +157,7 @@ A hook whose tool or sibling checkout is missing prints
 with exit status 2 (`CANNOT RUN`). Gates never call external services such as
 package indexes or advisory databases at run time. The privacy gate derives
 local identities from the ambient account only on a developer machine; on CI
-and in cloud sessions only the declared `AGENT_UTILITIES_PRIVACY_IDENTIFIERS`
+and in cloud sessions only the declared `MERISTEM_PRIVACY_IDENTIFIERS`
 list applies, while the home-path and internal-host detectors run everywhere.
 Do not bypass a gate with `--no-verify`, `SKIP`, diagnostic ignores,
 or warning suppression. Fix the source of each finding or report a genuine

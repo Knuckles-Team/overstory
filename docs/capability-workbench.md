@@ -2,7 +2,7 @@
 
 Arbora mounts one capability workbench beside the persistent assistant on
 every route. `Ctrl/Cmd+K` opens it without navigating away from the active
-workspace. The workbench is generated from live Agent Utilities contracts, so a
+workspace. The workbench is generated from live Meristem contracts, so a
 new registered action becomes discoverable without adding a static React page.
 
 ## Execution flow

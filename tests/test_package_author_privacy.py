@@ -69,7 +69,7 @@ def test_platform_identity_is_never_an_identifier(
     monkeypatch: pytest.MonkeyPatch, variable: str, value: str
 ) -> None:
     gate = _load_gate()
-    for name in ('CI', 'CLAUDE_CODE_REMOTE', 'AGENT_UTILITIES_PRIVACY_IDENTIFIERS'):
+    for name in ('CI', 'CLAUDE_CODE_REMOTE', 'MERISTEM_PRIVACY_IDENTIFIERS'):
         monkeypatch.delenv(name, raising=False)
     monkeypatch.setenv(variable, value)
     monkeypatch.setenv('USER', 'platform-account')
@@ -81,7 +81,7 @@ def test_declared_identifiers_apply_on_platform_runners(
 ) -> None:
     gate = _load_gate()
     monkeypatch.setenv('CI', 'true')
-    monkeypatch.setenv('AGENT_UTILITIES_PRIVACY_IDENTIFIERS', 'secret-person')
+    monkeypatch.setenv('MERISTEM_PRIVACY_IDENTIFIERS', 'secret-person')
     identifiers = gate.derive_local_identifiers()
     assert identifiers == frozenset({'secret-person'})
     assert gate.classify_line(
@@ -94,7 +94,7 @@ def test_home_path_is_detected_without_any_identity(
 ) -> None:
     gate = _load_gate()
     monkeypatch.setenv('CI', 'true')
-    monkeypatch.delenv('AGENT_UTILITIES_PRIVACY_IDENTIFIERS', raising=False)
+    monkeypatch.delenv('MERISTEM_PRIVACY_IDENTIFIERS', raising=False)
     home_path = '/'.join(('', 'home', 'someone', '.cache', 'tool'))
     assert gate.classify_line(
         f'cache = "{home_path}"',
@@ -107,7 +107,7 @@ def test_home_path_is_detected_without_any_identity(
 # ``-``, so a hyphen-joined requirement ID (``MERISTEM-BOUNDARY-R016``) false-
 # positived as a machine host alias. Fixed by widening the lookbehind to
 # ``(?<![a-z0-9-])`` -- the same one-character fix as pipelines PR #41
-# (pipelines_hooks/privacy/patterns.py) and epistemic-graph's local copy
+# (pipelines_hooks/privacy/patterns.py) and medulla's local copy
 # (D-EG-PRIVACY-R001-FALSEPOS).
 def test_hyphenated_requirement_id_is_not_flagged_as_host_id() -> None:
     gate = _load_gate()

@@ -80,15 +80,15 @@ extra:
         name: Arbora
         role: public runtime gateway
         url: https://knuckles-team.github.io/arbora/
-      - slug: agent-utilities
-        name: Trellis
+      - slug: meristem
+        name: Meristem
         role: agent control plane
         url: https://knuckles-team.github.io/meristem/
-      - slug: epistemic-graph
-        name: Epistemic Graph
+      - slug: medulla
+        name: Medulla
         role: durable multimodal knowledge and reasoning engine
         url: https://knuckles-team.github.io/medulla/
-      - slug: agent-connector-sdk
+      - slug: scion-sdk
         name: Scion SDK
         role: governed source integration boundary
         url: https://knuckles-team.github.io/scion-sdk/

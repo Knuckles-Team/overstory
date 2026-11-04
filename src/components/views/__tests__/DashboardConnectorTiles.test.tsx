@@ -29,7 +29,7 @@ async function readDashboardFixture(url: string, _options?: RequestInit) {
     })
   if (url === '/api/enhanced/tools')
     return Response.json({
-      source: 'epistemic_graph',
+      source: 'medulla',
       components: [],
       servers: [{ server_id: 'srv:catalog-only', name: 'catalog-only', status: 'unavailable', tool_count: 0 }],
     })

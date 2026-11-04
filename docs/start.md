@@ -6,7 +6,7 @@ browser surface with the correct routing and authority boundaries.
 ## Requirements
 
 - Python 3.12 through 3.14
-- A local or deployed epistemic-graph endpoint accepted by the generated
+- A local or deployed medulla endpoint accepted by the generated
   Arbora profile
 - A supported model provider configured for conversations and agent runs
 

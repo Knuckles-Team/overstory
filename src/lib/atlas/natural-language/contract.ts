@@ -1,6 +1,6 @@
 /**
  * @file natural-language/contract.ts
- * @description The browser contract for agent-utilities' NL query gateway twin.
+ * @description The browser contract for meristem' NL query gateway twin.
  *
  * The gateway accepts the request fields (`text`, `execute`) and returns the canonical
  * EvidenceBundle envelope.  In particular, the generated query is not a
@@ -13,7 +13,7 @@ import { z } from 'zod'
 
 import { validateShape } from '@/lib/api-validation'
 
-/** Absolute browser route served by the agent-utilities gateway. */
+/** Absolute browser route served by the meristem gateway. */
 export const NATURAL_LANGUAGE_QUERY_ROUTE = '/api/graph/nl-query'
 
 /** The request fields emitted by this governed browser client. */

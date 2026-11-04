@@ -95,7 +95,7 @@ for (const viewport of [
           },
         })
       if (path === '/api/enhanced/tools')
-        return route.fulfill({ json: { source: 'epistemic_graph', servers: [], components: [] } })
+        return route.fulfill({ json: { source: 'medulla', servers: [], components: [] } })
       if (path.startsWith('/api/configure')) return route.fulfill({ json: { models: [], builtinTools: [] } })
       if (path === '/api/enhanced/models') return route.fulfill({ json: { models: [], default_id: '' } })
       if (path === '/api/chats') return route.fulfill({ json: [] })

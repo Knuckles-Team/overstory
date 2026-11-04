@@ -5,8 +5,8 @@
  *
  * Pane 1/2's structural shape (catalog -> schema -> table -> column) mirrors
  * the `POST /graph/sql-schema` response built by
- * `agent_utilities/mcp/tools/graph_tools.py:build_projection` on the au side
- * (feat(gateway) `cc1e7a6a8`, already on `agent-utilities` `main` as of
+ * `meristem/mcp/tools/graph_tools.py:build_projection` on the au side
+ * (feat(gateway) `cc1e7a6a8`, already on `meristem` `main` as of
  * this lane) — keep these two shapes in lockstep by hand; there is no
  * generated-client step in this repo yet.
  */

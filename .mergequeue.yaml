@@ -1,23 +1,23 @@
 # Merge-queue gate declaration for `overstory` (a pnpm/TypeScript + Python HYBRID
 # repository).
 #
-# Bootstrapped directly onto `main` the same way `agent-utilities/.mergequeue.yaml` and
-# `epistemic-graph/.mergequeue.yaml` were (D-MQR-1's "chore(merge-queue): bootstrap
+# Bootstrapped directly onto `main` the same way `meristem/.mergequeue.yaml` and
+# `medulla/.mergequeue.yaml` were (D-MQR-1's "chore(merge-queue): bootstrap
 # .mergequeue.yaml" pattern) — a direct commit, not landed through the queue itself,
 # because a repo with no queue declaration cannot enqueue the declaration through its own
 # queue. Every change to this file AFTER this bootstrap goes through the queue like any
 # other candidate.
 #
-# Read side by side with agent-utilities' and epistemic-graph's own presets — same
+# Read side by side with meristem' and medulla's own presets — same
 # mechanism (`repository_manager/merge_queue.py`, the GENERIC driver: this repo has no
-# `agent_utilities/governance/` package of its own, so `merge_queue_runner.sh` picks the
-# generic driver for it, not agent-utilities' bespoke one), different gates.
+# `meristem/governance/` package of its own, so `merge_queue_runner.sh` picks the
+# generic driver for it, not meristem' bespoke one), different gates.
 #
 # ── Why every gate below runs a BARE toolchain command, never `uv run` / relies on a
 # per-worktree `.venv` ─────────────────────────────────────────────────────────────────
 # The queue verifies each candidate in a THROWAWAY, freshly `git worktree add --detach`'d
 # checkout (`repository_manager.merge_queue.materialized`) — proven empirically here to
-# carry neither `.venv` nor `node_modules`, and (unlike agent-utilities' own bespoke
+# carry neither `.venv` nor `node_modules`, and (unlike meristem' own bespoke
 # driver) the generic driver has no fallback that resolves a gate's `.venv/bin/python`
 # against the CANONICAL checkout's `.venv` when the worktree's own is missing. Two
 # register defects describe exactly this shape for this repo:
@@ -35,7 +35,7 @@
 # to the canonical checkout, not that fix. So every gate below is written to be correct
 # WITHOUT that fix landing first:
 #   - Python gate: invoke bare `python3` (PATH search, no `uv`, no relative `.venv`
-#     lookup). This host's `python3` already carries `agent-utilities` editable-installed
+#     lookup). This host's `python3` already carries `meristem` editable-installed
 #     at the user site-packages level (`~/.local/lib/python3.14/site-packages`) —
 #     independent of cwd — while `pytest.ini`'s `pythonpath = agent` still makes pytest
 #     import the MERGED TREE's own `agent/overstory` package, not a stale installed
@@ -59,7 +59,7 @@ batch_size: 8
 # Fingerprints all three toolchains every gate below depends on. Folded into the
 # baseline cache key so an in-place upgrade of any one of them busts the cache instead of
 # silently serving a baseline computed against a toolchain that no longer exists
-# (D-MQD-1, same reasoning as epistemic-graph's `cargo --version && rustc --version`).
+# (D-MQD-1, same reasoning as medulla's `cargo --version && rustc --version`).
 environment_signature: ["bash", "-c", "python3 --version && node --version && pnpm --version"]
 
 gates:
@@ -138,7 +138,7 @@ gates:
   # page-context.tsx/Chat.tsx). No `keep_lines` filter: eslint's default stylish output is
   # a file-header line followed by `line:col  error  message  rule` lines, both stable and
   # comparable once the tree's absolute path is substituted out (the driver does this for
-  # every `lines`-compare gate) — same pattern as agent-utilities' own `ruff` gate, which
+  # every `lines`-compare gate) — same pattern as meristem' own `ruff` gate, which
   # also declares no `keep_lines`.
   #
   # `ignore_lines`: same pnpm-install-preamble noise as the `typecheck` gate above (this
@@ -263,7 +263,7 @@ gates:
     compare: lines
 
 # No generated files are regenerated on land for this repo yet — nothing here is
-# purely-derived in the sense agent-utilities' docs/concepts.yaml is. If one starts
+# purely-derived in the sense meristem' docs/concepts.yaml is. If one starts
 # conflicting across candidates, declare it here together with its generator.
 generated_files: []
 regenerate: []

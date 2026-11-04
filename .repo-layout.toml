@@ -17,7 +17,7 @@
 # a line here. Remaining conventional, self-describing dot-FILES (.gitignore,
 # .node-version, ...) are instead enumerated in
 # scripts/check_root_hygiene.py's ALLOWED_DOTFILES -- see that module's
-# docstring for why the split. Ported from the agent-utilities original of
+# docstring for why the split. Ported from the meristem original of
 # this gate per CX-HYG-01.
 
 [dirs]

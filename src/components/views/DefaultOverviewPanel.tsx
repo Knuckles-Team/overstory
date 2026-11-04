@@ -29,7 +29,7 @@ import { z } from 'zod'
 /* ── Schemas (loose — count-only consumers tolerate extra/missing fields) ── */
 
 const toolsCountsSchema = z.object({
-  source: z.literal('epistemic_graph'),
+  source: z.literal('medulla'),
   counts: z.object({
     servers: z.number(),
     tools: z.number(),
@@ -44,7 +44,7 @@ const graphStatsSchema = z.object({
 })
 
 /**
- * W-12: the backend's `HealthReport` (`agent_utilities.observability.
+ * W-12: the backend's `HealthReport` (`meristem.observability.
  * runtime_health.collect_health`, the ONE implementation shared by
  * `/api/dashboard/health`, the top-level `/health`, and the MCP `graph_health`
  * tool) types `checks` as `list[HealthCheck]` — an ARRAY of `{name, status,
@@ -155,7 +155,7 @@ export default function DefaultOverviewPanel() {
     void (async () => {
       // W-10: this MUST read the same source the Prompts Registry
       // (`PromptsView.tsx`) lists from — `/api/enhanced/prompts`, the
-      // file-based store under `agent_utilities/prompts/`. The KG-backed
+      // file-based store under `meristem/prompts/`. The KG-backed
       // `/enhanced/prompts/graph` endpoint used here previously is a DIFFERENT
       // store (`engine.get_all_prompts()`, CONCEPT:WU-KG.compute.prompt-management-ahe-rollback)
       // that falls back to a single synthesized "System Prompt" placeholder

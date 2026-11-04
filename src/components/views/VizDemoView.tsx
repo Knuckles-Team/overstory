@@ -2,7 +2,7 @@
  * @file VizDemoView.tsx
  * @description Native visualization demo (D-VZ-1, lane w6-viz-xy) — renders a
  * `ViewSpec` through the eg-viz LOD ColumnStore/export pipeline running inside
- * the epistemic-graph engine (`Method::Viz`) and displays the resulting PNG.
+ * the medulla engine (`Method::Viz`) and displays the resulting PNG.
  *
  * This is the first real "views over engine data" surface in overstory: the
  * image is drawn server-side (Rust), at a bounded primitive/byte budget, and the

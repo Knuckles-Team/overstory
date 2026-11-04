@@ -16,8 +16,8 @@
  *                       library, no matplotlib.
  *
  * Default metric panels query the engine's OWN telemetry (`src/metrics.rs`):
- * `epistemic_graph_requests_total{op}` (counter) and
- * `epistemic_graph_request_duration_seconds{op}` (histogram) — the "op rate" and
+ * `medulla_requests_total{op}` (counter) and
+ * `medulla_request_duration_seconds{op}` (histogram) — the "op rate" and
  * "p50/p99 latency" panels the Admin/Dashboards MVP calls for.
  */
 
@@ -53,12 +53,10 @@ const REFRESH_INTERVALS: { id: string; label: string; seconds: number }[] = [
   { id: '60s', label: '60s', seconds: 60 },
 ]
 
-// Real engine metric names (src/metrics.rs in epistemic-graph) — NOT placeholders.
-const DEFAULT_OP_RATE_QUERY = 'sum(rate(epistemic_graph_requests_total[5m]))'
-const DEFAULT_P50_QUERY =
-  'histogram_quantile(0.50, sum(rate(epistemic_graph_request_duration_seconds_bucket[5m])) by (le))'
-const DEFAULT_P99_QUERY =
-  'histogram_quantile(0.99, sum(rate(epistemic_graph_request_duration_seconds_bucket[5m])) by (le))'
+// Real engine metric names (src/metrics.rs in medulla) — NOT placeholders.
+const DEFAULT_OP_RATE_QUERY = 'sum(rate(medulla_requests_total[5m]))'
+const DEFAULT_P50_QUERY = 'histogram_quantile(0.50, sum(rate(medulla_request_duration_seconds_bucket[5m])) by (le))'
+const DEFAULT_P99_QUERY = 'histogram_quantile(0.99, sum(rate(medulla_request_duration_seconds_bucket[5m])) by (le))'
 
 function defaultPanels(): PanelSpec[] {
   return [
