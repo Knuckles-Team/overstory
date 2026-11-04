@@ -29,9 +29,9 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
-from epistemic_graph import EngineResponseError, EpistemicGraphClient
-from epistemic_graph.client import SyncEpistemicGraphClient
-from epistemic_graph.generated.coordination import (
+from medulla import EngineResponseError, MedullaClient
+from medulla.client import SyncMedullaClient
+from medulla.generated.coordination import (
     decode_publish_current_plan,
     send_publish_current_plan,
 )
@@ -140,12 +140,12 @@ async def exercise(tcp, secret):
 
     owner = fixture.TEST_AGENT_ID
     tenant = fixture.TEST_TENANT
-    seed = await EpistemicGraphClient.connect(
+    seed = await MedullaClient.connect(
         tcp_addr=tcp,
         auth_secret=secret,
         verified_context=fixture.request_context(scopes=SEED_SCOPES),
     )
-    reader = await EpistemicGraphClient.connect(
+    reader = await MedullaClient.connect(
         tcp_addr=tcp,
         auth_secret=secret,
         verified_context=fixture.request_context(scopes=READER_SCOPES),
@@ -462,7 +462,7 @@ with tempfile.TemporaryDirectory(prefix='current-plan-native-') as temp:
             str(root / 'security'), auth_secret=secret, persist_dir=str(root / 'data')
         )
     )
-    env['EPISTEMIC_GRAPH_ENCRYPTION_KEY'] = secrets.token_hex(32)
+    env['MEDULLA_ENCRYPTION_KEY'] = secrets.token_hex(32)
     with (root / 'server.log').open('w') as log:
         process = subprocess.Popen(
             [
@@ -489,7 +489,7 @@ with tempfile.TemporaryDirectory(prefix='current-plan-native-') as temp:
                 time.sleep(0.05)
             else:
                 raise AssertionError('native startup deadline')
-            bootstrap = SyncEpistemicGraphClient.connect(
+            bootstrap = SyncMedullaClient.connect(
                 tcp_addr=f'127.0.0.1:{port}',
                 auth_secret=secret,
                 verified_context=fixture.bootstrap_context(),
