@@ -19,7 +19,7 @@ dependencies = [ "medulla>=3.0.0",
     "meristem>=5,<6",
     # Persistence privacy: `scion_sdk.privacy` scrubs values before the
     # WebUI stores or logs them.
-    "scion-sdk>=0.6.5,<1.0.0",
+    "scion-sdk>=0.7.0,<1.0.0",
     "httpx>=0.28.1",
     # Edge properties travel to eg.graph.AddEdge / GetEdgesPage as MessagePack.
     "msgpack>=1.1.0",
