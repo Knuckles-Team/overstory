@@ -1,24 +1,81 @@
-# Arbora shell and app architecture
+# OVERSTORY-APPS — Implementation plan
 
-## Reuse and ownership
+Governing spec: [spec.md](spec.md). Rows: [requirements.md](requirements.md).
+
+## Summary
+
+The browser presents one Arbora product identity and a first-class Apps section, and hosts the run, session, graph, memory, Work, Explore and Operate surfaces that read served data through the arbora client. The live caller is `App` (src/App.tsx:463), which mounts the routes registered in `ROUTES` (src/lib/nav-registry.ts:168) and the app surfaces of `APP_SURFACES` (src/apps/surfaces.ts:10). The reuse candidates found by reading the code are `nav-registry.ts`, `frontend-contributions.ts`, `src/lib/webmcp/`, `src/lib/atlas/renderers.ts` and the typed `invoke` adapter (src/lib/arbora-api/invoke.ts:66); no second router, renderer registry or client-side authority is added.
+
+## Technical Context
+
+- **Language/Version**: TypeScript with React; Python 3.12 or newer for the packaged host in agent/overstory (requires-python in pyproject.toml)
+- **Primary Dependencies**: React, Radix UI primitives, Tailwind, Vite, zod, Vitest, Playwright; FastAPI on the host side
+- **Storage**: N/A (browser preferences and consent in local storage only; durable state lives in the engine behind arbora)
+- **Testing**: Vitest with jsdom (`pnpm test`), Playwright (`pnpm test:e2e`) for browser rows, pytest for the host; the proof level of each row is named in its test cell
+- **Target Platform**: Phone, tablet and desktop browsers; the SPA ships inside the Python wheel
+- **Project Type**: web application
+- **Performance Goals**: N/A (bounded reads: one first page per list, bounded graph and chart sources as each row states)
+- **Constraints**: No service bearer in browser JavaScript, fail-closed descriptor validation, no remote executable code, an honest unavailable state for every absent producer operation
+- **Scale/Scope**: 190 leaf rows over the shell, run harness, navigation, graph edit, memory file, workspace and chat consumer surfaces
+
+## Constitution Check
+
+- I One owner per concept: pass. Each row names the module that owns it and the producer rows it consumes.
+- II Extend before you create: pass. Each `Shape:` sentence names the helper to reuse.
+- XXIV Complete rows: pass. Every active row holds a caller chain, a shape and a test reference; unbuilt files and tests are marked planned.
+- XI Code stays small: pass. The Build contract lists the complexity and size limits.
+- XXI Public files stay portable: pass. The spec holds no host data.
+- R-I The browser shows; arbora decides: pass. Data access goes through the arbora client.
+- R-II No fabricated data in the interface: pass. Views show served data or an honest state.
+- R-III The frontend type-checks, lints and builds: pass. The Build contract names the commands.
+
+## Project Structure
+
+Existing paths this spec owns, with the paths it adds marked new:
+
+```text
+src/App.tsx                                  existing  shell mount
+src/lib/nav-registry.ts                      existing  sections and routes
+src/lib/frontend-contributions.ts            existing  descriptor validation
+src/lib/webmcp/                              existing  attended page tools
+src/lib/atlas/renderers.ts                   existing  renderer registration
+src/lib/arbora-api/invoke.ts                 existing  generated operation transport
+src/apps/surfaces.ts                         existing  native app surfaces
+src/components/views/ObservabilityView.tsx   existing  run view, harness block added
+src/components/views/MemoryView.tsx          existing  Files tab added
+src/components/workspace/                    existing  Work, Explore and Operate surfaces
+src/lib/run-read.ts                          new       run read schemas and termination labels
+src/lib/graph-edit.ts                        existing  edit types; sendGraphEdit is new
+src/lib/memory-files.ts                      new       memory file helpers
+agent/overstory/server.py                    existing  serves packaged assets
+```
+
+## Phase 0: Research
+
+No unknowns that block a row. Each missing producer operation is listed under "Open definition prerequisites" in Phase 1 and is owned by the producer repository; this spec adds no research.md.
+
+## Phase 1: Design
+
+The design keeps arbora and the engine authoritative and the browser a presenter. The sections below hold the design of each consumer surface. Data types are in [data-model.md](data-model.md) and the served proof commands are in [quickstart.md](quickstart.md).
+
+### Reuse and ownership
 
 `src/lib/nav-registry.ts` owns sections/routes; `src/lib/frontend-contributions.ts` validates contributed descriptors; `src/lib/webmcp/` owns attended page tools; `src/lib/atlas/renderers.ts` and `src/components/atlas/renderers/index.ts` own renderer registration. `src/App.tsx` mounts the shell. `public/`, `index.html`, `src/index.css` and the existing asset generator own brand presentation. `agent/overstory/server.py` serves packaged assets. Extend these seams; do not create another router, renderer registry, app permission database or client-side Arbora authority. The first native app lives under `src/apps/markets/`; its finance behavior is specified separately in this repository.
 
-## AppSurface contract
+### AppSurface contract
 
 Each app has a stable ID, manifest version and route definitions from the same `RouteDef` shape. It declares capabilities, minimum role, generated API client bindings, WebMCP page/tool IDs and optional typed Atlas renderer registrations. Resolve the app catalog before constructing navigation. A native app registers a statically imported component. A package descriptor carries declarative metadata and a trusted, bounded contribution reference. The host validates it through the existing frontend-contribution schema and policy before exposing a route. A denied app is absent from privileged navigation and direct URL access returns a denied state. WebMCP tools remain attended and call the host-mediated Arbora operation path. They cannot execute merely because a page registered them.
 
-## Brand and migration
+### Brand and migration
 
 Regenerate favicon/icon/social images using the repository asset script and check generated files against source. Move Python import and distribution metadata, npm package metadata naming in one cutover. Coordinate that cutover with Arbora's consumer dependency. Keep the npm package private when the SPA is shipped in the Python wheel. Change WebMCP tool IDs to `arbora.*` and regenerate digests; old grants drain by expiry and are not silently reinterpreted. Browser storage keys receive a version bump and explicit re-consent. Environment names use one canonical prefix and reject stale aliases after the documented cutover. Preserve browser route paths except those required for the Apps section. Published Pages navigation resolves to the new site after publication; broken links are measured.
 
-## Failure and portability
+### Failure and portability
 
 A missing catalog, unsupported manifest version, denied capability, unavailable API or failed app load has a distinct visible state. Fail closed on invalid descriptors and do not import remote executable code. A fresh checkout runs `pnpm install --frozen-lockfile`, `uv venv --python 3.12`, `uv pip install -e '.[test]'`, then `pnpm run dev:server` and `pnpm run dev`; fixtures provide native and contributed app manifests locally. No private host is needed for normal PR validation.
 
-## Amendments
 
-### 2026-10-11: Sidebar query-provider parity (`OVERSTORY-APPS-R001`)
+#### Sidebar query-provider parity (`OVERSTORY-APPS-R001`)
 
 Standalone sidebar navigation and conversation tests use the existing
 `renderWithProviders` harness, matching the real query provider in `App.tsx`.
@@ -28,7 +85,7 @@ available apps. Preserve modified-click and conversation-remount coverage.
 This focused regression does not establish the broader `OVERSTORY-APPS-R044` accessibility
 acceptance criteria.
 
-## Run harness surface (OVERSTORY-APPS-R004)
+### Run harness surface (OVERSTORY-APPS-R004)
 
 Data flow: Observability run view (`ObservabilityView.tsx:602`) → `gatewayPost` (`gateway.ts:129`) → arbora `runs.get` / `runs.metrics` → harness block beside the trace waterfall.
 
@@ -45,48 +102,48 @@ The engine owns the run trace, and a client copy drifts.
 
 Cross-repository: depends on three rows. The `ARBORA-OPS` row for run metrics serves `runs.get` and `runs.metrics`. The `MERISTEM-HARNESS` row for the run trace writes the fields. The `MERISTEM-HARNESS` row for `update_plan` owns the plan state.
 
-## OVERSTORY-APPS-R005 role-aware navigation and per-user dashboards
+### OVERSTORY-APPS-R005 role-aware navigation and per-user dashboards
 
 Data flow: principal role → nav registry filter → DashboardView layout read and write → rendered page.
 Attach point: src/lib/nav-registry.ts and src/components/views/DashboardView.tsx.
 Reused: the identity session from `OVERSTORY-IDENTITY-R004` and the AppSurface contract. Role definitions stay with `ARBORA-IDENTITY` rows.
 Decision: filter navigation by the declared role in the client. Arbora still authorizes each call. Rejected alternative: a separate client role table.
 
-## OVERSTORY-APPS-R006 goals, sessions and fleets panel
+### OVERSTORY-APPS-R006 goals, sessions and fleets panel
 
 Data flow: goals, sessions and fleets operations → link builder → panel filtered by goal.
 Attach point: first child row locates the current goals and sessions views and replaces them.
-Reused: the typed client of `OVERSTORY-API-R009`. Fleet execution stays with `MERISTEM-CONTROL` rows.
+Reused: the typed client of `OVERSTORY-API-R009`. Fleet execution stays with the meristem fleet rows.
 Decision: relate by returned identifiers. Rejected alternative: infer links by name matching in the browser.
 
-## Graph edits through the engine (OVERSTORY-APPS-R030)
+### Graph edits through the engine (OVERSTORY-APPS-R030)
 
-The graph overlay save (`GraphCanvas.tsx:605`) calls `handleUpdateNode` (`GraphView.tsx:792`). It calls the new `sendGraphEdit` export in `src/lib/graph-edit.ts`, then `gatewayPost` (`gateway.ts:129`). The authenticated Arbora invoke pipeline serves `eg.graph.AddNode`, `eg.graph.ApplyMutation` and `eg.graph.RemoveNode`. The fixture engine commits the durable mutation. The client updates local state from the verdict and authoritative readback.
+The graph overlay save (`GraphCanvas.tsx:609`) calls `handleUpdateNode` (`GraphView.tsx:715`). It calls the new `sendGraphEdit` export in `src/lib/graph-edit.ts`, then `gatewayPost` (`gateway.ts:129`). The authenticated Arbora invoke pipeline serves `eg.graph.AddNode`, `eg.graph.ApplyMutation` and `eg.graph.RemoveNode`. The fixture engine commits the durable mutation. The client updates local state from the verdict and authoritative readback.
 
-Types: `GraphEditRequest`, `GraphEditVerdict` (`applied` | `refused` | `unavailable`), `ViewPersona`. Attach point: the three handlers at `GraphView.tsx:792-801`, called by `GraphCanvas.tsx:605-609`.
+Types: `GraphEditRequest`, `GraphEditVerdict` (`applied` | `refused` | `unavailable`), `ViewPersona`. Attach point: the three handlers at `GraphView.tsx:715-724`, called by `GraphCanvas.tsx:609-616`.
 
 Failure behaviour: a refused edit leaves the node unchanged and shows the engine reason. An absent operation shows "not available".
 
-Existing code: `src/components/views/GraphView.tsx:792`, `:796`, `:801`; `src/components/knowledge-graph/GraphCanvas.tsx:379`, `:605`; `src/lib/nav-registry.ts:73`. Reachable today: no. The handlers run, but no production caller reaches an engine write. Persona search terms (`persona`, `ViewPersona`) found nothing, so persona modes are new.
+Existing code: `src/components/views/GraphView.tsx:715`, `:719`, `:724`; `src/components/knowledge-graph/GraphCanvas.tsx:485`, `:609`; `src/lib/nav-registry.ts:73`. Reachable today: no. The handlers run, but no production caller reaches an engine write. Persona search terms (`persona`, `ViewPersona`) found nothing, so persona modes are new.
 
 Decision: the engine decides authorization and the client shows the verdict. Rejected alternative: a client-side role check, which drifts from the engine policy.
 
 Cross-repository: `ARBORA-OPS-R008` generates the engine-bound operations, `ARBORA-OPS-R009` enforces invoke authority and `ARBORA-OPS-R013` serves `POST /api/v1/ops/{op_id}`. EG owns the served `ApplyMutation` version check (`MEDULLA-DURABLE-KERNEL-R084.3`) and unchanged-state conflict refusal (`MEDULLA-DURABLE-KERNEL-R084.4`). Embedded read parity in `MEDULLA-TYPED-PACKS-R088` is not proof of served write authorization.
 
-## Memory files (OVERSTORY-APPS-R031)
+### Memory files (OVERSTORY-APPS-R031)
 
-### Current source and producer prerequisites
+#### Current source and producer prerequisites
 
 [EG R085](https://github.com/Knuckles-Team/medulla/tree/c0b952776129fd509b9f87b411a298593c2591ec/specs/durable-graph-kernel) defines authoritative memory versions, conflicts, retention and synchronization evidence.
 [Arbora R024.4.1–.6](https://github.com/Knuckles-Team/arbora/tree/1d7fb3f0865a32be167b0090c01e28a2c5f258b4/specs/hosted-api-operations) defines hosted files and serving in [PR 272](https://github.com/Knuckles-Team/arbora/pull/272), currently a proposed producer dependency.
 Neither definition establishes installed operations or runtime acceptance.
 EG owns content, compare-and-set, retention and sync decisions. Arbora owns authenticated serving, hosted projection and authenticated materialization acknowledgments. AU consumes EG decisions. WebUI renders the returned state.
 
-Current main `28df14e42c751d5fb99b60c973a5164144ef090d` has Memory-node CRUD in `src/components/views/MemoryView.tsx:439`, mounted from `src/lib/nav-registry.ts:664`; it has no Files tab or `src/lib/memory-files.ts`.
+Current main `28df14e42c751d5fb99b60c973a5164144ef090d` has Memory-node CRUD in `src/components/views/MemoryView.tsx:439`, mounted from `src/lib/nav-registry.ts:727`; it has no Files tab or `src/lib/memory-files.ts`.
 The existing `src/lib/arbora-api/invoke.ts:56` sends generated operations to `/api/v1/ops/{op_id}` with same-origin credentials, CSRF handling, idempotency options and validated envelopes. Reuse that adapter under `OVERSTORY-API-R001`, `OVERSTORY-API-R006` and `OVERSTORY-API-R011`.
 `gatewayPost` prefixes the graph facade and is not the operation adapter. Served tests must prove the real same-origin host route and installed schemas. The browser helper alone does not prove them.
 
-### Explicit wire and view mapping
+#### Explicit wire and view mapping
 
 | Planned helper/view        | Arbora producer                      | EG producer     | Required mapping                                                                                                                   |
 | -------------------------- | ------------------------------------ | --------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
@@ -102,13 +159,13 @@ Refused/expired cursors require an explicit restart, not concatenation of incomp
 
 Authorized stale saves return conflict_retained only after both versions are durably retained. Show both immutable contents/digests via authorized reads; never overwrite the accepted head. Retention-capacity failure refuses and cannot be presented as retained. Resolution binds the current accepted head and retained conflict. EG, not the client or hosted artifact deletion, determines release of retained history.
 
-### Host observations and acknowledgment races
+#### Host observations and acknowledgment races
 
 The browser cannot invoke observe_file or acknowledge_materialization. A save result is not a host acknowledgment. Arbora must preserve local edits and submit observations before replacing hosted bytes. Its acknowledgment binds graph incarnation, document, accepted revision, digest, observation_generation and attempt. EG atomically checks head and generation. A newer observed edit invalidates an old acknowledgment even if the accepted head has not changed. Pending edits or unresolved conflicts prevent in_sync; missing evidence yields unavailable. The UI must render that state after reread and never infer in_sync from HTTP success or matching local text.
 
 Helper, tab, registered-operation and host-materializer work still needs implementation. Planned tests below are acceptance requirements, not implementation evidence.
 
-## 2026-10-11 ownership and served-acceptance correction
+### Ownership and served-acceptance correction
 
 Checked owner snapshots: Arbora `9d035d692475a7f513c2b3e99171d729b4ca5d08`
 and EG `3137ad4a02c50540a94c0523acc9638281532c9e`.
@@ -135,9 +192,8 @@ requirements describe product-neutral graph and memory behavior. Research
 citations, including arXiv papers, are inspiration only, never protocol
 contracts, owner authority, implementation evidence or acceptance receipts.
 
-<!-- spec-definition-patch:consumer-definitions-20261012 -->
 
-## Consolidated consumer contracts
+### Consolidated consumer contracts
 
 These clauses preserve the existing shell and producer responsibilities. They add only the reviewed missing browser consumers.
 
@@ -147,13 +203,11 @@ No operation ID absent from a producer contract is assigned here. The owner must
 
 For every consumer, bind authenticated tenant, principal, graph/workspace incarnation, request identity and source revision at the host. Cancel stale requests on scope changes and clear protected state on revocation. Refusals expose no hidden entity identifiers or stored data. Compare-and-set, idempotency and authorization decisions remain producer decisions.
 
-### OVERSTORY-APPS-R004.7: Evolution evidence
-
-Input `AU:103`; original record SHA-256 `68bae14976bd3581bc33ee65b153b5ad60f807fb894af09577b9debd19be7557`.
+#### OVERSTORY-APPS-R004.7: Evolution evidence
 
 Source obligation: Evolution dashboards show per-run metrics and prompt-optimization progress drawn from recorded traces. Reviewers judge proposals by measured outcomes.
 
-Existing owner anchors: MERISTEM-HARNESS-R011; MERISTEM-HARNESS-R017; MEDULLA-ORCH-VOCAB-R009; ARBORA-OPS-R021.4.4/.5. Entry: ObservabilityView harness block.
+Existing owner anchors: MERISTEM-HARNESS-CYCLE-R004.1; MERISTEM-HARNESS-CYCLE-R016.2; MEDULLA-ORCH-VOCAB-R009; ARBORA-OPS-R021.4.4; ARBORA-OPS-R021.4.5. Entry: ObservabilityView harness block.
 
 Use generated proposal identity, prompt revision, agent identity, progress state and source RunTrace references. Keep measured run metrics separate from decision calibration and coverage.
 
@@ -167,9 +221,7 @@ Bind the shown proposal revision, run IDs, trace digests, metric window and prod
 
 A real served proposal must lead from the dashboard to its authorized stored traces and measured outcomes. Denied traces must reveal no metrics or proposal progress.
 
-### OVERSTORY-APPS-R006.4: Unified harness sessions
-
-Input `WEBUI:3`; original record SHA-256 `38936b5f2136263c40c29fe639c984243fed8be6dbb9a6d836f40d7b7672116e`.
+#### OVERSTORY-APPS-R006.4: Unified harness sessions
 
 Source obligation: On first run, the platform discovers agent sessions from every supported harness. It syncs them into local queryable indexes. The web interface offers unified browsing and search across them with cost summaries.
 
@@ -187,9 +239,7 @@ Keep source coverage, sync cursor, index revision, query window, cost units and 
 
 From a fresh browser, exercise every supported harness in the versioned owner manifest and search sessions without duplicate identities. Include at least two harnesses when the manifest contains two or more. Two examples alone do not prove manifest-wide coverage. Deny one source and prove visible partial coverage and no hidden-session disclosure.
 
-### OVERSTORY-APPS-R004.8: Indexed usage analysis
-
-Input `WEBUI:4`; original record SHA-256 `dd790b40c92758d720375c78ccd4278845b8d348022b4d69b978cba049461237`.
+#### OVERSTORY-APPS-R004.8: Indexed usage analysis
 
 Source obligation: The platform tracks token and cost usage per agent and indexes it in local storage. It exposes usage for fast analysis by model, project and agent.
 
@@ -207,9 +257,7 @@ Retain aggregate definition, currency, accounting version, observation interval,
 
 Serve indexed model/project/agent queries over the owner-declared dataset and check independent stored accounting totals. Compare measured latency with the revision-bound positive finite owner limit. Test incomplete attribution, denied scope and absent, invalid or exceeded limits.
 
-### OVERSTORY-APPS-R030.8: Live graph convergence
-
-Input `WEBUI:5`; original record SHA-256 `0b416b47d85530fb35cf44bf5dc79e04e1b9746481027d0b0687b66579dc9844`.
+#### OVERSTORY-APPS-R030.8: Live graph convergence
 
 Source obligation: Connected client views reflect graph changes immediately without page refresh. The graph layout stays readable under concurrent edits from multiple users.
 
@@ -227,9 +275,7 @@ Retain snapshot and event revisions and measure commit-to-visible latency. Bind 
 
 Two real browsers edit concurrently and converge before refresh within the owner latency limit. Compare layout measurements against owner limits under the declared workload. Test missing, invalid and exceeded bounds. Exercise duplicated, delayed and reordered events, reconnect and revocation; compare both views with independent durable readback.
 
-### OVERSTORY-APPS-R001.1: Retrieval quality comparison
-
-Input `WEBUI:6`; original record SHA-256 `3dc3c464a10a5178a413463f2b43baeb015732f5b8df508f6dbab9c37cc1165d`.
+#### OVERSTORY-APPS-R001.1: Retrieval quality comparison
 
 Source obligation: An operator inspects and compares retrieval quality interactively: hits-at-k metrics, n-gram highlighting, side-by-side algorithm comparison and context search.
 
@@ -247,9 +293,7 @@ Show numerator, denominator, k, corpus/label revisions, algorithm settings and q
 
 A real served fixed corpus and labels must produce independently checked hits-at-k for two algorithms. Test unlabeled data, cross-revision comparison and hostile highlight text without fake metrics.
 
-### OVERSTORY-APPS-R001.2: Bounded large-data charts
-
-Input `WEBUI:7`; original record SHA-256 `483b80b268ba6924ced162740792071fb43f482b1cddf16d9fbd424727d4ed89`.
+#### OVERSTORY-APPS-R001.2: Bounded large-data charts
 
 Source obligation: The web interface renders interactive scatter and line charts with pan, zoom and selection. Datasets reach billions of points. Screen-bounded binning keeps payload size bounded.
 
@@ -267,9 +311,7 @@ Enforce owner-published positive finite bin-count and response-byte limits befor
 
 Serve a real indexed source of at least one billion points. Pan, zoom and select both chart variants. Measure bins and bytes against the owner viewport formulas and limits. Test absent, zero, negative, nonfinite and exceeded limits, stale responses and denied selections.
 
-### OVERSTORY-APPS-R001.3: Column vector controls
-
-Input `WEBUI:8`; original record SHA-256 `c00e7f00c83f38949d4da47e43c1e3d430e43d5b7122ff44c040d2921eeebedc`.
+#### OVERSTORY-APPS-R001.3: Column vector controls
 
 Source obligation: A table schema browser lets the user toggle vectorization per column and observe vector index statistics.
 
@@ -287,9 +329,7 @@ Bind mutation verdict and readback to column ID, schema revision, embedder and i
 
 Use an authenticated browser to bind a text column and read actual index statistics through Arbora and EG. Deny a writer and submit a stale schema; prove unchanged bindings and no embedding effects.
 
-### OVERSTORY-APPS-R001.4: Remote editor compatibility
-
-Input `WEBUI:9`; original record SHA-256 `adf594bd4203d666df7254ef4f9481e91cdb841429e8b720d2a8483764f44a32`.
+#### OVERSTORY-APPS-R001.4: Remote editor compatibility
 
 Source obligation: The web interface offers a browser-based code editor with extension and keyboard-shortcut compatibility for remote development.
 
@@ -307,9 +347,7 @@ Record workbench and manifest versions, extension verdicts, keybinding profile a
 
 Open an authenticated remote workspace and exercise one declared extension and shortcut in a real browser. Test incompatible extensions, reserved shortcut focus and cross-workspace access denial.
 
-### OVERSTORY-APPS-R001.5: Meeting transcripts and summaries
-
-Input `WEBUI:10`; original record SHA-256 `c82a815c87428a5baf4379ef7790bafb24a5d3367d16ebd85a6c39ff9b52521d`.
+#### OVERSTORY-APPS-R001.5: Meeting transcripts and summaries
 
 Source obligation: The web interface shows a live meeting transcript. The user chooses a local or hosted language-model provider for post-meeting summaries.
 
@@ -327,9 +365,7 @@ Bind summary content and citations to final transcript revision, provider/model 
 
 In a real browser, receive segments and corrections, finalize, then select local and hosted providers separately. Check actual provider routing and summary provenance. Denied egress and stale transcript requests produce no summary effects.
 
-### OVERSTORY-APPS-R001.6: Bookmark knowledge views
-
-Input `WEBUI:11`; original record SHA-256 `b1708c96d6b9cadcb1c9f35cc5cb7dde4e60ed2cb1250598e55b9ce4cc66907e`.
+#### OVERSTORY-APPS-R001.6: Bookmark knowledge views
 
 Source obligation: The web interface presents a searchable bookmark knowledge base. It supports semantic filtering and an interactive mindmap. It exports CSV or JSON.
 
@@ -347,13 +383,11 @@ Bind search, mindmap and exports to one query/snapshot revision, source provenan
 
 Import bookmarks through SDK R005.7–.12, then use real browser semantic filtering, mindmap and CSV/JSON export. Independently compare stored records and downloaded bytes; deny one bookmark and prove exclusion everywhere.
 
-### OVERSTORY-APPS-R001.7: Sandboxed design artifacts
-
-Input `AU:107`; original record SHA-256 `d179fc0eb33039df3a87efe8a59ce2a635f0e39f360c58f925011448d0401cdc`.
+#### OVERSTORY-APPS-R001.7: Sandboxed design artifacts
 
 Source obligation: A design flow composes available coding agents found on the path and applies skill-driven transformations. It renders generated artifacts in a sandboxed web frame.
 
-Existing owner anchors: MERISTEM-CONTROL-R003; MERISTEM-HARNESS-R009; OVERSTORY-DESIGN-R001; OVERSTORY-APPS-R001. Entry: Existing MCP App frame.
+Existing owner anchors: OVERSTORY-DESIGN-R001; OVERSTORY-APPS-R001. The meristem skill-execution owner has no spec row yet, so it is a missing producer prerequisite. Entry: Existing MCP App frame.
 
 Consume host-discovered executable identities and capabilities, EG-admitted skill sequence and immutable generated artifact references. Bind artifacts to execution, skill and source revisions.
 
@@ -367,13 +401,11 @@ Show execution and transformation references with the rendered digest. Preserve 
 
 Serve an admitted design flow through actual host discovery and execution to the sandbox frame. Compare the artifact digest with durable provenance; test substituted artifacts and hostile scripts without parent or network escape.
 
-### OVERSTORY-APPS-R001.8: Interactive code explanations
-
-Input `AU:115`; original record SHA-256 `445704f78ae07d1c4b62f42dd23797823d91bc470f04a9dc779e3f6777fffbf0`.
+#### OVERSTORY-APPS-R001.8: Interactive code explanations
 
 Source obligation: A codebase query can produce a linear code walkthrough and a self-contained interactive explanation artifact. Execution notes stream to the graph as provenance.
 
-Existing owner anchors: MEDULLA-REPO-INGEST-R009; MERISTEM-HARNESS-R024; MEDULLA-ORCH-VOCAB-R013.1/.3; OVERSTORY-APPS-R001. Entry: Existing artifact frame and code navigation.
+Existing owner anchors: MEDULLA-REPO-INGEST-R009; MEDULLA-ORCH-VOCAB-R013.1; MEDULLA-ORCH-VOCAB-R013.3; OVERSTORY-APPS-R001. The meristem execution-note owner has no spec row yet, so it is a missing producer prerequisite. Entry: Existing artifact frame and code navigation.
 
 Consume query/repository revision, ordered walkthrough steps, source spans, self-contained artifact manifest/digest and execution-note sequence references. Keep explanation notes distinct from private model reasoning.
 
@@ -387,7 +419,7 @@ Bind walkthrough, artifact bytes and note stream to one query and repository rev
 
 From a real served code query, inspect source-linked steps and load the artifact with external network blocked. Independently read graph notes and compare artifact bytes; reject wrong-revision outputs and unauthorized source links.
 
-### Input reconciliation
+#### Input reconciliation
 
 | Input    | Consumer clauses           | Scope                             |
 | -------- | -------------------------- | --------------------------------- |
@@ -405,9 +437,8 @@ From a real served code query, inspect source-linked steps and load the artifact
 | AU:115   | `OVERSTORY-APPS-R001.8.1`–`.6` | Interactive code explanations     |
 
 The cited owner anchors establish existing responsibilities, not missing operation registrations. The exact newly published producer extensions must be reconciled before definition closure and runtime acceptance. Covered model/task-class metrics, SDK bookmark ingestion, single-shot dictation and the existing editor/frame remain intact.
-<!-- /spec-definition-patch -->
 
-## Open definition prerequisites
+### Open definition prerequisites
 
 None of the twelve source inputs is fully definition-complete through this consumer increment alone.
 Existing general owner anchors do not replace exact specialized producer operation IDs, schema revisions and consumer bindings.
@@ -419,7 +450,7 @@ The consumer must refuse absent or invalid bounds; it must not choose local defa
 Manifest-wide harness coverage requires the versioned complete supported-harness inventory and per-entry acceptance evidence.
 These are cross-owner follow-up conditions. This change does not assign limit values, register operations or implement behavior.
 
-## Amendments — 2026-10-16 navigation acceptance evidence
+### Navigation acceptance evidence
 
 Extend OVERSTORY-APPS-R005.1 and OVERSTORY-APPS-R005.6 registry tests to enforce explicit
 valid minimum roles, reader filtering, unknown-user rejection and the 20-word
@@ -429,7 +460,7 @@ This is partial test evidence only. The harness retains known-failure baselines.
 Purpose visibility through shell-heading exceptions still needs rendered acceptance. Child requirements separate the tested subset from the remaining rendered obligations.
 Parent rollups do not claim full verification from these partial tests.
 
-### Acceptance decomposition — 2026-10-16
+#### Acceptance decomposition
 
 Each R005.1, R005.5 and R005.6 parent rolls up its two child requirements.
 The first child records the tested registry or harness contract.
@@ -437,7 +468,7 @@ The second retains the full rendered acceptance obligation and remains open.
 Test bindings name only the narrow children, not their full-acceptance parents.
 The canonical child rollup keeps every parent pending until both children pass.
 
-## Hostile-harness test budget (OVERSTORY-APPS-R005.5)
+### Hostile-harness test budget (OVERSTORY-APPS-R005.5)
 
 Each matrix test has an explicit 5 s budget, the vitest default.
 A matrix body takes about 0.4 s; the slowest local body takes 0.9 s.
@@ -446,7 +477,7 @@ The cause was CPU starvation of the self-hosted runner pod.
 The runner pods request 2 CPUs and may use 12, so co-scheduled Rust compiler jobs can starve them.
 That failure is an infrastructure failure. The runner capacity owns the fix, not the test budget.
 
-## Responsive workspace architecture and shared action contract
+### Responsive workspace architecture and shared action contract
 
 OVERSTORY-APPS-R045–R050 reuse src/lib/nav-registry.ts, src/lib/apps/contract.ts, App.tsx, reusable domain widgets and src/lib/webmcp. The current 58 application destinations are a baseline, not a closed list. Extend the route registry with semantic destination/action descriptors, never introduce a second router. Dynamic entities use a stable canonical identity and scoped parent/context references; relationship paths may differ. List bounded authorized children lazily and support direct search so an infinite dataset does not require an infinite initial payload.
 
@@ -456,15 +487,15 @@ One dispatcher accepts stable action ID, validated typed arguments and current c
 
 Keep the existing native WebMCP adapter, registration lifecycle and attended-control boundary. Core navigation, Atlas state, Markets and dashboard controllers are migration seams. Tools are registered only for the mounted/authorized context, with bounded schemas/results and retirement on identity or generation changes. Page content and descriptions are untrusted data, never authority. Do not publish all backend MCP tools unchanged. Reconcile stale WebMCP documentation with actual dashboard/query and Markets capabilities. Imperative tools and suitable declarative form annotations share the same dispatcher. Feature-detect the actual API instead of relying on browser names.
 
-The official Chrome WebMCP documentation (https://developer.chrome.com/docs/ai/webmcp, checked 2026-10-23) describes a proposed standard, imperative and declarative APIs, and an origin trial from Chrome 149. This is a progressive enhancement, not a universal availability claim. Browser acceptance must record actual API/support and tools Permissions Policy behavior. Existing same-origin/no-cross-origin exposure remains the default; this spec grants no additional browser or remote-control permission.
+The official Chrome WebMCP documentation (https://developer.chrome.com/docs/ai/webmcp) describes a proposed standard, imperative and declarative APIs, and an origin trial from Chrome 149. This is a progressive enhancement, not a universal availability claim. Browser acceptance must record actual API/support and tools Permissions Policy behavior. Existing same-origin/no-cross-origin exposure remains the default; this spec grants no additional browser or remote-control permission.
 
 Delivery order: (1) census and contract tests; (2) shared navigation/action state and responsive shell with current views; (3) domain-by-domain reflow and semantic tools; (4) composed auth/no-auth and performance qualification. Domain backend gaps remain with their existing upstream owners and cannot be concealed by the presentation migration. See workspace-coverage.md for preservation and dependency obligations.
 
-## Registered navigation slice and remaining acceptance
+### Registered navigation slice and remaining acceptance
 
 R046.1 introduces only registered branch/list navigation and the shared validated navigation dispatcher. It preserves the existing route registry, role checks and native links. Its source tests use synthetic URL events. R046.2 retains real browser history, dynamic deepest-leaf, camera and rendered mobile acceptance. R047 still requires complete action equivalence beyond navigation. No backend, identity boundary or provider capability is added.
 
-## Consolidated information architecture
+### Consolidated information architecture
 
 The primary contexts are Work, Explore and Operate. Existing route declarations remain the compatibility and capability inventory during migration. They do not mandate separate feature pages.
 
@@ -480,7 +511,7 @@ Navigation measurement counts deliberate activations that change context, lens o
 
 Migration work prioritizes reusable backend, safety, data, action and accessibility contracts. Do not polish old page layouts scheduled for replacement. Parity means preserved capabilities and safe interactions, not pixel matching or exhaustive cosmetic checks of legacy routes. Existing mobile correctness tests can inform new acceptance fixtures; their old layout is not the design target. Implement and test the consolidated surfaces directly. Legacy compatibility adapters only need routing, state, authority and capability evidence.
 
-## Read-only Explore implementation seam
+### Read-only Explore implementation seam
 
 OVERSTORY-APPS-R049.1.1 uses the workspace component `ExploreWorkspace.tsx` and `src/lib/explore-workspace.ts`. The component retains collection/query state while a typed entity/tool state selects overview, relationships or history. Manual links and mounted WebMCP use one validator and transition function. The implementation gates reads on resolved identity and the existing user role. Published conversation evidence stays bounded without truncating the working query. Existing typed read clients provide data; no backend operation or effect authority is added.
 
@@ -488,19 +519,19 @@ This opt-in source proof is not the completed destination migration. OVERSTORY-A
 
 The R049.1.1 source contract also retains the typed collection query across remounts and native links. The URL carries validated `q` state so reload and modified-click navigation restore the same investigation. The Explore shell does not mount a hidden dashboard. Existing attended controls remain in normal shell flow during denied and loading states. Public context reports the canonical route and a bounded query representation. The full execution query remains separate and unchanged. Reuse the reviewed consent lifecycle; its separate requirements stay with their existing owner.
 
-## Retained Work source composition
+### Retained Work source composition
 
 OVERSTORY-APPS-R049.1.3 reuses the existing Chat lifecycle instead of constructing another conversation engine. The Work surface presents conversation selection, independent served task list/get reads and trace/node reads. Typed URL state and tool navigation use the same validator as manual controls. The anchored shared context rail does not replace or duplicate Chat. Switching context preserves legitimate selection without inventing associations.
 
 No served contract currently links conversation, task, trace, subagent and evidence into one proven chain for this slice. Present independent selectors and provenance honestly. Do not label spans as subagents or infer links from similar IDs, timing or labels. Task cancellation uses its existing Arbora operation and preserves service authority. This slice adds no execution, permission or backend operation. Other capabilities require their existing owning contracts. The complete migration and real-provider/browser qualification remain under R049.1.2.
 
-### Operate discovery source amendment
+#### Operate discovery source amendment
 
 Add R049.1.4 as a narrow read-only source slice. Canonical `fleet.status` reports child state; process state does not prove callable tools. `fleet.catalog.list` provides caller-visible descriptors and cursors. Browse without named-server filters to avoid the live priming path. Preserve the three-context shell and existing assistant; do not wrap the legacy Fleet Supervisor page. A reader-level presentation gate never substitutes for gateway `mcp:discover` authorization. Bound the preview to ten catalog pages and report incompleteness honestly.
 
 Retain host provisioning, configuration, containment, approval and execution capabilities as explicit R049.1.2 migration obligations. Do not expose those effects or fabricate their backend contracts. Live auth/no-auth, deployment, mobile, accessibility and browser qualification remain independent acceptance work.
 
-### Current response task navigation source
+#### Current response task navigation source
 
 Use the explicit task identifier returned for the active conversation. Render one link for the current non-streaming assistant response. Share the typed Work dispatcher with the browser tool. Treat all trace references as opaque values. Navigation does not establish execution ownership or authorization. Keep full migration and live-provider acceptance open.
 
@@ -516,7 +547,7 @@ Loaded Work and Operate command adapters reuse the existing command provider. Th
 
 The Work task lifecycle uses the existing task cancellation operation. Manual controls and a local review tool share the same selected task. The tool opens review only. A trusted browser confirmation sends the request. Admission changes retire reads and reviews. Selection changes retire review. A request that already reached Arbora can continue; the retired view ignores its completion. Refresh reads authoritative task state. No conversation-to-task association is inferred.
 
-## R048 retained registration callback repair
+### R048 retained registration callback repair
 
 Guard browser-facing tool callbacks with their acknowledged registration lifetime.
 A callback retained after cleanup, or from a pending or failed registration, must
@@ -525,7 +556,7 @@ in the existing page tools and shared navigation dispatcher. This is a partial
 R048 source repair; native-browser qualification and the remaining authority and
 cancellation matrix stay open.
 
-### Connector tile composition amendment
+#### Connector tile composition amendment
 
 The Operate connector panel adds partial presentation for OVERSTORY-APPS-R005.3 under the
 R049 workspace migration. Reuse the caller-visible `fleet.status` inventory
@@ -541,7 +572,7 @@ no matches remain distinct. These tests prove presentation over returned fleet c
 They do not prove complete connector catalog membership or connection state.
 R005.3 and full migration and installed-provider acceptance remain open.
 
-## R048 hidden document registration lifecycle
+### R048 hidden document registration lifecycle
 
 The provider subscribes to document visibility before registering page or child tools.
 Hidden documents keep manual content mounted but expose no browser tool registrations.
@@ -549,7 +580,7 @@ Visibility changes trigger existing registration cleanup and publish fresh regis
 The channel retains its existing visibility revocation behavior.
 This partial source repair does not qualify native browser support or complete R048.
 
-## R048 cooperative execution lifetime
+### R048 cooperative execution lifetime
 
 Browser tool execution receives cancellation from both its caller and its registration lifetime.
 The adapter links these signals for each call and detaches listeners when the call settles.
@@ -559,11 +590,11 @@ Handlers must observe the signal before continuing asynchronous work.
 The adapter preserves returned outcomes and does not describe a completed dispatch as rolled back.
 Native browser scheduling, served authority and complete R048 acceptance remain open.
 
-### R048 native replacement routing
+#### R048 native replacement routing
 
 Chromium 156 experimental WebMCP resolved a retained native Tool reference to a new same-name registration. Each native registration now has a unique routing name; the application registry retains the semantic tool ID. This prevents stale native references from selecting replacement callbacks. The rendered route, Back/Forward, deep-link and restoration matrix uses native discovery with synthetic backend responses. Authenticated served authority acceptance remains open; R048 is not complete.
 
-### Connector catalog registration presentation
+#### Connector catalog registration presentation
 
 Extend the R005.3 Operate panel with the existing Arbora `/api/enhanced/tools`
 contract. Arbora v0.1.7 and current main define `EnhancedCatalog.servers` in
@@ -577,7 +608,7 @@ browser projection. Scope reads to the current admission, and withdraw stale
 results on refusal. Missing host composition remains visibly unavailable.
 Full connection-state and installed-provider acceptance remain open.
 
-### Contextual connector definitions
+#### Contextual connector definitions
 
 Extend existing R005.3 and R049.1.2 inspection within the selected catalog connector.
 Join tools and skills only through returned `server_name`; retain each definition identity.
@@ -586,7 +617,7 @@ Keep registration availability, MCP transport state and unknown provider connect
 Retire selection after catalog refresh, refusal or admission change.
 Full migration, provider connectivity and governed execution acceptance remain open.
 
-### Operate readiness diagnosis
+#### Operate readiness diagnosis
 
 Use the supported dashboard readiness route for existing R049.1.2 health-context migration.
 Preserve returned rollups, dynamic checks, snapshot provenance and complete check evidence.
@@ -602,7 +633,7 @@ Fleet load/unload require authenticated MCP sessions and are not HTTP actions.
 Legacy broker topic/message requests do not match its advertised queue/publish contract.
 Readiness diagnosis uses the supported dashboard collector rather than those unavailable journeys.
 
-### Supported Operate migration acceptance
+#### Supported Operate migration acceptance
 
 Consolidate catalog inspection and readiness diagnosis through their existing Operate controls.
 Retire the standalone readiness layout only after its refresh and evidence behavior passes in Operate.
@@ -611,7 +642,7 @@ Focus the readiness heading on arrival without creating a Back-navigation loop.
 Preserve missing-route, access-denied, invalid-response and transport-failure distinctions before retiring the legacy view.
 Keep integration package descriptors separate from connector identities; their missing contract prevents that alias migration.
 
-## Cold-entry asset resolution amendment
+### Cold-entry asset resolution amendment
 
 Fix nested workspace entry in the existing Vite configuration. Keep the static
 host and admission behavior unchanged. Exercise generated asset references for
@@ -620,7 +651,7 @@ bundle through the installed Arbora application composer and WebUI static mount.
 Use synthetic identity/data only; retain the full R046.2.2 and R050 acceptance
 obligations. No additional requirement decomposition is introduced.
 
-### R048 attended agent proposal delivery
+#### R048 attended agent proposal delivery
 
 The armed WebMCP channel accepts an Arbora proposal for human review.
 It shows the exact tool, arguments, requesting agent and opaque requester reference.
@@ -636,7 +667,7 @@ These fixtures do not establish authenticated served execution or installed nati
 OVERSTORY-APPS-R048 remains open pending that composed acceptance.
 This change grants no session, arms no browser and changes no production authority.
 
-### Work trace inspection continuation
+#### Work trace inspection continuation
 
 Extend OVERSTORY-APPS-R049.1.3 within the existing Work surface.
 Refresh the selected trace through its existing waterfall adapter.
@@ -662,7 +693,7 @@ Chat's plan mode and routing-plan activity do not provide an authoritative curre
 Richer metrics, goal/workflow editing, IDE authoring and harness discovery remain migration obligations.
 This continuation preserves their legacy routes.
 
-### Task output inspection in Work
+#### Task output inspection in Work
 
 OVERSTORY-APPS-R049.1.3 also renders returned task output inside the selected task.
 The producer is agents.tasks.get through the existing enhanced sessions detail facade.
@@ -678,7 +709,7 @@ Task reads do not retry explicit 401, 403, 404 or 501 responses.
 Transient failures retain bounded retries. The caller can request another read explicitly.
 This avoids keeping cached output visible during retry backoff after an explicit refusal.
 
-### Fleet discovery host admission
+#### Fleet discovery host admission
 
 OVERSTORY-APPS-R049.1.4 classifies only the canonical fleet status and catalog-list
 POSTs as host-level reads. Arbora declares both `Effect.READ` and requires
@@ -687,7 +718,7 @@ calls, tool load/unload, unknown POST paths and other mutation methods retain
 the write floor. This repairs transport classification, not caller grants or provider
 acceptance.
 
-### Work conversation lifecycle
+#### Work conversation lifecycle
 
 Extend R049.1.3 and the migration inventory under R049.1.2 with the existing owner-scoped chat store.
 Start a new conversation without leaving Work or clearing independent task and trace selection.
@@ -698,7 +729,7 @@ Bind reviews and semantic review requests to the current owner, conversation and
 Retire reviews when that context changes. Check local storage readback before reporting success.
 Keep the existing conversation selector, legacy links and one retained Chat instance.
 
-### Contextual Work prompt authoring
+#### Contextual Work prompt authoring
 
 Extend OVERSTORY-APPS-R049.1.2 and R049.1.3 with an admin-only prompts lens.
 Reuse the existing validated prompt editor and its canonical list/read/upsert adapter.
@@ -712,7 +743,7 @@ Retain the legacy prompts route and its existing editor behavior. This slice
 does not claim full authoring-tool parity, provider acceptance, plan metrics,
 harness discovery, or complete Work destination migration.
 
-## Persistent loaded workspace frame
+### Persistent loaded workspace frame
 
 Extend the existing workspace requirements without new decomposition. Keep the
 three-context rail and task surfaces. Add a persistent map/list of loaded
@@ -723,7 +754,7 @@ and all existing controls during viewport changes. Narrow layouts stack the map
 and task surface with explicit focus controls. This bounded shell does not
 migrate legacy pages or prove all dynamic leaves and installed providers.
 
-### Workspace entry and prompt compatibility slice (2026-10-24)
+#### Workspace entry and prompt compatibility slice
 
 R045/R049.1/R049.1.2 retain ownership of entry migration. The registry declares
 `/` as the workspace entry. Admitted user-or-higher identities enter Work.
@@ -747,7 +778,7 @@ Mounted tests check the selected Work branch and editor DOM across map presentat
 R049 owns this partial entry migration. R049.1.3 owns the retained Work source behavior.
 R045 and R049.1.2 remain open; these source receipts do not complete either requirement.
 
-### Loaded catalog navigation
+#### Loaded catalog navigation
 
 R046.2.2, R047 and R049.1.2 partial delivery adds caller-visible connector and
 associated tool/skill definition identities to the existing Operate destination.
@@ -757,7 +788,7 @@ unconfirmed definitions instead of retaining stale evidence. Only bounded
 identifiers enter the URL; no definition body, token or execution authority does.
 Full dynamic-leaf, native-provider and complete migration acceptance remain open.
 
-### Canonical chat turn usage — 2026-10-24
+#### Canonical chat turn usage
 
 This bounded consumer slice does not complete OVERSTORY-APPS-R004.3 or
 OVERSTORY-APPS-R004.8. Their context-budget, cost and indexed-analysis acceptance
@@ -788,7 +819,7 @@ Focused tests cover the decoder, Vercel stream, rendered Chat, replay and caller
 separation. They do not establish native producer, restart, context-budget or
 full-session acceptance.
 
-### Read-only current plan in the selected task
+#### Read-only current plan in the selected task
 
 Extend OVERSTORY-APPS-R004.4 through the existing Arbora operation transport.
 The selected task's validated `metadata.arbora.runId` selects `runs.current_plan`.
@@ -802,7 +833,7 @@ authentication, CSRF and downstream caller policy. Do not grant write access
 to compensate for a read transport. This bounded slice adds no editing,
 metrics, harness configuration, trace association or provider acceptance.
 
-### 2026-10-24: Nested execution explorer in Work
+#### Nested execution explorer in Work
 
 This extends R049.1.2 without narrowing its complete migration and served-provider obligations.
 R049.1.3 retains its independent task/trace source evidence and explicit refusal to infer subagents.
@@ -818,7 +849,7 @@ R049.1.10 and R049.1.11 consume `ARBORA-RELEASE-R003.4.12` and `ARBORA-RELEASE-R
 These upstream requirements do not establish current installed-provider availability.
 Do not invent operation names or browser-only protocol variants before the released schema exists.
 
-#### Shared identity and navigation
+##### Shared identity and navigation
 
 The root request `task_id` identifies a WorkItem/A2A task; event `task_id` identifies a run-local step.
 A producer-issued node key is `(run_id, node_kind, local_id)`, not an interchangeable task or conversation identifier.
@@ -846,7 +877,7 @@ Recover replay gaps through the producer's resnapshot path; never invent global 
 Use bounded pagination and viewport rendering, with visible partial-scope labels.
 Distinguish available-empty, partial, unavailable, denied and failed results.
 
-#### Public records and accessible interaction
+##### Public records and accessible interaction
 
 Use the existing Chat parts and inspector components for public summaries, tool activity and transcript records.
 Label these categories separately; never show private reasoning or unknown fields.
@@ -860,7 +891,7 @@ At narrow widths and 200-percent zoom, use stacked panes or a drawer without los
 Actual browser Back/Forward, reload and deep-link navigation must restore only reauthorized selections.
 Closing an inspector returns focus to its invoking node and must not submit a message.
 
-#### Control boundaries
+##### Control boundaries
 
 `can_read_events`, `can_read_transcript`, `can_message_active` and `can_continue_completed` default to false.
 Backend authorization remains required even when the current capability projection activates a control.
@@ -873,7 +904,7 @@ A lost response remains unknown; reconnect reconciles the original request witho
 Cancellation uses only its exact authorized target and reports acknowledgement separately from eventual terminal state.
 Drawn descendants do not imply permission to cancel a subtree.
 
-### 2026-10-24: Bounded flat execution graph source slice
+#### Bounded flat execution graph source slice
 
 R049.1.13 adds a read-only inline dependency view in the selected Work task.
 It consumes the explicit `runs.execution_graph` operation and
@@ -901,7 +932,7 @@ Mounted Work and adapter contract fixtures qualify this source slice only.
 The producer is unreleased; no installed-provider, browser rendering, nested
 execution, chat-targeting or full R049.1.2 completion is claimed.
 
-## Canopy Glass shared-shell and Explore slice — 2026-10-24
+### Canopy Glass shared-shell and Explore slice
 
 OVERSTORY-APPS-R049.2.1 applies the existing design-system children
 OVERSTORY-DESIGN-R002.1.1/R004.1.1/R005.2 to the shared workspace and retained Explore
@@ -929,7 +960,7 @@ material, expanded-header, motion and fallback behavior. This is a staged theme 
 R045–R050 retain every broader obligation. Qualify remaining graph, editor, run,
 administration and authentication surfaces through their existing owners.
 
-## Native workspace assistant amendment — 2026-10-24
+### Native workspace assistant amendment
 
 Extend OVERSTORY-APPS-R005.4, R049.1.3 and R049.2 within the existing shared shell.
 Replace the floating chat launcher, backdrop and off-canvas drawer with one
@@ -962,7 +993,7 @@ No approval decision, execution path or provider is added. Clearing the existing
 review or retiring its owner deletes the cue. Hidden focus on disclosure or
 container resize moves to the persistent composer without remounting Chat.
 
-### Hosted Explore focus correction — 2026-10-24
+#### Hosted Explore focus correction
 
 R049.2.1 focus belongs to the active evidence journey: closing detail returns to
 the retained search, and selecting evidence focuses its heading. The query-lens
@@ -981,7 +1012,7 @@ sizes. Never weaken the viewport ratio or replace the equivalent dependency list
 to accommodate the new header. Read admission, lifecycle honesty and graph
 semantics remain unchanged.
 
-### Hosted native assistant qualification
+#### Hosted native assistant qualification
 
 The first draft passed hosted typecheck and full lint on c8bd060, composed with base 954a227.
 The identity journey failed its initial narrow Operate action hit test.
@@ -1003,7 +1034,7 @@ Keep ordinary wheel reachability and all four painted-control hit tests.
 Use the rendered markdown destination's button role for the resize focus precondition.
 Pending-approval review and fresh-entry focus passed; remaining browser cases still need qualification.
 
-### Acceptance rollup correction — 2026-10-24
+#### Acceptance rollup correction
 
 The source-delivery children did not exhaust their original parent acceptance criteria.
 Explicit retained-acceptance children now preserve those obligations in canonical generated rollups.
@@ -1011,7 +1042,7 @@ Parent requirement text and qualified child evidence remain unchanged.
 Regenerate every spec status and audit ancestor states after source and receipt commits.
 The metadata regression must not create feature-acceptance bindings for retained work.
 
-### 2026-10-25: Native Explore sampled graph lens
+#### Native Explore sampled graph lens
 
 Extend R049.1.2 with bounded child R049.1.14. Share GraphView's validated graph
 reads, GraphCanvas and GraphAdapter, not its page/card/tab shell. Preserve the
@@ -1030,7 +1061,7 @@ API R008.2 served parity, R046.2.2 full continuity, R047/R048 complete command
 coverage and R049.1.2 migration remain open. Mounted fixtures and metadata
 checks are not actual browser, installed-provider or full-redesign acceptance.
 
-## Contextual Work workflow continuation — 2026-10-25
+### Contextual Work workflow continuation
 
 Extend the existing R049.1.2 migration owner with source child R049.1.15.
 Extract WorkflowEditorView into a contextual editor/controller that reuses the
@@ -1048,7 +1079,7 @@ Scope source tests to retained draft/selection/validation, keyboard editing,
 failed or malformed reads, stale replies and admission replacement. Keep served, native-tool, performance and full responsive acceptance open under the original broad owners.
 Source tests do not establish those outcomes.
 
-### Contextual Operate usage — 2026-10-25
+#### Contextual Operate usage
 
 R049.1.16 extracts the existing analytics presentation, not its standalone page shell.
 Operate keeps Health/Services context while selecting Usage, a session and its timeline.
@@ -1070,7 +1101,7 @@ Arbora `usage.read` operation declares only a tenant-scoped totals snapshot and
 availability independently. This UI shows unavailable responses; fixtures do not
 prove producer delivery.
 
-### 2026-10-25: Native feature-lens integration
+#### Native feature-lens integration
 
 Compose source children R049.1.14, R049.1.15 and R049.1.16 on the same admitted
 workspace. Central commands preserve the existing lens policies.
@@ -1086,7 +1117,7 @@ Source integration does not establish native-browser or provider acceptance.
 Workflow edits remain in memory with Save/Run unavailable. Analytics keep the existing unavailable bindings.
 Do not derive rich evidence from usage totals or add a producer endpoint. Durable indexes remain with medulla.
 
-## Liquid Glass reference correction — 2026-10-25
+### Liquid Glass reference correction
 
 Extend R049.2.1 and R005.4/R049.1.3 in their existing composition. Replace the
 default assistant side column with a contextual Agent entry in existing chrome.
@@ -1100,7 +1131,7 @@ No empty inspector, invented status or evidence, extra data access, or new route
 Hosted browser captures and a short disclosure/selection video remain required
 for reference review. Keep broad all-route and installed-provider acceptance open.
 
-### 2026-10-25: Conversation-first product clarity
+#### Conversation-first product clarity
 
 Extend R005.4, R045, R049.1.3 and R049.2/.1 in place. The accepted Liquid Glass
 materials remain unchanged. Work foregrounds the one mounted Chat with zero
@@ -1122,7 +1153,7 @@ No route mounts an automatic privacy banner. Retained private navigation uses
 the same Settings controls. The public policy page stays reachable. This change
 does not suppress tool, action or browser permission reviews.
 
-### 2026-10-25: Conversation-first native lens integration
+#### Conversation-first native lens integration
 
 Combine R049.1.14/.15/.16 with the R049.2.1 conversation-first shell. Preserve
 native graph selection retirement, workflow drafts and usage context while
@@ -1131,11 +1162,11 @@ browser journeys in the required Canopy selection. The 320px fresh secondary
 entry retains the exact zero-scroll assertion. Source checks do not prove browser
 geometry acceptance or provider completeness.
 
-### Request handling without a mode (2026-10-25)
+#### Request handling without a mode
 
 R005.4.1 deletes Chat request-mode UI, storage and payload only. Reuse the existing agents.run host adapter, which already forwards ordinary user text without this field. Do not classify prompts locally or alter authorization, approvals, model selection or developer workspace routing.
 
-## Amendment 2026-10-25: edit an earlier own prompt and fork
+### Edit an earlier own prompt and fork
 
 Scope: OVERSTORY-APPS-R051 and its four children. Keep OVERSTORY-APPS-R005.4's existing
 one-list proof, OVERSTORY-API-R011.2 identity contract and R049.1.3 retained Chat.
@@ -1152,7 +1183,7 @@ branch store, bespoke endpoint or client-owned runtime is needed. Put mobile,
 keyboard and focus behavior in the existing message/composer flow. The consumer
 must use the eventual producer schema rather than guessing its operation name.
 
-### Shared invariant and producer prerequisites
+#### Shared invariant and producer prerequisites
 
 Select source user turn U at revision R. The new branch contains authorized completed user/assistant pairs strictly before U, then the edited user text.
 It contains neither U's superseded assistant reply nor any later turn. Editing
@@ -1176,8 +1207,7 @@ refuse rather than silently lose context. Current policy and model admission
 apply afresh. No client may splice local messages into an asserted durable fork.
 
 Extend the existing [Arbora conversation owner](https://github.com/Knuckles-Team/arbora/blob/main/specs/a2a/requirements.md)
-`ARBORA-A2A-R001.3` and [AU completed-history owner](https://github.com/Knuckles-Team/agent-utilities/blob/main/specs/au-boundary-deconstruction/requirements.md)
-`MERISTEM-BOUNDARY-R043.9`, `.9.1` and `.9.2`. The missing shared Arbora adapter must create and read back the bound immutable branch.
+`ARBORA-A2A-R001.3` and the meristem completed-history owner (its row is not yet on the meristem default branch). The missing shared Arbora adapter must create and read back the bound immutable branch.
 It must admit the fresh run and recover its idempotent result across restart. Reuse existing native admission and immutable
 records; a new EG fork endpoint or cross-context atomic operation is not a
 prerequisite. EG owns durable records and atomic admission. This spec reserves
@@ -1196,7 +1226,7 @@ but does not yet compose typed conversation admission and that history-selection
 seam. Stable context labels, task-transition history and completed-child
 continuation are not substitutes.
 
-### Minimal shared adapter path
+#### Minimal shared adapter path
 
 EG already saves the entire `SubmitWorkItemRequest`, including its bounded
 metadata, as an immutable native admission. `GetRunWorkItem` returns that original
@@ -1236,7 +1266,7 @@ missing reply bytes remain explicitly unsupported; do not reconstruct order
 from timestamps or browser caches. These are Arbora adapter and qualification
 gaps, not evidence that EG needs a new endpoint or a historical storage rewrite.
 
-### Lifecycle and rollout
+#### Lifecycle and rollout
 
 An incomplete or unvalidated selected prefix remains unavailable.
 A later active source run may continue independently when the selected snapshot prefix is complete.
@@ -1261,7 +1291,7 @@ adapter and controls, then served acceptance. Fixtures may prove presentation
 but cannot close durable-fork acceptance. No functional fork is claimed by this
 spec-only change. Existing history, transport and checkpoint obligations stay open.
 
-## Tools reading-surface consistency — 2026-10-25
+### Tools reading-surface consistency
 
 Extend R049.2.1 in place: give the retained Tools readiness, catalog and fleet
 sections the existing Knowledge glass material and shared control typography.
@@ -1270,7 +1300,7 @@ evidence, status and disabled states, native links, focus and filtering. Keep
 opaque, reduced-transparency and forced-color fallbacks; no new layout, routing
 or backend behavior. Scoped browser captures do not close R049.2 acceptance.
 
-## Usage control and evidence consistency — 2026-10-25
+### Usage control and evidence consistency
 
 Extend R049.2.1 in place after the Tools section polish. Apply existing neutral
 action classes to Usage refresh, filtering, session navigation and result links.
@@ -1279,14 +1309,14 @@ Keep one blurred section, not a blur per item. Preserve charts, measured values,
 status badges, authority checks, filters, history and keyboard/touch behavior.
 This presentation continuation adds no analytics functionality or acceptance claim.
 
-## Amendment 2026-10-25: display name
+### Display name
 
 Use Overstory as the client display name in the primary UI, package description,
 and documentation entry points. Keep repository, distribution, import, command,
 protocol and storage identifiers unchanged. Arbora remains the backend and
 ecosystem name. Existing image assets and capture provenance remain unchanged.
 
-## Amendment 2026-10-25: Understory and shared zoom direction
+### Understory and shared zoom direction
 
 Understory is the display name of the existing Atlas knowledge explorer. Keep
 `atlas` route, component, API and storage identifiers unchanged. Overstory Studio
@@ -1300,3 +1330,34 @@ Respect reduced motion and reuse the existing renderer and design-system seams;
 do not introduce a competing renderer in this naming patch. This records a
 requested direction, not delivered zoom behavior or completed conversion.
 Outstanding R049.1.2 destination and native-provider acceptance remains open.
+
+## Phase 2: Task approach
+
+Order the work producer first: the typed client and schemas, then the views, then the served acceptance rows (R030.7, R031.7). Rows on different files run in parallel. Each task line in tasks.md names one row, and a row stays SPECIFIED until its own served run passes.
+
+## Complexity Tracking
+
+None. The constitution check passed with no violation.
+
+## Build contract
+
+The change must meet these gate thresholds from the organization constitution table.
+
+- Cyclomatic complexity 10 and cognitive complexity 15 per function.
+- Words per sentence 20 (`ste`).
+- Clone similarity 0.85 blocking at 40 tokens (`dupehound`).
+- Pre-land fast set: `format`, `hygiene`, `secrets`, `types`, `tests-fast`; post-land set: `spec`, `tests`, `supply-chain`.
+
+Repository commands: `pnpm lint`, `pnpm typecheck`, `pnpm test:coverage` (thresholds: lines 90, functions 90, branches 85, statements 90 from vitest.config.ts), `pnpm test:e2e` for browser rows and `pnpm build` for the asset and brand checks. Python rows run `pytest` with the thresholds in pyproject.toml.
+
+No scanner gaming, no suppression and no duplicate implementation: a row reuses the helper named in its `Shape:` sentence.
+
+## Production caller chain
+
+Entry point: the browser loads `App` (src/App.tsx:463), which renders the routes of `ROUTES` (src/lib/nav-registry.ts:168). Run rows reach `ObservabilityView` (src/components/views/ObservabilityView.tsx:561) and `gatewayPost` (src/lib/gateway.ts:129). Graph edit rows reach `handleUpdateNode` (src/components/views/GraphView.tsx:715). Memory file rows reach `MemoryView` (src/components/views/MemoryView.tsx:439) and `invoke` (src/lib/arbora-api/invoke.ts:66). The host serves the packaged SPA from agent/overstory/server.py. Obsolete paths to delete: the legacy `/api/enhanced/graph/memory` routes once the Files tab lands.
+
+## Cross-repo seams
+
+- Served run and graph operations: `ARBORA-OPS-R008`, `ARBORA-OPS-R009` and `ARBORA-OPS-R013`; contract in [contracts/arbora-served-operations.md](contracts/arbora-served-operations.md).
+- Graph edit write authority in the engine: `MEDULLA-DURABLE-KERNEL-R084.3` and `MEDULLA-DURABLE-KERNEL-R084.4`; contract in [contracts/engine-graph-edit.md](contracts/engine-graph-edit.md).
+- Versioned memory files: `MEDULLA-DURABLE-KERNEL-R085.1` and `ARBORA-OPS-R024.4.1`; contract in [contracts/memory-files.md](contracts/memory-files.md).
