@@ -909,15 +909,6 @@
     "migration_state": "pending-arbora-operation"
   },
   {
-    "route": "GET /api/enhanced/ecosystem/services",
-    "disposition": "retire",
-    "owning_operation": null,
-    "caller": "src/components/views/EcosystemView.tsx",
-    "scope": "ecosystem connector domain; retirement is pending a generated Arbora operation; preserve EcosystemView callers until cutover proof",
-    "effect_class": "read",
-    "migration_state": "pending-arbora-operation"
-  },
-  {
     "route": "GET /api/enhanced/tunnel-manager/hosts",
     "disposition": "retire",
     "owning_operation": null,
