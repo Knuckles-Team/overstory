@@ -115,6 +115,7 @@ def test_only_the_allowed_set_is_exempt_from_retirement() -> None:
 
 def test_host_units_do_not_import_each_other_in_a_cycle() -> None:
     assert _cycle(_import_graph()) is None
+# spec: OVERSTORY-API-R012
 
 
 @pytest.mark.xfail(
