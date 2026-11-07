@@ -602,8 +602,6 @@ class ApiClient {
   searchKnowledgeBase = (id: string, query: string) => this.get<unknown[]>(`/api/enhanced/kb/${id}/search?q=${query}`)
   getKBArticle = (kbId: string, articleId: string) =>
     this.get<unknown>(`/api/enhanced/kb/${kbId}/article/${articleId}`)
-  ingestKnowledgeBase = (data: unknown) => this.post<unknown>('/api/enhanced/kb/ingest', data)
-  runKBHealthCheck = (id: string) => this.get<unknown>(`/api/enhanced/kb/${id}/health`)
 
   // Graph Methods
   // Headline totals only. The per-type breakdown is `getGraphNodeTypes()` — a

@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react'
 import { z } from 'zod'
-import { Book, Search, Plus, FileText, Brain, CheckCircle, AlertCircle, RefreshCw, Settings } from 'lucide-react'
+import { Book, Search, FileText, Brain, CheckCircle, AlertCircle, RefreshCw } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { fetchValidated, looseArray } from '@/lib/api-validation'
@@ -20,12 +20,6 @@ interface KnowledgeBase {
   topics: string[]
   health_status: 'healthy' | 'warning' | 'error'
   last_updated: string
-}
-
-interface KbHealthResult {
-  health_status?: string
-  issues?: string[]
-  recommendations?: string[]
 }
 
 interface Article {
@@ -59,13 +53,7 @@ const articleSchema: z.ZodType<Article> = z.object({
   created_at: z.string(),
 })
 
-const kbHealthResultSchema: z.ZodType<KbHealthResult> = z.object({
-  health_status: z.string().optional(),
-  issues: z.array(z.string()).optional(),
-  recommendations: z.array(z.string()).optional(),
-})
-
-/** Knowledge-base + article + health-check state, kept out of the view's own
+/** Knowledge-base + article state, kept out of the view's own
  * render body. */
 function useKnowledgeBaseData() {
   const [knowledgeBases, setKnowledgeBases] = useState<KnowledgeBase[]>([])
@@ -74,7 +62,6 @@ function useKnowledgeBaseData() {
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('browse')
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null)
-  const [healthResults, setHealthResults] = useState<KbHealthResult | null>(null)
 
   const fetchKnowledgeBases = async () => {
     try {
@@ -100,20 +87,6 @@ function useKnowledgeBaseData() {
     }
   }
 
-  const handleHealthCheck = async (kbId: string) => {
-    try {
-      const data = await fetchValidated('/api/enhanced/kb/health', kbHealthResultSchema, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ kb_id: kbId }),
-      })
-      setHealthResults(data)
-      setActiveTab('health')
-    } catch {
-      toast.error('Failed to run health check')
-    }
-  }
-
   useEffect(() => {
     void fetchKnowledgeBases()
   }, [])
@@ -134,44 +107,8 @@ function useKnowledgeBaseData() {
     setActiveTab,
     selectedArticle,
     setSelectedArticle,
-    healthResults,
     fetchKnowledgeBases,
-    handleHealthCheck,
   }
-}
-
-interface IngestForm {
-  kb_id: string
-  source: string
-  name: string
-}
-
-/** Ingest-dialog state + submit, kept out of the view's own render body. */
-function useIngestForm(onIngested: () => void) {
-  const [isOpen, setIsOpen] = useState(false)
-  const [form, setForm] = useState<IngestForm>({ kb_id: '', source: '', name: '' })
-
-  const submit = async () => {
-    try {
-      const res = await fetch('/api/enhanced/kb/ingest', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
-      })
-      if (res.ok) {
-        toast.success('Knowledge base ingestion started')
-        setIsOpen(false)
-        setForm({ kb_id: '', source: '', name: '' })
-        onIngested()
-      } else {
-        toast.error('Failed to start ingestion')
-      }
-    } catch {
-      toast.error('Failed to ingest knowledge base')
-    }
-  }
-
-  return { isOpen, setIsOpen, form, setForm, submit }
 }
 
 function kbHealthClasses(status: KnowledgeBase['health_status']): string {
@@ -184,12 +121,10 @@ function KBCard({
   kb,
   selected,
   onSelect,
-  onHealthCheck,
 }: {
   kb: KnowledgeBase
   selected: boolean
   onSelect: (kb: KnowledgeBase) => void
-  onHealthCheck: (kbId: string) => void
 }) {
   return (
     <Card
@@ -213,16 +148,6 @@ function KBCard({
               <CardDescription>{kb.id}</CardDescription>
             </div>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={(e) => {
-              e.stopPropagation()
-              onHealthCheck(kb.id)
-            }}
-          >
-            <Settings className="size-4" />
-          </Button>
         </div>
       </CardHeader>
       <CardContent>
@@ -257,7 +182,6 @@ function BrowseTab({
   filteredKBs,
   selectedKB,
   onSelect,
-  onHealthCheck,
   searchQuery,
   onSearchChange,
 }: {
@@ -265,7 +189,6 @@ function BrowseTab({
   filteredKBs: KnowledgeBase[]
   selectedKB: KnowledgeBase | null
   onSelect: (kb: KnowledgeBase) => void
-  onHealthCheck: (kbId: string) => void
   searchQuery: string
   onSearchChange: (v: string) => void
 }) {
@@ -296,13 +219,7 @@ function BrowseTab({
           </div>
         ) : (
           filteredKBs.map((kb) => (
-            <KBCard
-              key={kb.id}
-              kb={kb}
-              selected={selectedKB?.id === kb.id}
-              onSelect={onSelect}
-              onHealthCheck={onHealthCheck}
-            />
+            <KBCard key={kb.id} kb={kb} selected={selectedKB?.id === kb.id} onSelect={onSelect} />
           ))
         )}
       </div>
@@ -408,7 +325,7 @@ function ConceptsTab({ selectedKB, articles }: { selectedKB: KnowledgeBase | nul
   }
   return (
     <TabsContent value="concepts" className="space-y-4">
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
         {Array.from(new Set(articles.flatMap((a) => a.concepts))).map((concept) => (
           <Card key={concept} className="p-4 hover:shadow-md transition-all cursor-pointer">
             <div className="flex items-center gap-2">
@@ -419,144 +336,6 @@ function ConceptsTab({ selectedKB, articles }: { selectedKB: KnowledgeBase | nul
         ))}
       </div>
     </TabsContent>
-  )
-}
-
-function HealthResultsList({ title, items }: { title: string; items: string[] }) {
-  if (items.length === 0) return null
-  return (
-    <div>
-      <h4 className="font-medium mb-2">{title}</h4>
-      <ul className="space-y-1">
-        {items.map((item, index) => (
-          <li key={index} className="text-sm text-muted-foreground">
-            • {item}
-          </li>
-        ))}
-      </ul>
-    </div>
-  )
-}
-
-function HealthTab({
-  selectedKB,
-  healthResults,
-  onRunHealthCheck,
-}: {
-  selectedKB: KnowledgeBase | null
-  healthResults: KbHealthResult | null
-  onRunHealthCheck: (kbId: string) => void
-}) {
-  if (!selectedKB) {
-    return (
-      <TabsContent value="health" className="space-y-4">
-        <div className="text-center text-muted-foreground py-20">
-          <CheckCircle className="size-16 mx-auto mb-4" />
-          <p>Select a knowledge base to view health status</p>
-        </div>
-      </TabsContent>
-    )
-  }
-  if (!healthResults) {
-    return (
-      <TabsContent value="health" className="space-y-4">
-        <div className="text-center">
-          <Button
-            onClick={() => {
-              onRunHealthCheck(selectedKB.id)
-            }}
-          >
-            Run Health Check
-          </Button>
-        </div>
-      </TabsContent>
-    )
-  }
-  return (
-    <TabsContent value="health" className="space-y-4">
-      <Card>
-        <CardHeader>
-          <CardTitle>Health Check Results</CardTitle>
-          <CardDescription>{selectedKB.name}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <Badge variant={healthResults.health_status === 'healthy' ? 'default' : 'destructive'}>
-                {healthResults.health_status}
-              </Badge>
-            </div>
-            <HealthResultsList title="Issues Found" items={healthResults.issues ?? []} />
-            <HealthResultsList title="Recommendations" items={healthResults.recommendations ?? []} />
-          </div>
-        </CardContent>
-      </Card>
-    </TabsContent>
-  )
-}
-
-function IngestDialog({
-  open,
-  onOpenChange,
-  form,
-  setForm,
-  onSubmit,
-}: {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  form: IngestForm
-  setForm: (f: IngestForm) => void
-  onSubmit: () => void
-}) {
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogTrigger asChild>
-        <Button>
-          <Plus className="size-4 mr-2" />
-          Ingest Knowledge Base
-        </Button>
-      </DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Ingest Knowledge Base</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-4">
-          <div>
-            <label className="text-sm font-medium">Knowledge Base ID</label>
-            <Input
-              value={form.kb_id}
-              onChange={(e) => {
-                setForm({ ...form, kb_id: e.target.value })
-              }}
-              placeholder="e.g., pydantic-ai-docs"
-            />
-          </div>
-          <div>
-            <label className="text-sm font-medium">Name</label>
-            <Input
-              value={form.name}
-              onChange={(e) => {
-                setForm({ ...form, name: e.target.value })
-              }}
-              placeholder="Knowledge Base Name"
-            />
-          </div>
-          <div>
-            <label className="text-sm font-medium">Source Path</label>
-            <Input
-              value={form.source}
-              onChange={(e) => {
-                setForm({ ...form, source: e.target.value })
-              }}
-              placeholder="/path/to/docs"
-            />
-          </div>
-          <Button onClick={onSubmit} className="w-full">
-            Start Ingestion
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
   )
 }
 
@@ -578,9 +357,6 @@ function ArticleDetailDialog({ article, onClose }: { article: Article | null; on
 
 export default function KnowledgeBaseView() {
   const kb = useKnowledgeBaseData()
-  const ingest = useIngestForm(() => {
-    void kb.fetchKnowledgeBases()
-  })
   const [searchQuery, setSearchQuery] = useState('')
 
   const filteredKBs = kb.knowledgeBases.filter(
@@ -615,24 +391,14 @@ export default function KnowledgeBaseView() {
           >
             <RefreshCw className="size-4" />
           </Button>
-          <IngestDialog
-            open={ingest.isOpen}
-            onOpenChange={ingest.setIsOpen}
-            form={ingest.form}
-            setForm={ingest.setForm}
-            onSubmit={() => {
-              void ingest.submit()
-            }}
-          />
         </div>
       </div>
 
       <Tabs value={kb.activeTab} onValueChange={kb.setActiveTab}>
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="browse">Browse</TabsTrigger>
           <TabsTrigger value="articles">Articles</TabsTrigger>
           <TabsTrigger value="concepts">Concepts</TabsTrigger>
-          <TabsTrigger value="health">Health</TabsTrigger>
         </TabsList>
 
         <BrowseTab
@@ -640,9 +406,6 @@ export default function KnowledgeBaseView() {
           filteredKBs={filteredKBs}
           selectedKB={kb.selectedKB}
           onSelect={kb.setSelectedKB}
-          onHealthCheck={(kbId) => {
-            void kb.handleHealthCheck(kbId)
-          }}
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
         />
@@ -655,13 +418,6 @@ export default function KnowledgeBaseView() {
           onSearchChange={setSearchQuery}
         />
         <ConceptsTab selectedKB={kb.selectedKB} articles={kb.articles} />
-        <HealthTab
-          selectedKB={kb.selectedKB}
-          healthResults={kb.healthResults}
-          onRunHealthCheck={(kbId) => {
-            void kb.handleHealthCheck(kbId)
-          }}
-        />
       </Tabs>
 
       <ArticleDetailDialog

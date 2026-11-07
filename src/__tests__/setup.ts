@@ -107,14 +107,6 @@ const ROUTE_TABLE: RouteEntry[] = [
   // Knowledge base
   { match: (p) => p.startsWith('/api/enhanced/kb/list'), respond: () => jsonResponse([mockKnowledgeBase]) },
   { match: (p) => p.startsWith('/api/enhanced/kb/search'), respond: () => jsonResponse([mockArticle]) },
-  {
-    match: (p) => p.startsWith('/api/enhanced/kb/ingest'),
-    respond: () => jsonResponse({ status: 'success', job_id: 'test_job' }),
-  },
-  {
-    match: (p) => p.startsWith('/api/enhanced/kb/health'),
-    respond: () => jsonResponse({ health_status: 'healthy', issues: [] }),
-  },
 ]
 
 function routeFetch(input: RequestInfo | URL): Promise<Response> {
