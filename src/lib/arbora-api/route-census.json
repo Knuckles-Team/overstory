@@ -423,30 +423,12 @@
     "migration_state": "pending-arbora-operation"
   },
   {
-    "route": "POST /api/enhanced/sdd/constitution",
-    "disposition": "retire",
-    "owning_operation": null,
-    "caller": "src/components/views/SDDView.tsx",
-    "scope": "spec-driven-development domain; retirement is pending a generated Arbora operation; preserve SDDView callers until cutover proof",
-    "effect_class": "write",
-    "migration_state": "pending-arbora-operation"
-  },
-  {
     "route": "GET /api/enhanced/sdd/specs",
     "disposition": "retire",
     "owning_operation": null,
     "caller": "src/components/views/SDDView.tsx",
     "scope": "spec-driven-development domain; retirement is pending a generated Arbora operation; preserve SDDView callers until cutover proof",
     "effect_class": "read",
-    "migration_state": "pending-arbora-operation"
-  },
-  {
-    "route": "POST /api/enhanced/sdd/spec",
-    "disposition": "retire",
-    "owning_operation": null,
-    "caller": "src/components/views/SDDView.tsx",
-    "scope": "spec-driven-development domain; retirement is pending a generated Arbora operation; preserve SDDView callers until cutover proof",
-    "effect_class": "write",
     "migration_state": "pending-arbora-operation"
   },
   {
@@ -465,15 +447,6 @@
     "caller": "src/components/views/SDDView.tsx",
     "scope": "spec-driven-development domain; retirement is pending a generated Arbora operation; preserve SDDView callers until cutover proof",
     "effect_class": "read",
-    "migration_state": "pending-arbora-operation"
-  },
-  {
-    "route": "POST /api/enhanced/sdd/sync",
-    "disposition": "retire",
-    "owning_operation": null,
-    "caller": "src/components/views/SDDView.tsx",
-    "scope": "spec-driven-development domain; retirement is pending a generated Arbora operation; preserve SDDView callers until cutover proof",
-    "effect_class": "write",
     "migration_state": "pending-arbora-operation"
   },
   {

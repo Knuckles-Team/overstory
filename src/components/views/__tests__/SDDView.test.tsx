@@ -15,12 +15,9 @@ vi.mock('@/lib/api', () => ({
         quality_gates: ['Gate 1'],
       }),
     ),
-    saveConstitution: vi.fn(() => Promise.resolve({ status: 'success' })),
     listSpecs: vi.fn(() => Promise.resolve([mockSpec])),
-    createSpec: vi.fn(() => Promise.resolve({ ...mockSpec, id: 'new_spec' })),
     listPlans: vi.fn(() => Promise.resolve([mockPlan])),
     getTasks: vi.fn(() => Promise.resolve({ tasks: [mockTask] })),
-    syncSDDToMemory: vi.fn(() => Promise.resolve({ status: 'success' })),
   },
 }))
 
@@ -28,7 +25,7 @@ vi.mock('@/lib/api', () => ({
 // default fetch shim in setup.ts serves the constitution / specs / plans / tasks
 // from the same fixtures. These tests assert against the live UI:
 //   tabs: Constitution / Specifications / Plans / Tasks
-//   header action: "New Specification" -> "Create Specification" dialog
+//   the view is read-only (no create or sync action)
 describe('SDDView Component', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -43,48 +40,14 @@ describe('SDDView Component', () => {
     })
   })
 
-  it('displays spec creation dialog', async () => {
-    const { user } = renderWithProviders(<SDDView />)
+  it('is read-only: no create or sync action is offered', async () => {
+    renderWithProviders(<SDDView />)
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /new specification/i })).toBeInTheDocument()
+      expect(screen.getByText('Spec-Driven Development')).toBeInTheDocument()
     })
-
-    await user.click(screen.getByRole('button', { name: /new specification/i }))
-
-    await waitFor(() => {
-      // "Create Specification" is both the dialog title and the submit button;
-      // assert the dialog itself is open plus its title.
-      expect(screen.getByRole('dialog')).toBeInTheDocument()
-      expect(screen.getByText('Create Specification', { selector: '[data-slot="dialog-title"]' })).toBeInTheDocument()
-      expect(screen.getByPlaceholderText(/feature title/i)).toBeInTheDocument()
-    })
-  })
-
-  it('handles spec creation', async () => {
-    const { user } = renderWithProviders(<SDDView />)
-
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: /new specification/i })).toBeInTheDocument()
-    })
-
-    await user.click(screen.getByRole('button', { name: /new specification/i }))
-
-    await waitFor(() => {
-      expect(screen.getByPlaceholderText(/feature title/i)).toBeInTheDocument()
-    })
-
-    // Fill form
-    await user.type(screen.getByPlaceholderText(/feature title/i), 'New Feature Spec')
-    await user.type(screen.getByPlaceholderText(/feature description/i), 'Test feature description')
-
-    // The dialog's submit button is labelled "Create Specification".
-    const submit = screen.getAllByRole('button', { name: /create specification/i }).pop() as HTMLElement
-    await user.click(submit)
-
-    await waitFor(() => {
-      expect(screen.getByText('Specification created successfully')).toBeInTheDocument()
-    })
+    expect(screen.queryByRole('button', { name: /new specification/i })).toBeNull()
+    expect(screen.queryByRole('button', { name: /sync to memory/i })).toBeNull()
   })
 
   it('displays specifications tab with spec cards', async () => {
@@ -136,33 +99,6 @@ describe('SDDView Component', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Spec-Driven Development')).toBeInTheDocument()
-    })
-  })
-
-  it('handles sync to memory after selecting a plan', async () => {
-    const { user } = renderWithProviders(<SDDView />)
-
-    // Select a plan first so the Tasks tab exposes the Sync to Memory action.
-    await waitFor(() => {
-      expect(screen.getByRole('tab', { name: 'Plans' })).toBeInTheDocument()
-    })
-    await user.click(screen.getByRole('tab', { name: 'Plans' }))
-
-    await waitFor(() => {
-      expect(screen.getByText(`Plan ${mockPlan.id.substring(0, 8)}`)).toBeInTheDocument()
-    })
-    await user.click(screen.getByText(`Plan ${mockPlan.id.substring(0, 8)}`))
-
-    await user.click(screen.getByRole('tab', { name: 'Tasks' }))
-
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: /sync to memory/i })).toBeInTheDocument()
-    })
-
-    await user.click(screen.getByRole('button', { name: /sync to memory/i }))
-
-    await waitFor(() => {
-      expect(screen.getByText('SDD data synced to knowledge graph')).toBeInTheDocument()
     })
   })
 

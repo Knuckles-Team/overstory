@@ -567,13 +567,10 @@ class ApiClient {
   // SDD Methods (D-WUI-25 — validated so a non-array response throws here rather
   // than becoming a `specs`/`plans`/`tasks` the view unconditionally `.map()`s)
   getConstitution = () => this.getValidated('/api/enhanced/sdd/constitution', sddConstitutionSchema)
-  saveConstitution = (data: unknown) => this.post<unknown>('/api/enhanced/sdd/constitution', data)
   listSpecs = () => this.getValidated('/api/enhanced/sdd/specs', looseArray(sddSpecSchema))
-  createSpec = (data: unknown) => this.post<unknown>('/api/enhanced/sdd/spec', data)
   listPlans = () => this.getValidated('/api/enhanced/sdd/plans', looseArray(sddPlanSchema))
   getTasks = (planId: string) =>
     this.getValidated(`/api/enhanced/sdd/tasks?plan_id=${planId}`, z.object({ tasks: looseArray(sddTaskSchema) }))
-  syncSDDToMemory = (data: unknown) => this.post<unknown>('/api/enhanced/sdd/sync', data)
 
   // SWE Developer-Workspace Runtime (OS-5.33 / ORCH-1.46) + SWE-bench (AHE-3.22)
   createSweSession = (body?: { prefer_docker?: boolean; image?: string; actor?: string }) =>

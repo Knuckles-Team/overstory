@@ -4709,38 +4709,12 @@ async def get_constitution() -> dict[str, Any]:
     raise unavailable('Spec-driven development', 'sdd.documents.read')
 
 
-@router.post('/sdd/constitution')
-async def save_constitution(data: dict[str, Any]) -> dict[str, Any]:
-    """Save the project constitution.
-
-    Args:
-        data: Constitution data.
-
-    Returns:
-        Success status.
-    """
-    raise unavailable('Spec-driven development', 'sdd.documents.read')
-
-
 @router.get('/sdd/specs')
 async def list_specs() -> list[dict[str, Any]]:
     """List all specifications.
 
     Returns:
         List of specification metadata.
-    """
-    raise unavailable('Spec-driven development', 'sdd.documents.read')
-
-
-@router.post('/sdd/spec')
-async def create_spec(data: dict[str, Any]) -> dict[str, Any]:
-    """Create a new specification.
-
-    Args:
-        data: Specification data.
-
-    Returns:
-        Created specification with ID.
     """
     raise unavailable('Spec-driven development', 'sdd.documents.read')
 
@@ -4764,19 +4738,6 @@ async def get_tasks() -> list[Any] | dict[str, Any]:
 
     Returns:
         Tasks data.
-    """
-    raise unavailable('Spec-driven development', 'sdd.documents.read')
-
-
-@router.post('/sdd/sync')
-async def sync_sdd_to_memory(data: dict[str, Any]) -> dict[str, Any]:
-    """Sync SDD lifecycle data to Knowledge Graph memory.
-
-    Args:
-        data: Dictionary containing plan_id or spec_id.
-
-    Returns:
-        Success status.
     """
     raise unavailable('Spec-driven development', 'sdd.documents.read')
 

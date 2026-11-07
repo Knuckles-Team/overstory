@@ -104,11 +104,6 @@ const ROUTE_TABLE: RouteEntry[] = [
   { match: (p) => p.startsWith('/api/enhanced/sdd/specs'), respond: () => jsonResponse([mockSpec]) },
   { match: (p) => p.startsWith('/api/enhanced/sdd/plans'), respond: () => jsonResponse([mockPlan]) },
   { match: (p) => p.startsWith('/api/enhanced/sdd/tasks'), respond: () => jsonResponse({ tasks: [mockTask] }) },
-  {
-    match: (p) => p.startsWith('/api/enhanced/sdd/spec'),
-    respond: () => jsonResponse({ ...mockSpec, id: 'new_spec' }),
-  },
-  { match: (p) => p.startsWith('/api/enhanced/sdd/sync'), respond: () => jsonResponse({ status: 'success' }) },
 
   // Knowledge base
   { match: (p) => p.startsWith('/api/enhanced/kb/list'), respond: () => jsonResponse([mockKnowledgeBase]) },
