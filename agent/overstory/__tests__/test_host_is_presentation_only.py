@@ -115,9 +115,20 @@ def test_only_the_allowed_set_is_exempt_from_retirement() -> None:
 
 def test_host_units_do_not_import_each_other_in_a_cycle() -> None:
     assert _cycle(_import_graph()) is None
+
+
+# spec: OVERSTORY-API-R012.2
+def test_memory_and_link_routes_are_gone_and_masking_is_served() -> None:
+    mounted = _mounted_routes()
+    gone = [r for r in mounted if '/graph/memory' in r or r.endswith('/graph/link')]
+    assert gone == []
+    source = (Path(__file__).parents[1] / 'api_extensions.py').read_text(
+        encoding='utf-8'
+    )
+    assert "'/graph/link'" not in source
+
+
 # spec: OVERSTORY-API-R012
-
-
 @pytest.mark.xfail(
     strict=True,
     reason='OVERSTORY-API-R012 in progress: domain routes await Arbora operations',

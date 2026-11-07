@@ -4471,78 +4471,6 @@ def _empty_node_type_breakdown() -> dict[str, Any]:
 # ---------------------------------------------------------------------------
 
 
-@router.post('/graph/memory')
-async def add_memory(data: dict[str, Any]) -> dict[str, Any]:
-    """Write one memory record through the served ``memory.write`` operation."""
-
-    key = _validate_runtime_id(data.get('id') or uuid.uuid4().hex)
-    record = await _write_memory(key, data)
-    return {'status': 'success', 'id': key, 'record': record}
-
-
-@router.get('/graph/memory/{memory_id}')
-async def get_memory(memory_id: str) -> dict[str, Any]:
-    """Read one memory record through the served ``memory.read`` operation."""
-
-    record = await served('memory.read', {'key': _validate_runtime_id(memory_id)})
-    bounded = _public_external_result(record)
-    if not isinstance(bounded, dict):
-        raise HTTPException(status_code=422, detail='Invalid memory record')
-    return bounded
-
-
-@router.put('/graph/memory/{memory_id}')
-async def update_memory(memory_id: str, data: dict[str, Any]) -> dict[str, Any]:
-    """Replace one memory record through the served ``memory.write`` operation."""
-
-    record = await _write_memory(_validate_runtime_id(memory_id), data)
-    return {'status': 'success', 'record': record}
-
-
-@router.delete('/graph/memory/{memory_id}')
-async def delete_memory(memory_id: str) -> dict[str, Any]:
-    """Memory deletion needs a served operation that Arbora does not have."""
-
-    _validate_runtime_id(memory_id)
-    raise unavailable('Graph memory deletion', 'memory.delete')
-
-
-@router.post('/graph/link')
-async def link_nodes(data: dict[str, Any]) -> dict[str, Any]:
-    """Create one relationship through ``eg.graph.AddEdge``.
-
-    Args:
-        data: ``source``, ``target``, ``relationship_type`` and optional
-            ``properties``. The relationship type is stored as the edge's
-            ``type`` property.
-
-    Returns:
-        Success status.
-    """
-    source = _validate_runtime_id(data.get('source', ''))
-    target = _validate_runtime_id(data.get('target', ''))
-    relationship_type = data.get('relationship_type')
-    if not isinstance(relationship_type, str) or not _SAFE_GRAPH_LABEL.fullmatch(
-        relationship_type
-    ):
-        raise HTTPException(status_code=400, detail='Invalid relationship type')
-    properties = _bounded_query_params(data.get('properties', {}))
-    safe_properties, _privacy_report = sanitize_for_persistence(properties)
-    if not isinstance(safe_properties, dict):
-        raise HTTPException(status_code=400, detail='Invalid link properties')
-    packed = msgpack.packb({**safe_properties, 'type': relationship_type})
-    await served(
-        'eg.graph.AddEdge',
-        {
-            'source_id': source,
-            'target_id': target,
-            'properties_msgpack': list(packed),
-        },
-        idempotency_key=uuid.uuid4().hex,
-    )
-    return {'status': 'success'}
-
-
 @router.get('/graph/search')
 async def hybrid_search(query: str, top_k: int = 10) -> list[dict[str, Any]]:
     """Search the graph through the served ``retrieval.search`` operation."""
@@ -12279,18 +12207,6 @@ async def save_ontology_object_view(
 
 
 # Served Arbora operation helpers
-
-
-async def _write_memory(key: str, data: dict[str, Any]) -> Any:
-    value, _privacy_report = sanitize_for_persistence(_bounded_query_params(data))
-    if not isinstance(value, dict):
-        raise HTTPException(status_code=400, detail='Invalid memory record')
-    record = await served(
-        'memory.write',
-        {'key': key, 'value': value},
-        idempotency_key=uuid.uuid4().hex,
-    )
-    return _public_external_result(record)
 
 
 def _result_rows(value: Any, limit: int) -> list[dict[str, Any]]:

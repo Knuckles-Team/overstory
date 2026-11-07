@@ -98,15 +98,6 @@ def _client(app: Any, scope: str = _ADMIN) -> TestClient:
         ),
         (
             'GET',
-            '/graph/memory/note-1',
-            None,
-            'memory.read',
-            {'tenant': 't', 'key': 'note-1', 'value': {'text': 'hi'}},
-            {'key': 'note-1'},
-            {'tenant': 't', 'key': 'note-1', 'value': {'text': 'hi'}},
-        ),
-        (
-            'GET',
             '/sessions',
             None,
             'agents.tasks.list',
@@ -203,28 +194,12 @@ def test_read_routes_project_the_served_operation(
     ('path', 'body', 'op_id', 'sent'),
     [
         (
-            '/graph/memory',
-            {'id': 'note-1', 'text': 'hi'},
-            'memory.write',
-            {'key': 'note-1'},
-        ),
-        (
             '/mcp/tools/call',
             {'server': 'a-mcp', 'tool': 'ping', 'arguments': {'n': 1}},
             'fleet.call',
             {'server': 'a-mcp', 'tool': 'ping', 'arguments': {'n': 1}},
         ),
         ('/sessions/task-1/cancel', None, 'agents.tasks.cancel', {'task_id': 'task-1'}),
-        (
-            '/graph/link',
-            {'source': 'a', 'target': 'b', 'relationship_type': 'USES'},
-            'eg.graph.AddEdge',
-            {
-                'source_id': 'a',
-                'target_id': 'b',
-                'properties_msgpack': list(msgpack.packb({'type': 'USES'})),
-            },
-        ),
         (
             '/atlas/sources/sync',
             {'source': 'github', 'mode': 'full'},
