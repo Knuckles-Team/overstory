@@ -115,3 +115,12 @@ ignore = ["E402", "E501", "B008", "B904", "F841"]
 python_version = "3.12"
 ignore_missing_imports = true
 check_untyped_defs = true
+
+# State-machine census (PIPE-GATES-R086.7, R086.8): adopted in mode `staged`,
+# which prints findings and exits 0; it moves to `blocking` in the PR that
+# verifies this repository's last state-machine row. No baseline, no allowance.
+[tool.pipelines_hooks.state_machine]
+paths = ["agent"]
+exclude = ["**/fixtures/**"]
+languages = ["python"]
+mode = "staged"
