@@ -20,6 +20,27 @@ from overstory import api_extensions
 HOST_DIR = Path(api_extensions.__file__).resolve().parent
 CENSUS = HOST_DIR.parents[1] / 'src' / 'lib' / 'arbora-api' / 'route-census.json'
 MODULE_LINE_BOUND = 1500
+# The host's allowed set: presentation and session routes (owner ruling
+# 2026-11-06). Every other census row is a domain route awaiting an Arbora
+# operation.
+ALLOWED_HOST_ROUTES = frozenset(
+    {
+        'GET /api/enhanced/info',
+        'GET /api/enhanced/agent-icon',
+        'GET /api/enhanced/download/{filename:path}',
+        'GET /api/enhanced/editor-context',
+        'POST /api/enhanced/editor-context',
+        'GET /api/enhanced/mcp/servers/{server_name}/tools',
+        'GET /api/enhanced/mcp/server-schema',
+        'POST /api/enhanced/mcp/tools/call',
+        'POST /api/enhanced/mcp/apps/resource',
+        'GET /api/enhanced/sessions',
+        'GET /api/enhanced/sessions/{session_id}',
+        'DELETE /api/enhanced/sessions/{session_id}',
+        'POST /api/enhanced/sessions/{session_id}/reply',
+        'POST /api/enhanced/sessions/{session_id}/cancel',
+    }
+)
 # (router, mount prefix) as wired in server.py
 MOUNTS = (
     (api_extensions.router, '/api/enhanced'),
@@ -85,6 +106,11 @@ def test_census_lists_exactly_the_mounted_domain_routes() -> None:
     census_routes = [str(row['route']) for row in _census()]
     assert len(census_routes) == len(set(census_routes))
     assert set(census_routes) == _mounted_routes()
+
+
+def test_only_the_allowed_set_is_exempt_from_retirement() -> None:
+    kept = {str(row['route']) for row in _census() if row['disposition'] != 'retire'}
+    assert kept == ALLOWED_HOST_ROUTES
 
 
 def test_host_units_do_not_import_each_other_in_a_cycle() -> None:
