@@ -70,24 +70,6 @@ def _client(app: Any, scope: str = _ADMIN) -> TestClient:
     ('method', 'path', 'body', 'op_id', 'value', 'sent', 'expected'),
     [
         (
-            'GET',
-            '/graph/search?query=fans&top_k=1',
-            None,
-            'retrieval.search',
-            {'results': [{'id': 'a'}, {'id': 'b'}]},
-            {'query': 'fans'},
-            [{'id': 'a'}],
-        ),
-        (
-            'POST',
-            '/graph/magma',
-            {'query': 'fans'},
-            'retrieval.search',
-            [{'id': 'a'}],
-            {'query': 'fans'},
-            [{'id': 'a'}],
-        ),
-        (
             'POST',
             '/graph/query',
             {'query': 'MATCH (n) RETURN n LIMIT 1'},
@@ -237,9 +219,9 @@ def test_write_routes_send_one_idempotency_key(
 
 
 def test_a_missing_operation_answers_not_available(app, arbora) -> None:
-    response = _client(app).get('/api/enhanced/graph/search?query=x')
+    response = _client(app).get('/api/enhanced/sessions')
     assert response.status_code == 501
-    assert response.json()['detail']['needs_operation'] == 'retrieval.search'
+    assert response.json()['detail']['needs_operation'] == 'agents.tasks.list'
 
 
 @pytest.mark.parametrize(
@@ -247,10 +229,10 @@ def test_a_missing_operation_answers_not_available(app, arbora) -> None:
     [('PERMISSION_DENIED', 403), ('INVALID_ARGUMENT', 400), ('SOMETHING_NEW', 502)],
 )
 def test_a_arbora_refusal_keeps_its_status(app, arbora, code, status) -> None:
-    arbora.results['retrieval.search'] = httpx.Response(
+    arbora.results['agents.tasks.list'] = httpx.Response(
         403, json={'ok': False, 'error': {'code': code, 'message': 'secret detail'}}
     )
-    response = _client(app).get('/api/enhanced/graph/search?query=x')
+    response = _client(app).get('/api/enhanced/sessions')
     assert response.status_code == status
     assert 'secret detail' not in response.text
 
@@ -290,16 +272,12 @@ def test_unsafe_graph_queries_never_reach_arbora(app, arbora) -> None:
         ('kg:read kg:write', 'POST', '/api/enhanced/graph/query', 403),
         (_ADMIN, 'POST', '/api/enhanced/graph/query', 200),
         ('kg:read', 'GET', '/api/enhanced/tunnel-manager/hosts', 403),
-        ('kg:read', 'GET', '/api/enhanced/graph/search?query=x', 200),
-        ('kg:read', 'GET', '/api/enhanced/sessions', 200),
     ],
 )
 def test_route_scopes_gate_before_arbora(
     app, arbora, scope, method, path, expected
 ) -> None:
-    arbora.results.update(
-        {'query.uql': [], 'retrieval.search': [], 'agents.tasks.list': []}
-    )
+    arbora.results.update({'query.uql': [], 'agents.tasks.list': []})
     response = _client(app, scope).request(
         method, path, json={'query': 'MATCH (n) RETURN n'} if method == 'POST' else None
     )
@@ -308,6 +286,6 @@ def test_route_scopes_gate_before_arbora(
 
 
 def test_an_unauthenticated_request_is_refused(app, arbora) -> None:
-    response = TestClient(app).get('/api/enhanced/graph/search?query=x')
+    response = TestClient(app).get('/api/enhanced/sessions')
     assert response.status_code == 401
     assert arbora.calls == []

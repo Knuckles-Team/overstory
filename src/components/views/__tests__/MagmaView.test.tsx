@@ -2,15 +2,23 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import MagmaView from '@/components/views/MagmaView'
 
-function createFetchMock(body: unknown = []) {
-  return vi.fn(
-    () =>
-      Promise.resolve({
-        ok: true,
-        status: 200,
-        json: () => Promise.resolve(body),
-        text: () => Promise.resolve(''),
-      }) as unknown as Promise<Response>,
+const META = { registry_digest: 'digest', api_version: 'v1' }
+
+function reply(body: unknown): Promise<Response> {
+  return Promise.resolve({
+    ok: true,
+    status: 200,
+    json: () => Promise.resolve(body),
+    text: () => Promise.resolve(''),
+  }) as unknown as Promise<Response>
+}
+
+/** Answers the CSRF session fetch and the retrieval.search operation. */
+function createFetchMock(hits: { ref: string; text: string; tokens: number }[] = []) {
+  return vi.fn((url: string) =>
+    url === '/auth/session'
+      ? reply({ authenticated: true, csrf_token: 'csrf-test' })
+      : reply({ ok: true, result: { value: { tenant: 't', hits } }, meta: META }),
   )
 }
 
@@ -30,7 +38,7 @@ describe('MagmaView Component', () => {
   })
 
   it('submits a query and renders grouped results', async () => {
-    const fetchSpy = createFetchMock([{ id: 'r1', content: 'Result one', score: 0.9 }])
+    const fetchSpy = createFetchMock([{ ref: 'r1', text: 'Result one', tokens: 3 }])
     global.fetch = fetchSpy as unknown as typeof fetch
 
     render(<MagmaView />)
@@ -41,11 +49,10 @@ describe('MagmaView Component', () => {
     screen.getByRole('button', { name: /run query/i }).click()
 
     await waitFor(() => {
-      expect(fetchSpy).toHaveBeenCalled()
+      expect(fetchSpy).toHaveBeenCalledTimes(2)
     })
-
-    const [url, init] = fetchSpy.mock.calls[0] as unknown as [string, RequestInit]
-    expect(url).toContain('/api/enhanced/graph/magma')
+    const [url, init] = fetchSpy.mock.calls[1] as unknown as [string, RequestInit]
+    expect(url).toBe('/api/v1/ops/retrieval.search')
     expect(init.method).toBe('POST')
     expect(init.body).toContain('why did auth fail')
 

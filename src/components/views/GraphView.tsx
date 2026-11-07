@@ -32,6 +32,7 @@ import {
   type GraphStats,
 } from '../knowledge-graph/graph-read'
 import { NodeTypeBreakdown, type NodeTypeBreakdownData } from '../knowledge-graph/NodeTypeBreakdown'
+import { searchRetrieval } from '@/lib/arbora-api/retrieval'
 import { usePageContextPublisher, type PageContextContribution } from '@/lib/page-context'
 
 // GOC-60-W05 (E1b layer 3 / E6): `fetchData` used to `.catch(() => null)` each of the
@@ -752,14 +753,7 @@ export default function GraphView() {
     if (!magmaQuery.trim()) return
     setRetrievingMagma(true)
     try {
-      const data = await fetchValidated('/api/enhanced/graph/magma', looseArray(z.unknown()), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          query: magmaQuery,
-          view_type: magmaView,
-        }),
-      })
+      const data = await searchRetrieval(magmaQuery)
       setMagmaResults(data)
       toast.success('MAGMA orthogonal context retrieved')
     } catch {
