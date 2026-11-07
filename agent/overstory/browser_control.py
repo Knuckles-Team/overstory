@@ -35,6 +35,7 @@ from pydantic import (
 from pydantic.types import JsonValue
 
 from .browser_control_canonical import canonical_protocol_json, validate_protocol_json
+from .request_origin import trusted_request_origin
 
 logger = logging.getLogger(__name__)
 
@@ -478,7 +479,6 @@ def _raw_header_values(websocket: WebSocket, name: bytes) -> list[str]:
 
 
 def _canonical_secure_origin(websocket: WebSocket) -> str | None:
-    from .oidc_session import trusted_request_origin
 
     origins = _raw_header_values(websocket, b'origin')
     if len(origins) != 1:
