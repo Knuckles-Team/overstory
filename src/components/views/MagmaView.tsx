@@ -4,7 +4,7 @@
  *
  * Lets the user compose a query, pick one or more orthogonal MAGMA views
  * (semantic, temporal, causal, entity, place, epistemic), and render the
- * per-view results returned by POST /api/enhanced/graph/magma.
+ * results of the Arbora retrieval.search operation.
  */
 
 import { useState } from 'react'
@@ -17,6 +17,7 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { toast } from 'sonner'
+import { searchRetrieval } from '@/lib/arbora-api/retrieval'
 
 type MagmaViewKind = 'semantic' | 'temporal' | 'causal' | 'entity' | 'place' | 'epistemic'
 
@@ -78,21 +79,10 @@ export default function MagmaView() {
 
     setLoading(true)
     try {
-      const res = await fetch('/api/enhanced/graph/magma', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          query: trimmed,
-          views: [viewType],
-          limit,
-        }),
-      })
-      if (!res.ok) {
-        const text = await res.text().catch(() => String(res.status))
-        throw new Error(`HTTP ${res.status}: ${text}`)
-      }
-      const data = (await res.json()) as MagmaResult[] | { results?: MagmaResult[] }
-      const flat: MagmaResult[] = Array.isArray(data) ? data : Array.isArray(data.results) ? data.results : []
+      const hits = await searchRetrieval(trimmed)
+      const flat: MagmaResult[] = hits
+        .slice(0, limit)
+        .map((hit) => ({ id: hit.ref, content: hit.text, view: viewType }))
       setGrouped(groupByView(flat, viewType))
       setLastQuery(trimmed)
       if (flat.length === 0) {
