@@ -480,3 +480,4 @@ R005.4.1 local source work: delete obsolete request-mode controls and state; add
 - [ ] T262 [US1] OVERSTORY-APPS-R037.5 Evidence: Show execution and transformation reference with rendered digest.
 - [ ] T263 [US1] OVERSTORY-APPS-R037.6 Hot-path proof: Real served discovery, execution, sandbox isolation.
 - [ ] T264 [US1] OVERSTORY-APPS-R005.4.1 Requests without interaction modes.
+- [ ] T265 [US1] OVERSTORY-APPS-R052 The shared state-machine census runs in staged mode.
