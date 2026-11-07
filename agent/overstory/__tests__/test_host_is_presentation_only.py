@@ -15,14 +15,16 @@ import json
 from pathlib import Path
 
 import pytest
-
 from overstory import api_extensions
 
 HOST_DIR = Path(api_extensions.__file__).resolve().parent
 CENSUS = HOST_DIR.parents[1] / 'src' / 'lib' / 'arbora-api' / 'route-census.json'
 MODULE_LINE_BOUND = 1500
 # (router, mount prefix) as wired in server.py
-MOUNTS = ((api_extensions.router, '/api/enhanced'), (api_extensions.chats_router, '/api'))
+MOUNTS = (
+    (api_extensions.router, '/api/enhanced'),
+    (api_extensions.chats_router, '/api'),
+)
 
 
 def _mounted_routes() -> set[str]:
@@ -98,7 +100,8 @@ def test_no_domain_route_and_no_module_over_the_line_bound() -> None:
     oversized = {
         path.name: lines
         for path in HOST_DIR.glob('*.py')
-        if (lines := len(path.read_text(encoding='utf-8').splitlines())) > MODULE_LINE_BOUND
+        if (lines := len(path.read_text(encoding='utf-8').splitlines()))
+        > MODULE_LINE_BOUND
     }
     assert domain == []
     assert oversized == {}
