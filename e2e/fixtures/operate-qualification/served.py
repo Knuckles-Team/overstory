@@ -1,3 +1,4 @@
+import argparse
 import hashlib
 import json
 import os
@@ -31,6 +32,17 @@ from overstory.server import create_agent_web_app
 from pydantic_ai import Agent
 from pydantic_ai.models.test import TestModel
 
+# One synthetic served host for the three operate qualification journeys.
+# (port, extra token scope, dependency probe, fleet discovery routes)
+SCENARIOS = {
+    'catalog': (18765, '', False, False),
+    'readiness': (18766, '', True, False),
+    'migration': (18767, ' mcp:discover', True, True),
+}
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument('scenario', choices=sorted(SCENARIOS))
+SCENARIO = parser.parse_args().scenario
+PORT, EXTRA_SCOPE, WITH_PROBE, WITH_FLEET = SCENARIOS[SCENARIO]
 OUTPUT_DIR = Path(os.environ['OPERATE_QUALIFICATION_DIR'])
 
 key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
@@ -68,13 +80,13 @@ token = jwt.encode(
         'aud': config.auth_jwt_audience,
         'sub': 'catalog-reader',
         'tenant': 'synthetic',
-        'scope': 'kg:read',
+        'scope': 'kg:read' + EXTRA_SCOPE,
         'iat': int(time.time()),
         'exp': int(time.time()) + 1800,
     },
     jwk,
 ).decode()
-(OUTPUT_DIR / 'operate-catalog-served-token').write_text(token)
+(OUTPUT_DIR / f'operate-{SCENARIO}-served-token').write_text(token)
 context = ReadContext(
     tenant_id='synthetic',
     principal_id='catalog-reader',
@@ -196,13 +208,36 @@ class Application:
         self.lifecycle.append('ensure_tools_registered')
 
     def mount_rest_routes(self, app, *, prefix):
-        self.lifecycle.append('mount_rest_routes:' + prefix)
+        if WITH_FLEET:
+            import fleet_support
+
+            fleet_support.mount_fleet_discovery(app, prefix=prefix)
+        else:
+            self.lifecycle.append('mount_rest_routes:' + prefix)
 
     def remote_oauth_grant_bindings(self, actor):
         return ()
 
 
 configure_gateway_application(Application())
+if WITH_PROBE:
+    from arbora.observability.readiness import check, register_probe
+
+    register_probe(
+        'engine', lambda: check('ready', source='synthetic engine authority')
+    )
+
+    def dependency_probe():
+        if (OUTPUT_DIR / f'operate-{SCENARIO}-recovered').exists():
+            return check('ready', detail={'pending': 0}, source='synthetic probe')
+        return check(
+            'degraded',
+            reason='Synthetic backlog',
+            detail={'pending': 3, 'evidence': ['synthetic durable receipt']},
+        )
+
+    register_probe('synthetic_dependency', dependency_probe)
+
 from starlette.responses import JSONResponse
 
 
@@ -242,4 +277,4 @@ print(
     sum(getattr(r, 'path', None) == '/api/enhanced/tools' for r in app.routes),
     flush=True,
 )
-uvicorn.run(app, host='127.0.0.1', port=18765, access_log=False)
+uvicorn.run(app, host='127.0.0.1', port=PORT, access_log=False)
