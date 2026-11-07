@@ -100,7 +100,7 @@ def _is_test_path(path: Path) -> bool:
 @pytest.mark.parametrize(
     ('path', 'expected'),
     [
-        ('e2e/fixtures/operate-qualification/catalog_served.py', True),
+        ('e2e/fixtures/operate-qualification/served.py', True),
         ('agent/overstory/__tests__/negative_host.py', True),
         ('e2e/production_bridge.py', False),
         ('agent/overstory/server.py', False),

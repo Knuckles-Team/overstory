@@ -102,3 +102,9 @@ def test_no_domain_route_and_no_module_over_the_line_bound() -> None:
     }
     assert domain == []
     assert oversized == {}
+
+
+def test_operate_qualification_has_one_served_fixture_host() -> None:
+    fixtures = HOST_DIR.parents[1] / 'e2e' / 'fixtures' / 'operate-qualification'
+    assert sorted(path.name for path in fixtures.glob('*_served.py')) == []
+    assert (fixtures / 'served.py').is_file()
