@@ -15,12 +15,11 @@
  * returns, and the composition never fabricates a value neither authority
  * reported:
  *
- * 1. `GET /api/enhanced/ecosystem/services` (`list_ecosystem_services`,
- *    `agent/overstory/api_extensions.py`) -- the live PARITY authority: a
- *    raw `list[str]` of every agent-package directory the backend actually
- *    discovered. Same endpoint/shape BUG-018 already validates in
- *    `EcosystemView.tsx`; this module re-validates it independently rather
- *    than importing view-local state, so it has no dependency on that view.
+ * 1. The Arbora `fleet.status` operation (`listFleetServices()`) -- the live
+ *    PARITY authority: the names of every fleet server Arbora reports.
+ *    Same source `EcosystemView.tsx` uses for BUG-018; this module consumes
+ *    it independently rather than importing view-local state, so it has no
+ *    dependency on that view.
  *    This is the ONLY source of "what packages exist" -- a package this
  *    endpoint does not report is never listed, and every package it DOES
  *    report gets an item, full stop.
@@ -58,8 +57,9 @@
  * explicit `reason`, never a silently-omitted item and never an item that
  * *looks* available without backing data.
  */
-import { z } from 'zod'
-import { ApiError, ApiShapeError, fetchValidated, looseArray } from './api-validation'
+import { ApiError, ApiShapeError } from './api-validation'
+import { listFleetServices } from './arbora-api/fleet'
+import { ArboraApiError } from './arbora-api/invoke'
 import { fetchFrontendContributions, type FrontendContributionRecord } from './frontend-contributions'
 
 export const INTEGRATION_STATUSES = ['available', 'degraded', 'blocked', 'not_configured'] as const
@@ -110,8 +110,6 @@ export const MAX_CATALOG_ITEMS = 100
 // Live parity authority
 // ---------------------------------------------------------------------------
 
-const liveCatalogSchema = looseArray(z.string().min(1).max(256))
-
 interface LiveCatalogResult {
   state: CatalogSourceState
   reason: string | null
@@ -120,18 +118,14 @@ interface LiveCatalogResult {
 
 async function fetchLiveServiceCatalog(): Promise<LiveCatalogResult> {
   try {
-    const ids = await fetchValidated('/api/enhanced/ecosystem/services', liveCatalogSchema)
+    const ids = await listFleetServices()
     return { state: ids.length > 0 ? 'ready' : 'empty', reason: null, ids }
   } catch (err) {
     if (err instanceof ApiShapeError) {
       return { state: 'error', reason: err.message, ids: [] }
     }
-    if (err instanceof ApiError) {
-      return {
-        state: 'error',
-        reason: `Live catalog HTTP ${err.status}${err.body ? `: ${err.body.slice(0, 200)}` : ''}`,
-        ids: [],
-      }
+    if (err instanceof ArboraApiError) {
+      return { state: 'error', reason: `Live catalog refused: ${err.code} (HTTP ${err.status})`, ids: [] }
     }
     return { state: 'unavailable', reason: 'The live integration catalog could not be reached.', ids: [] }
   }
