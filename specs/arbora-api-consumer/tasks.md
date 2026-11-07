@@ -34,3 +34,4 @@
 - [ ] T024 [US1] OVERSTORY-API-R008.2 Migrate graph reads and writes to typed operations with tenant parity.
 - [ ] T025 [US1] OVERSTORY-API-R008.3 Migrate Atlas reads and writes to typed operations with tenant parity.
 - [ ] T026 [US1] OVERSTORY-API-R008.4 Migrate object-set reads and writes to typed operations with tenant parity.
+- [ ] T27 [US1] OVERSTORY-API-R012 The host serves presentation and session only.
