@@ -202,6 +202,190 @@ close the public transcript, nested-run or installed-producer requirements.
 
 An embedded WebUI with Logfire disabled does not configure or replace its host tracing pipeline. Explicitly enabled WebUI tracing retains its existing export and instrumentation policy and directs console diagnostics to stderr. Structured application logging stays unchanged. No setting, credential or export destination is provisioned by this repair.
 
+### Host route migration, route by route (OVERSTORY-API-R012.1 to R012.11)
+
+Pre-untangled design for these rows, one line per answer.
+
+- Owner. Overstory owns the screen and the call from each view; Arbora owns each operation (the operation rows filed in Arbora); medulla owns the query constructs. The host owns static serving, the OIDC session and the generated-client proxy only.
+- Cohesion. Routes that call one target family migrate together, so the caller edit and the route deletion sit in one PR.
+- Dependency direction. A view imports the generated client; the client calls Arbora. The host imports neither a view nor a domain module.
+- Interface depth. The host has no domain route. The generated client is the one surface.
+- Special cases. None. Every route has a target operation or retires; the allowed host set is a closed list in the census test.
+- State. A migrated route has the census state `served`; `pending-arbora-operation` and `blocked-on-arbora` are the only other values, and the census lint closes the set.
+- Environment. None.
+
+Order. R012.2 waits for the masking row; R012.1 and R012.3 wait for the aggregate query row only for the `node-types` view; the other groups wait for their operation row. Within the PRs the order is: groups whose operations already exist (graph reads, ecosystem services, memory read and delete), then each group as its operation lands, then R012.11. Merge order of the open PRs: 242, then 244 and 246.
+
+**The census in one table.** Every `retire` row of `src/lib/arbora-api/route-census.json` (165 routes) with its target operation:
+
+| Route group | Method and path | Target operation |
+|---|---|---|
+| `files` | `GET /api/enhanced/files` | `workspace.files.list` |
+| `files` | `GET /api/enhanced/files/{filename:path}` | `workspace.files.read` |
+| `files` | `PUT /api/enhanced/files/{filename:path}` | `workspace.files.write` |
+| `files` | `DELETE /api/enhanced/files/{filename:path}` | `workspace.files.delete` |
+| `config-files` | `GET /api/enhanced/config-files` | `workspace.files.list` |
+| `agents` | `GET /api/enhanced/agents` | `agents.library.list` |
+| `mcp` | `GET /api/enhanced/mcp/servers/{server_name}/config` | `fleet.servers.config.get` |
+| `mcp` | `POST /api/enhanced/mcp/servers` | `fleet.servers.register` |
+| `mcp` | `PUT /api/enhanced/mcp/servers/{server_name}` | `fleet.servers.update` |
+| `mcp` | `DELETE /api/enhanced/mcp/servers/{server_name}` | `fleet.servers.remove` |
+| `tools` | `POST /api/enhanced/tools/toggle` | `fleet.tools.toggle` |
+| `tools` | `GET /api/enhanced/tools/graph` | `fleet.catalog.list` |
+| `tools` | `POST /api/enhanced/tools/graph/{tool_id}/toggle` | `fleet.tools.toggle` |
+| `skills` | `POST /api/enhanced/skills/{skill_id}/toggle` | `fleet.skills.toggle` |
+| `reload` | `POST /api/enhanced/reload` | `ops.config.set (key reload)` |
+| `cron` | `GET /api/enhanced/cron/calendar` | `schedule.tasks.read` |
+| `cron` | `GET /api/enhanced/cron/logs` | `schedule.tasks.read` |
+| `upload` | `POST /api/enhanced/upload` | `workspace.files.write` |
+| `graph` | `GET /api/enhanced/graph/nodes` | `eg.graph.GetNodesByLabel` |
+| `graph` | `GET /api/enhanced/graph/relationships` | `eg.graph.GetEdgesPage` |
+| `graph` | `GET /api/enhanced/graph/graph3d` | `eg.graph.GetSubgraph` |
+| `graph` | `GET /api/enhanced/graph/graph3d/scope` | `eg.graph.GetSubgraph` |
+| `graph` | `GET /api/enhanced/graph/graph3d/refresh` | `eg.graph.GetSubgraph` |
+| `graph` | `GET /api/enhanced/graph/graph3d/clusters` | `eg.compute.ClusterHierarchyClusters` |
+| `graph` | `GET /api/enhanced/graph/graph3d/expand` | `eg.compute.ClusterHierarchyExpand` |
+| `graph` | `GET /api/enhanced/graph/stats` | `eg.graph.NodeCount + eg.graph.EdgeCount + eg.graph.Metrics` |
+| `graph` | `GET /api/enhanced/graph/node-types` | `query.uql (aggregate)` |
+| `graph` | `POST /api/enhanced/graph/memory` | `memory.write (after the masking operation lands)` |
+| `graph` | `GET /api/enhanced/graph/memory/{memory_id}` | `memory.read` |
+| `graph` | `PUT /api/enhanced/graph/memory/{memory_id}` | `memory.write (after the masking operation lands)` |
+| `graph` | `DELETE /api/enhanced/graph/memory/{memory_id}` | `memory.delete` |
+| `graph` | `POST /api/enhanced/graph/link` | `eg.graph.AddEdge (after the masking operation lands)` |
+| `graph` | `GET /api/enhanced/graph/search` | `retrieval.search` |
+| `graph` | `GET /api/enhanced/graph/impact/{symbol}` | `eg.compute.GetBlastRadius` |
+| `graph` | `POST /api/enhanced/graph/query` | `query.uql` |
+| `graph` | `GET /api/enhanced/graph/viz/capabilities` | `eg.ingestion.Viz` |
+| `graph` | `POST /api/enhanced/graph/viz/render` | `eg.ingestion.Viz` |
+| `graph` | `POST /api/enhanced/graph/magma` | `retrieval.search` |
+| `code` | `POST /api/enhanced/code/nav` | `code.context.read` |
+| `code` | `GET /api/enhanced/code/instances` | `code.context.read` |
+| `kb` | `POST /api/enhanced/kb/ingest` | `ingest.submissions.create` |
+| `kb` | `GET /api/enhanced/kb/list` | `kb.articles.read` |
+| `kb` | `GET /api/enhanced/kb/search` | `kb.articles.read` |
+| `kb` | `GET /api/enhanced/kb/article/{article_id}` | `kb.articles.read` |
+| `kb` | `POST /api/enhanced/kb/health` | `ingest.drift.list` |
+| `kb` | `POST /api/enhanced/kb/update` | `memory.write` |
+| `sdd` | `GET /api/enhanced/sdd/constitution` | `sdd.documents.read` |
+| `sdd` | `POST /api/enhanced/sdd/constitution` | `retired (read-only view)` |
+| `sdd` | `GET /api/enhanced/sdd/specs` | `sdd.documents.read` |
+| `sdd` | `POST /api/enhanced/sdd/spec` | `retired (read-only view)` |
+| `sdd` | `GET /api/enhanced/sdd/plans` | `sdd.documents.read` |
+| `sdd` | `GET /api/enhanced/sdd/tasks` | `sdd.documents.read` |
+| `sdd` | `POST /api/enhanced/sdd/sync` | `retired (read-only view)` |
+| `resources` | `GET /api/enhanced/resources` | `resources.list` |
+| `resources` | `POST /api/enhanced/resources/spawn` | `resources.spawn` |
+| `agent-library` | `GET /api/enhanced/agent-library/agents` | `agents.library.list` |
+| `agent-library` | `GET /api/enhanced/agent-library/tools` | `agents.library.list` |
+| `agent-library` | `GET /api/enhanced/agent-library/suggestions` | `agents.library.list` |
+| `agent-library` | `GET /api/enhanced/agent-library/agents/{agent_id:path}` | `agents.library.get` |
+| `agent-library` | `POST /api/enhanced/agent-library/agents` | `agents.library.create` |
+| `agent-library` | `PUT /api/enhanced/agent-library/agents/{agent_id:path}` | `agents.library.update` |
+| `agent-library` | `DELETE /api/enhanced/agent-library/agents/{agent_id:path}` | `agents.library.delete` |
+| `agent-library` | `POST /api/enhanced/agent-library/a2a` | `agents.library.a2a` |
+| `agent-library` | `GET /api/enhanced/agent-library/config-summary` | `agents.library.summary` |
+| `maintenance` | `GET /api/enhanced/maintenance/status` | `ops.maintenance.status` |
+| `maintenance` | `POST /api/enhanced/maintenance/trigger` | `ops.maintenance.run` |
+| `pipeline` | `GET /api/enhanced/pipeline/status` | `ingest.pipeline.status` |
+| `pipeline` | `POST /api/enhanced/pipeline/trigger` | `ingest.pipeline.run` |
+| `models` | `GET /api/enhanced/models` | `models.list` |
+| `config` | `GET /api/enhanced/config/backend` | `ops.config` |
+| `config` | `PUT /api/enhanced/config/backend` | `ops.config.set` |
+| `config` | `GET /api/enhanced/config` | `ops.config` |
+| `config` | `GET /api/enhanced/config/groups` | `ops.config (view)` |
+| `config` | `GET /api/enhanced/config/schema` | `ops.config (view)` |
+| `config` | `GET /api/enhanced/config/secret-status` | `ops.config (view)` |
+| `config` | `PUT /api/enhanced/config` | `ops.config.set` |
+| `prompts` | `GET /api/enhanced/prompts/graph` | `prompts.list` |
+| `prompts` | `GET /api/enhanced/prompts/graph/{prompt_id}` | `prompts.get` |
+| `prompts` | `POST /api/enhanced/prompts/graph` | `prompts.create` |
+| `prompts` | `PUT /api/enhanced/prompts/graph/{prompt_id}` | `prompts.update` |
+| `prompts` | `GET /api/enhanced/prompts/graph/{prompt_id}/versions` | `prompts.versions` |
+| `prompts` | `POST /api/enhanced/prompts/graph/{prompt_id}/rollback/{version_id}` | `prompts.rollback` |
+| `prompts` | `GET /api/enhanced/prompts/graph/{prompt_id}/diff/{version_a}/{version_b}` | `prompts.diff` |
+| `prompts` | `GET /api/enhanced/prompts` | `prompts.list` |
+| `prompts` | `GET /api/enhanced/prompts/{name}` | `prompts.get` |
+| `prompts` | `PUT /api/enhanced/prompts/{name}` | `prompts.update` |
+| `goals` | `POST /api/enhanced/goals` | `agents.goals.run` |
+| `goals` | `GET /api/enhanced/goals` | `agents.goals.list` |
+| `goals` | `GET /api/enhanced/goals/{goal_id}/iterations` | `agents.goals.iterations` |
+| `goals` | `POST /api/enhanced/goals/{goal_id}/cancel` | `agents.goals.cancel` |
+| `llm` | `GET /api/enhanced/llm/models` | `models.list` |
+| `llm` | `GET /api/enhanced/llm/embedding-models` | `models.list` |
+| `llm` | `GET /api/enhanced/llm/model-schema` | `ops.config (view schema)` |
+| `llm` | `GET /api/enhanced/llm/model-detail` | `ops.config (view schema)` |
+| `llm` | `PUT /api/enhanced/llm/models` | `ops.config.set` |
+| `llm` | `PUT /api/enhanced/llm/embedding-models` | `ops.config.set` |
+| `ecosystem` | `GET /api/enhanced/ecosystem/services` | `fleet.status` |
+| `ecosystem` | `GET /api/enhanced/ecosystem/atlassian/kanban` | `ecosystem.widgets.read` |
+| `ecosystem` | `GET /api/enhanced/ecosystem/github/prs` | `ecosystem.widgets.read` |
+| `ecosystem` | `GET /api/enhanced/ecosystem/gitlab/mrs` | `ecosystem.widgets.read` |
+| `ecosystem` | `GET /api/enhanced/ecosystem/portainer/stacks` | `ecosystem.widgets.read` |
+| `ecosystem` | `GET /api/enhanced/ecosystem/datascience/training` | `ecosystem.widgets.read` |
+| `ecosystem` | `GET /api/enhanced/ecosystem/scholarx/papers` | `ecosystem.widgets.read` |
+| `ecosystem` | `GET /api/enhanced/ecosystem/uptime/status` | `ecosystem.widgets.read` |
+| `ecosystem` | `GET /api/enhanced/ecosystem/searxng/search` | `ecosystem.widgets.read` |
+| `ecosystem` | `GET /api/enhanced/ecosystem/homeassistant/devices` | `ecosystem.widgets.read` |
+| `ecosystem` | `GET /api/enhanced/ecosystem/nextcloud/events` | `ecosystem.widgets.read` |
+| `ecosystem` | `GET /api/enhanced/ecosystem/microsoft/emails` | `ecosystem.widgets.read` |
+| `ecosystem` | `GET /api/enhanced/ecosystem/mediadownloader/downloads` | `ecosystem.widgets.read` |
+| `ecosystem` | `GET /api/enhanced/ecosystem/qbittorrent/torrents` | `ecosystem.widgets.read` |
+| `ecosystem` | `GET /api/enhanced/ecosystem/stirlingpdf/jobs` | `ecosystem.widgets.read` |
+| `tunnel-manager` | `GET /api/enhanced/tunnel-manager/hosts` | `ecosystem.widgets.read` |
+| `tunnel-manager` | `POST /api/enhanced/tunnel-manager/hosts` | `ecosystem.widgets.read` |
+| `systems-manager` | `GET /api/enhanced/systems-manager/resources` | `ecosystem.widgets.read` |
+| `systems-manager` | `GET /api/enhanced/systems-manager/processes` | `ecosystem.widgets.read` |
+| `container-manager` | `GET /api/enhanced/container-manager/containers` | `ecosystem.widgets.read` |
+| `repository-manager` | `GET /api/enhanced/repository-manager/repos` | `ecosystem.widgets.read` |
+| `repository-manager` | `POST /api/enhanced/repository-manager/bulk` | `ecosystem.widgets.read` |
+| `voice` | `POST /api/enhanced/voice/transcribe` | `media.transcribe` |
+| `system` | `GET /api/enhanced/system` | `ops.doctor` |
+| `commands` | `POST /api/enhanced/commands/execute` | `commands.execute` |
+| `commands` | `GET /api/enhanced/commands/autocomplete` | `commands.autocomplete` |
+| `workflows` | `GET /api/enhanced/workflows` | `workflows.list` |
+| `workflows` | `POST /api/enhanced/workflows` | `workflows.create` |
+| `workflows` | `POST /api/enhanced/workflows/{wid:path}/run` | `workflows.run` |
+| `atlas` | `GET /api/enhanced/atlas/sources` | `ingest.sources.list` |
+| `atlas` | `GET /api/enhanced/atlas/sources/{source_id}/connection` | `ingest.sources.connections.get` |
+| `atlas` | `POST /api/enhanced/atlas/sources/{source_id}/connection` | `ingest.sources.connections.create` |
+| `atlas` | `POST /api/enhanced/atlas/sync/preview` | `ingest.sources.sync.preview` |
+| `atlas` | `POST /api/enhanced/atlas/sync/runs` | `ingest.sources.sync` |
+| `atlas` | `GET /api/enhanced/atlas/sync/runs` | `ingest.sources.runs.get` |
+| `atlas` | `POST /api/enhanced/atlas/sync/runs/{run_id}/cancel` | `ingest.sources.runs.cancel` |
+| `atlas` | `GET /api/enhanced/atlas/sources/providers` | `ingest.sources.providers.list` |
+| `atlas` | `GET /api/enhanced/atlas/sources/connections` | `ingest.sources.connections.list` |
+| `atlas` | `POST /api/enhanced/atlas/sources/connections` | `ingest.sources.connections.create` |
+| `atlas` | `DELETE /api/enhanced/atlas/sources/connections/{connection_id}` | `ingest.sources.connections.delete` |
+| `atlas` | `POST /api/enhanced/atlas/sources/connections/{connection_id}/discover` | `ingest.sources.discover` |
+| `atlas` | `GET /api/enhanced/atlas/sources/connections/{connection_id}/mapping` | `ingest.sources.mapping.get` |
+| `atlas` | `POST /api/enhanced/atlas/sources/connections/{connection_id}/mapping/propose` | `ingest.sources.mapping.propose` |
+| `atlas` | `POST /api/enhanced/atlas/sources/connections/{connection_id}/mapping/approve` | `ingest.sources.mapping.approve` |
+| `atlas` | `GET /api/enhanced/atlas/sources/connections/{connection_id}/status` | `ingest.sources.status` |
+| `atlas` | `POST /api/enhanced/atlas/sources/sync/preview` | `ingest.sources.sync.preview` |
+| `atlas` | `POST /api/enhanced/atlas/sources/sync` | `ingest.sources.sync` |
+| `atlas` | `GET /api/enhanced/atlas/sources/runs/{run_id}` | `ingest.sources.runs.get` |
+| `atlas` | `POST /api/enhanced/atlas/sources/runs/{run_id}/cancel` | `ingest.sources.runs.cancel` |
+| `ontology` | `GET /api/enhanced/ontology/object-types` | `ontology.classes.list` |
+| `ontology` | `GET /api/enhanced/ontology/property-types` | `ontology.properties.list` |
+| `ontology` | `GET /api/enhanced/ontology/interfaces` | `ontology.classes.list` |
+| `ontology` | `GET /api/enhanced/ontology/interfaces/{name}/implementers` | `ontology.classes.get` |
+| `ontology` | `POST /api/enhanced/ontology/object-set/search` | `ontology.objects.search` |
+| `ontology` | `POST /api/enhanced/ontology/object-set/search-around` | `ontology.objects.search_around` |
+| `ontology` | `POST /api/enhanced/ontology/object-set/pivot` | `ontology.objects.pivot` |
+| `ontology` | `POST /api/enhanced/ontology/object-set/aggregate` | `ontology.objects.aggregate` |
+| `ontology` | `POST /api/enhanced/ontology/object-set/save` | `ontology.object_sets.save` |
+| `ontology` | `GET /api/enhanced/ontology/object-set/list` | `ontology.object_sets.list` |
+| `ontology` | `GET /api/enhanced/ontology/actions` | `ontology.actions.list` |
+| `ontology` | `POST /api/enhanced/ontology/object-set/action` | `ontology.actions.apply` |
+| `ontology` | `GET /api/enhanced/ontology/object/{object_id}` | `ontology.objects.get` |
+| `ontology` | `POST /api/enhanced/ontology/object/{object_id}/edit` | `ontology.objects.edit` |
+| `ontology` | `POST /api/enhanced/ontology/object/{object_id}/revert` | `ontology.objects.revert` |
+| `ontology` | `POST /api/enhanced/ontology/function/invoke` | `ontology.functions.invoke` |
+| `ontology` | `POST /api/enhanced/ontology/derive` | `ontology.derive` |
+| `ontology` | `POST /api/enhanced/ontology/document/process` | `ontology.document.process` |
+| `ontology` | `GET /api/enhanced/ontology/object-view/{object_type}` | `ontology.object_views.get` |
+| `ontology` | `POST /api/enhanced/ontology/object-view/{object_type}` | `ontology.object_views.put` |
+
 ## Phase 2: Task approach
 
 `tasks.md` follows the rows in dependency order. Producer rows come first. Independent view rows may run in parallel.
