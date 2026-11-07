@@ -68,11 +68,16 @@ import os
 import secrets
 import time
 from dataclasses import dataclass
-from ipaddress import ip_address
 from typing import Any, Protocol, TypeGuard, cast
 from urllib.parse import quote, urlencode, urlsplit, urlunsplit
 
+from .browser_control import (
+    BrowserControlBinding,
+    RecentAuthGrant,
+    browser_control_port_enabled,
+)
 from .browser_control_canonical import canonical_protocol_json, parse_protocol_json
+from .request_origin import is_secure, loopback_host, trusted_request_origin
 
 logger = logging.getLogger(__name__)
 
@@ -304,105 +309,6 @@ def _cookies(scope: Any) -> dict[str, str]:
     return jar
 
 
-def _is_secure(scope: Any) -> bool:
-    """Return whether the browser reached this request over TLS.
-
-    ``Secure`` cookies are silently dropped by browsers on plain HTTP, so the
-    flag is set from the observed scheme (including the ingress' forwarded
-    scheme) rather than hardcoded.  See the module's deployment notes: the
-    homelab ingress currently serves ``http://au.example``.
-    """
-
-    if str(scope.get('scheme') or '').lower() in {'https', 'wss'}:
-        return True
-    for key, value in scope.get('headers') or []:
-        if key.decode('latin-1').lower() == 'x-forwarded-proto':
-            return value.decode('latin-1').strip().lower() == 'https'
-    return False
-
-
-def _loopback_host(hostname: str) -> bool:
-    if hostname == 'localhost':
-        return True
-    try:
-        return ip_address(hostname).is_loopback
-    except ValueError:
-        return False
-
-
-def trusted_request_origin(
-    scope: Any, supplied_origin: str | None = None
-) -> str | None:
-    """Return the exact configured request origin or fail closed.
-
-    Host is accepted only after the application's Host middleware and must map
-    to one configured ``ALLOWED_ORIGINS`` entry.  A supplied WebSocket Origin
-    must byte-normalize to that same request origin; another allowlisted origin
-    is still cross-origin and is refused.
-    """
-
-    request_host = _trusted_request_host(scope)
-    if request_host is None:
-        return None
-    host, hostname = request_host
-    scheme = _trusted_request_scheme(scope, hostname)
-    if scheme is None:
-        return None
-    origin = f'{scheme}://{host}'
-    if origin not in _configured_origins():
-        return None
-    normalized_supplied = (
-        supplied_origin.lower().removesuffix('/')
-        if supplied_origin is not None
-        else origin
-    )
-    return origin if normalized_supplied == origin else None
-
-
-def _trusted_request_host(scope: Any) -> tuple[str, str] | None:
-    hosts = [
-        value.decode('latin-1').strip().lower()
-        for key, value in scope.get('headers') or []
-        if key.decode('latin-1').lower() == 'host'
-    ]
-    if (
-        len(hosts) != 1
-        or not hosts[0]
-        or any(character in hosts[0] for character in '\r\n,@/\\')
-    ):
-        return None
-    return _parsed_request_host(hosts[0])
-
-
-def _parsed_request_host(host: str) -> tuple[str, str] | None:
-    parsed_host = urlsplit(f'//{host}')
-    if not parsed_host.hostname or parsed_host.username or parsed_host.password:
-        return None
-    return host, parsed_host.hostname
-
-
-def _trusted_request_scheme(scope: Any, hostname: str) -> str | None:
-    scope_scheme = str(scope.get('scheme') or '').lower()
-    scheme = (
-        'https'
-        if _is_secure(scope)
-        else ('http' if scope_scheme in {'http', 'ws'} else '')
-    )
-    if scheme != 'https' and not (scheme == 'http' and _loopback_host(hostname)):
-        return None
-    return scheme
-
-
-def _configured_origins() -> set[str]:
-    from .host import config
-
-    return {
-        entry.strip().lower().removesuffix('/')
-        for entry in str(config.allowed_origins or '').split(',')
-        if entry.strip()
-    }
-
-
 def _trusted_backchannel_url(value: Any) -> str | None:
     endpoint = str(value or '')
     parsed = urlsplit(endpoint)
@@ -412,7 +318,7 @@ def _trusted_backchannel_url(value: Any) -> str | None:
         and not parsed.username
         and not parsed.password
         and not parsed.fragment
-        and (parsed.scheme == 'https' or _loopback_host(str(parsed.hostname).lower()))
+        and (parsed.scheme == 'https' or loopback_host(str(parsed.hostname).lower()))
     )
     return endpoint if valid else None
 
@@ -632,7 +538,7 @@ def _request_scheme_redirect_uri(configured_redirect_uri: str, scope: Any) -> st
     """
 
     parsed = urlsplit(configured_redirect_uri)
-    scheme = 'https' if _is_secure(scope) else 'http'
+    scheme = 'https' if is_secure(scope) else 'http'
     return urlunsplit(
         (scheme, parsed.netloc, parsed.path, parsed.query, parsed.fragment)
     )
@@ -1118,7 +1024,7 @@ class OIDCBrowserSessionMiddleware:
                 _set_cookie_header(
                     FLOW_COOKIE,
                     flow,
-                    secure=_is_secure(scope),
+                    secure=is_secure(scope),
                     max_age=_FLOW_TTL_S,
                 )
             ],
@@ -1173,7 +1079,7 @@ class OIDCBrowserSessionMiddleware:
                 _set_cookie_header(
                     FLOW_COOKIE,
                     flow,
-                    secure=_is_secure(scope),
+                    secure=is_secure(scope),
                     max_age=_FLOW_TTL_S,
                 )
             ],
@@ -1374,7 +1280,6 @@ class OIDCBrowserSessionMiddleware:
         actor_id: str,
         tenant: str,
     ) -> tuple[Any, Any]:
-        from .browser_control import BrowserControlBinding, RecentAuthGrant
 
         route_id, generation, catalog_digest, tool_scope_digest = finalized_scope
         mint_graph_session = self.mint_graph_session
@@ -1444,7 +1349,6 @@ class OIDCBrowserSessionMiddleware:
         actor_id: str,
         tenant: str,
     ) -> Any:
-        from .browser_control import BrowserControlBinding
 
         mint_graph_session = self.mint_graph_session
         if not callable(mint_graph_session):
@@ -1551,7 +1455,7 @@ class OIDCBrowserSessionMiddleware:
                 _set_cookie_header(
                     RECENT_AUTH_COOKIE,
                     '',
-                    secure=_is_secure(scope),
+                    secure=is_secure(scope),
                     max_age=0,
                 )
             ],
@@ -1585,13 +1489,13 @@ class OIDCBrowserSessionMiddleware:
                 _set_cookie_header(
                     RECENT_AUTH_COOKIE,
                     '',
-                    secure=_is_secure(scope),
+                    secure=is_secure(scope),
                     max_age=0,
                 ),
                 _set_cookie_header(
                     ATTENDED_ARM_COOKIE,
                     self._sealed_arm_receipt(binding, actor_id=actor_id, tenant=tenant),
-                    secure=_is_secure(scope),
+                    secure=is_secure(scope),
                     max_age=max(1, int(binding.attended_arm_expires_at - time.time())),
                 ),
             ],
@@ -1601,8 +1505,6 @@ class OIDCBrowserSessionMiddleware:
         self, scope: Any, receive: Any, send: Any
     ) -> None:
         """Consume recent IdP evidence into one exact post-reload arm receipt."""
-
-        from .browser_control import browser_control_port_enabled
 
         if not browser_control_port_enabled(self.browser_control) or not callable(
             self.mint_graph_session
@@ -1703,7 +1605,7 @@ class OIDCBrowserSessionMiddleware:
         ):
             await self._respond(send, 403, body=b'{"detail":"Attended arm denied"}')
             return
-        secure = _is_secure(scope)
+        secure = is_secure(scope)
         clear_arm = _set_cookie_header(
             ATTENDED_ARM_COOKIE, '', secure=secure, max_age=0
         )
@@ -1738,7 +1640,6 @@ class OIDCBrowserSessionMiddleware:
         )
 
     async def _revoke_receipt(self, token: str, receipt: dict[str, Any] | None) -> bool:
-        from .browser_control import browser_control_port_enabled
 
         if receipt is None or not browser_control_port_enabled(self.browser_control):
             return False
@@ -1924,7 +1825,7 @@ class OIDCBrowserSessionMiddleware:
                 send, clear_flow, b'{"detail":"Attended sign-in could not be verified"}'
             )
             return
-        secure = _is_secure(scope)
+        secure = is_secure(scope)
         grant = self._recent_grant(flow, evidence, expires_at=expires_at)
         await self._redirect(
             send,
@@ -1955,7 +1856,7 @@ class OIDCBrowserSessionMiddleware:
             keep_blank_values=False,
         )
         clear_flow = _set_cookie_header(
-            FLOW_COOKIE, '', secure=_is_secure(scope), max_age=0
+            FLOW_COOKIE, '', secure=is_secure(scope), max_age=0
         )
 
         if 'error' in params:
@@ -1996,12 +1897,12 @@ class OIDCBrowserSessionMiddleware:
             _safe_next(str(flow.get('next') or '/')),
             headers=[
                 clear_flow,
-                *_session_cookie_headers(session, secure=_is_secure(scope)),
+                *_session_cookie_headers(session, secure=is_secure(scope)),
             ],
         )
 
     async def _handle_logout(self, scope: Any, send: Any) -> None:
-        secure = _is_secure(scope)
+        secure = is_secure(scope)
         cleared = [
             *_clear_session_cookie_headers(secure=secure),
             _set_cookie_header(FLOW_COOKIE, '', secure=secure, max_age=0),
@@ -2140,7 +2041,7 @@ class OIDCBrowserSessionMiddleware:
                         _set_cookie_header(
                             ATTENDED_ARM_COOKIE,
                             revoke_receipt,
-                            secure=_is_secure(scope),
+                            secure=is_secure(scope),
                             max_age=max(
                                 1,
                                 int(
@@ -2263,10 +2164,10 @@ class OIDCBrowserSessionMiddleware:
             }
         )
         if refreshed is None:
-            return None, _clear_session_cookie_headers(secure=_is_secure(scope))
+            return None, _clear_session_cookie_headers(secure=is_secure(scope))
         new_session = self._session_from_tokens(refreshed)
         cookies = _session_cookie_headers(
-            self._seal(new_session), secure=_is_secure(scope)
+            self._seal(new_session), secure=is_secure(scope)
         )
         return new_session, cookies
 
@@ -2288,7 +2189,7 @@ class OIDCBrowserSessionMiddleware:
             return session, None
         if session.get('refresh_token'):
             return await self._renew_expired_session(scope, session)
-        return None, _clear_session_cookie_headers(secure=_is_secure(scope))
+        return None, _clear_session_cookie_headers(secure=is_secure(scope))
 
     async def __call__(self, scope: Any, receive: Any, send: Any) -> None:
         scope_type = scope.get('type')
@@ -2324,7 +2225,7 @@ class OIDCBrowserSessionMiddleware:
             await self._redirect(
                 send,
                 f'{LOGIN_PATH}?next={quote(path or "/", safe="/")}',
-                headers=_clear_session_cookie_headers(secure=_is_secure(scope)),
+                headers=_clear_session_cookie_headers(secure=is_secure(scope)),
             )
             return
 
@@ -2488,6 +2389,5 @@ __all__ = [
     'SESSION_COOKIE',
     'SESSION_PATH',
     'load_settings',
-    'trusted_request_origin',
     'verify_browser_session',
 ]
