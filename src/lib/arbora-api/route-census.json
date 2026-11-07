@@ -306,15 +306,6 @@
     "migration_state": "pending-arbora-operation"
   },
   {
-    "route": "GET /api/enhanced/graph/search",
-    "disposition": "retire",
-    "owning_operation": null,
-    "caller": "src/components/views/GraphView.tsx; src/components/views/Graph3DView.tsx; src/components/knowledge-graph/; src/lib/atlas/adapters/",
-    "scope": "graph domain; retirement is pending generated Arbora operations and tenant/purpose parity proof; preserve graph callers until cutover",
-    "effect_class": "read",
-    "migration_state": "pending-arbora-operation"
-  },
-  {
     "route": "GET /api/enhanced/graph/impact/{symbol}",
     "disposition": "retire",
     "owning_operation": null,
@@ -447,15 +438,6 @@
     "caller": "src/components/views/SDDView.tsx",
     "scope": "spec-driven-development domain; retirement is pending a generated Arbora operation; preserve SDDView callers until cutover proof",
     "effect_class": "read",
-    "migration_state": "pending-arbora-operation"
-  },
-  {
-    "route": "POST /api/enhanced/graph/magma",
-    "disposition": "retire",
-    "owning_operation": null,
-    "caller": "src/components/views/GraphView.tsx; src/components/views/Graph3DView.tsx; src/components/knowledge-graph/; src/lib/atlas/adapters/",
-    "scope": "graph domain; retirement is pending generated Arbora operations and tenant/purpose parity proof; preserve graph callers until cutover",
-    "effect_class": "write",
     "migration_state": "pending-arbora-operation"
   },
   {

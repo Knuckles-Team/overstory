@@ -89,7 +89,6 @@ const ROUTE_TABLE: RouteEntry[] = [
     respond: () =>
       jsonResponse({ ok: true, result: { rows: [] }, meta: { registry_digest: 'digest', api_version: 'v1' } }),
   },
-  { match: (p) => p.startsWith('/api/enhanced/graph/magma'), respond: () => jsonResponse([]) },
 
   // SDD
   {
