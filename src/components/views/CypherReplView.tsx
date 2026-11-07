@@ -1,9 +1,9 @@
 /**
  * @file CypherReplView.tsx
- * @description Minimal Cypher query REPL.
+ * @description Minimal UQL query REPL.
  *
- * Provides a Textarea-based editor for Cypher queries, an execution button
- * that POSTs to /api/enhanced/graph/query, a JSON results table with
+ * Provides a Textarea-based editor for UQL queries, an execution button
+ * that runs the Arbora query.uql operation, a JSON results table with
  * expandable rows, and a history sidebar that keeps the last 10 runs in
  * memory (and mirrors them to localStorage so refreshes persist).
  */
@@ -17,6 +17,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { StatusMessage } from '@/components/ui/status-message'
 import { toast } from 'sonner'
+import { runUql } from '@/lib/arbora-api/uql'
 
 const DEFAULT_QUERY = 'MATCH (n) RETURN n LIMIT 10'
 const HISTORY_KEY = 'cypher-repl-history'
@@ -109,7 +110,7 @@ export default function CypherReplView() {
   const runQuery = async () => {
     const trimmed = query.trim()
     if (!trimmed) {
-      toast.warning('Enter a Cypher query to run.')
+      toast.warning('Enter a UQL query to run.')
       return
     }
 
@@ -117,34 +118,7 @@ export default function CypherReplView() {
     setLoading(true)
     setLastError(null)
     try {
-      const res = await fetch('/api/enhanced/graph/query', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: trimmed }),
-      })
-
-      if (!res.ok) {
-        const text = await res.text().catch(() => String(res.status))
-        const message = `HTTP ${res.status}: ${text}`
-        setLastError(message)
-        setResults([])
-        appendHistory({
-          query: trimmed,
-          timestamp: started,
-          durationMs: Date.now() - started,
-          rowCount: 0,
-          error: message,
-        })
-        toast.error(`Cypher query failed: ${message}`)
-        return
-      }
-
-      const data: unknown = await res.json()
-      const rows: Record<string, unknown>[] = Array.isArray(data)
-        ? (data as Record<string, unknown>[])
-        : Array.isArray((data as { results?: unknown }).results)
-          ? (data as { results: Record<string, unknown>[] }).results
-          : []
+      const rows = await runUql(trimmed)
       setResults(rows)
       appendHistory({
         query: trimmed,
@@ -168,7 +142,7 @@ export default function CypherReplView() {
         rowCount: 0,
         error: message,
       })
-      toast.error(`Cypher query failed: ${message}`)
+      toast.error(`UQL query failed: ${message}`)
     } finally {
       setLoading(false)
     }
@@ -200,9 +174,9 @@ export default function CypherReplView() {
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
             <Terminal className="size-6" />
-            Cypher REPL
+            UQL REPL
           </h1>
-          <p className="text-muted-foreground text-sm">Execute ad-hoc Cypher queries against the knowledge graph.</p>
+          <p className="text-muted-foreground text-sm">Execute ad-hoc UQL queries against the knowledge graph.</p>
         </div>
       </div>
 
@@ -240,7 +214,7 @@ export default function CypherReplView() {
             </CardHeader>
             <CardContent className="space-y-3">
               <Textarea
-                aria-label="Cypher query"
+                aria-label="UQL query"
                 value={query}
                 onChange={(e) => {
                   setQuery(e.target.value)

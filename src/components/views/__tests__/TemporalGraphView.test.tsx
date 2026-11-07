@@ -59,16 +59,28 @@ describe('TemporalGraphView component', () => {
 
   it('appends |> AS OF @<ts> to the graph query when scrubbed', async () => {
     const bodies: string[] = []
-    // Override the default shim to capture the POST body to /graph/query while
+    // Override the default shim to capture the POST body to the query.uql operation while
     // still answering the nodes/relationships loads with non-empty fixtures.
     global.fetch = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input)
-      if (url.includes('/graph/query')) {
+      if (url === '/auth/session') {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: () => Promise.resolve({ authenticated: true, csrf_token: 'csrf' }),
+        } as unknown as Response)
+      }
+      if (url === '/api/v1/ops/query.uql') {
         bodies.push(String(init?.body ?? ''))
         return Promise.resolve({
           ok: true,
           status: 200,
-          json: () => Promise.resolve([{ source: 'node1', target: 'node2' }]),
+          json: () =>
+            Promise.resolve({
+              ok: true,
+              result: { rows: [{ source: 'node1', target: 'node2' }] },
+              meta: { registry_digest: 'digest', api_version: 'v1' },
+            }),
           text: () => Promise.resolve('[]'),
         } as unknown as Response)
       }

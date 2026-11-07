@@ -2,15 +2,22 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import CypherReplView from '@/components/views/CypherReplView'
 
-function createFetchMock(body: unknown = [{ n: { id: 'node1' } }]) {
-  return vi.fn(
-    () =>
-      Promise.resolve({
-        ok: true,
-        status: 200,
-        json: () => Promise.resolve(body),
-        text: () => Promise.resolve(''),
-      }) as unknown as Promise<Response>,
+const meta = { registry_digest: 'digest', api_version: 'v1' }
+
+function reply(body: unknown, status = 200) {
+  return Promise.resolve({
+    ok: status < 400,
+    status,
+    json: () => Promise.resolve(body),
+    text: () => Promise.resolve(''),
+  }) as unknown as Promise<Response>
+}
+
+function createFetchMock(rows: unknown = [{ n: { id: 'node1' } }]) {
+  return vi.fn((input: RequestInfo | URL) =>
+    String(input) === '/auth/session'
+      ? reply({ authenticated: true, csrf_token: 'csrf' })
+      : reply({ ok: true, result: { rows }, meta }),
   )
 }
 
@@ -24,7 +31,7 @@ describe('CypherReplView Component', () => {
     global.fetch = createFetchMock() as unknown as typeof fetch
     render(<CypherReplView />)
 
-    const editor = screen.getByLabelText('Cypher query') as HTMLTextAreaElement
+    const editor = screen.getByLabelText('UQL query') as HTMLTextAreaElement
     expect(editor.value).toContain('MATCH (n) RETURN n LIMIT 10')
 
     expect(screen.getByText(/Read-only queries recommended/i)).toBeInTheDocument()
@@ -43,9 +50,15 @@ describe('CypherReplView Component', () => {
       expect(fetchSpy).toHaveBeenCalled()
     })
 
-    const [url, init] = fetchSpy.mock.calls[0] as unknown as [string, RequestInit]
-    expect(url).toContain('/api/enhanced/graph/query')
-    expect(init.method).toBe('POST')
+    await waitFor(() => {
+      expect(fetchSpy.mock.calls.some(([url]) => String(url) === '/api/v1/ops/query.uql')).toBe(true)
+    })
+    const call = fetchSpy.mock.calls.find(([url]) => String(url) === '/api/v1/ops/query.uql') as unknown as [
+      string,
+      RequestInit,
+    ]
+    expect(call[1].method).toBe('POST')
+    expect(JSON.parse(String(call[1].body))).toMatchObject({ text: expect.stringContaining('MATCH') })
 
     // Result panel reports the count as "Returned 1 row(s). ...". Match that
     // exact phrasing so it does not also collide with the history badge below
@@ -60,22 +73,25 @@ describe('CypherReplView Component', () => {
     })
   })
 
-  it('surfaces HTTP errors in the result panel', async () => {
-    global.fetch = vi.fn(
-      () =>
-        Promise.resolve({
-          ok: false,
-          status: 500,
-          json: () => Promise.resolve({}),
-          text: () => Promise.resolve('boom'),
-        }) as unknown as Promise<Response>,
+  it('surfaces refused operations in the result panel', async () => {
+    global.fetch = vi.fn((input: RequestInfo | URL) =>
+      String(input) === '/auth/session'
+        ? reply({ authenticated: true, csrf_token: 'csrf' })
+        : reply(
+            {
+              ok: false,
+              error: { code: 'denied', source: 'arbora', message: 'no', retryable: false },
+              meta,
+            },
+            403,
+          ),
     ) as unknown as typeof fetch
 
     render(<CypherReplView />)
     screen.getByRole('button', { name: /^run$/i }).click()
 
     await waitFor(() => {
-      expect(screen.getByText(/HTTP 500/)).toBeInTheDocument()
+      expect(screen.getByText(/Arbora operation refused: denied/)).toBeInTheDocument()
     })
   })
 
@@ -83,7 +99,7 @@ describe('CypherReplView Component', () => {
     global.fetch = createFetchMock() as unknown as typeof fetch
     render(<CypherReplView />)
 
-    const editor = screen.getByLabelText('Cypher query') as HTMLTextAreaElement
+    const editor = screen.getByLabelText('UQL query') as HTMLTextAreaElement
     fireEvent.change(editor, { target: { value: 'DELETE n' } })
 
     await waitFor(() => {

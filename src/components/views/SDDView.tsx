@@ -1,12 +1,9 @@
 import { useState, useEffect } from 'react'
-import { FileText, Plus, CheckCircle, Target, ListTodo, Settings, Play, RefreshCw } from 'lucide-react'
+import { FileText, CheckCircle, Target, ListTodo, Settings, RefreshCw } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
-import { Textarea } from '@/components/ui/textarea'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 
@@ -27,13 +24,6 @@ export default function SDDView() {
   const [selectedSpec, setSelectedSpec] = useState<Spec | null>(null)
   const [selectedPlan, setSelectedPlan] = useState<ImplementationPlan | null>(null)
   const [loading, setLoading] = useState(true)
-  const [isSpecDialogOpen, setIsSpecDialogOpen] = useState(false)
-  const [specForm, setSpecForm] = useState({
-    title: '',
-    description: '',
-    user_stories: [''],
-    acceptance_criteria: [''],
-  })
 
   useEffect(() => {
     void fetchConstitution()
@@ -85,56 +75,6 @@ export default function SDDView() {
     }
   }
 
-  const handleCreateSpec = async () => {
-    try {
-      await api.createSpec(specForm)
-      toast.success('Specification created successfully')
-      setIsSpecDialogOpen(false)
-      setSpecForm({ title: '', description: '', user_stories: [''], acceptance_criteria: [''] })
-      void fetchSpecs()
-    } catch {
-      toast.error('Failed to create specification')
-    }
-  }
-
-  const handleSyncToMemory = async () => {
-    if (!selectedPlan) return
-    try {
-      await api.syncSDDToMemory({ plan_id: selectedPlan.id })
-      toast.success('SDD data synced to knowledge graph')
-    } catch {
-      toast.error('Failed to sync to memory')
-    }
-  }
-
-  const addUserStory = () => {
-    setSpecForm({ ...specForm, user_stories: [...specForm.user_stories, ''] })
-  }
-
-  const updateUserStory = (index: number, value: string) => {
-    const updated = [...specForm.user_stories]
-    updated[index] = value
-    setSpecForm({ ...specForm, user_stories: updated })
-  }
-
-  const removeUserStory = (index: number) => {
-    setSpecForm({ ...specForm, user_stories: specForm.user_stories.filter((_, i) => i !== index) })
-  }
-
-  const addAcceptanceCriteria = () => {
-    setSpecForm({ ...specForm, acceptance_criteria: [...specForm.acceptance_criteria, ''] })
-  }
-
-  const updateAcceptanceCriteria = (index: number, value: string) => {
-    const updated = [...specForm.acceptance_criteria]
-    updated[index] = value
-    setSpecForm({ ...specForm, acceptance_criteria: updated })
-  }
-
-  const removeAcceptanceCriteria = (index: number) => {
-    setSpecForm({ ...specForm, acceptance_criteria: specForm.acceptance_criteria.filter((_, i) => i !== index) })
-  }
-
   return (
     <div className="space-y-6 h-[calc(100vh-12rem)]">
       {/* Header */}
@@ -155,112 +95,6 @@ export default function SDDView() {
           >
             <RefreshCw className="size-4" />
           </Button>
-          <Dialog open={isSpecDialogOpen} onOpenChange={setIsSpecDialogOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="size-4 mr-2" />
-                New Specification
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl">
-              <DialogHeader>
-                <DialogTitle>Create Specification</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div>
-                  <label className="text-sm font-medium">Title</label>
-                  <Input
-                    value={specForm.title}
-                    onChange={(e) => {
-                      setSpecForm({ ...specForm, title: e.target.value })
-                    }}
-                    placeholder="Feature title"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Description</label>
-                  <Textarea
-                    value={specForm.description}
-                    onChange={(e) => {
-                      setSpecForm({ ...specForm, description: e.target.value })
-                    }}
-                    placeholder="Feature description"
-                    rows={3}
-                  />
-                </div>
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="text-sm font-medium">User Stories</label>
-                    <Button variant="outline" size="sm" onClick={addUserStory}>
-                      <Plus className="size-3" />
-                    </Button>
-                  </div>
-                  <div className="space-y-2">
-                    {specForm.user_stories.map((story, index) => (
-                      <div key={index} className="flex gap-2">
-                        <Textarea
-                          value={story}
-                          onChange={(e) => {
-                            updateUserStory(index, e.target.value)
-                          }}
-                          placeholder="As a user, I want..."
-                          rows={2}
-                        />
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            removeUserStory(index)
-                          }}
-                        >
-                          ×
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="text-sm font-medium">Acceptance Criteria</label>
-                    <Button variant="outline" size="sm" onClick={addAcceptanceCriteria}>
-                      <Plus className="size-3" />
-                    </Button>
-                  </div>
-                  <div className="space-y-2">
-                    {specForm.acceptance_criteria.map((criteria, index) => (
-                      <div key={index} className="flex gap-2">
-                        <Textarea
-                          value={criteria}
-                          onChange={(e) => {
-                            updateAcceptanceCriteria(index, e.target.value)
-                          }}
-                          placeholder="Given... When... Then..."
-                          rows={2}
-                        />
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            removeAcceptanceCriteria(index)
-                          }}
-                        >
-                          ×
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                <Button
-                  onClick={() => {
-                    void handleCreateSpec()
-                  }}
-                  className="w-full"
-                >
-                  Create Specification
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
         </div>
       </div>
 
@@ -320,9 +154,7 @@ export default function SDDView() {
                   </div>
                 </div>
               ) : (
-                <div className="text-center text-muted-foreground py-8">
-                  No constitution found. Create one to establish project governance.
-                </div>
+                <div className="text-center text-muted-foreground py-8">No constitution found.</div>
               )}
             </CardContent>
           </Card>
@@ -426,14 +258,6 @@ export default function SDDView() {
                   <h3 className="text-lg font-semibold">Tasks for Plan {selectedPlan.id.substring(0, 8)}</h3>
                   <p className="text-sm text-muted-foreground">{tasks.length} tasks</p>
                 </div>
-                <Button
-                  onClick={() => {
-                    void handleSyncToMemory()
-                  }}
-                >
-                  <Play className="size-4 mr-2" />
-                  Sync to Memory
-                </Button>
               </div>
 
               <div className="space-y-2">

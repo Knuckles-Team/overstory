@@ -88,15 +88,6 @@ def _client(app: Any, scope: str = _ADMIN) -> TestClient:
             [{'id': 'a'}],
         ),
         (
-            'POST',
-            '/graph/query',
-            {'query': 'MATCH (n) RETURN n LIMIT 1'},
-            'query.uql',
-            {'rows': [{'n': 1}]},
-            {'text': 'MATCH (n) RETURN n LIMIT 1', 'params': {}},
-            [{'n': 1}],
-        ),
-        (
             'GET',
             '/sessions',
             None,
@@ -258,21 +249,9 @@ def test_routes_without_a_served_operation_answer_not_available(
     assert arbora.calls == []
 
 
-def test_unsafe_graph_queries_never_reach_arbora(app, arbora) -> None:
-    arbora.results['query.uql'] = []
-    response = _client(app).post(
-        '/api/enhanced/graph/query', json={'query': 'MATCH (n) DETACH DELETE n'}
-    )
-    assert response.status_code == 400
-    assert arbora.calls == []
-
-
 @pytest.mark.parametrize(
     ('scope', 'method', 'path', 'expected'),
     [
-        ('kg:read', 'POST', '/api/enhanced/graph/query', 403),
-        ('kg:read kg:write', 'POST', '/api/enhanced/graph/query', 403),
-        (_ADMIN, 'POST', '/api/enhanced/graph/query', 200),
         ('kg:read', 'GET', '/api/enhanced/tunnel-manager/hosts', 403),
         ('kg:read', 'GET', '/api/enhanced/graph/search?query=x', 200),
         ('kg:read', 'GET', '/api/enhanced/sessions', 200),

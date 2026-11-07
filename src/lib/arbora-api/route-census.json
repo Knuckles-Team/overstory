@@ -324,15 +324,6 @@
     "migration_state": "pending-arbora-operation"
   },
   {
-    "route": "POST /api/enhanced/graph/query",
-    "disposition": "retire",
-    "owning_operation": null,
-    "caller": "src/components/views/GraphView.tsx; src/components/views/Graph3DView.tsx; src/components/knowledge-graph/; src/lib/atlas/adapters/",
-    "scope": "graph domain; retirement is pending generated Arbora operations and tenant/purpose parity proof; preserve graph callers until cutover",
-    "effect_class": "write",
-    "migration_state": "pending-arbora-operation"
-  },
-  {
     "route": "GET /api/enhanced/graph/viz/capabilities",
     "disposition": "retire",
     "owning_operation": null,
@@ -432,30 +423,12 @@
     "migration_state": "pending-arbora-operation"
   },
   {
-    "route": "POST /api/enhanced/sdd/constitution",
-    "disposition": "retire",
-    "owning_operation": null,
-    "caller": "src/components/views/SDDView.tsx",
-    "scope": "spec-driven-development domain; retirement is pending a generated Arbora operation; preserve SDDView callers until cutover proof",
-    "effect_class": "write",
-    "migration_state": "pending-arbora-operation"
-  },
-  {
     "route": "GET /api/enhanced/sdd/specs",
     "disposition": "retire",
     "owning_operation": null,
     "caller": "src/components/views/SDDView.tsx",
     "scope": "spec-driven-development domain; retirement is pending a generated Arbora operation; preserve SDDView callers until cutover proof",
     "effect_class": "read",
-    "migration_state": "pending-arbora-operation"
-  },
-  {
-    "route": "POST /api/enhanced/sdd/spec",
-    "disposition": "retire",
-    "owning_operation": null,
-    "caller": "src/components/views/SDDView.tsx",
-    "scope": "spec-driven-development domain; retirement is pending a generated Arbora operation; preserve SDDView callers until cutover proof",
-    "effect_class": "write",
     "migration_state": "pending-arbora-operation"
   },
   {
@@ -474,15 +447,6 @@
     "caller": "src/components/views/SDDView.tsx",
     "scope": "spec-driven-development domain; retirement is pending a generated Arbora operation; preserve SDDView callers until cutover proof",
     "effect_class": "read",
-    "migration_state": "pending-arbora-operation"
-  },
-  {
-    "route": "POST /api/enhanced/sdd/sync",
-    "disposition": "retire",
-    "owning_operation": null,
-    "caller": "src/components/views/SDDView.tsx",
-    "scope": "spec-driven-development domain; retirement is pending a generated Arbora operation; preserve SDDView callers until cutover proof",
-    "effect_class": "write",
     "migration_state": "pending-arbora-operation"
   },
   {

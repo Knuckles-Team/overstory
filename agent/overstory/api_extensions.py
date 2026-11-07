@@ -86,7 +86,6 @@ _MCP_RESOURCE_TIMEOUT_MAX_MS = 15_000
 _MAX_SESSION_RECORDS = 256
 _MAX_SESSION_TURNS = 256
 _MAX_SESSION_REPLY_BYTES = 64 * 1024
-_MAX_GRAPH_QUERY_BYTES = 64 * 1024
 _MAX_GRAPH_QUERY_ROWS = 1000
 _MAX_LIST_FILES = 5000
 _MAX_WORKFLOW_RECORDS = 256
@@ -849,54 +848,6 @@ def _bounded_identifier_list(value: Any, *, required: bool = False) -> list[str]
     if required and not clean:
         raise HTTPException(status_code=422, detail='Identifiers are required')
     return clean
-
-
-def _validate_read_only_cypher(query: Any) -> str:
-    """Accept one bounded Cypher read while denying mutation/procedure clauses."""
-
-    if not isinstance(query, str) or not query.strip():
-        raise HTTPException(status_code=400, detail='Cypher query is required')
-    if len(query.encode('utf-8')) > _MAX_GRAPH_QUERY_BYTES:
-        raise HTTPException(status_code=400, detail='Cypher query exceeds its limit')
-
-    scrubbed = re.sub(
-        r"'(?:\\.|[^'\\])*'|\"(?:\\.|[^\"\\])*\"|`(?:``|[^`])*`|"
-        r'//[^\n]*(?:\n|$)|/\*.*?\*/',
-        ' ',
-        query,
-        flags=re.DOTALL,
-    )
-    namespace_surface = re.sub(
-        r"'(?:\\.|[^'\\])*'|\"(?:\\.|[^\"\\])*\"|"
-        r'//[^\n]*(?:\n|$)|/\*.*?\*/',
-        ' ',
-        query,
-        flags=re.DOTALL,
-    )
-    mutation = re.search(
-        r'\b(CREATE|MERGE|DELETE|DETACH|SET|REMOVE|DROP|FOREACH|CALL|'
-        r'INSERT|UPDATE|ALTER|GRANT|DENY|REVOKE|TERMINATE|LOAD\s+CSV)\b',
-        scrubbed,
-        flags=re.IGNORECASE,
-    )
-    unsafe_namespace = re.search(
-        r'\b(?:APOC|DB|GDS|ALGO|GENAI)\s*\.',
-        scrubbed,
-        flags=re.IGNORECASE,
-    ) or re.search(
-        r'`?\s*(?:APOC|DB|GDS|ALGO|GENAI)\s*`?\s*\.',
-        namespace_surface,
-        flags=re.IGNORECASE,
-    )
-    supported_start = re.match(
-        r'^\s*(?:EXPLAIN\s+)?'
-        r'(?:OPTIONAL\s+MATCH|MATCH|WITH|UNWIND|RETURN)\b',
-        scrubbed,
-        flags=re.IGNORECASE,
-    )
-    if mutation or unsafe_namespace or not supported_start or ';' in scrubbed:
-        raise HTTPException(status_code=400, detail='Only one read query is allowed')
-    return query
 
 
 def _bounded_query_params(value: Any) -> dict[str, Any]:
@@ -4491,20 +4442,6 @@ async def get_impact(symbol: str) -> list[dict[str, Any]]:
     raise unavailable('Impact analysis', 'graph.impact.read')
 
 
-@router.post('/graph/query')
-async def execute_cypher(data: dict[str, Any]) -> list[dict[str, Any]]:
-    """Run one read-only graph query through the served ``query.uql`` operation."""
-
-    query = _validate_read_only_cypher(data.get('query'))
-    params = _bounded_query_params(data.get('params', {}))
-    value = await served('query.uql', {'text': query, 'params': params})
-    rows = _result_rows(value, _MAX_EXTERNAL_COLLECTION_ITEMS)
-    encoded = json.dumps(rows, separators=(',', ':'), ensure_ascii=False)
-    if len(encoded.encode('utf-8')) > _MAX_EXTERNAL_RESULT_BYTES:
-        raise HTTPException(status_code=422, detail='Query result is too large')
-    return rows
-
-
 # ---------------------------------------------------------------------------
 # Native visualization (D-VZ-1 lane w6-viz-xy) — renders a ViewSpec through the
 # eg-viz LOD ColumnStore/export pipeline (Method::Viz on the epistemic-graph
@@ -4772,38 +4709,12 @@ async def get_constitution() -> dict[str, Any]:
     raise unavailable('Spec-driven development', 'sdd.documents.read')
 
 
-@router.post('/sdd/constitution')
-async def save_constitution(data: dict[str, Any]) -> dict[str, Any]:
-    """Save the project constitution.
-
-    Args:
-        data: Constitution data.
-
-    Returns:
-        Success status.
-    """
-    raise unavailable('Spec-driven development', 'sdd.documents.read')
-
-
 @router.get('/sdd/specs')
 async def list_specs() -> list[dict[str, Any]]:
     """List all specifications.
 
     Returns:
         List of specification metadata.
-    """
-    raise unavailable('Spec-driven development', 'sdd.documents.read')
-
-
-@router.post('/sdd/spec')
-async def create_spec(data: dict[str, Any]) -> dict[str, Any]:
-    """Create a new specification.
-
-    Args:
-        data: Specification data.
-
-    Returns:
-        Created specification with ID.
     """
     raise unavailable('Spec-driven development', 'sdd.documents.read')
 
@@ -4827,19 +4738,6 @@ async def get_tasks() -> list[Any] | dict[str, Any]:
 
     Returns:
         Tasks data.
-    """
-    raise unavailable('Spec-driven development', 'sdd.documents.read')
-
-
-@router.post('/sdd/sync')
-async def sync_sdd_to_memory(data: dict[str, Any]) -> dict[str, Any]:
-    """Sync SDD lifecycle data to Knowledge Graph memory.
-
-    Args:
-        data: Dictionary containing plan_id or spec_id.
-
-    Returns:
-        Success status.
     """
     raise unavailable('Spec-driven development', 'sdd.documents.read')
 
