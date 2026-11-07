@@ -319,7 +319,7 @@ Order. R012.1 and R012.3 wait for the aggregate query row only for the `node-typ
 | `ecosystem` | `GET /api/enhanced/ecosystem/services` | `fleet.status` |
 | `ecosystem` | `GET /api/enhanced/ecosystem/atlassian/kanban` | `ecosystem.widgets.read` |
 | `ecosystem` | `GET /api/enhanced/ecosystem/github/prs` | `ecosystem.widgets.read` |
-| `ecosystem` | `GET /api/enhanced/ecosystem/gitlab/mrs` | `ecosystem.widgets.read` |
+| `ecosystem` | `GET /api/enhanced/ecosystem/{forge}/mrs` | `ecosystem.widgets.read` |
 | `ecosystem` | `GET /api/enhanced/ecosystem/portainer/stacks` | `ecosystem.widgets.read` |
 | `ecosystem` | `GET /api/enhanced/ecosystem/datascience/training` | `ecosystem.widgets.read` |
 | `ecosystem` | `GET /api/enhanced/ecosystem/scholarx/papers` | `ecosystem.widgets.read` |

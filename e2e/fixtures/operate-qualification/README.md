@@ -8,11 +8,11 @@ No stored keys, bearers, reports, screenshots or upstream source copies are incl
 Use an isolated environment with the candidate WebUI installed and its production assets built.
 The original qualification used Arbora 0.1.7, Agent Utilities 3.1.0, SDK 0.2.2 and epistemic-graph 2.27.5.
 Install the repository frontend dependencies and Playwright browser before invoking a browser script.
-Run each server and browser pair separately from the repository root:
+Run each scenario (`catalog`, `readiness` or `migration`) as one server and browser pair, separately, from the repository root. One `served.py` hosts all three; the scenario picks the port, token scope, dependency probe and fleet discovery routes:
 
 ```sh
 export OPERATE_QUALIFICATION_DIR="$(mktemp -d)"
-python e2e/fixtures/operate-qualification/migration_served.py
+python e2e/fixtures/operate-qualification/served.py migration
 node e2e/fixtures/operate-qualification/migration_browser.cjs
 ```
 

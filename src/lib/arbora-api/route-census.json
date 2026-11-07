@@ -306,51 +306,6 @@
     "migration_state": "pending-arbora-operation"
   },
   {
-    "route": "POST /api/enhanced/graph/memory",
-    "disposition": "retire",
-    "owning_operation": null,
-    "caller": "src/components/views/GraphView.tsx; src/components/views/Graph3DView.tsx; src/components/knowledge-graph/; src/lib/atlas/adapters/",
-    "scope": "graph domain; retirement is pending generated Arbora operations and tenant/purpose parity proof; preserve graph callers until cutover",
-    "effect_class": "write",
-    "migration_state": "pending-arbora-operation"
-  },
-  {
-    "route": "GET /api/enhanced/graph/memory/{memory_id}",
-    "disposition": "retire",
-    "owning_operation": null,
-    "caller": "src/components/views/GraphView.tsx; src/components/views/Graph3DView.tsx; src/components/knowledge-graph/; src/lib/atlas/adapters/",
-    "scope": "graph domain; retirement is pending generated Arbora operations and tenant/purpose parity proof; preserve graph callers until cutover",
-    "effect_class": "read",
-    "migration_state": "pending-arbora-operation"
-  },
-  {
-    "route": "PUT /api/enhanced/graph/memory/{memory_id}",
-    "disposition": "retire",
-    "owning_operation": null,
-    "caller": "src/components/views/GraphView.tsx; src/components/views/Graph3DView.tsx; src/components/knowledge-graph/; src/lib/atlas/adapters/",
-    "scope": "graph domain; retirement is pending generated Arbora operations and tenant/purpose parity proof; preserve graph callers until cutover",
-    "effect_class": "write",
-    "migration_state": "pending-arbora-operation"
-  },
-  {
-    "route": "DELETE /api/enhanced/graph/memory/{memory_id}",
-    "disposition": "retire",
-    "owning_operation": null,
-    "caller": "src/components/views/GraphView.tsx; src/components/views/Graph3DView.tsx; src/components/knowledge-graph/; src/lib/atlas/adapters/",
-    "scope": "graph domain; retirement is pending generated Arbora operations and tenant/purpose parity proof; preserve graph callers until cutover",
-    "effect_class": "delete",
-    "migration_state": "pending-arbora-operation"
-  },
-  {
-    "route": "POST /api/enhanced/graph/link",
-    "disposition": "retire",
-    "owning_operation": null,
-    "caller": "src/components/views/GraphView.tsx; src/components/views/Graph3DView.tsx; src/components/knowledge-graph/; src/lib/atlas/adapters/",
-    "scope": "graph domain; retirement is pending generated Arbora operations and tenant/purpose parity proof; preserve graph callers until cutover",
-    "effect_class": "write",
-    "migration_state": "pending-arbora-operation"
-  },
-  {
     "route": "GET /api/enhanced/graph/search",
     "disposition": "retire",
     "owning_operation": null,
@@ -1608,6 +1563,51 @@
     "caller": "src/lib/api.ts; src/components/views/ObjectView.tsx; src/components/views/VertexView.tsx",
     "scope": "ontology and object-set domain; retirement is pending generated Arbora operations and tenant/purpose parity proof; preserve ontology callers until cutover",
     "effect_class": "write",
+    "migration_state": "pending-arbora-operation"
+  },
+  {
+    "route": "GET /api/chats",
+    "disposition": "retire",
+    "owning_operation": null,
+    "caller": "src/lib/chat-store.ts",
+    "scope": "chat history domain; retirement is pending a generated Arbora operation; preserve chat-store callers until parity and cutover proof",
+    "effect_class": "read",
+    "migration_state": "pending-arbora-operation"
+  },
+  {
+    "route": "GET /api/chats/{chat_id}",
+    "disposition": "retire",
+    "owning_operation": null,
+    "caller": "src/lib/chat-store.ts",
+    "scope": "chat history domain; retirement is pending a generated Arbora operation; preserve chat-store callers until parity and cutover proof",
+    "effect_class": "read",
+    "migration_state": "pending-arbora-operation"
+  },
+  {
+    "route": "POST /api/chats",
+    "disposition": "retire",
+    "owning_operation": null,
+    "caller": "src/lib/chat-store.ts",
+    "scope": "chat history domain; retirement is pending a generated Arbora operation; preserve chat-store callers until parity and cutover proof",
+    "effect_class": "write",
+    "migration_state": "pending-arbora-operation"
+  },
+  {
+    "route": "PUT /api/chats/{chat_id}",
+    "disposition": "retire",
+    "owning_operation": null,
+    "caller": "src/lib/chat-store.ts",
+    "scope": "chat history domain; retirement is pending a generated Arbora operation; preserve chat-store callers until parity and cutover proof",
+    "effect_class": "write",
+    "migration_state": "pending-arbora-operation"
+  },
+  {
+    "route": "DELETE /api/chats/{chat_id}",
+    "disposition": "retire",
+    "owning_operation": null,
+    "caller": "src/lib/chat-store.ts",
+    "scope": "chat history domain; retirement is pending a generated Arbora operation; preserve chat-store callers until parity and cutover proof",
+    "effect_class": "delete",
     "migration_state": "pending-arbora-operation"
   }
 ]
