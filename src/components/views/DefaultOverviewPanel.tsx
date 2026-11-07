@@ -23,6 +23,7 @@ import { Badge } from '@/components/ui/badge'
 import { StatusMessage } from '@/components/ui/status-message'
 import { apiGet, type GatewayResult } from '@/lib/gateway'
 import { looseArray } from '@/lib/api-validation'
+import { listModels } from '@/lib/arbora-api/models'
 import { z } from 'zod'
 
 /* ── Schemas (loose — count-only consumers tolerate extra/missing fields) ── */
@@ -187,12 +188,18 @@ export default function DefaultOverviewPanel() {
     })()
 
     void (async () => {
-      const r = await apiGet('/enhanced/llm/models', looseArray(z.unknown()))
+      let count: number | null = null
+      let error: string | null = null
+      try {
+        count = (await listModels('chat')).length
+      } catch (err) {
+        error = err instanceof Error ? err.message : String(err)
+      }
       if (flag.cancelled) return
       setModels(
-        r.ok && r.data
-          ? { loading: false, value: String(r.data.length), detail: 'configured chat models', unavailable: false }
-          : { loading: false, value: null, detail: r.error ?? null, unavailable: true },
+        count !== null
+          ? { loading: false, value: String(count), detail: 'configured chat models', unavailable: false }
+          : { loading: false, value: null, detail: error, unavailable: true },
       )
     })()
 

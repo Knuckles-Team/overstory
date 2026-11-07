@@ -48,6 +48,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { toast } from 'sonner'
 import { fetchValidated, ApiError, looseArray } from '@/lib/api-validation'
+import { ArboraApiError } from '@/lib/arbora-api/invoke'
+import { listModels } from '@/lib/arbora-api/models'
 import { SessionExpiredNotice } from '@/components/SessionExpiredNotice'
 import { UnavailableNotice } from '@/components/ui/unavailable-notice'
 
@@ -2237,7 +2239,7 @@ function handleCatalogError(
   setters: CatalogStateSetters,
 ): void {
   if (isAbortError(error) || sequence.current !== requestId) return
-  if (error instanceof ApiError && error.status === 401) {
+  if ((error instanceof ApiError || error instanceof ArboraApiError) && error.status === 401) {
     setters.setSessionExpired(true)
     return
   }
@@ -2497,8 +2499,8 @@ export default function LLMTemplatesView() {
     setLoadError(null)
     try {
       const [chat, embedding, templates, schemas] = await Promise.all([
-        fetchValidated('/api/enhanced/llm/models', looseArray(modelSchema), { signal: controller.signal }),
-        fetchValidated('/api/enhanced/llm/embedding-models', looseArray(modelSchema), { signal: controller.signal }),
+        listModels('chat', controller.signal).then((rows) => looseArray(modelSchema).parse(rows)),
+        listModels('embedding', controller.signal).then((rows) => looseArray(modelSchema).parse(rows)),
         fetchValidated('/api/enhanced/prompts', looseArray(templateSummarySchema), { signal: controller.signal }),
         fetchValidated('/api/enhanced/llm/model-schema', modelSchemasResponseSchema, { signal: controller.signal }),
       ])

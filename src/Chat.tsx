@@ -83,6 +83,7 @@ import {
 import { api, type SweMutatedEdge, type SweProvenanceAction } from '@/lib/api'
 import { z } from 'zod'
 import { fetchValidated, looseArray } from '@/lib/api-validation'
+import { listModels } from '@/lib/arbora-api/models'
 
 /**
  * Interface for specialized message parts (sources, images, etc.)
@@ -303,7 +304,7 @@ const ZERO_USAGE: TokenUsage = { total_tokens: 0, prompt_tokens: 0, completion_t
 
 /**
  * Per-1M-token cost rate (USD). Mirrors the backend `ModelCostRate`
- * pydantic model and is sourced from `GET /api/enhanced/models` rather
+ * pydantic model and is sourced from the `models.list` operation rather
  * than a hardcoded table. Zero values are legal (local / free models).
  */
 interface ModelRate {
@@ -312,22 +313,15 @@ interface ModelRate {
 }
 
 /**
- * One configured model as returned by the backend registry. Mirrors
- * `agent_utilities.models.ModelDefinition`.
+ * One configured model as listed by the `models.list` operation (identity fields).
  */
 interface RegistryModel {
   id: string
   name: string
   provider: string
   model_id: string
-  base_url?: string | null
-  api_key_env?: string | null
-  tier: 'light' | 'medium' | 'heavy' | 'reasoning'
-  tags: string[]
-  cost: ModelRate
-  context_window?: number | null
-  max_output_tokens?: number | null
-  is_default: boolean
+  /** Per-1M-token rate when the registry knows it; the identity listing does not. */
+  cost?: ModelRate | null
 }
 
 interface ModelRegistryPayload {
@@ -345,14 +339,14 @@ interface ModelRegistryPayload {
 function lookupModelRate(modelId: string | undefined, registry: ModelRegistryPayload | undefined): ModelRate | null {
   if (!modelId || !registry) return null
   const byId = registry.models.find((m) => m.id === modelId)
-  if (byId) return byId.cost
+  if (byId) return byId.cost ?? null
 
   const lowered = modelId.toLowerCase()
   const byProviderModel = registry.models.find((m) => `${m.provider}:${m.model_id}`.toLowerCase() === lowered)
-  if (byProviderModel) return byProviderModel.cost
+  if (byProviderModel) return byProviderModel.cost ?? null
 
   const byModelId = registry.models.find((m) => m.model_id.toLowerCase() === lowered)
-  if (byModelId) return byModelId.cost
+  if (byModelId) return byModelId.cost ?? null
 
   return null
 }
@@ -638,18 +632,28 @@ async function getModels() {
 
 /**
  * Fetches the backend-configured model registry. Used to populate the
- * model picker and to compute per-turn cost. See `GET /api/enhanced/models`.
+ * model picker and to compute per-turn cost. See the `models.list` operation.
  */
 async function getModelRegistry(): Promise<ModelRegistryPayload> {
-  const res = await fetch('/api/enhanced/models')
-  if (!res.ok) {
+  let rows: Record<string, unknown>[]
+  try {
+    rows = await listModels('chat')
+  } catch {
     return { models: [], default_id: null }
   }
-  const data = (await res.json()) as Partial<ModelRegistryPayload>
-  return {
-    models: Array.isArray(data.models) ? data.models : [],
-    default_id: data.default_id ?? null,
-  }
+  const models = rows.flatMap((row): RegistryModel[] => {
+    if (typeof row.id !== 'string') return []
+    const modelId = [row.model_id, row.model].find((v): v is string => typeof v === 'string') ?? row.id
+    return [
+      {
+        id: row.id,
+        name: typeof row.name === 'string' ? row.name : row.id,
+        provider: typeof row.provider === 'string' ? row.provider : '',
+        model_id: modelId,
+      },
+    ]
+  })
+  return { models, default_id: null }
 }
 
 /**

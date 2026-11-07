@@ -102,9 +102,7 @@ const GET_ROUTES: { match: string; key: string; fallback: () => Response }[] = [
     key: 'schema',
     fallback: () => jsonResponse({ chat: CHAT_SCHEMA, embedding: EMBEDDING_SCHEMA }),
   },
-  { match: '/llm/embedding-models', key: 'embeddingModels', fallback: () => jsonResponse([]) },
   { match: '/llm/model-detail', key: 'modelDetail', fallback: () => jsonResponse(EXISTING_CHAT_MODEL_DETAIL) },
-  { match: '/llm/models', key: 'models', fallback: () => jsonResponse([EXISTING_CHAT_MODEL]) },
   {
     match: '/api/enhanced/prompts/',
     key: 'templateDetail',
@@ -120,6 +118,22 @@ function mockFetch(overrides: Partial<Record<string, FetchOverride>> = {}) {
     if (init?.method === 'PUT') {
       putCalls.push({ url, body: init.body ? JSON.parse(init.body as string) : null })
       return Promise.resolve(overrides.put ? overrides.put(url, init) : jsonResponse({ status: 'success' }))
+    }
+    if (url === '/auth/session') return Promise.resolve(jsonResponse({ authenticated: true, csrf_token: 'csrf-test' }))
+    if (url === '/api/v1/ops/models.list') {
+      const kind = (JSON.parse(String(init?.body ?? '{}')) as { kind?: string }).kind
+      const key = kind === 'embedding' ? 'embeddingModels' : 'models'
+      const fallback = kind === 'embedding' ? [] : [EXISTING_CHAT_MODEL]
+      const override = overrides[key]
+      return Promise.resolve(override ? override(url, init) : jsonResponse(fallback)).then(async (response) => {
+        if (!response.ok) return response
+        const models = (await response.json()) as unknown
+        return jsonResponse({
+          ok: true,
+          result: { value: { kind: kind ?? 'chat', models } },
+          meta: { registry_digest: 'digest', api_version: 'v1' },
+        })
+      })
     }
     const route = GET_ROUTES.find((r) => url.includes(r.match))
     if (route) {

@@ -89,15 +89,6 @@ def _client(app: Any, scope: str = _ADMIN) -> TestClient:
         ),
         (
             'GET',
-            '/llm/models',
-            None,
-            'ops.config',
-            {'settings': {'chat_models': [{'id': 'm1', 'api_key_ref': 'vault:x'}]}},
-            {},
-            [{'id': 'm1'}],
-        ),
-        (
-            'GET',
             '/mcp/servers/a-mcp/tools?limit=1',
             None,
             'fleet.catalog.list',

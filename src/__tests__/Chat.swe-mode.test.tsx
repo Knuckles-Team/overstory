@@ -76,13 +76,20 @@ beforeEach(() => {
       if (path.startsWith('/api/configure')) {
         return Promise.resolve(jsonResponse({ models: [], builtinTools: [] }))
       }
-      if (path.startsWith('/api/enhanced/models')) {
-        return Promise.resolve(jsonResponse({ models: [], default_id: null }))
+      if (path === '/api/v1/ops/models.list') {
+        return Promise.resolve(
+          jsonResponse({
+            ok: true,
+            result: { value: { kind: 'chat', models: [] } },
+            meta: { registry_digest: 'digest', api_version: 'v1' },
+          }),
+        )
       }
       if (path.startsWith('/auth/session')) {
         return Promise.resolve(
           jsonResponse({
             authenticated,
+            csrf_token: 'csrf-test',
             subject: authenticated ? 'swe-fixture' : null,
             webui_role: 'user',
             roles: [],

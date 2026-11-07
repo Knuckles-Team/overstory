@@ -549,15 +549,6 @@
     "migration_state": "pending-arbora-operation"
   },
   {
-    "route": "GET /api/enhanced/models",
-    "disposition": "retire",
-    "owning_operation": null,
-    "caller": "src/Chat.tsx; src/components/views/DefaultOverviewPanel.tsx",
-    "scope": "model registry domain; retirement is pending a generated Arbora operation; preserve Chat and overview callers until cutover proof",
-    "effect_class": "read",
-    "migration_state": "pending-arbora-operation"
-  },
-  {
     "route": "GET /api/enhanced/config/backend",
     "disposition": "retire",
     "owning_operation": null,
@@ -780,24 +771,6 @@
     "caller": "src/components/views/ConfigurationView.tsx; src/lib/api.ts",
     "scope": "configuration domain; retirement is pending a generated Arbora operation; preserve ConfigurationView callers until cutover proof",
     "effect_class": "write",
-    "migration_state": "pending-arbora-operation"
-  },
-  {
-    "route": "GET /api/enhanced/llm/models",
-    "disposition": "retire",
-    "owning_operation": null,
-    "caller": "src/components/views/LLMTemplatesView.tsx",
-    "scope": "LLM model-management domain; retirement is pending a generated Arbora operation; preserve LLMTemplatesView callers until cutover proof",
-    "effect_class": "read",
-    "migration_state": "pending-arbora-operation"
-  },
-  {
-    "route": "GET /api/enhanced/llm/embedding-models",
-    "disposition": "retire",
-    "owning_operation": null,
-    "caller": "src/components/views/LLMTemplatesView.tsx",
-    "scope": "LLM model-management domain; retirement is pending a generated Arbora operation; preserve LLMTemplatesView callers until cutover proof",
-    "effect_class": "read",
     "migration_state": "pending-arbora-operation"
   },
   {
