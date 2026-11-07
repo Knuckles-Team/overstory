@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import { toast } from 'sonner'
 import EcosystemView from '@/components/views/EcosystemView'
+import { fleetStatusResponse } from '@/__tests__/fleet-status-mock'
 
 // No `<Toaster />` is mounted by `render(<EcosystemView />)` alone, so a real
 // `sonner` toast call renders no DOM text for a query to find -- mock the
@@ -129,24 +130,23 @@ describe('EcosystemView (BUG-008 truthful-state proof)', () => {
   })
 
   it('BUG-018: every server the live catalog reports appears somewhere in the UI, or carries an explicit blocked/unavailable reason -- an unknown MCP server is never silently omitted', async () => {
-    // `GET /api/enhanced/ecosystem/services` (overstory/api_extensions.py
-    // `list_ecosystem_services`) is the runtime catalog authority: it
-    // dynamically scans `agent-packages/agents/*` plus a small guaranteed
-    // set. Prior to BUG-018's fix, EcosystemView never fetched this endpoint
+    // The Arbora `fleet.status` operation (`listFleetServices`) is the runtime
+    // catalog authority: it reports the fleet servers Arbora supervises. Prior to BUG-018's fix, EcosystemView never fetched this endpoint
     // at all -- its ~20 integration cards were a fixed, hand-written list,
     // so any server not on that list (most of the ~65-strong fleet) had
     // zero surface presence: no card, no blocked reason, nothing.
     const KNOWN_UNCOVERED_SERVER = 'zz-catalog-parity-probe-mcp'
-    global.fetch = vi.fn((input: RequestInfo | URL) => {
+    global.fetch = vi.fn(async (input: RequestInfo | URL) => {
       const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url
-      if (url.includes('/ecosystem/services')) {
-        return Promise.resolve(
+      const fleet = await fleetStatusResponse(
+        url,
+        () =>
           new Response(JSON.stringify(['github-agent', KNOWN_UNCOVERED_SERVER]), {
             status: 200,
             headers: { 'Content-Type': 'application/json' },
           }),
-        )
-      }
+      )
+      if (fleet) return fleet
       return Promise.reject(new Error('network unreachable'))
     }) as unknown as typeof fetch
 
