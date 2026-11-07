@@ -35,3 +35,14 @@
 - [ ] T025 [US1] OVERSTORY-API-R008.3 Migrate Atlas reads and writes to typed operations with tenant parity.
 - [ ] T026 [US1] OVERSTORY-API-R008.4 Migrate object-set reads and writes to typed operations with tenant parity.
 - [ ] T027 [US1] OVERSTORY-API-R012 The host serves presentation and session only.
+- [ ] T028 [US1] OVERSTORY-API-R012.1 Migrate graph reads to engine-bound operations. Size: M, 3 PRs, 6 hours.
+- [ ] T029 [US1] OVERSTORY-API-R012.2 Migrate memory and link writes after the door masks input. Size: S, 1 PR, 3 hours.
+- [ ] T030 [US1] OVERSTORY-API-R012.3 Replace the Cypher REPL with a UQL REPL. Size: M, 1 PR, 4 hours.
+- [ ] T031 [US1] OVERSTORY-API-R012.4 Migrate ontology routes. Size: L, 4 PRs, 1 day.
+- [ ] T032 [US1] OVERSTORY-API-R012.5 Migrate Atlas routes. Size: M, 2 PRs, 6 hours.
+- [ ] T033 [US1] OVERSTORY-API-R012.6 Migrate ecosystem and operator-widget routes. Size: M, 2 PRs, 5 hours.
+- [ ] T034 [US1] OVERSTORY-API-R012.7 Migrate agent library, prompts, goals, tools and skills routes. Size: M, 3 PRs, 6 hours.
+- [ ] T035 [US1] OVERSTORY-API-R012.8 Migrate documents, settings and model routes. Size: M, 2 PRs, 5 hours.
+- [ ] T036 [US1] OVERSTORY-API-R012.9 Migrate files, upload, voice and chat history routes. Size: M, 2 PRs, 5 hours.
+- [ ] T037 [US1] OVERSTORY-API-R012.10 Migrate fleet administration, schedule, workflow, code, command and resource routes. Size: M, 3 PRs, 6 hours.
+- [ ] T038 [US1] OVERSTORY-API-R012.11 Close: the end-condition test passes and no module exceeds the bound. Size: M, 3 PRs, 1 day.
