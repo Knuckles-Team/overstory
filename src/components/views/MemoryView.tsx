@@ -21,6 +21,7 @@ import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { fetchValidated, ApiError, looseArray } from '@/lib/api-validation'
 import { SessionExpiredNotice } from '@/components/SessionExpiredNotice'
+import { deleteMemory, writeMemory } from '@/lib/arbora-api/memory'
 
 const memoryNodeSchema = z.object({
   id: z.string(),
@@ -30,11 +31,6 @@ const memoryNodeSchema = z.object({
   created_at: z.string().refine((value) => !Number.isNaN(Date.parse(value)), 'Expected a valid creation timestamp'),
   updated_at: z.string().refine((value) => !Number.isNaN(Date.parse(value)), 'Expected a valid update timestamp'),
   linked_nodes: looseArray(z.string()).optional(),
-})
-
-const memoryMutationResponseSchema = z.object({
-  status: z.string(),
-  id: z.string().optional(),
 })
 
 interface MemoryNode {
@@ -139,15 +135,10 @@ async function createMemory({
     return
   }
   try {
-    await fetchValidated('/api/enhanced/graph/memory', memoryMutationResponseSchema, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        ...form,
-        id: form.id || `mem_${Date.now()}`,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      }),
+    await writeMemory(form.id || `mem_${Date.now()}`, {
+      ...form,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
     })
     toast.success('Memory created successfully')
     setIsCreateDialogOpen(false)
@@ -186,11 +177,7 @@ async function updateMemory({
     return
   }
   try {
-    await fetchValidated(`/api/enhanced/graph/memory/${memoryId}`, memoryMutationResponseSchema, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...form, updated_at: new Date().toISOString() }),
-    })
+    await writeMemory(memoryId, { ...form, updated_at: new Date().toISOString() })
     toast.success('Memory updated successfully')
     setIsEditDialogOpen(false)
     setEditingMemoryId(null)
@@ -488,9 +475,7 @@ export default function MemoryView() {
 
   const handleDeleteMemory = async (id: string) => {
     try {
-      await fetchValidated(`/api/enhanced/graph/memory/${id}`, memoryMutationResponseSchema, {
-        method: 'DELETE',
-      })
+      await deleteMemory(id)
       toast.success('Memory deleted successfully')
       void fetchMemories()
       if (selectedMemory?.id === id) {
