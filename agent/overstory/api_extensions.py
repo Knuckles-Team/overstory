@@ -5239,13 +5239,6 @@ async def trigger_pipeline(data: dict[str, Any]) -> dict[str, Any]:
 # ---------------------------------------------------------------------------
 
 
-@router.get('/models')
-async def list_configured_models() -> list[dict[str, Any]]:
-    """List the configured chat models for the model picker."""
-
-    return _model_rows(await _served_settings(), 'chat_models')
-
-
 @router.get('/config/backend')
 async def get_backend_config() -> dict[str, Any]:
     """Get current backend configuration.
@@ -6519,22 +6512,8 @@ async def update_config_file(data: dict[str, Any]) -> dict[str, Any]:
     raise unavailable('Agent configuration', 'ops.config')
 
 
-@router.get('/llm/models')
-async def list_llm_models() -> list[dict[str, Any]]:
-    """List the configured chat models, identity fields only."""
-
-    return _model_rows(await _served_settings(), 'chat_models')
-
-
-@router.get('/llm/embedding-models')
-async def list_embedding_models() -> list[dict[str, Any]]:
-    """List the configured embedding models, identity fields only."""
-
-    return _model_rows(await _served_settings(), 'embedding_models')
-
-
 # BUG-260: the LLM template composer used to hand-pick a handful of display
-# fields (see the two list routes above) with no way to CREATE or EDIT a
+# fields with no way to CREATE or EDIT a
 # model, so operators could pick from AgentConfig's `chat_models`/
 # `embedding_models` registries but never adjust the settings AgentConfig
 # actually permits. `/llm/model-schema` derives the editable field set
@@ -12069,20 +12048,6 @@ async def _served_settings() -> dict[str, Any]:
     value = await served('ops.config')
     settings = value.get('settings') if isinstance(value, dict) else None
     return settings if isinstance(settings, dict) else {}
-
-
-def _model_rows(settings: dict[str, Any], key: str) -> list[dict[str, Any]]:
-    rows = settings.get(key)
-    if not isinstance(rows, list):
-        return []
-    return [
-        {name: item[name] for name in _MODEL_FIELDS if name in item}
-        for item in rows
-        if isinstance(item, dict)
-    ]
-
-
-_MODEL_FIELDS = ('id', 'name', 'provider', 'model', 'model_id', 'description')
 
 
 def _union_engine_call(

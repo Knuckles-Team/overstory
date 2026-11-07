@@ -61,17 +61,6 @@ beforeEach(() => {
           }),
         )
       }
-      if (path.startsWith('/api/enhanced/models')) {
-        return Promise.resolve(
-          jsonResponse({
-            models: [
-              { id: 'model-a', name: 'Model A' },
-              { id: 'model-b', name: 'Model B' },
-            ],
-            default_id: 'model-a',
-          }),
-        )
-      }
       if (path.startsWith('/auth/session')) {
         return Promise.resolve(jsonResponse({ authenticated: true, subject: 'reader', roles: [] }))
       }

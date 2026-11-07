@@ -2,6 +2,14 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import DefaultOverviewPanel from '@/components/views/DefaultOverviewPanel'
 
+function modelsEnvelope(models: unknown[]) {
+  return {
+    ok: true,
+    result: { value: { kind: 'chat', models } },
+    meta: { registry_digest: 'digest', api_version: 'v1' },
+  }
+}
+
 /** Route-aware fetch mock: pattern → { status, body } (body is the raw gateway envelope). */
 function mockFetch(map: Record<string, { status?: number; body?: unknown }>) {
   return vi.fn((input: RequestInfo | URL) => {
@@ -43,7 +51,8 @@ describe('DefaultOverviewPanel', () => {
           counts: { servers: 1, tools: 4, skills: 2, workflows: 1 },
         },
       },
-      '/api/enhanced/llm/models': { body: [{ id: 'gpt' }, { id: 'claude' }] },
+      '/auth/session': { body: { authenticated: true, csrf_token: 'csrf-test' } },
+      '/api/v1/ops/models.list': { body: modelsEnvelope([{ id: 'gpt' }, { id: 'claude' }]) },
       '/api/enhanced/graph/stats': { body: { total_nodes: 43579, total_relationships: 91000, by_type: {} } },
       // `checks` is an ARRAY of HealthCheck objects (the real
       // `agent_utilities.observability.runtime_health.HealthReport` shape,
@@ -78,7 +87,8 @@ describe('DefaultOverviewPanel', () => {
       '/api/enhanced/tools': {
         body: { source: 'epistemic_graph', counts: { servers: 0, tools: 0, skills: 0, workflows: 0 } },
       },
-      '/api/enhanced/llm/models': { body: [] },
+      '/auth/session': { body: { authenticated: true, csrf_token: 'csrf-test' } },
+      '/api/v1/ops/models.list': { body: modelsEnvelope([]) },
       '/api/enhanced/graph/stats': { status: 503 }, // D-W6-10: a real backend failure
       '/api/dashboard/health': { body: { status: 'degraded', checks: [] } },
     }) as unknown as typeof fetch
