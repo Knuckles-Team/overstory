@@ -116,15 +116,6 @@ def _client(app: Any, scope: str = _ADMIN) -> TestClient:
         ),
         (
             'GET',
-            '/ecosystem/services',
-            None,
-            'fleet.status',
-            {'servers': [{'name': 'b-mcp'}, {'name': 'a-mcp'}]},
-            {},
-            ['a-mcp', 'b-mcp'],
-        ),
-        (
-            'GET',
             '/mcp/servers/a-mcp/tools?limit=1',
             None,
             'fleet.catalog.list',

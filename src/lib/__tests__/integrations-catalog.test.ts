@@ -11,6 +11,7 @@
  * docstring) rather than a simplified stand-in.
  */
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { fleetStatusResponse } from '@/__tests__/fleet-status-mock'
 import { fetchIntegrationsCatalog, MAX_CATALOG_ITEMS } from '@/lib/integrations-catalog'
 
 function urlOf(input: RequestInfo | URL): string {
@@ -24,11 +25,10 @@ function jsonResponse(body: unknown, status = 200): Response {
 }
 
 function mockFetch(handlers: { services?: () => Response; contributions?: () => Response }) {
-  global.fetch = vi.fn((input: RequestInfo | URL) => {
+  global.fetch = vi.fn(async (input: RequestInfo | URL) => {
     const url = urlOf(input)
-    if (url.includes('/ecosystem/services')) {
-      return Promise.resolve(handlers.services ? handlers.services() : jsonResponse([]))
-    }
+    const fleet = await fleetStatusResponse(url, handlers.services ?? (() => jsonResponse([])))
+    if (fleet) return fleet
     if (url.includes('/frontend-contributions')) {
       return Promise.resolve(
         handlers.contributions ? handlers.contributions() : new Response('not found', { status: 404 }),
