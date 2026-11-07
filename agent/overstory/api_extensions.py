@@ -6976,15 +6976,6 @@ async def update_prompt_by_name(name: str, data: dict[str, Any]) -> dict[str, An
 # ---------------------------------------------------------------------------
 
 
-@router.get('/ecosystem/services')
-async def list_ecosystem_services() -> list[str]:
-    """List the fleet servers that the served ``fleet.status`` reports."""
-
-    rows = _result_rows(await served('fleet.status', {}), 1024)
-    names = (row.get('name') or row.get('server') for row in rows)
-    return sorted({name for name in names if isinstance(name, str) and name})
-
-
 def _bounded_tunnel_inventory(raw_hosts: Any) -> list[tuple[Any, Any]]:
     """The delegated host inventory as `(key, record)` pairs, render-capped.
 

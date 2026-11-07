@@ -31,6 +31,8 @@ import {
 } from 'lucide-react'
 import { z } from 'zod'
 import { validateShape, looseArray } from '@/lib/api-validation'
+import { listFleetServices } from '@/lib/arbora-api/fleet'
+import { ArboraApiError } from '@/lib/arbora-api/invoke'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -498,7 +500,7 @@ interface StirlingJob {
   timestamp: string
 }
 
-// BUG-018 (GOC-25): every server `/api/enhanced/ecosystem/services` reports
+// BUG-018 (GOC-25): every server the Arbora `fleet.status` operation reports
 // that already has a dedicated card (or an explicit "no backend endpoint
 // wired" notice, e.g. Mealie/Wger/Langfuse above) elsewhere in this view.
 // This is the ONLY place that inventory is declared -- the "Other
@@ -529,8 +531,6 @@ const COVERED_ECOSYSTEM_SERVICES = new Set([
   'wger-agent',
   'langfuse-agent',
 ])
-
-const catalogServicesSchema = looseArray(z.string())
 
 interface DevOpsDomainProps {
   ecoStatus: Record<string, EcoState>
@@ -825,7 +825,7 @@ function ScholarxCard({
  * latencies, and token counts) labeled "Live call spans" under a
  * Langfuse-Agent heading. No `/api/enhanced/ecosystem/*` route exists for
  * trace/latency data at all -- `langfuse-agent` is only listed as an
- * installed package by `/ecosystem/services`, it has no read endpoint wired
+ * installed package by the fleet status operation, it has no read endpoint wired
  * here. Removed rather than left displaying invented numbers; a real card
  * requires a backend route first (see BUG-REMEDIATION-DESIGNS.md#bug-008). */
 function LangfuseUnavailableCard() {
@@ -1471,7 +1471,7 @@ function LifestyleDomain({ ecoStatus, haDevices, nextcloudEvents, microsoftEmail
               data. No `/api/enhanced/ecosystem/mealie/*` or
               `/api/enhanced/ecosystem/wger/*` read route exists at all
               (`mealie-mcp`/`wger-agent` are only listed as installed
-              packages by `/ecosystem/services`). Per BUG-REMEDIATION-DESIGNS
+              packages by the fleet status operation). Per BUG-REMEDIATION-DESIGNS
               #bug-008, an honest "unavailable" here is the correct outcome,
               not a regression -- the accompanying "Biometrics & Meal
               Calibration" card was pure marketing copy describing behavior
@@ -2298,7 +2298,7 @@ export default function EcosystemView() {
   }
 
   // BUG-018 (GOC-25): the live MCP/agent-package catalog, sourced from
-  // `/api/enhanced/ecosystem/services` rather than any hard-coded list.
+  // the Arbora `fleet.status` operation rather than any hard-coded list.
   const [catalogServices, setCatalogServices] = useState<string[]>([])
   const [catalogState, setCatalogState] = useState<EcoState>(LOADING_STATE)
 
@@ -2476,31 +2476,23 @@ export default function EcosystemView() {
     }
   }
 
-  // BUG-018 (GOC-25): `/api/enhanced/ecosystem/services` is a raw
-  // `list[str]`, not the `{status, ...}` envelope `classifyEcosystemList`
-  // expects for the other `/ecosystem/*` routes -- validate its own shape
-  // directly instead of forcing it through that helper.
+  // BUG-018 (GOC-25): the catalog is the Arbora `fleet.status` operation, not
+  // the `{status, ...}` envelope `classifyEcosystemList` expects for the
+  // `/ecosystem/*` routes -- read it through its own adapter.
   const fetchEcosystemCatalog = async () => {
     setCatalogState(LOADING_STATE)
     try {
-      const res = await fetch('/api/enhanced/ecosystem/services')
-      const body: unknown = await res.json().catch(() => null)
-      if (!res.ok) {
-        const detail =
-          body && typeof body === 'object' && typeof (body as Record<string, unknown>).detail === 'string'
-            ? (body as Record<string, unknown>).detail
-            : `HTTP ${res.status}`
-        setCatalogServices([])
-        setCatalogState({ status: 'error', reason: String(detail) })
-        return
-      }
-      const parsed = validateShape(catalogServicesSchema, body, '/api/enhanced/ecosystem/services')
+      const parsed = await listFleetServices()
       setCatalogServices(parsed)
       setCatalogState({ status: parsed.length > 0 ? 'ready' : 'empty' })
     } catch (err) {
       console.error(err)
       setCatalogServices([])
-      setCatalogState({ status: 'error', reason: 'The live integration catalog could not be reached.' })
+      const reason =
+        err instanceof ArboraApiError
+          ? `Arbora refused the fleet status request (${err.code}).`
+          : 'The live integration catalog could not be reached.'
+      setCatalogState({ status: 'error', reason })
     }
   }
 
@@ -2845,7 +2837,7 @@ export default function EcosystemView() {
 
         {/* 6. OTHER INTEGRATIONS DOMAIN (BUG-018, GOC-25) — the live catalog
             is the availability authority here, not a hard-coded list. Every
-            server `/api/enhanced/ecosystem/services` reports that has no
+            server the Arbora `fleet.status` operation reports that has no
             dedicated card elsewhere in this view (COVERED_ECOSYSTEM_SERVICES)
             gets a generic descriptor with an explicit "no dedicated
             dashboard yet" reason instead of being silently omitted. */}
