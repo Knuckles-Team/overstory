@@ -214,7 +214,7 @@ Pre-untangled design for these rows, one line per answer.
 - State. A migrated route has the census state `served`; `pending-arbora-operation` and `blocked-on-arbora` are the only other values, and the census lint closes the set.
 - Environment. None.
 
-Order. R012.2 waits for the masking row; R012.1 and R012.3 wait for the aggregate query row only for the `node-types` view; the other groups wait for their operation row. Within the PRs the order is: groups whose operations already exist (graph reads, ecosystem services, memory read and delete), then each group as its operation lands, then R012.11. Merge order of the open PRs: 242, then 244 and 246.
+Order. R012.1 and R012.3 wait for the aggregate query row only for the `node-types` view; the other groups wait for their operation row. Within the PRs the order is: groups whose operations already exist (graph reads, ecosystem services, memory read and delete), then each group as its operation lands, then R012.11. Merge order of the open PRs: 242, then 244 and 246.
 
 **The census in one table.** Every `retire` row of `src/lib/arbora-api/route-census.json` (165 routes) with its target operation:
 
@@ -247,11 +247,11 @@ Order. R012.2 waits for the masking row; R012.1 and R012.3 wait for the aggregat
 | `graph` | `GET /api/enhanced/graph/graph3d/expand` | `eg.compute.ClusterHierarchyExpand` |
 | `graph` | `GET /api/enhanced/graph/stats` | `eg.graph.NodeCount + eg.graph.EdgeCount + eg.graph.Metrics` |
 | `graph` | `GET /api/enhanced/graph/node-types` | `query.uql (aggregate)` |
-| `graph` | `POST /api/enhanced/graph/memory` | `memory.write (after the masking operation lands)` |
+| `graph` | `POST /api/enhanced/graph/memory` | `memory.write ` |
 | `graph` | `GET /api/enhanced/graph/memory/{memory_id}` | `memory.read` |
-| `graph` | `PUT /api/enhanced/graph/memory/{memory_id}` | `memory.write (after the masking operation lands)` |
+| `graph` | `PUT /api/enhanced/graph/memory/{memory_id}` | `memory.write ` |
 | `graph` | `DELETE /api/enhanced/graph/memory/{memory_id}` | `memory.delete` |
-| `graph` | `POST /api/enhanced/graph/link` | `eg.graph.AddEdge (after the masking operation lands)` |
+| `graph` | `POST /api/enhanced/graph/link` | `eg.graph.AddEdge ` |
 | `graph` | `GET /api/enhanced/graph/search` | `retrieval.search` |
 | `graph` | `GET /api/enhanced/graph/impact/{symbol}` | `eg.compute.GetBlastRadius` |
 | `graph` | `POST /api/enhanced/graph/query` | `query.uql` |
