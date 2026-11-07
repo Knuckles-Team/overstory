@@ -4543,13 +4543,6 @@ async def link_nodes(data: dict[str, Any]) -> dict[str, Any]:
     return {'status': 'success'}
 
 
-@router.get('/graph/search')
-async def hybrid_search(query: str, top_k: int = 10) -> list[dict[str, Any]]:
-    """Search the graph through the served ``retrieval.search`` operation."""
-
-    return await _retrieve(query, top_k)
-
-
 @router.get('/graph/impact/{symbol}')
 async def get_impact(symbol: str) -> list[dict[str, Any]]:
     """Calculate the topological impact set for a code entity.
@@ -4919,13 +4912,6 @@ async def sync_sdd_to_memory(data: dict[str, Any]) -> dict[str, Any]:
 # ---------------------------------------------------------------------------
 # MAGMA and Advanced Query Endpoints
 # ---------------------------------------------------------------------------
-
-
-@router.post('/graph/magma')
-async def magma_retrieve(data: dict[str, Any]) -> list[dict[str, Any]]:
-    """Retrieve context through the served ``retrieval.search`` operation."""
-
-    return await _retrieve(data.get('query', ''), _MAX_EXTERNAL_COLLECTION_ITEMS)
 
 
 # ---------------------------------------------------------------------------
@@ -12309,15 +12295,6 @@ def _result_rows(value: Any, limit: int) -> list[dict[str, Any]]:
 
 
 _ROW_KEYS = ('results', 'hits', 'items', 'rows', 'tasks', 'sources', 'servers')
-
-
-async def _retrieve(query: Any, limit: int) -> list[dict[str, Any]]:
-    if not isinstance(query, str) or not query.strip():
-        raise HTTPException(status_code=400, detail='A search query is required')
-    if len(query.encode('utf-8')) > 4096:
-        raise HTTPException(status_code=400, detail='Search query is too long')
-    value = await served('retrieval.search', {'query': query})
-    return _result_rows(value, min(limit, _MAX_EXTERNAL_COLLECTION_ITEMS))
 
 
 async def _served_settings() -> dict[str, Any]:
