@@ -599,6 +599,9 @@ class ApiClient {
   // Memory Methods
   getGraphNodes = (type?: string) =>
     this.get<unknown[]>(`/api/enhanced/graph/nodes${type ? `?node_type=${type}` : ''}`)
+  addMemory = (data: unknown) => this.post<unknown>('/api/enhanced/graph/memory', data)
+  updateMemory = (id: string, data: unknown) => this.post<unknown>(`/api/enhanced/graph/memory/${id}`, data) // Using POST for update based on test mock or component? Actually component uses PUT.
+  deleteMemory = (id: string) => this.delete(`/api/enhanced/graph/memory/${id}`)
 
   // Knowledge Base Methods
   listKnowledgeBases = () => this.get<unknown[]>('/api/enhanced/kb')

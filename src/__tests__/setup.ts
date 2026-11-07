@@ -68,12 +68,8 @@ const ROUTE_TABLE: RouteEntry[] = [
     respond: () => jsonResponse([mockMemoryNode]),
   },
   {
-    match: (p) => p === '/auth/session',
-    respond: () => jsonResponse({ authenticated: true, csrf_token: 'csrf-test' }),
-  },
-  {
-    match: (p) => p.startsWith('/api/v1/ops/memory.'),
-    respond: () => jsonResponse({ ok: true, result: {}, meta: { registry_digest: 'digest', api_version: 'v1' } }),
+    match: (p) => p.startsWith('/api/enhanced/graph/memory'),
+    respond: () => jsonResponse({ status: 'success', id: 'mem_test' }),
   },
 
   // Graph (GraphView)

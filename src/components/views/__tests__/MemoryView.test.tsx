@@ -9,6 +9,9 @@ import { renderWithProviders, mockMemoryNode } from '@/__tests__/fixtures'
 vi.mock('@/lib/api', () => ({
   api: {
     getGraphNodes: vi.fn(() => Promise.resolve([mockMemoryNode])),
+    addMemory: vi.fn(() => Promise.resolve({ status: 'success', id: 'mem_test' })),
+    updateMemory: vi.fn(() => Promise.resolve({ status: 'success' })),
+    deleteMemory: vi.fn(() => Promise.resolve({ status: 'success' })),
   },
 }))
 
