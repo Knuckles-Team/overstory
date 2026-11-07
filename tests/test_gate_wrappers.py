@@ -49,10 +49,10 @@ def test_available_tool_runs_the_command_and_keeps_its_status() -> None:
 
 
 @pytest.mark.parametrize(('ci', 'expected'), [(None, 0), ('true', 2)])
-def test_missing_agent_utilities_skips_locally_and_fails_in_ci(
+def test_missing_meristem_skips_locally_and_fails_in_ci(
     monkeypatch: pytest.MonkeyPatch, ci: str | None, expected: int
 ) -> None:
-    gate = _load('run_agent_utilities_gate')
+    gate = _load('run_meristem_gate')
     monkeypatch.setattr(gate, 'resolve', lambda workspace_only: None)
     monkeypatch.delenv('CI', raising=False)
     monkeypatch.delenv('CLAUDE_CODE_REMOTE', raising=False)
@@ -64,7 +64,7 @@ def test_missing_agent_utilities_skips_locally_and_fails_in_ci(
 def test_workspace_policy_gate_never_fails_without_a_workspace(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    gate = _load('run_agent_utilities_gate')
+    gate = _load('run_meristem_gate')
     monkeypatch.setattr(gate, 'resolve', lambda workspace_only: None)
     monkeypatch.setenv('CI', 'true')
     args = ['--gate', 'lane', '--workspace-only', '--script', 'scripts/x.py']

@@ -36,7 +36,7 @@ function renderCanvas(nodes: GraphNode[]) {
 
 /** Build a `graph_viz(action='export_chart')` REST response body matching the
  * REAL `{surface, action, result: {...}}` envelope (no `status` key — see
- * `agent_utilities/mcp/tools/engine_surface_tools.py::_render_chart`), so
+ * `meristem/mcp/tools/engine_surface_tools.py::_render_chart`), so
  * `gateway.ts`'s envelope unwrap does NOT strip an extra layer. */
 function vizResultBody(result: Record<string, unknown>) {
   return { surface: 'viz', action: 'export_chart', result }

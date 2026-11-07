@@ -7,7 +7,7 @@
  * rebuild that may take hours).
  *
  * **There is no `EmbeddingBinding` catalog object on the backend yet** — confirmed by
- * reading `agent_utilities` for `EmbeddingBinding`/`embedding_binding` (no hits) before
+ * reading `meristem` for `EmbeddingBinding`/`embedding_binding` (no hits) before
  * writing this file; the original `TableExplorerView.tsx` recorded the same gap for
  * pane 1 before its route existed. This pane therefore calls a plausible future route
  * (`POST /graph/embedding-binding {action:'list', schema, table}`) that does not exist

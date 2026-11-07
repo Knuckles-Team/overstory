@@ -5,7 +5,7 @@
  * `catalog-api.ts` builds SQL text client-side for the two panes that have no
  * dedicated introspection route (`ColumnDetailPanel`'s stats pass, `TryItPanel`'s
  * query box) — `POST /graph/table {action:'query'}` takes one opaque `sql` string,
- * with no parameter binding (`agent_utilities/mcp/tools/query_tools.py`'s
+ * with no parameter binding (`meristem/mcp/tools/query_tools.py`'s
  * `_graph_table_query` calls `engine.sql(str(sql))` directly). Every identifier
  * (schema/table/column name) interpolated into that string MUST come from a prior
  * trusted catalog response (`/graph/sql-schema`), never from free-form user input,

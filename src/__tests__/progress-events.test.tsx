@@ -6,7 +6,7 @@ import { ProgressTimeline, extractProgressEvents, isProgressEventPart, parseProg
 /**
  * Coverage for the webui half of the "chat spins for minutes then answers" fix
  * (D-W6-BSF-1-ish follow-up): the core orchestrator's `ProgressEvent` stream
- * (agent-utilities' `agent_runner.py`) reaches this frontend as a JSON payload
+ * (meristem' `agent_runner.py`) reaches this frontend as a JSON payload
  * riding each `reasoning` message part (`orchestrator_model.py::_reply_stream`
  * -- pydantic-ai's `FunctionModel.stream_function` has no distinct custom-data
  * frame type available, see that module's docstring). These tests drive the

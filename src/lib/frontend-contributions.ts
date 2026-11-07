@@ -2,11 +2,11 @@
  * @file frontend-contributions.ts
  * @description Typed client + validator for the FrontendContribution.v1 catalog (GOC-24).
  *
- * A package on the agent-utilities side declares its own WebUI integration
+ * A package on the meristem side declares its own WebUI integration
  * (navigation placement, read models, governed actions, panels, docs) via a
  * `contribution.json` descriptor discovered from its own
- * `agent_utilities.frontend_providers` entry point -- see
- * `agent-utilities/agent_utilities/core/frontend_providers.py` for the
+ * `meristem.frontend_providers` entry point -- see
+ * `meristem/meristem/core/frontend_providers.py` for the
  * authoritative discovery/validation, which this module mirrors field for
  * field. AU is the schema/provenance authority; this module is a CONSUMER
  * -- it never widens what AU already rejected, and it never fabricates a
@@ -120,7 +120,7 @@ const provenanceSchema = z.strictObject({
 
 /**
  * The v1 descriptor shape, mirroring `FrontendContributionV1` in
- * `agent_utilities/core/frontend_providers.py` field for field. `.strictObject`
+ * `meristem/core/frontend_providers.py` field for field. `.strictObject`
  * (zod's `extra=forbid` equivalent) rejects an unknown field exactly like the
  * Meristem-side Pydantic model -- this is a SECOND independent check, not a
  * relaxed mirror of the first; a descriptor AU already rejected can never
@@ -233,7 +233,7 @@ export async function fetchFrontendContributions(): Promise<FrontendContribution
   // NOTE (GOC-24 gap, tracked in the Meristem-side handoff): this REST route does
   // not exist on the backend yet -- AU's discover_frontend_contributions()
   // has no REST/MCP twin in this lane (see
-  // agent-utilities/docs/architecture/frontend-contributions.md, "What this
+  // meristem/docs/architecture/frontend-contributions.md, "What this
   // lane did NOT do"). This client is the CONSUMER contract, shipped ahead
   // of the route so GOC-25's route work has a validated target to call into
   // -- do not remove the /api/enhanced/* prefix convention when that lands.

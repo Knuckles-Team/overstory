@@ -6,14 +6,14 @@ host. Findings report only ``file:line`` and a category; the sensitive matched
 value is never written or printed. Machine paths and persisted path fields are
 checked independently, so the gate remains useful in clean CI environments.
 
-Ported verbatim from agent-utilities' ``scripts/check_tracked_privacy.py``
-(guardrail-tracked-privacy), which already passes green on agent-utilities'
+Ported verbatim from meristem' ``scripts/check_tracked_privacy.py``
+(guardrail-tracked-privacy), which already passes green on meristem'
 own ``main`` -- reused rather than reinvented per this fleet's
 Extend-Before-Invent convention (near-duplicate gate helpers have drifted
 apart before; see MEMORY ``gate-tool-published-before-gate-adopted``). The
-ONLY behavioral change from the agent-utilities original is
+ONLY behavioral change from the meristem original is
 ``_is_runtime_source_path`` below, which no longer gates on
-agent-utilities' OWN top-level directory allowlist (``agent_utilities``,
+meristem' OWN top-level directory allowlist (``meristem``,
 ``deploy``, ``docker``, ...) -- that allowlist is specific to that repo's
 tree shape, and porting it unmodified into a repo with a different tree
 (e.g. this repo's own top-level source directories) would silently scan an
@@ -54,7 +54,7 @@ from _git_subprocess_env import (  # noqa: E402
     strip_inherited_git_repository_env,
 )
 
-# NE-059 (sibling of BUG-180/D-LGI-1, ported from agent-utilities' own fix):
+# NE-059 (sibling of BUG-180/D-LGI-1, ported from meristem' own fix):
 # every ``git`` subprocess this module shells out to -- ``derive_local_
 # identifiers``'s ``git rev-parse --git-common-dir``/``git config --get
 # user.name|email`` and ``_git_file_names``'s ``git ls-files`` -- can inherit
@@ -75,7 +75,7 @@ ROOT = Path(__file__).resolve().parent.parent
 _TEXT_SUFFIXES = frozenset({".md", ".json", ".yaml", ".yml", ".toml"})
 _SOURCE_SUFFIXES = frozenset(
     # PORT NOTE: this repo's source is TypeScript/React (.ts/.tsx/.js/.jsx),
-    # not primarily Rust/Python like agent-utilities -- .tsx/.jsx added so
+    # not primarily Rust/Python like meristem -- .tsx/.jsx added so
     # the runtime-source pass actually covers this repo's own component
     # tree (src/**/*.tsx is the majority of tracked source here).
     {".js", ".jsx", ".md", ".ps1", ".py", ".rs", ".sh", ".ts", ".tsx", ".yaml", ".yml"}
@@ -365,7 +365,7 @@ _CREDENTIAL_URI_RE = re.compile(
 )
 # D-CIP-15 / BUG-228: a documented template placeholder (the repo's own
 # convention -- see deploy_wizard.py's ``_warn_production_safety`` and
-# agent_utilities.observability.langfuse_trust's ``_CREDENTIAL_SENTINELS``)
+# meristem.observability.langfuse_trust's ``_CREDENTIAL_SENTINELS``)
 # is never a live credential, so a URI shaped like one must not be flagged as
 # though it were. This set had drifted out of sync with
 # scripts/check_wheel_privacy.py's own ``_CREDENTIAL_PLACEHOLDER_TOKENS`` --
@@ -493,7 +493,7 @@ def derive_local_identifiers(root: Path = ROOT) -> frozenset[str]:
     already present in a tracked comment -- 279 manufactured false leaks from
     one ambient identity accident.
 
-    ``AGENT_UTILITIES_PRIVACY_IDENTIFIERS`` is a DECLARED, stable override:
+    ``MERISTEM_PRIVACY_IDENTIFIERS`` is a DECLARED, stable override:
     when set (comma- or newline-separated), it is used INSTEAD of the
     ambient OS/git-config-derived candidates below, so CI/pre-commit can pin
     one deterministic identity set regardless of which sandbox or host runs
@@ -550,16 +550,16 @@ def _is_platform_identity() -> bool:
     Their ambient user, host and git identity belong to the platform (for
     example git ``user.name`` "Claude"), not to a person, so deriving
     identifiers from them only manufactures leaks out of ordinary prose.
-    There only the declared ``AGENT_UTILITIES_PRIVACY_IDENTIFIERS`` override
+    There only the declared ``MERISTEM_PRIVACY_IDENTIFIERS`` override
     applies; the home-path, internal-host and author detectors run everywhere.
     """
     return bool(os.environ.get("CI")) or os.environ.get("CLAUDE_CODE_REMOTE") == "true"
 
 
 def _declared_identifier_override() -> frozenset[str] | None:
-    """The ``AGENT_UTILITIES_PRIVACY_IDENTIFIERS`` override set, or ``None``
+    """The ``MERISTEM_PRIVACY_IDENTIFIERS`` override set, or ``None``
     if it is unset (meaning: derive identifiers ambiently instead)."""
-    override = os.environ.get("AGENT_UTILITIES_PRIVACY_IDENTIFIERS", "").strip()
+    override = os.environ.get("MERISTEM_PRIVACY_IDENTIFIERS", "").strip()
     if not override:
         return None
     declared = {value.strip() for value in re.split(r"[,\n]", override) if value.strip()}
@@ -878,10 +878,10 @@ def _runtime_source_artifacts(root: Path) -> list[Path]:
 def _is_runtime_source_path(path: Path) -> bool:
     """Scope the source-literal pass to every tree that can carry a real leak.
 
-    PORT NOTE (this file is ported from agent-utilities' identically-named
+    PORT NOTE (this file is ported from meristem' identically-named
     function -- see the module docstring): the upstream version gates this
-    pass on agent-utilities' OWN top-level directory allowlist
-    (``agent_utilities``, ``deploy``, ``docker``, ``helm``, ``k8s``, ``tests``,
+    pass on meristem' OWN top-level directory allowlist
+    (``meristem``, ``deploy``, ``docker``, ``helm``, ``k8s``, ``tests``,
     ``.security``, ``.specify``, ``examples``). That allowlist encodes ONE
     repo's tree shape; reusing it unmodified here would scope this pass to
     directories that mostly do not exist in THIS repo, so it would measure an
@@ -908,7 +908,7 @@ def _is_runtime_source_path(path: Path) -> bool:
 def _is_bundled_connector_profile(path: Path) -> bool:
     parts = tuple(part.casefold() for part in path.parts)
     return parts[:4] == (
-        "agent_utilities",
+        "meristem",
         "protocols",
         "source_connectors",
         "profiles",

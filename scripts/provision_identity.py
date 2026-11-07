@@ -81,7 +81,7 @@ SERVICE_CLIENT = 'overstory-svc'
 USER_GROUP = 'overstory-users'
 
 # The scope that stamps ``tenant_id`` and ``aud`` onto every issued access
-# token.  ``agent_utilities.security.request_identity`` refuses to mint a graph
+# token.  ``meristem.security.request_identity`` refuses to mint a graph
 # session without both, so a token missing this scope authenticates and then
 # fails closed with "Authenticated graph requests require a verified tenant
 # claim" — which reads like a bug and is really a missing scope.
@@ -486,7 +486,7 @@ def _service_account_user_id(token: str, uuid: str, client_id: str) -> str:
     """The Keycloak user id of ``client_id``'s service account.
 
     This is not a cosmetic detail: it is the ``sub`` claim on every token that
-    service account mints, and ``agent_utilities.security.identity.normalize_identity``
+    service account mints, and ``meristem.security.identity.normalize_identity``
     resolves a verified principal's subject as ``sub`` | ``client_id`` | ``azp``
     -- checking ``sub`` FIRST. So this user id, not the literal ``client_id``
     string, is exactly the value that becomes the service's own

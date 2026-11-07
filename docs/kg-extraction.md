@@ -23,6 +23,6 @@ graph, live.
 All data flows over the shared `/api/enhanced/extract/*` gateway surface (submit,
 stream, jobs, status, jsonl, pause, resume). The API wrappers live in
 `src/lib/api.ts` (`submitExtraction`, `extractionStreamUrl`, `listExtractionJobs`,
-…). The full subsystem is documented in agent-utilities
+…). The full subsystem is documented in meristem
 `docs/architecture/document_fact_extraction.md` (KG-2.64 extractor, KG-2.65
 GPU-slot scheduler, KG-2.66 readability reader).

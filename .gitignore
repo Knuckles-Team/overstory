@@ -17,7 +17,7 @@ dist.tmp
 dist.prev
 # CX-HYG-01 (check_gitignore_convergence.py, fleet-shared REQUIRED set):
 # match the FAMILY, not just the literal `dist`/`dist-ssr` names above --
-# agent-utilities/epistemic-graph both learned the hard way (BUG-CX-017
+# meristem/medulla both learned the hard way (BUG-CX-017
 # family) that a purpose-suffixed dist dir (dist-primary/, dist-gates/, ...)
 # slips past a bare `dist/` rule. This repo has no such tool today; the rule
 # is preventative, matching the fleet-wide convention.
@@ -212,10 +212,10 @@ ENV/
 env.bak/
 venv.bak/
 
-# This repo ships its own tracked uv.lock, so (mirroring agent-utilities'
+# This repo ships its own tracked uv.lock, so (mirroring meristem'
 # identical D-75-1/D-CIP-19/D-W3BP-4 pattern) it is its own self-contained uv
 # workspace root: `[tool.uv.workspace]` in pyproject.toml pins
-# `agent-utilities` as an editable member at this path, symlinked to the real
+# `meristem` as an editable member at this path, symlinked to the real
 # sibling checkout already present on the dev/lane machine (no clone, no
 # copy) so the repo resolves/tests standalone against its own tracked lock,
 # without depending on a larger, untracked, unshipped ecosystem workspace at
@@ -284,7 +284,7 @@ marimo/_static/
 marimo/_lsp/
 __marimo__/
 *.db
-agent_utilities/agent_data/
+meristem/agent_data/
 
 # SI agent scratch (do not commit) — keep repo roots pristine
 .agent/
@@ -296,7 +296,7 @@ agent_utilities/agent_data/
 
 # CX-HYG-01 (check_gitignore_convergence.py, fleet-shared REQUIRED set):
 # generated analysis output belongs in the workspace-level reports/
-# directory, never in a package's commit history (see agent-utilities'
+# directory, never in a package's commit history (see meristem'
 # identical rule for the incident that motivates it).
 reports/
 # `kiss check` writes a self-calibrating .kissconfig the first time it runs --

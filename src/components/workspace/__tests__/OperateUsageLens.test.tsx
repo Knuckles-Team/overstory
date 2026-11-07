@@ -17,7 +17,7 @@ vi.mock('@/lib/auth', () => ({ useIdentity: () => ({ identity, loading: false })
 vi.mock('@/lib/webmcp/provider', () => ({ useWebMcpToolSet: vi.fn() }))
 vi.mock('../OperateReadinessPanel', () => ({ OperateReadinessPanel: () => <p>Readiness checks</p> }))
 vi.mock('@/lib/operate-catalog', () => ({
-  readOperateCatalog: vi.fn(async () => ({ source: 'epistemic_graph', servers: [], components: [] })),
+  readOperateCatalog: vi.fn(async () => ({ source: 'medulla', servers: [], components: [] })),
 }))
 vi.mock('@/lib/operate-workspace', async (original) => ({
   ...(await original<object>()),

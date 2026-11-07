@@ -719,7 +719,7 @@ class ApiClient {
   // Classify a skill (skill_type: skill|workflow|graph) and persist the
   // choice (SkillsView, CONCEPT:MERISTEM-KG.ingest.skill-classification-writeback).
   // Hits the canonical `/api/*` gateway surface directly, like
-  // `getOntologySchemaGraph` above -- `skill_classify` is agent-utilities
+  // `getOntologySchemaGraph` above -- `skill_classify` is meristem
   // core capability, reached here as a thin caller with no re-implemented
   // logic. `persisted: false` in the result is a REFUSED write, not a
   // network error -- callers must check it explicitly and never treat a 200

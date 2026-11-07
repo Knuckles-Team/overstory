@@ -1813,7 +1813,7 @@ async def list_mcp_server_tools(
 # does) -- there is no separate "webui storage" here, this IS the real,
 # load-bearing catalog file that controls what the multiplexer spawns. A
 # sibling lane is building relational ``mcp_servers``/``mcp_tools``/...
-# tables in epistemic-graph as the primary store; swapping persistence to
+# tables in medulla as the primary store; swapping persistence to
 # that store means changing only ``_read_mcp_server_registry`` /
 # ``_write_mcp_server_registry`` below, never the routes or the frontend.
 #
@@ -2602,7 +2602,7 @@ def _graph_union_executor(engine: Any) -> Any:
 
     FIX (root cause, verified live in-pod): `engine`/`engine.backend` here is
     itself already a graph-scoped view pinned to the CALLER's original graph
-    (`EpistemicGraphBackend.graph_name` / `_SessionRoutedAsyncClient
+    (`MedullaBackend.graph_name` / `_SessionRoutedAsyncClient
     ._fixed_graph`, `graph_compute.py::_send_routed`). Retargeting only the
     *session* via `with_graph()`+`use_session()` while continuing to call
     methods on that SAME pinned `engine` reproduces exactly the masked
@@ -3182,10 +3182,10 @@ def _graph3d_label(value: Any, fallback: str) -> str:
     return value
 
 
-# Matches one `epistemic_graph_graph_nodes{graph="..."} 56881` exposition line.
+# Matches one `medulla_graph_nodes{graph="..."} 56881` exposition line.
 # Anchored and non-greedy so a malformed body cannot make it match across lines.
 _ENGINE_GRAPH_SIZE_RE = re.compile(
-    r'^epistemic_graph_graph_(nodes|edges)\{graph="([^"]*)"\}\s+([0-9]+)\s*$'
+    r'^medulla_graph_(nodes|edges)\{graph="([^"]*)"\}\s+([0-9]+)\s*$'
 )
 
 
@@ -3445,7 +3445,7 @@ async def get_graph_3d(include_isolated: bool = False) -> dict[str, Any]:
 # ---------------------------------------------------------------------------
 # Authenticated JSON hierarchy preview proxy (VIZ-1-shaped; not VIZ-2)
 #
-# The native epistemic-graph process exposes hierarchy RPCs on its loopback
+# The native medulla process exposes hierarchy RPCs on its loopback
 # listener. That listener is deliberately not a browser API: it has no WebUI
 # identity or row-level authorization boundary. These routes are the only
 # browser-facing seam. They validate one graph against the verified session,
@@ -4579,7 +4579,7 @@ async def execute_cypher(data: dict[str, Any]) -> list[dict[str, Any]]:
 
 # ---------------------------------------------------------------------------
 # Native visualization (D-VZ-1 lane w6-viz-xy) — renders a ViewSpec through the
-# eg-viz LOD ColumnStore/export pipeline (Method::Viz on the epistemic-graph
+# eg-viz LOD ColumnStore/export pipeline (Method::Viz on the medulla
 # engine) and returns the resulting PNG/SVG/PDF bytes as a data: URL. The image
 # is rendered server-side (Rust) at a bounded primitive/byte budget regardless
 # of how many rows the request describes -- this is the mechanism that lets a
@@ -6070,7 +6070,7 @@ def _resolved_session_db_path() -> Path:
     inside the WebUI data directory regardless of which sibling frontends are
     installed in this process.
     """
-    db_path = _WEBUI_DATA_DIR / 'agent_terminal_ui.db'
+    db_path = _WEBUI_DATA_DIR / 'tuig.db'
 
     if db_path.is_symlink():
         raise RuntimeError('Refusing symbolic-link session database')
@@ -10057,7 +10057,7 @@ def _atlas_connection_config(request: AtlasConnectionCreate) -> str:
             payload.pop(field_name, None)
     elif selected_backend in {
         'age',
-        'epistemic_graph',
+        'medulla',
         'ladybug',
         'neo4j',
         'opencypher',

@@ -10,7 +10,7 @@
  * ⚠ **Do not assume the vector leg works.** `eg_embed(text)`'s server-side embedder is
  * bound at the top of every SQL entry point (`bind_sql_text_embedder`, both the native
  * RPC path `handle_sql` AND, since BUG-CX-084's fix, the pgwire path
- * `bind_startup_from_client` — `agent-packages/epistemic-graph` `src/server/handlers/
+ * `bind_startup_from_client` — `agent-packages/medulla` `src/server/handlers/
  * query.rs` + `src/server/pgwire/mod.rs`, merge `2f7f3f3e`), but the embedder itself is
  * `EG_UQL_TEXT_EMBEDDER`-gated and that env var is **not set anywhere** in this
  * workspace's `services/` deployment manifests (checked before writing this file). So

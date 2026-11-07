@@ -168,7 +168,7 @@ function isCurrentSaveRequest(
 }
 
 // A minimal but complete instance of the prompt shape the PUT handler
-// expects (agent_utilities/prompts/*.json + api_extensions.py:7164-7222's
+// expects (meristem/prompts/*.json + api_extensions.py:7164-7222's
 // flat<->nested sync) so a brand-new prompt starts from a fully-formed,
 // editable document rather than requiring a prior GET.
 const DEFAULT_PROMPT_DETAIL: PromptDetail = {
@@ -179,7 +179,7 @@ const DEFAULT_PROMPT_DETAIL: PromptDetail = {
   core_directive: '',
   version: '1.0.0',
   schema_version: '1.0',
-  source: 'agent-utilities:base',
+  source: 'meristem:base',
   metadata: { description: '', topic: '', tone: '', style: '' },
   identity: { role: '', goal: '' },
   instructions: { core_directive: '', responsibilities: [], quality_checklist: [] },

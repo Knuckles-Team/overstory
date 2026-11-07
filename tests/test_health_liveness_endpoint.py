@@ -22,7 +22,7 @@ SPA fallback, while a genuine unknown client route still gets the SPA shell.
 
 ``/health/ready`` is included even though it wasn't named as swallowed in the
 original bug report's evidence: the SHARED base identity boundary
-(``agent_utilities.security.request_identity.UNAUTHENTICATED_PATHS``, which
+(``meristem.security.request_identity.UNAUTHENTICATED_PATHS``, which
 sits OUTSIDE this app's own ``WebUIAuthorizationMiddleware``/
 ``_PUBLIC_LIVENESS_PATHS`` in the middleware stack) already treated it as
 unauthenticated -- so with identity unenforced (the default, e.g. these

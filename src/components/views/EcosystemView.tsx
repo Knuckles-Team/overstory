@@ -221,7 +221,7 @@ const gitlabPipelineItemSchema = z.object({
 // blanket-redacts ANY field literally named `web_url`/`html_url`/`url`/etc
 // to the fixed string `"[REDACTED_LOCATION]"` regardless of content,
 // including a genuinely public GitHub/GitLab source link
-// (`agent_utilities/security/persistence_privacy.py`'s `_LOCATION_FIELDS`).
+// (`meristem/security/persistence_privacy.py`'s `_LOCATION_FIELDS`).
 // Resolving that policy tension (an allowlist for known-public source
 // links) is `GOC-27-W06` scope, owned by security review, not this fix --
 // so render a link only when the value actually looks like one, rather
@@ -2319,7 +2319,7 @@ export default function EcosystemView() {
   const [trainedModels, setTrainedModels] = useState<TrainedModel[]>([])
   const [scholarxPapers, setScholarxPapers] = useState<ScholarxPaper[]>([])
   const [uptimeMonitors, setUptimeMonitors] = useState<UptimeMonitor[]>([])
-  const [searxngQuery, setSearxngQuery] = useState('agent-utilities')
+  const [searxngQuery, setSearxngQuery] = useState('meristem')
   const [searxngResults, setSearxngResults] = useState<SearxngResult[]>([])
   const [searxngLoading, setSearxngLoading] = useState(false)
 

@@ -2,7 +2,7 @@
  * @file httpTransport.ts
  * @description The production `LodTransport` over the authenticated WebUI
  * graph-gateway routes for the bounded JSON hierarchy preview. The browser
- * never contacts epistemic-graph directly: the server route validates the
+ * never contacts medulla directly: the server route validates the
  * caller's graph scope and invokes the routed graph RPC on the server side.
  * This lane does not claim VIZ-2 binary tiles or streaming.
  *
@@ -36,7 +36,7 @@ export const GRAPH3D_REFRESH_PATH = '/api/enhanced/graph/graph3d/refresh'
 const GRAPH3D_CLUSTERS_PATH = '/api/enhanced/graph/graph3d/clusters'
 const GRAPH3D_EXPAND_PATH = '/api/enhanced/graph/graph3d/expand'
 
-/** UI depth starts at zero; epistemic-graph hierarchy levels start at one. */
+/** UI depth starts at zero; medulla hierarchy levels start at one. */
 export const MAX_UI_LOD_LEVEL = 64
 const MAX_SCOPE_NAME_CHARS = 256
 const MAX_CLUSTER_ID_CHARS = 256

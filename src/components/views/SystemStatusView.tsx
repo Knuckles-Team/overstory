@@ -223,7 +223,7 @@ export default function SystemStatusView() {
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Multi-DB Drop-in Wire Protocols</CardTitle>
-          <CardDescription>Protocols the epistemic-graph engine speaks natively.</CardDescription>
+          <CardDescription>Protocols the medulla engine speaks natively.</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap gap-2">

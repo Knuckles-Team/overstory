@@ -29,6 +29,6 @@ Navigation placement is declared in `src/lib/nav-registry.ts`:
 - `atlas` routes are linked from Understory's expert index and remain directly reachable;
 - `deep-link` routes are reached from selections or other capability flows.
 
-This is an information-architecture change, not a claim that every epistemic-graph
+This is an information-architecture change, not a claim that every medulla
 backend modality is already implemented. Adapter capabilities and unavailable-source
 messages remain the source of truth for what Understory can answer today.

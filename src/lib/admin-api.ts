@@ -8,7 +8,7 @@
  * `apiPost` / `gatewayPost` helpers so envelope-unwrapping and the graceful
  * `unavailable` degradation (HTTP 404/501) are identical to every other view.
  *
- * The epistemic-graph engine (roadmap "Admin console UI") exposes admin surfaces
+ * The medulla engine (roadmap "Admin console UI") exposes admin surfaces
  * for tenants, shards, RBAC (MEDULLA-092/MEDULLA-303) and online backup/PITR (MEDULLA-090).
  * Some of those are reachable today over the browser-facing REST surface and
  * some are only reachable over the engine's UDS/MessagePack client — this module
@@ -156,7 +156,7 @@ export function fetchCodeInstances(): Promise<GatewayResult<CodeInstances>> {
 
 // ── RBAC (PLACEHOLDER / read-only probe) ─────────────────────────────────────
 // The engine RBAC admin (MEDULLA-092 roles/grants + MEDULLA-303 durable persistence) is a
-// `Method::RbacAdmin` op reachable only over the epistemic_graph UDS client
+// `Method::RbacAdmin` op reachable only over the medulla UDS client
 // (`client.rbac.*`) — there is NO browser-facing REST route yet. We probe the
 // closest existing surface (`POST /api/graph/configure` action=rbac_list); when
 // the backend has not wired it the result resolves to `unavailable` and the
