@@ -86,7 +86,8 @@ const ROUTE_TABLE: RouteEntry[] = [
   { match: (p) => p.startsWith('/api/enhanced/graph/nodes'), respond: () => jsonResponse(mockGraphNodes) },
   {
     match: (p) => p === '/api/v1/ops/query.uql',
-    respond: () => jsonResponse({ ok: true, result: { rows: [] }, meta: { registry_digest: 'digest', api_version: 'v1' } }),
+    respond: () =>
+      jsonResponse({ ok: true, result: { rows: [] }, meta: { registry_digest: 'digest', api_version: 'v1' } }),
   },
   { match: (p) => p.startsWith('/api/enhanced/graph/magma'), respond: () => jsonResponse([]) },
 
