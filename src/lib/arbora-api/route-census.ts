@@ -40,16 +40,18 @@ export interface DomainRoute {
   readonly line: number
 }
 
-const ROUTER_DECORATOR = /^\s*@router\.(get|post|put|patch|delete|options|head|api_route)\(\s*(['"])([^'"]+)\2/gm
-const API_EXTENSIONS_PREFIX = '/api/enhanced'
+const ROUTER_DECORATOR =
+  /^\s*@(router|chats_router)\.(get|post|put|patch|delete|options|head|api_route)\(\s*(['"])([^'"]+)\3/gm
+// `router` is mounted at `/api/enhanced`, `chats_router` at `/api` (server.py).
+const ROUTER_PREFIX: Record<string, string> = { router: '/api/enhanced', chats_router: '/api' }
 const API_EXTENSIONS_SOURCE = 'agent/overstory/api_extensions.py'
 
 /** Extract the browser-facing routes declared by the enhanced host router. */
 export function extractDomainRoutes(source: string): DomainRoute[] {
   const routes: DomainRoute[] = []
   for (const match of source.matchAll(ROUTER_DECORATOR)) {
-    const method = match[1].toUpperCase()
-    const path = `${API_EXTENSIONS_PREFIX}${match[3]}`
+    const method = match[2].toUpperCase()
+    const path = `${ROUTER_PREFIX[match[1]]}${match[4]}`
     const line = source.slice(0, match.index).split('\n').length
     routes.push({ method, path, line })
   }
