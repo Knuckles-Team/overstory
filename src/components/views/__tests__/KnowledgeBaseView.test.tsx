@@ -11,8 +11,6 @@ vi.mock('@/lib/api', () => ({
     listKnowledgeBases: vi.fn(() => Promise.resolve([mockKnowledgeBase])),
     searchKnowledgeBase: vi.fn(() => Promise.resolve([mockArticle])),
     getKBArticle: vi.fn(() => Promise.resolve(mockArticle)),
-    ingestKnowledgeBase: vi.fn(() => Promise.resolve({ status: 'success', job_id: 'test_job' })),
-    runKBHealthCheck: vi.fn(() => Promise.resolve({ health_status: 'healthy', issues: [] })),
   },
 }))
 
@@ -30,47 +28,13 @@ describe('KnowledgeBaseView Component', () => {
     })
   })
 
-  it('displays ingestion dialog', async () => {
-    const { user } = renderWithProviders(<KnowledgeBaseView />)
-
-    // "Ingest Knowledge Base" is the trigger button label.
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: /ingest knowledge base/i })).toBeInTheDocument()
-    })
-
-    await user.click(screen.getByRole('button', { name: /ingest knowledge base/i }))
-
-    // Once open, the dialog exposes the same text as its title plus the form.
-    await waitFor(() => {
-      expect(screen.getByRole('dialog')).toBeInTheDocument()
-      // Knowledge Base ID input is identified by its placeholder example.
-      expect(screen.getByPlaceholderText(/pydantic-ai-docs/i)).toBeInTheDocument()
-    })
-  })
-
-  it('handles knowledge base ingestion', async () => {
-    const { user } = renderWithProviders(<KnowledgeBaseView />)
+  it('offers no ingest action', async () => {
+    renderWithProviders(<KnowledgeBaseView />)
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /ingest knowledge base/i })).toBeInTheDocument()
+      expect(screen.getByText('Test Knowledge Base')).toBeInTheDocument()
     })
-
-    await user.click(screen.getByRole('button', { name: /ingest knowledge base/i }))
-
-    await waitFor(() => {
-      expect(screen.getByPlaceholderText(/pydantic-ai-docs/i)).toBeInTheDocument()
-    })
-
-    // Fill form. Inputs are keyed by their actual placeholders.
-    await user.type(screen.getByPlaceholderText(/pydantic-ai-docs/i), 'test_kb')
-    await user.type(screen.getByPlaceholderText(/knowledge base name/i), 'Test KB')
-    await user.type(screen.getByPlaceholderText(/path\/to\/docs/i), '/test/path')
-
-    await user.click(screen.getByRole('button', { name: /start ingestion/i }))
-
-    await waitFor(() => {
-      expect(screen.getByText('Knowledge base ingestion started')).toBeInTheDocument()
-    })
+    expect(screen.queryByRole('button', { name: /ingest knowledge base/i })).toBeNull()
   })
 
   it('displays articles tab when KB is selected', async () => {
@@ -95,22 +59,13 @@ describe('KnowledgeBaseView Component', () => {
     })
   })
 
-  it('displays health check results', async () => {
-    const { user } = renderWithProviders(<KnowledgeBaseView />)
+  it('offers no health tab', async () => {
+    renderWithProviders(<KnowledgeBaseView />)
 
     await waitFor(() => {
       expect(screen.getByText('Test Knowledge Base')).toBeInTheDocument()
     })
-
-    // Click on health check button
-    const healthButton = screen.getAllByRole('button').find((btn) => btn.textContent === '')
-    if (healthButton) {
-      await user.click(healthButton)
-
-      await waitFor(() => {
-        expect(screen.getByText('Health')).toBeInTheDocument()
-      })
-    }
+    expect(screen.queryByRole('tab', { name: 'Health' })).toBeNull()
   })
 
   it('shows loading state initially', () => {

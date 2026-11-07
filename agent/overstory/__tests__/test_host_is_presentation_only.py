@@ -147,6 +147,10 @@ def test_document_settings_model_routes_are_gone() -> None:
     mounted = _mounted_routes()
     write_routes = [r for r in mounted if r.startswith('POST ') and '/sdd/' in r]
     assert write_routes == []
+    kb_routes = [
+        r for r in mounted if r.endswith(('/kb/ingest', '/kb/health', '/kb/update'))
+    ]
+    assert kb_routes == []
 
 
 # spec: OVERSTORY-API-R012

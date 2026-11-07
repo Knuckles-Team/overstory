@@ -544,7 +544,6 @@ def test_skill_and_tool_mutations_require_the_admin_route_classification() -> No
 def test_supervisory_routes_require_admin_scope() -> None:
     assert WebUIAuthorizationMiddleware._is_admin_route('/api/fleet/kill')
     assert WebUIAuthorizationMiddleware._is_admin_route('/api/tools/toggle')
-    assert WebUIAuthorizationMiddleware._is_admin_route('/api/enhanced/kb/ingest')
     assert WebUIAuthorizationMiddleware._is_admin_route(
         '/api/enhanced/ontology/object-set/action'
     )

@@ -351,15 +351,6 @@
     "migration_state": "pending-arbora-operation"
   },
   {
-    "route": "POST /api/enhanced/kb/ingest",
-    "disposition": "retire",
-    "owning_operation": null,
-    "caller": "src/components/views/KnowledgeBaseView.tsx",
-    "scope": "knowledge-base domain; retirement is pending a generated Arbora operation; preserve KnowledgeBaseView callers until cutover proof",
-    "effect_class": "write",
-    "migration_state": "pending-arbora-operation"
-  },
-  {
     "route": "GET /api/enhanced/kb/list",
     "disposition": "retire",
     "owning_operation": null,
@@ -384,24 +375,6 @@
     "caller": "src/components/views/KnowledgeBaseView.tsx",
     "scope": "knowledge-base domain; retirement is pending a generated Arbora operation; preserve KnowledgeBaseView callers until cutover proof",
     "effect_class": "read",
-    "migration_state": "pending-arbora-operation"
-  },
-  {
-    "route": "POST /api/enhanced/kb/health",
-    "disposition": "retire",
-    "owning_operation": null,
-    "caller": "src/components/views/KnowledgeBaseView.tsx",
-    "scope": "knowledge-base domain; retirement is pending a generated Arbora operation; preserve KnowledgeBaseView callers until cutover proof",
-    "effect_class": "write",
-    "migration_state": "pending-arbora-operation"
-  },
-  {
-    "route": "POST /api/enhanced/kb/update",
-    "disposition": "retire",
-    "owning_operation": null,
-    "caller": "src/components/views/KnowledgeBaseView.tsx",
-    "scope": "knowledge-base domain; retirement is pending a generated Arbora operation; preserve KnowledgeBaseView callers until cutover proof",
-    "effect_class": "write",
     "migration_state": "pending-arbora-operation"
   },
   {

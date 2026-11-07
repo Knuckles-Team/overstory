@@ -4588,19 +4588,6 @@ async def code_instances() -> dict[str, Any]:
 # ---------------------------------------------------------------------------
 
 
-@router.post('/kb/ingest')
-async def ingest_kb(data: dict[str, Any]) -> dict[str, Any]:
-    """Ingest documents into a Knowledge Base.
-
-    Args:
-        data: Dictionary containing kb_id, source, name, and ingestion options.
-
-    Returns:
-        Success status and ingestion job ID.
-    """
-    raise unavailable('Knowledge bases', 'kb.articles.read')
-
-
 @router.get('/kb/list')
 async def list_kbs() -> list[dict[str, Any]]:
     """List all Knowledge Bases.
@@ -4659,32 +4646,6 @@ async def get_kb_article(article_id: str) -> dict[str, Any]:
     except Exception as e:
         _log_failure('get_article', e)
         raise HTTPException(status_code=500, detail=type(e).__name__) from e
-
-
-@router.post('/kb/health')
-async def kb_health_check(data: dict[str, Any]) -> dict[str, Any]:
-    """Perform health check on a Knowledge Base.
-
-    Args:
-        data: Dictionary containing kb_id.
-
-    Returns:
-        Health status and any issues found.
-    """
-    raise unavailable('Knowledge bases', 'kb.articles.read')
-
-
-@router.post('/kb/update')
-async def update_kb(data: dict[str, Any]) -> dict[str, Any]:
-    """Update a Knowledge Base with changed files.
-
-    Args:
-        data: Dictionary containing kb_id and update options.
-
-    Returns:
-        Success status.
-    """
-    raise unavailable('Knowledge bases', 'kb.articles.read')
 
 
 # ---------------------------------------------------------------------------
