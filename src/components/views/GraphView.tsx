@@ -19,9 +19,9 @@ import { Textarea } from '@/components/ui/textarea'
 import { StatusMessage } from '@/components/ui/status-message'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { toast } from 'sonner'
-import { z } from 'zod'
-import { ApiError, fetchValidated, looseArray } from '@/lib/api-validation'
+import { ApiError } from '@/lib/api-validation'
 import { runUql } from '@/lib/arbora-api/uql'
+import { searchRetrieval } from '@/lib/arbora-api/retrieval'
 import { GraphCanvas } from '../knowledge-graph/GraphCanvas'
 import {
   readGraphStats,
@@ -749,14 +749,7 @@ export default function GraphView() {
     if (!magmaQuery.trim()) return
     setRetrievingMagma(true)
     try {
-      const data = await fetchValidated('/api/enhanced/graph/magma', looseArray(z.unknown()), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          query: magmaQuery,
-          view_type: magmaView,
-        }),
-      })
+      const data = await searchRetrieval(magmaQuery)
       setMagmaResults(data)
       toast.success('MAGMA orthogonal context retrieved')
     } catch {

@@ -117,6 +117,13 @@ def test_host_units_do_not_import_each_other_in_a_cycle() -> None:
     assert _cycle(_import_graph()) is None
 
 
+# spec: OVERSTORY-API-R012.1
+def test_graph_read_routes_are_gone() -> None:
+    mounted = _mounted_routes()
+    served = [r for r in mounted if r.endswith(('/graph/magma', '/graph/search'))]
+    assert served == []
+
+
 # spec: OVERSTORY-API-R012.2
 def test_memory_and_link_routes_are_gone_and_masking_is_served() -> None:
     mounted = _mounted_routes()
