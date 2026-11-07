@@ -7,6 +7,7 @@ import { Slider } from '@/components/ui/slider'
 import { toast } from 'sonner'
 import { z } from 'zod'
 import { fetchValidated, looseArray } from '@/lib/api-validation'
+import { runUql } from '@/lib/arbora-api/uql'
 import { GraphCanvas, edgeKey } from '../knowledge-graph/GraphCanvas'
 import type { GraphNode, GraphRelationship } from '../knowledge-graph/GraphAdapter'
 import { usePageContextPublisher, type PageContextContribution } from '@/lib/page-context'
@@ -166,11 +167,7 @@ export default function TemporalGraphView() {
   // Re-issue the AS OF query whenever the scrubber settles on a timestamp.
   const applyAsOf = useCallback(async (isoTs: string, rels: GraphRelationship[]) => {
     try {
-      const liveRows = await fetchValidated('/api/enhanced/graph/query', looseArray(asOfRowSchema), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: withAsOf(BASE_UQL, isoTs) }),
-      })
+      const liveRows = looseArray(asOfRowSchema).parse(await runUql(withAsOf(BASE_UQL, isoTs)))
       setExpiredEdges(computeExpiredEdges(rels, liveRows, isoTs))
     } catch (err) {
       toast.error('Temporal query failed')

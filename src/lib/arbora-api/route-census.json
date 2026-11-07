@@ -324,15 +324,6 @@
     "migration_state": "pending-arbora-operation"
   },
   {
-    "route": "POST /api/enhanced/graph/query",
-    "disposition": "retire",
-    "owning_operation": null,
-    "caller": "src/components/views/GraphView.tsx; src/components/views/Graph3DView.tsx; src/components/knowledge-graph/; src/lib/atlas/adapters/",
-    "scope": "graph domain; retirement is pending generated Arbora operations and tenant/purpose parity proof; preserve graph callers until cutover",
-    "effect_class": "write",
-    "migration_state": "pending-arbora-operation"
-  },
-  {
     "route": "GET /api/enhanced/graph/viz/capabilities",
     "disposition": "retire",
     "owning_operation": null,

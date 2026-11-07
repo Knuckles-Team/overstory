@@ -52,42 +52,6 @@ class TestAuthenticationGateIsNotWeakened:
         scope_response = bare_client.get('/api/enhanced/graph/graph3d/scope')
         assert scope_response.status_code == 401
 
-    def test_underprivileged_role_is_still_refused_on_an_admin_route(
-        self, mock_agent, mock_workspace_helpers, authenticated_client_factory
-    ):
-        """A verified ``kg:read``-only caller must still be refused the
-        admin-only ``/api/enhanced/graph/query`` route (arbitrary Cypher
-        execution) -- the same boundary
-        ``test_security_boundaries.py::test_role_matrix_graph_query_post_stays_admin_only``
-        pins at the middleware-unit level; this proves it end to end through
-        a real ``TestClient`` request instead."""
-        app = create_agent_web_app(mock_agent, mock_workspace_helpers)
-        reader_client = authenticated_client_factory(
-            app, scope='kg:read', raise_server_exceptions=False
-        )
-
-        response = reader_client.post(
-            '/api/enhanced/graph/query', json={'query': 'MATCH (n) RETURN n'}
-        )
-
-        assert response.status_code == 403
-
-
-class TestGraphQueryEndpoint:
-    """Test Cypher query endpoint."""
-
-    def test_execute_cypher_dangerous_query(self, client):
-        """Test dangerous query rejection."""
-        dangerous_queries = [
-            {'query': 'DELETE n', 'params': {}},
-            {'query': 'DROP GRAPH', 'params': {}},
-            {'query': 'REMOVE n', 'params': {}},
-        ]
-
-        for query_data in dangerous_queries:
-            response = client.post('/api/enhanced/graph/query', json=query_data)
-            assert response.status_code == 400
-
 
 class TestCoverageExpansion:
     """Additional tests for coverage expansion."""

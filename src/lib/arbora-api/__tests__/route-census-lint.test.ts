@@ -16,7 +16,7 @@ describe('route census architecture lint', () => {
     const routes = extractDomainRoutes(source)
     const entries = lintRouteCensus(source, census)
 
-    expect(routes).toHaveLength(179)
+    expect(routes).toHaveLength(178)
     expect(entries).toHaveLength(routes.length)
   })
 

@@ -128,6 +128,13 @@ def test_memory_and_link_routes_are_gone_and_masking_is_served() -> None:
     assert "'/graph/link'" not in source
 
 
+# spec: OVERSTORY-API-R012.3
+def test_no_cypher_validator_remains() -> None:
+    assert not any(r.endswith('/graph/query') for r in _mounted_routes())
+    for module in Path(__file__).parents[1].glob('*.py'):
+        assert '_validate_read_only_cypher' not in module.read_text(encoding='utf-8')
+
+
 # spec: OVERSTORY-API-R012
 @pytest.mark.xfail(
     strict=True,

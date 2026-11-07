@@ -84,7 +84,10 @@ const ROUTE_TABLE: RouteEntry[] = [
     respond: () => jsonResponse(mockGraphRelationships),
   },
   { match: (p) => p.startsWith('/api/enhanced/graph/nodes'), respond: () => jsonResponse(mockGraphNodes) },
-  { match: (p) => p.startsWith('/api/enhanced/graph/query'), respond: () => jsonResponse([]) },
+  {
+    match: (p) => p === '/api/v1/ops/query.uql',
+    respond: () => jsonResponse({ ok: true, result: { rows: [] }, meta: { registry_digest: 'digest', api_version: 'v1' } }),
+  },
   { match: (p) => p.startsWith('/api/enhanced/graph/magma'), respond: () => jsonResponse([]) },
 
   // SDD

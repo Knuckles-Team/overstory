@@ -20,7 +20,6 @@ from fastapi.testclient import TestClient
 from overstory.api_extensions import (
     _BoundedSyncWorkExecutor,
     _redact_inline_secrets,
-    _validate_read_only_cypher,
     _workspace_ingestion_source,
     get_engine_bounded,
     get_toggle_state,
@@ -44,32 +43,6 @@ def test_governed_host_helpers_are_public_api() -> None:
     assert callable(invoke_governed_helper)
     assert not hasattr(api_extensions, '_get_engine_bounded')
     assert not hasattr(api_extensions, '_invoke_governed_helper')
-
-
-@pytest.mark.parametrize(
-    'query',
-    [
-        'MATCH (n) CREATE (m) RETURN n',
-        'MATCH (n) CALL db.labels() RETURN n',
-        'LOAD CSV FROM "https://example.test/data" AS row RETURN row',
-        'MATCH (n) RETURN n; MATCH (m) RETURN m',
-        'SHOW DATABASES',
-        "RETURN apoc.cypher.runFirstColumnSingle('CREATE (n)', {})",
-        "RETURN `apoc`.`cypher`.`runFirstColumnSingle`('CREATE (n)', {})",
-        'PROFILE MATCH (n) RETURN n',
-    ],
-)
-def test_raw_graph_query_rejects_mutations_procedures_and_stacked_statements(
-    query: str,
-) -> None:
-    with pytest.raises(FastAPIHTTPException) as exc_info:
-        _validate_read_only_cypher(query)
-    assert exc_info.value.status_code == 400
-
-
-def test_raw_graph_query_ignores_keywords_inside_literals_and_comments() -> None:
-    query = "MATCH (n {note: 'CREATE is documentation'}) // DELETE is a word\nRETURN n"
-    assert _validate_read_only_cypher(query) == query
 
 
 def test_toggle_lookup_uses_a_parameter_not_cypher_interpolation() -> None:
@@ -571,7 +544,6 @@ def test_skill_and_tool_mutations_require_the_admin_route_classification() -> No
 def test_supervisory_routes_require_admin_scope() -> None:
     assert WebUIAuthorizationMiddleware._is_admin_route('/api/fleet/kill')
     assert WebUIAuthorizationMiddleware._is_admin_route('/api/tools/toggle')
-    assert WebUIAuthorizationMiddleware._is_admin_route('/api/enhanced/graph/query')
     assert WebUIAuthorizationMiddleware._is_admin_route('/api/enhanced/kb/ingest')
     assert WebUIAuthorizationMiddleware._is_admin_route(
         '/api/enhanced/ontology/object-set/action'
@@ -635,7 +607,7 @@ def test_ecosystem_route_is_no_longer_a_blanket_admin_route() -> None:
     )
 
 
-def test_graph_route_admin_gate_is_narrowed_to_arbitrary_query_execution() -> None:
+def test_graph_routes_are_not_admin_gated() -> None:
     """`/api/enhanced/graph` (E1b layer 3): the base prefix used to force `kg:admin`
     for every sub-route including the plain structured reads `GraphView.tsx` needs
     (`nodes`/`relationships`/`stats`/`search`/`impact`/`viz/capabilities`) and the
@@ -644,7 +616,6 @@ def test_graph_route_admin_gate_is_narrowed_to_arbitrary_query_execution() -> No
     `CREATE`/`DELETE` in one call and bypasses every other route's object-level
     scoping, so it stays admin for every method."""
 
-    assert WebUIAuthorizationMiddleware._is_admin_route('/api/enhanced/graph/query')
     for path in (
         '/api/enhanced/graph/nodes',
         '/api/enhanced/graph/relationships',

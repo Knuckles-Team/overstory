@@ -112,9 +112,8 @@ ApplicationComposer = Callable[[FastAPI], None]
 # prefixes were reclassified out of this list 2026-08-09 (GOC-60-W05, evidence E1b/E6)
 # because their reads were incorrectly forced to admin for every caller including GET:
 # `/api/dashboard` (+ `/ws/dashboard`, see the websocket branch in `__call__`),
-# `/api/enhanced/ecosystem`, and the base `/api/enhanced/graph` (its one genuinely
-# admin-only sub-route, arbitrary Cypher execution, now has its own narrow entry:
-# `/api/enhanced/graph/query`). See the GOC-60-W05 worker report for the full
+# `/api/enhanced/ecosystem`, and the base `/api/enhanced/graph`. Query execution is
+# an Arbora operation with its own scope. See the GOC-60-W05 worker report for the full
 # per-prefix read/mutate determination and justification.
 _ADMIN_ROUTE_PREFIXES = (
     '/api/fleet',
@@ -135,17 +134,6 @@ _ADMIN_ROUTE_PREFIXES = (
     '/api/enhanced/download',
     '/api/enhanced/files',
     '/api/enhanced/goals',
-    # Arbitrary Cypher execution: functionally admin-equivalent even as a "read" (a
-    # query can MATCH/SET/CREATE/DELETE in one call, and bypasses every other route's
-    # object-level scoping), so it stays admin for every method. This is narrower than
-    # the old base `/api/enhanced/graph` prefix on purpose — see the block comment
-    # above; the structured, genuinely read-only sub-routes (`/graph/nodes`,
-    # `/graph/relationships`, `/graph/stats`, `/graph/search`, `/graph/impact`,
-    # `/graph/viz/capabilities`) and the ordinary-write sub-routes (`/graph/memory`,
-    # `/graph/link`, `/graph/viz/render`, `/graph/magma`) are no longer admin-gated at
-    # all — they fall through to the ordinary kg:read (GET) / kg:write (mutation) tier,
-    # matching `knowledge.graph`'s nav `minRole: 'reader'`.
-    '/api/enhanced/graph/query',
     '/api/enhanced/kb',
     '/api/enhanced/maintenance',
     '/api/enhanced/ontology/object-set/action',

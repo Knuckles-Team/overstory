@@ -21,6 +21,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { toast } from 'sonner'
 import { z } from 'zod'
 import { ApiError, fetchValidated, looseArray } from '@/lib/api-validation'
+import { runUql } from '@/lib/arbora-api/uql'
 import { GraphCanvas } from '../knowledge-graph/GraphCanvas'
 import {
   readGraphStats,
@@ -734,11 +735,7 @@ export default function GraphView() {
     if (!cypherQuery.trim()) return
     setExecutingCypher(true)
     try {
-      const data = await fetchValidated('/api/enhanced/graph/query', looseArray(z.unknown()), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: cypherQuery }),
-      })
+      const data = await runUql(cypherQuery)
       setCypherResults(data)
       toast.success('Cypher query completed')
     } catch (err) {
