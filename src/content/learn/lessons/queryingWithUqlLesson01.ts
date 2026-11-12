@@ -2,7 +2,7 @@
  * @file queryingWithUqlLesson01.ts
  * @description Lesson body for "Your First UQL Pipeline"
  * (course: querying-with-uql). Mirrors
- * agent-utilities/docs/learn/lessons/querying-with-uql/01-your-first-uql-pipeline.md
+ * meristem/docs/learn/lessons/querying-with-uql/01-your-first-uql-pipeline.md
  * verbatim — keep the two in sync by hand when either is edited.
  */
 

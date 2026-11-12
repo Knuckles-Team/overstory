@@ -13,7 +13,7 @@ The curated ops (`agents.*`, `rlm.*`, `browser.*`, `fleet.*`) carry their real
 Pydantic-derived JSON schemas. The Medulla-bound generated ops (`eg.<domain>.<Method>`,
 for example `identity.*`'s backing methods) carry a placeholder `{"type":
 "object"}` body in this snapshot: the arbora commit this was built from and
-the `epistemic-graph` checkout used to resolve `eg_schema` pointers were not
+the `medulla` checkout used to resolve `eg_schema` pointers were not
 digest-pinned to each other, so `arbora.api.registry.digest.canonical_registry`'s
 strict schema-pointer resolution failed for several methods (for example
 `Identity`) and had to be bypassed in favor of `arbora.api.http.openapi.document`,
@@ -22,7 +22,7 @@ closed. Operation **ids and HTTP paths are real and authoritative**; Medulla-bou
 operation **field-level schemas are not** until regenerated from a
 digest-matched pair.
 
-Regenerate from a digest-matched arbora + epistemic-graph pair with
+Regenerate from a digest-matched arbora + medulla pair with
 `arbora/scripts/gen_api.py`, which produces `docs/api/openapi.json`
 (the canonical source `openapi.json` here is copied from), then re-run
 `pnpm run arbora:client:gen`.
