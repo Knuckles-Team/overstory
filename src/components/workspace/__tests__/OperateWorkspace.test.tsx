@@ -15,7 +15,7 @@ const state = vi.hoisted(() => ({
 }))
 vi.mock('@/components/workspace/OperateReadinessPanel', () => ({ OperateReadinessPanel: () => null }))
 vi.mock('@/lib/operate-catalog', () => ({
-  readOperateCatalog: vi.fn(async () => ({ source: 'epistemic_graph', servers: [], components: [] })),
+  readOperateCatalog: vi.fn(async () => ({ source: 'medulla', servers: [], components: [] })),
 }))
 vi.mock('@/lib/auth', () => ({
   useIdentity: () => ({

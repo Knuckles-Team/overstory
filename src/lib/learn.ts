@@ -4,9 +4,9 @@
  * splitter (Ontology-Playground coverage row #16).
  *
  * The manifest and lesson bodies are bundled TypeScript content modules
- * (`src/content/learn/`) mirroring agent-utilities' `docs/learn/manifest.yaml`
+ * (`src/content/learn/`) mirroring meristem' `docs/learn/manifest.yaml`
  * — `LearnView` renders entirely client-side with no backend round-trip. This
- * is documentation content, not a KG capability: agent-utilities' `docs/` is
+ * is documentation content, not a KG capability: meristem' `docs/` is
  * excluded from its installed Python package (see that repo's
  * `pyproject.toml`), so there would be nothing for a deployed backend to
  * serve here even if we wired a fetch. `loadLearnManifest()` normalizes the

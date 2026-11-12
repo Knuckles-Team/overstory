@@ -856,23 +856,19 @@ def test_local_session_path_is_webui_owned_regardless_of_terminal_ui_installatio
     monkeypatch.setattr(api_extensions, '_WEBUI_DATA_DIR', webui_data_dir)
 
     if terminal_ui_importable:
-        terminal_ui = types.ModuleType('agent_terminal_ui')
+        terminal_ui = types.ModuleType('tuig')
         terminal_ui.__dict__['__path__'] = []
-        session_manager = types.ModuleType('agent_terminal_ui.session_manager')
+        session_manager = types.ModuleType('tuig.session_manager')
         session_manager.__dict__['DEFAULT_DB_PATH'] = terminal_ui_path
-        monkeypatch.setitem(sys.modules, 'agent_terminal_ui', terminal_ui)
-        monkeypatch.setitem(
-            sys.modules, 'agent_terminal_ui.session_manager', session_manager
-        )
+        monkeypatch.setitem(sys.modules, 'tuig', terminal_ui)
+        monkeypatch.setitem(sys.modules, 'tuig.session_manager', session_manager)
     else:
         # ``None`` makes an attempted import fail even if terminal-ui happens
         # to be installed in the test environment.
-        monkeypatch.setitem(sys.modules, 'agent_terminal_ui', None)
-        monkeypatch.setitem(sys.modules, 'agent_terminal_ui.session_manager', None)
+        monkeypatch.setitem(sys.modules, 'tuig', None)
+        monkeypatch.setitem(sys.modules, 'tuig.session_manager', None)
 
-    assert api_extensions._resolved_session_db_path() == (
-        webui_data_dir / 'agent_terminal_ui.db'
-    )
+    assert api_extensions._resolved_session_db_path() == (webui_data_dir / 'tuig.db')
     assert api_extensions._resolved_session_db_path() != terminal_ui_path
 
 
@@ -883,7 +879,7 @@ def test_local_session_path_still_refuses_a_symbolic_link(
     webui_data_dir.mkdir()
     target = tmp_path / 'outside.db'
     target.touch()
-    (webui_data_dir / 'agent_terminal_ui.db').symlink_to(target)
+    (webui_data_dir / 'tuig.db').symlink_to(target)
     monkeypatch.setattr(api_extensions, '_WEBUI_DATA_DIR', webui_data_dir)
 
     with pytest.raises(RuntimeError, match='symbolic-link session database'):
@@ -895,7 +891,7 @@ def test_webui_local_database_keeps_schema_and_privacy_migrations(
 ) -> None:
     webui_data_dir = tmp_path / 'webui'
     webui_data_dir.mkdir()
-    db_path = webui_data_dir / 'agent_terminal_ui.db'
+    db_path = webui_data_dir / 'tuig.db'
     monkeypatch.setattr(api_extensions, '_WEBUI_DATA_DIR', webui_data_dir)
 
     conn = sqlite3.connect(db_path)

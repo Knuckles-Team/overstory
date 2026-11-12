@@ -7,11 +7,11 @@
  * - {@link fetchSchemaTree} — `POST /graph/sql-schema`. Carries no caller SQL (an
  *   optional identifier-validated schema-name filter only); safe by construction.
  *   Backs pane 1 (schema tree) and the structural half of pane 2 (column type/
- *   nullable/PK). Already wired end-to-end on `agent-utilities` `main`
- *   (`agent_utilities/gateway/graph_api.py`, `feat(gateway) cc1e7a6a8`).
+ *   nullable/PK). Already wired end-to-end on `meristem` `main`
+ *   (`meristem/gateway/graph_api.py`, `feat(gateway) cc1e7a6a8`).
  *
  * - {@link runCatalogQuery} — `POST /graph/table {action:'query'}`. Executes actual
- *   SQL text (`agent_utilities/mcp/tools/query_tools.py:_graph_table_query` ->
+ *   SQL text (`meristem/mcp/tools/query_tools.py:_graph_table_query` ->
  *   `engine.sql(str(sql))`, client-side-restricted to a `SELECT`/`WITH`/`EXPLAIN`
  *   prefix check — see the lane report for why that check is a naive string prefix,
  *   not a parse, and is therefore not a substitute for the `nav-registry.ts`

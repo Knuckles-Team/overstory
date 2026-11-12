@@ -47,7 +47,7 @@ describe('DefaultOverviewPanel', () => {
       '/api/enhanced/prompts': { body: [{ name: 'a' }, { name: 'b' }, { name: 'c' }] },
       '/api/enhanced/tools': {
         body: {
-          source: 'epistemic_graph',
+          source: 'medulla',
           counts: { servers: 1, tools: 4, skills: 2, workflows: 1 },
         },
       },
@@ -55,7 +55,7 @@ describe('DefaultOverviewPanel', () => {
       '/api/v1/ops/models.list': { body: modelsEnvelope([{ id: 'gpt' }, { id: 'claude' }]) },
       '/api/enhanced/graph/stats': { body: { total_nodes: 43579, total_relationships: 91000, by_type: {} } },
       // `checks` is an ARRAY of HealthCheck objects (the real
-      // `agent_utilities.observability.runtime_health.HealthReport` shape,
+      // `meristem.observability.runtime_health.HealthReport` shape,
       // W-12) — not a `name -> status` map.
       '/api/dashboard/health': {
         body: {
@@ -85,7 +85,7 @@ describe('DefaultOverviewPanel', () => {
     global.fetch = mockFetch({
       '/api/enhanced/prompts': { body: [] },
       '/api/enhanced/tools': {
-        body: { source: 'epistemic_graph', counts: { servers: 0, tools: 0, skills: 0, workflows: 0 } },
+        body: { source: 'medulla', counts: { servers: 0, tools: 0, skills: 0, workflows: 0 } },
       },
       '/auth/session': { body: { authenticated: true, csrf_token: 'csrf-test' } },
       '/api/v1/ops/models.list': { body: modelsEnvelope([]) },

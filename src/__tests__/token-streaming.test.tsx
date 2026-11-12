@@ -7,7 +7,7 @@ import { ProgressTimeline, extractProgressEvents, isProgressEventPart } from '@/
 
 /**
  * Coverage for the token-streaming half of the progress-event work
- * (`agent_utilities.orchestration.agent_runner._stream_agent_run` ->
+ * (`meristem.orchestration.agent_runner._stream_agent_run` ->
  * `orchestrator_model.py::_reply_stream`): the core now streams the answer's own
  * token deltas as ordinary `str` chunks on the SAME wire the checkpoint events
  * already use. `@ai-sdk/react`'s `useChat` appends each delta chunk to the
@@ -45,28 +45,28 @@ describe('Part renders a streaming text part progressively', () => {
     // what `useChat` does to `message.parts[i].text` on each `text-delta` event.
     rerender(
       <Part
-        part={{ type: 'text', text: 'agent-utilities is ' } as never}
-        message={textMessage('agent-utilities is ')}
+        part={{ type: 'text', text: 'meristem is ' } as never}
+        message={textMessage('meristem is ')}
         status="streaming"
         regen={noop}
         index={0}
         lastMessage={true}
       />,
     )
-    expect(screen.getByText('agent-utilities is')).toBeInTheDocument()
+    expect(screen.getByText('meristem is')).toBeInTheDocument()
     expect(screen.queryByText('agent-', { exact: true })).not.toBeInTheDocument()
 
     rerender(
       <Part
-        part={{ type: 'text', text: 'agent-utilities is a platform.' } as never}
-        message={textMessage('agent-utilities is a platform.')}
+        part={{ type: 'text', text: 'meristem is a platform.' } as never}
+        message={textMessage('meristem is a platform.')}
         status="streaming"
         regen={noop}
         index={0}
         lastMessage={true}
       />,
     )
-    expect(screen.getByText('agent-utilities is a platform.')).toBeInTheDocument()
+    expect(screen.getByText('meristem is a platform.')).toBeInTheDocument()
   })
 })
 
@@ -83,7 +83,7 @@ describe('text-delta chunks never get mistaken for progress-timeline events', ()
     const parts = [
       { type: 'reasoning', text: JSON.stringify({ stage: 'route', status: 'ok' }) },
       { type: 'text', text: 'agent-' },
-      { type: 'text', text: 'agent-utilities is ' },
+      { type: 'text', text: 'meristem is ' },
       { type: 'reasoning', text: JSON.stringify({ stage: 'done', status: 'ok' }) },
     ]
     const events = extractProgressEvents(parts)

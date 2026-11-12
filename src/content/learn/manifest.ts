@@ -1,7 +1,7 @@
 /**
  * @file manifest.ts
  * @description Bundled Ontology School course manifest (Ontology-Playground
- * coverage row #16). Mirrors agent-utilities' `docs/learn/manifest.yaml` +
+ * coverage row #16). Mirrors meristem' `docs/learn/manifest.yaml` +
  * `docs/learn/lessons/` field-for-field (see that repo's `docs/learn/index.md`
  * for the shared schema and the honest scope note — this ships the framework
  * plus two real starter lessons, not a full curriculum). Kept as a bundled TS

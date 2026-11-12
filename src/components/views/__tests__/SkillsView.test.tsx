@@ -7,7 +7,7 @@ vi.mock('sonner', () => ({
 }))
 
 const CATALOG = {
-  source: 'epistemic_graph' as const,
+  source: 'medulla' as const,
   servers: [
     {
       server_id: 'server:search',
@@ -69,7 +69,7 @@ describe('SkillsView catalog contract', () => {
 
   it('accepts the provenance-bearing Arbora catalog projection', () => {
     const parsed = toolsDataSchema.parse(CATALOG)
-    expect(parsed.source).toBe('epistemic_graph')
+    expect(parsed.source).toBe('medulla')
     expect(parsed.counts).toEqual({ servers: 1, tools: 1, skills: 1, workflows: 1 })
     expect(parsed.components[0]).toMatchObject({
       kind: 'tool',

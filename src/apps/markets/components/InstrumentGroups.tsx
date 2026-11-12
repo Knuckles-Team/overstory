@@ -5,7 +5,7 @@
  * navigation and refresh via the URL (`instrument-groups-state.ts`), and
  * the six fetch outcomes below each get their own distinct, text-labeled
  * rendering — never collapsed into one "no data" view. This depends on
- * `MEDULLA-FINANCE-PRIMITIVES-R004` (epistemic-graph finance-v1 accounts and
+ * `MEDULLA-FINANCE-PRIMITIVES-R004` (medulla finance-v1 accounts and
  * reference sessions), which is PENDING; the component is built now,
  * ahead of that backend, against a typed `InstrumentGroupsTransport`
  * fixture (see `MarketsPortfolio.tsx`/`Availability.tsx` for this

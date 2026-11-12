@@ -1,7 +1,7 @@
 /**
  * @file readiness-api.ts
  * @description Typed client for the Arbora `arbora.readiness.v1` snapshot
- * (GOC-02, `agent_utilities/knowledge_graph/readiness.py`).
+ * (GOC-02, `meristem/knowledge_graph/readiness.py`).
  *
  * An independent audit of this program found that health/readiness can
  * report GREEN before the graph can actually answer a query — a liveness

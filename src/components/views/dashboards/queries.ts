@@ -200,7 +200,7 @@ export async function queryTraces(query: string, limit = 20): Promise<GatewayRes
 // ── Native visualization (D-VZ-1 V5, graph_viz) ─────────────────────────────
 
 /** Marks a flat SQL result set can drive (matches `_VIZ_QUERY_MARKS` in
- * `agent_utilities/mcp/tools/engine_surface_tools.py` — 'graph' node-link
+ * `meristem/mcp/tools/engine_surface_tools.py` — 'graph' node-link
  * marks need a node/edge dataset shape a query row set can't provide, so
  * they're intentionally excluded from this panel). */
 export const VIZ_MARKS = ['scatter', 'line', 'bar', 'area', 'heatmap'] as const
@@ -221,7 +221,7 @@ export interface VizPlotParams {
 
 /**
  * Render a chart from a live KG SQL query over `POST /graph/viz`
- * (`graph_viz` action='plot_from_query', D-VZ-1 V5, the `agent_utilities`
+ * (`graph_viz` action='plot_from_query', D-VZ-1 V5, the `meristem`
  * MCP tool's REST twin). The engine build/route ITSELF being unavailable
  * (404/501, or the tools' own `{degraded: true}` shape) is already resolved
  * to `unavailable: true` by `gatewayPost`'s envelope handling; a query that

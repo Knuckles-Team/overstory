@@ -10,17 +10,17 @@
  *
  *  1. **`MCP_ALLOWED_HOSTS`.** arbora's listener rejects any request whose
  *     `Host` authority is not in its exact allow-list (`400 host rejected`;
- *     `agent_utilities/mcp/server_factory.py` → `MCP_ALLOWED_HOSTS is
+ *     `meristem/mcp/server_factory.py` → `MCP_ALLOWED_HOSTS is
  *     required`). A browser cannot set `Host`, so the only requests that can
  *     ever be accepted are ones a server-side client makes.
  *  2. **The bearer is a service credential.** arbora authenticates children
  *     with an OIDC client-credentials bearer minted by
- *     `agent_utilities/mcp/client_credentials.py`. Shipping that to JS would
+ *     `meristem/mcp/client_credentials.py`. Shipping that to JS would
  *     hand every page (and every MCP App iframe) a fleet-wide credential.
  *
- * So the transport here is the one every agent-utilities frontend already
- * uses: **same-origin HTTP to this app's own backend** (`geniusbot` →
- * `agent_utilities.gateway_client.GatewayClient`; `agent-terminal-ui` →
+ * So the transport here is the one every meristem frontend already
+ * uses: **same-origin HTTP to this app's own backend** (`axil` →
+ * `meristem.gateway_client.GatewayClient`; `tuig` →
  * `AgentClient` over `{base_url}/…`; overstory → `lib/gateway.ts` over
  * `/api/*`). The backend holds the governed MCP delegation seam
  * (`api_extensions._call_mcp_tool` → the host-injected `call_mcp_tool`

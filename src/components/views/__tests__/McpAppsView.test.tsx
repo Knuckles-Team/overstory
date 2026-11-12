@@ -63,7 +63,7 @@ const TOOL_INVENTORY = [
     input_schema: {},
     enabled: true,
   },
-  // agent-utilities PR #54's condensed contract: `ask`/`act` are themselves
+  // meristem PR #54's condensed contract: `ask`/`act` are themselves
   // listed catalog tools (with real schemas) once the server adopts it, so
   // `collectAllowedToolSchemas` picks them up like any other discovered tool.
   {
@@ -277,7 +277,7 @@ describe('McpAppsView (wiring)', () => {
     expect(await screen.findByText(/could not be fetched/i)).toBeInTheDocument()
   })
 
-  /** agent-utilities PR #54 condenses the served MCP contract to
+  /** meristem PR #54 condenses the served MCP contract to
    * `ask`/`find`/`write`/`act`/`manage`/`why`; `graph_jobs`/`graph_traces`
    * become operations reached through `ask`/`act` rather than listed tools.
    * This host's allow-list for `graph_task_progress_app` must honor `ask`

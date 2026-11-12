@@ -2,7 +2,7 @@
  * @file types.ts
  * @description The Atlas data contracts — every type a `ModalityAdapter` speaks.
  *
- * Atlas is one explorer for every epistemic-graph modality (KG, SQL, KV, SPARQL,
+ * Atlas is one explorer for every medulla modality (KG, SQL, KV, SPARQL,
  * vectors, time-series, blobs). It gets there by refusing to know what a modality
  * is: the workbench, the filter bar and all five renderers are written against the
  * types in THIS file, and a modality is a plugin that produces them.

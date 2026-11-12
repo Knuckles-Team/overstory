@@ -7,7 +7,7 @@
  *      render the returned series as an inline SVG line chart (no chart
  *      dependency) plus a raw series table.
  *   2. Runs — chat/agent execution runs, backed by the ALWAYS-ON KG-native
- *      trace sink via `POST /graph/traces` (`agent_utilities.mcp.tools
+ *      trace sink via `POST /graph/traces` (`meristem.mcp.tools
  *      .engine_surface_tools.graph_traces`, action `search`/`waterfall`).
  *      Each run is one KG trace; selecting one fetches its `waterfall` —
  *      a flattened Span/Generation node list with a `parentId` per node —
@@ -401,7 +401,7 @@ function CapabilityNotice({ label }: { label: string }) {
       <AlertTriangle className="size-4 mt-0.5 shrink-0 text-amber-600 dark:text-amber-400" />
       <p className="text-muted-foreground">
         The <span className="font-mono">{label}</span> gateway route is not activated on this backend yet. Wire it in
-        <span className="font-mono"> agent_utilities.gateway.graph_api</span> to see live data here.
+        <span className="font-mono"> meristem.gateway.graph_api</span> to see live data here.
       </p>
     </div>
   )

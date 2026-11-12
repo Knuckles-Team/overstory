@@ -111,7 +111,7 @@ adapts browser protocols to the platform gateway (React views, streaming/
 WebSocket/REST adapters, browser identity/session/CSP enforcement, sandboxed
 MCP App rendering, packaged frontend assets / wheel; shipped only as a PyPI package served by Arbora).
 Arbora owns auth, composition, routing contracts and the gateway;
-epistemic-graph owns durable graph state; meristem owns agent/
+medulla owns durable graph state; meristem owns agent/
 workflow control-plane behavior; connector packages own source transport.
 Reuse the canonical gateway action or client — never add a second
 route-specific implementation of something those layers already own.
@@ -123,7 +123,7 @@ Python 3.12–3.14, the Node.js version pinned in `.node-version`, `pnpm`, and
 
 ```bash
 scripts/bootstrap.sh            # pinned siblings, uv, Python, locked .venv, pnpm deps, git hooks
-scripts/bootstrap.sh --engine   # also build epistemic-graph from source (slow; needed for KG/numeric tests)
+scripts/bootstrap.sh --engine   # also build medulla from source (slow; needed for KG/numeric tests)
 ```
 
 Run dev services in separate terminals: `pnpm run dev:server` (FastAPI) and

@@ -2,7 +2,7 @@
  * @file AtlasView.tsx
  * @description `/explore` — Understory, the unified data explorer.
  *
- * One workbench for every epistemic-graph modality: pick a modality, filter it with
+ * One workbench for every medulla modality: pick a modality, filter it with
  * the same facet UI whatever it is, and render the answer as a table, a JSON tree, a
  * 2D graph or a 3D scene. The 3D path is not per-modality — any adapter that can
  * project its result into nodes and edges gets it for free (`ModalityAdapter.toGraph`).
