@@ -843,7 +843,7 @@ EXTERNAL_SECRET_MANIFEST = {
             {
                 'secretKey': 'GRAPH_SERVICE_AUTH_SECRET',
                 'remoteRef': {
-                    'key': 'agent-utilities/deployment',
+                    'key': 'meristem/deployment',
                     'property': 'GRAPH_SERVICE_AUTH_SECRET',
                 },
             }
