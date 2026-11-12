@@ -2,7 +2,7 @@
  * @file ontologyModel101Lesson01.ts
  * @description Lesson body for "Interfaces, Object Types, and Links"
  * (course: ontology-model-101). Mirrors
- * agent-utilities/docs/learn/lessons/ontology-model-101/01-interfaces-object-types-and-links.md
+ * meristem/docs/learn/lessons/ontology-model-101/01-interfaces-object-types-and-links.md
  * verbatim — keep the two in sync by hand when either is edited.
  */
 
@@ -16,7 +16,7 @@ you'll be able to read (and reason about) the platform's own schema.
 
 A Knowledge Graph without a schema is just a pile of nodes and edges — anyone
 can call anything anything. This platform's ontology layer
-(\`agent_utilities/knowledge_graph/ontology/\`) gives every object a **typed
+(\`meristem/knowledge_graph/ontology/\`) gives every object a **typed
 shape**: named properties with real types, and named, cardinalitied
 relationships to other objects. That's what lets a Function, an Action, or a
 query be written *once* against a type and keep working as the underlying data

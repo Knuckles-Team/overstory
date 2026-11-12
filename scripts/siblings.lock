@@ -2,8 +2,8 @@
 #
 # Tooling only: no dependency installs from these. Every Python dependency
 # resolves from PyPI (pyproject.toml has no git, path or editable sources).
-# The agent-utilities checkout supplies the shared gate scripts that
-# scripts/run_agent_utilities_gate.py runs (check-stubs, check-sprawl,
+# The meristem checkout supplies the shared gate scripts that
+# scripts/run_meristem_gate.py runs (check-stubs, check-sprawl,
 # okf-no-legacy-concepts). scripts/bootstrap.sh reads this file.
 #
 # Columns: path  repository  commit  when

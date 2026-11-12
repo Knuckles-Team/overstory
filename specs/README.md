@@ -38,8 +38,8 @@ States are `SPECIFIED`, `LANDED`, and `VERIFIED`. The generator sets them. See t
 | Prefix | Repository specs | Responsibility |
 |---|---|---|
 | `EG` | [medulla](https://github.com/Knuckles-Team/medulla/tree/main/specs) | Rust database, graph compute, ontology, governed ingestion, durable records and clients |
-| `SDK` | [agent-connector-sdk](https://github.com/Knuckles-Team/agent-connector-sdk/tree/main/specs) | connector control, transport, manifests, certification, governed effects |
-| `AU` | [agent-utilities](https://github.com/Knuckles-Team/agent-utilities/tree/main/specs) | agent orchestration and control workflows |
+| `SDK` | [scion-sdk](https://github.com/Knuckles-Team/scion-sdk/tree/main/specs) | connector control, transport, manifests, certification, governed effects |
+| `AU` | [meristem](https://github.com/Knuckles-Team/meristem/tree/main/specs) | agent orchestration and control workflows |
 | `ARBORA` | [arbora](https://github.com/Knuckles-Team/arbora/tree/main/specs) | serving composition, fleet, gateway, A2A, deployment operations |
 | `WEBUI` | [overstory](https://github.com/Knuckles-Team/overstory/tree/main/specs) | browser presentation and interaction |
 | `RM` | [repository-manager](https://github.com/Knuckles-Team/repository-manager/tree/main/specs) | repository discovery, worktrees, source control and execution |

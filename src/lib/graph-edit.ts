@@ -1,7 +1,7 @@
 /**
  * Closed client-side model for graph edit requests and presentation verdicts.
  *
- * The browser only describes an intended edit here. Graph OS/Arbora remains
+ * The browser only describes an intended edit here. Arbora remains
  * responsible for authorization, mutation and the authoritative result.
  */
 
