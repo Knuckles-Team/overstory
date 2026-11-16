@@ -54,9 +54,13 @@ def default_apps() -> list[AppBackend]:
 
     Markets reads market signals from the graph. Arbora does not serve a
     market-signal operation yet, so the app reports "not available".
+    City needs no engine capability: its one fleet read degrades to the
+    bundled snapshot (SIMULATED) when Arbora is unreachable, so the app
+    is always available — it degrades instead of hiding.
     """
 
-    from ..host import unavailable
+    from ..host import served, unavailable
+    from .city import CityGateway, build_city_router
     from .markets import EngineGateway, build_markets_router
 
     def gateway() -> EngineGateway:
@@ -71,5 +75,14 @@ def default_apps() -> list[AppBackend]:
                 'Markets is not available: Arbora does not serve the '
                 'markets.signals.read operation yet.'
             ),
-        )
+        ),
+        AppBackend(
+            app_id='city',
+            router=build_city_router(CityGateway(invoke=served)),
+            available=lambda: True,
+            unavailable_reason=(
+                'City is always available: an unreachable fleet read '
+                'degrades the city to its bundled snapshot.'
+            ),
+        ),
     ]

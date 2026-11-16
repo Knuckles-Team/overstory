@@ -1,0 +1,928 @@
+// The simulation engine: the only writer of world state. Every state change
+// emits a typed event on the shared bus (OVERSTORY-CITY-R006).
+//
+// Time convention: the in-game clock runs at `timeScale` in-game seconds per
+// real second, so one in-game day is ten real minutes at 1× and the day/night
+// cycle reads as a living city. Character actions — walking, tool calls,
+// construction, task cadence — are paced in *real* seconds at 1× so motion
+// and work look natural. The speed control multiplies both together; nothing
+// else changes.
+
+import { CORE_LANDMARKS, ROSTER, SIM_TOOLS, type ConnectorDef, type CoreDef } from './ecosystem'
+import { BUILDING_POS, PLOTS, HOUSES, buildingDoor, plotDoor, findPath, type Vec2 } from './layout'
+import { bus, makeEvent, type CityEvent } from './events'
+
+export interface Plot {
+  x: number
+  z: number
+  buildingId: string | null
+  /** The connector reserved for this plot (registered packs). */
+  reservedId: string | null
+  /** Display name of a reserved, not-yet-built plot. */
+  reservedName: string | null
+  construction: { connectorId: string; progress: number; lastMilestone: number } | null
+}
+
+export interface Task {
+  id: string
+  agentId: string
+  buildingId: string
+  tool: string
+  approvalRequired: boolean
+  state: 'queued' | 'pending_approval' | 'active' | 'done' | 'failed'
+  calls: number
+}
+
+export interface Building {
+  id: string
+  name: string
+  category: 'core' | 'connector'
+  role: string
+  tools: string[]
+  rooms: string[]
+  color: number
+  kind: string
+  x: number
+  z: number
+  w: number
+  d: number
+  online: boolean
+  visits: number
+  fresh: number
+  flash: number
+  served: boolean
+  packStatus: string
+  blurb: string
+  simTools: boolean
+  door: Vec2 | null
+}
+
+class Character {
+  id: string
+  kind: 'ai' | 'human'
+  name: string
+  rider: string
+  hue: number
+  role: string
+  state = 'idle'
+  mood = ''
+  context: number
+  visible = true
+  task: Task | null = null
+  path: number[][] = []
+  pathPos = 0
+  walkPhase: number
+  facing = 0
+  home: Vec2
+  homeDoor: Vec2
+  arriveHook: (() => void) | null = null
+  wanderTimer: number
+  workTimer = 0
+  callDuration = 0
+  callsLeft = 0
+  retryWait = 0
+  waitTimer = 0
+  roomIndex = 0
+  roomTimer = 0
+  commitPhase: 'committing' | 'compacting' | null = null
+  events: { type: string; detail: string }[] = []
+  pos: Vec2 = { x: 0, z: 0 }
+
+  constructor(
+    entry: { kind: 'ai' | 'human'; rider: string; name: string; hue: number; role?: string },
+    index: number,
+  ) {
+    this.id = entry.rider
+    this.kind = entry.kind
+    this.name = entry.name
+    this.rider = entry.rider
+    this.hue = entry.hue
+    this.role = entry.role ?? 'Autonomous agent from the Meristem harness'
+    this.mood = this.kind === 'human' ? 'supervising' : 'wandering'
+    this.context = 10 + Math.random() * 15
+    this.walkPhase = Math.random() * Math.PI * 2
+    this.home = HOUSES[index % HOUSES.length]
+    this.homeDoor = { x: this.home.x - 4, z: this.home.z }
+    this.wanderTimer = 2 + Math.random() * 6
+  }
+
+  setPos(x: number, z: number): void {
+    this.pos = { x, z }
+  }
+
+  go(toX: number, toZ: number, arriveHook: (() => void) | null, mood?: string): void {
+    this.path = findPath(this.pos.x, this.pos.z, toX, toZ)
+    this.pathPos = 0
+    this.arriveHook = arriveHook
+    if (mood) this.mood = mood
+  }
+
+  moving(): boolean {
+    return this.path.length > 0 && this.pathPos < this.path.length
+  }
+
+  // Paced in real seconds (see module header).
+  move(dtReal: number): boolean {
+    if (!this.moving()) return false
+    const target = this.path[this.pathPos]
+    const dx = target[0] - this.pos.x
+    const dz = target[1] - this.pos.z
+    const dist = Math.hypot(dx, dz)
+    const step = WALK * dtReal
+    if (dist <= step) {
+      this.pos = { x: target[0], z: target[1] }
+      this.pathPos++
+      if (this.pathPos >= this.path.length) {
+        this.path = []
+        const hook = this.arriveHook
+        this.arriveHook = null
+        if (hook) hook()
+        return true
+      }
+    } else {
+      this.pos = { x: this.pos.x + (dx / dist) * step, z: this.pos.z + (dz / dist) * step }
+      this.facing = Math.atan2(dx, dz)
+      this.walkPhase += step * 4.2
+    }
+    return false
+  }
+
+  logEvent(evt: CityEvent): void {
+    this.events.unshift({ type: evt.type, detail: evt.detail ?? '' })
+    if (this.events.length > 5) this.events.pop()
+  }
+}
+
+// ---- World -----------------------------------------------------------------
+
+export const world = {
+  day: 1,
+  clock: 9 * 3600, // in-game seconds since midnight; the city wakes at 09:00
+  timeScale: 144, // in-game seconds per real second at 1× (1 day = 10 min)
+  characters: [] as Character[],
+  buildings: {} as Record<string, Building>,
+  plots: PLOTS.map((p) => ({
+    x: p.x,
+    z: p.z,
+    buildingId: null,
+    reservedId: null,
+    reservedName: null,
+    construction: null,
+  })) as Plot[],
+  tasks: [] as Task[],
+  stats: { knowledge: 0, toolCalls: 0, tasksDone: 0, incidents: 0, approvals: 0, dispatches: 0 },
+  firstVisit: null as { buildingId: string; age: number } | null,
+  /** The current connector catalog (from the fleet read or the snapshot). */
+  connectors: [] as ConnectorDef[],
+  initialized: false,
+}
+
+export const NIGHT_START = 21 * 3600
+export const NIGHT_END = 6 * 3600
+export const isNight = (clock: number): boolean => clock >= NIGHT_START || clock < NIGHT_END
+
+/** Named behaviour constants (tests adjust the probabilities, never the logic). */
+export const TUNING = {
+  approvalChance: 0.2,
+}
+
+/**
+ * Every building a character interacts with carries a door (core landmarks
+ * project one from their footprint; connector buildings from their plot).
+ * The footprint fallback keeps a broken invariant from stalling the sim.
+ */
+function doorOf(b: Building): Vec2 {
+  return b.door ?? { x: b.x, z: b.z }
+}
+
+const WALK = 2.6 // metres per real second at 1×
+const CONSTRUCTION_REAL_S = 12 // real seconds at 1× (SC-003: < 30 s)
+const FIRST_VISIT_GRACE_S = 300 // real seconds before an owed first visit is dropped
+const AUTO_TASK_MIN = 8
+const AUTO_TASK_MAX = 16 // real seconds between auto tasks
+let autoTaskTimer = 5 // first auto task shortly after boot
+
+// ---- Buildings -------------------------------------------------------------
+
+function makeBuilding(def: CoreDef | ConnectorDef, category: 'core' | 'connector', plot?: Plot): Building {
+  const pos = category === 'core' ? BUILDING_POS[def.id] : undefined
+  return {
+    id: def.id,
+    name: def.name,
+    category,
+    role: 'role' in def ? def.role : def.blurb,
+    // A live served pack whose tool names the host did not report falls back
+    // to the simulated tool set so tasks always name a real chip (simTools
+    // marks the fallback so the inspector can say so).
+    tools: def.tools.length ? def.tools : SIM_TOOLS,
+    // The connector def carries the authoritative flag (fleetToConnectors
+    // sets it for every simulated tool list); core landmarks never simulate.
+    simTools: 'simTools' in def ? def.simTools : false,
+    // Core components list their rooms explicitly; connector buildings
+    // derive internal locations from their tool set (one area per tool).
+    rooms: 'rooms' in def ? def.rooms : def.tools.length ? def.tools.slice(0, 3) : ['main'],
+    color: def.color,
+    kind: 'kind' in def ? def.kind : def.archetype,
+    x: plot ? plot.x : pos ? pos.x : 0,
+    z: plot ? plot.z : pos ? pos.z : 0,
+    w: pos ? pos.w : 7,
+    d: pos ? pos.d : 7,
+    online: true,
+    visits: 0,
+    fresh: 0,
+    flash: 0,
+    served: 'packStatus' in def ? def.packStatus === 'served' : true,
+    packStatus: 'packStatus' in def ? def.packStatus : 'core',
+    blurb: 'blurb' in def ? def.blurb : '',
+    // Core doors project from the landmark footprint; connector doors are
+    // set by placeConnector from the plot they sit on.
+    door: category === 'core' ? buildingDoor(def.id) : null,
+  }
+}
+
+// Connector buildings live on plots; their doors project from the plot centre.
+function placeConnector(def: ConnectorDef, plot: Plot, prebuilt: boolean): void {
+  const b = makeBuilding(def, 'connector', plot)
+  b.door = plotDoor(plot)
+  world.buildings[def.id] = b
+  plot.buildingId = def.id
+  if (!prebuilt) {
+    plot.construction = { connectorId: def.id, progress: 0, lastMilestone: 0 }
+    bus.emit(makeEvent('construction.progress', { building: def.id }, `Scaffolding raised at ${def.name}`))
+  } else {
+    b.fresh = 900
+  }
+}
+
+// ---- Setup -----------------------------------------------------------------
+
+/**
+ * Seed the city from a connector list (fleet read or snapshot). Served packs
+ * are built and online; registered-unpublished packs reserve a named plot
+ * (OVERSTORY-CITY-R002/R008).
+ */
+export function initSim(connectors: ConnectorDef[]): void {
+  if (world.initialized) return
+  world.connectors = connectors
+
+  for (const c of CORE_LANDMARKS) world.buildings[c.id] = makeBuilding(c, 'core')
+
+  let plotIdx = 0
+  for (const c of connectors) {
+    if (plotIdx >= world.plots.length) break
+    const plot = world.plots[plotIdx++]
+    if (c.packStatus === 'served') {
+      placeConnector(c, plot, true)
+    } else {
+      plot.reservedId = c.id
+      plot.reservedName = c.name
+    }
+  }
+
+  ROSTER.forEach((r, i) => {
+    const ch = new Character(r, i)
+    const a = (i / ROSTER.length) * Math.PI * 2
+    ch.setPos(Math.cos(a) * 4.5, Math.sin(a) * 4.5)
+    world.characters.push(ch)
+    // Spawn events live in the sim, not the renderer, so both views emit
+    // the identical vocabulary (constitution P2).
+    bus.emit(makeEvent('character.spawned', { character: ch.id }, `${ch.name} joins the city`))
+  })
+
+  world.initialized = true
+}
+
+export function onboardConnector(connectorId: string): boolean {
+  const plot = world.plots.find((p) => !p.buildingId && !p.construction)
+  if (!plot) {
+    bus.emit(makeEvent('task.queued', {}, 'City is full — no empty plot for this connector'))
+    return false
+  }
+  const def = world.connectors.find((c) => c.id === connectorId)
+  if (!def) return false
+  plot.reservedId = null
+  plot.reservedName = null
+  placeConnector(def, plot, false)
+  return true
+}
+
+function completeConstruction(plot: Plot): void {
+  plot.construction = null
+  const b = world.buildings[plot.buildingId!]
+  b.fresh = 900
+  world.firstVisit = { buildingId: b.id, age: 0 }
+  bus.emit(makeEvent('building.completed', { building: b.id }, `${b.name} is open for business`))
+  bus.emit(makeEvent('connector.joined', { building: b.id }, `${b.id} connected through the fleet boundary`))
+}
+
+// ---- Tasks -----------------------------------------------------------------
+
+let taskSeq = 0
+
+function pickBuilding(): Building | null {
+  const candidates = Object.values(world.buildings).filter((b) => b.online)
+  if (!candidates.length) return null
+  let total = 0
+  const weights = candidates.map((b) => {
+    const w = 1 + (b.fresh > 0 ? 8 : 0) + (b.served ? 1 : 0)
+    total += w
+    return w
+  })
+  let r = Math.random() * total
+  for (let i = 0; i < candidates.length; i++) {
+    r -= weights[i]
+    if (r <= 0) return candidates[i]
+  }
+  return candidates[candidates.length - 1]
+}
+
+function makeTask(agent: Character, building: Building): Task {
+  const tool = building.tools[Math.floor(Math.random() * building.tools.length)]
+  const task: Task = {
+    id: `t-${++taskSeq}`,
+    agentId: agent.id,
+    buildingId: building.id,
+    tool,
+    approvalRequired: Math.random() < TUNING.approvalChance,
+    state: 'active',
+    calls: 1 + Math.floor(Math.random() * 3),
+  }
+  world.tasks.unshift(task)
+  if (world.tasks.length > 40) world.tasks.pop()
+  agent.task = task
+  return task
+}
+
+export function dispatchTask(agentId?: string): boolean {
+  const idle = world.characters.filter((c) => c.kind === 'ai' && c.state === 'idle' && !isNight(world.clock))
+  let agent = agentId ? world.characters.find((c) => c.id === agentId) : null
+  if (agent && agent.state !== 'idle') agent = null
+  // The index may be undefined when the idle pool is empty; keep the check
+  // honest by widening through an explicit null.
+  const fallback = idle.length ? idle[Math.floor(Math.random() * idle.length)] : null
+  agent ??= fallback
+  if (!agent) {
+    bus.emit(makeEvent('task.queued', {}, 'No idle agent — task will start when one is free'))
+    return false
+  }
+  const building = pickBuilding()
+  if (!building) return false
+  const task = makeTask(agent, building)
+  world.stats.dispatches++
+  startWork(agent, task)
+  bus.emit(
+    makeEvent(
+      'operator.dispatched',
+      { character: agent.id, building: building.id, task: task.id },
+      `Operator dispatched ${agent.name} to ${building.name}`,
+    ),
+  )
+  // The chief operator walks over for the hand-off (purely visual).
+  const chief = world.characters.find((c) => c.rider === 'the-mayor')
+  if (chief && chief.state !== 'sleeping') {
+    chief.go(agent.pos.x + 1, agent.pos.z + 1, null, 'delivering a task')
+  }
+  return true
+}
+
+function startWork(agent: Character, task: Task): void {
+  const building = world.buildings[task.buildingId]
+  const refs = { character: agent.id, task: task.id, building: building.id }
+  if (task.approvalRequired) {
+    task.state = 'pending_approval'
+    const gate = doorOf(world.buildings.arbora)
+    agent.go(
+      gate.x,
+      gate.z,
+      () => {
+        agent.state = 'awaiting'
+        agent.mood = 'awaiting approval'
+        bus.emit(
+          makeEvent(
+            'task.pending_approval',
+            { character: agent.id, task: task.id, building: building.id },
+            `${task.tool} at ${building.name} needs operator approval`,
+          ),
+        )
+      },
+      'seeking approval',
+    )
+    const assigned = makeEvent('task.assigned', refs, `Assigned ${task.tool} at ${building.name} (approval required)`)
+    bus.emit(assigned)
+    bus.emit(makeEvent('character.traveling', refs, `${agent.name} heads to the gate for approval`))
+    agent.logEvent(assigned)
+  } else {
+    const door = doorOf(building)
+    agent.go(
+      door.x,
+      door.z,
+      () => {
+        beginToolCall(agent)
+      },
+      'en route',
+    )
+    const assigned = makeEvent('task.assigned', refs, `Assigned ${task.tool} at ${building.name}`)
+    bus.emit(assigned)
+    bus.emit(makeEvent('character.traveling', refs, `${agent.name} heads to ${building.name}`))
+    agent.logEvent(assigned)
+  }
+  agent.state = 'tasked'
+}
+
+function beginToolCall(agent: Character): void {
+  const task = agent.task
+  if (!task) return
+  const building = world.buildings[task.buildingId]
+  if (world.firstVisit?.buildingId === task.buildingId) world.firstVisit = null
+  if (agent.retryWait > 0) {
+    agent.state = 'working'
+    agent.mood = 'retrying after incident'
+    agent.callDuration = 3 + Math.random() * 2
+    agent.retryWait = 0
+    return
+  }
+  agent.state = 'working'
+  agent.mood = 'focused'
+  agent.callsLeft = task.calls
+  agent.workTimer = 0
+  agent.callDuration = 2.5 + Math.random() * 2.5 // real seconds
+  agent.roomTimer = 0
+  agent.roomIndex = Math.floor(Math.random() * building.rooms.length)
+  world.buildings[task.buildingId].visits++
+  bus.emit(
+    makeEvent(
+      'tool.call',
+      { character: agent.id, building: building.id, task: task.id },
+      `tool.call → ${task.tool} @ ${building.name}`,
+    ),
+  )
+}
+
+function finishToolCall(agent: Character): void {
+  const task = agent.task
+  if (!task) return
+  const building = world.buildings[task.buildingId]
+  agent.context = Math.min(100, agent.context + 12 + Math.random() * 8)
+
+  if (Math.random() < 0.1 && agent.callsLeft > 1) {
+    // Incident: refused result, one retry.
+    world.stats.incidents++
+    building.flash = 1
+    bus.emit(
+      makeEvent(
+        'task.failed',
+        { character: agent.id, building: building.id, task: task.id },
+        `${task.tool} refused — contradiction recorded, retrying`,
+      ),
+    )
+    agent.mood = 'recovering from incident'
+    agent.retryWait = 4
+    agent.workTimer = 0
+    return
+  }
+
+  world.stats.toolCalls++
+  bus.emit(
+    makeEvent('tool.result', { character: agent.id, building: building.id, task: task.id }, `${task.tool} → ok`),
+  )
+
+  agent.callsLeft--
+  if (agent.context >= 85 && agent.callsLeft > 0) {
+    // Context compaction detour to the vault.
+    const vault = world.buildings.medulla
+    const door = doorOf(vault)
+    agent.commitPhase = 'compacting'
+    bus.emit(
+      makeEvent(
+        'context.compacted',
+        { character: agent.id, task: task.id },
+        `${agent.name}'s context reached ${Math.round(agent.context)}% — compacting at the vault`,
+      ),
+    )
+    agent.state = 'committing'
+    agent.mood = 'compacting memory'
+    agent.go(
+      door.x,
+      door.z,
+      () => {
+        agent.workTimer = 6 // real seconds of compaction
+      },
+      'compacting memory',
+    )
+    bus.emit(
+      makeEvent(
+        'character.traveling',
+        { character: agent.id, building: 'medulla', task: task.id },
+        `${agent.name} detours to the vault`,
+      ),
+    )
+    return
+  }
+
+  if (agent.callsLeft <= 0) {
+    commitKnowledge(agent)
+  } else {
+    agent.workTimer = 0
+    agent.callDuration = 2.5 + Math.random() * 2.5
+    bus.emit(
+      makeEvent(
+        'tool.call',
+        { character: agent.id, building: task.buildingId, task: task.id },
+        `tool.call → ${task.tool} @ ${building.name} (continued)`,
+      ),
+    )
+  }
+}
+
+function commitKnowledge(agent: Character): void {
+  const task = agent.task
+  const vault = world.buildings.medulla
+  const door = doorOf(vault)
+  agent.state = 'committing'
+  agent.mood = 'committing knowledge'
+  agent.go(
+    door.x,
+    door.z,
+    () => {
+      agent.workTimer = 4
+      agent.commitPhase = 'committing'
+    },
+    'committing knowledge',
+  )
+  bus.emit(
+    makeEvent(
+      'character.traveling',
+      { character: agent.id, building: 'medulla', task: task ? task.id : undefined },
+      `${agent.name} heads to the vault to commit`,
+    ),
+  )
+}
+
+function finishCommitting(agent: Character): void {
+  if (agent.commitPhase === 'compacting') {
+    agent.context = 25 + Math.random() * 15
+    const b = world.buildings[agent.task ? agent.task.buildingId : 'arbora']
+    const door = doorOf(b)
+    agent.go(
+      door.x,
+      door.z,
+      () => {
+        beginToolCall(agent)
+      },
+      'back to work',
+    )
+    bus.emit(
+      makeEvent('character.traveling', { character: agent.id, building: b.id }, `${agent.name} returns to work`),
+    )
+    return
+  }
+  world.stats.knowledge++
+  world.stats.tasksDone++
+  const task = agent.task
+  if (task) task.state = 'done'
+  bus.emit(
+    makeEvent(
+      'knowledge.committed',
+      { character: agent.id, building: 'medulla', task: task ? task.id : undefined },
+      `${agent.name} committed evidence and provenance to the vault`,
+    ),
+  )
+  agent.task = null
+  agent.state = 'idle'
+  agent.mood = 'wandering'
+  const evt = makeEvent('character.idle', { character: agent.id }, `${agent.name} is back to idle`)
+  bus.emit(evt)
+  agent.logEvent(evt)
+  agent.wanderTimer = 3 + Math.random() * 8
+}
+
+// ---- Human behaviour ------------------------------------------------------
+
+function tickHumans(ch: Character, _dtReal: number): void {
+  const night = isNight(world.clock)
+  if (ch.rider === 'the-mayor') {
+    if (ch.state === 'sleeping') {
+      if (!night) wakeUp(ch)
+      return
+    }
+    if (night) {
+      goSleep(ch)
+      return
+    }
+    // Resolve pending approvals at the gate.
+    const pending = world.tasks.find((t) => t.state === 'pending_approval')
+    if (pending && ch.state !== 'awaiting') {
+      const gate = doorOf(world.buildings.arbora)
+      if (ch.moving() && ch.mood === 'approving') return
+      ch.go(
+        gate.x,
+        gate.z,
+        () => {
+          ch.state = 'awaiting'
+          ch.waitTimer = 2
+        },
+        'approving',
+      )
+      return
+    }
+    if (ch.state === 'awaiting') {
+      if (ch.waitTimer <= 0) {
+        ch.state = 'idle'
+        ch.mood = 'supervising'
+        const pending2 = world.tasks.find((t) => t.state === 'pending_approval')
+        if (pending2) {
+          world.stats.approvals++
+          pending2.state = 'active'
+          const agent = world.characters.find((c) => c.id === pending2.agentId)
+          const building = world.buildings[pending2.buildingId]
+          bus.emit(
+            makeEvent(
+              'task.approved',
+              { character: ch.id, task: pending2.id },
+              `Operator approved ${pending2.tool} at ${building.name}`,
+            ),
+          )
+          if (agent?.state === 'awaiting') {
+            const door = doorOf(building)
+            agent.go(
+              door.x,
+              door.z,
+              () => {
+                beginToolCall(agent)
+              },
+              'en route',
+            )
+            agent.state = 'tasked'
+            bus.emit(
+              makeEvent(
+                'character.traveling',
+                { character: agent.id, task: pending2.id, building: building.id },
+                `${agent.name} heads to ${building.name}`,
+              ),
+            )
+          }
+        }
+      }
+      return
+    }
+    if (ch.state === 'idle' && !ch.moving() && ch.wanderTimer <= 0) {
+      // Stroll the plaza.
+      const a = Math.random() * Math.PI * 2
+      ch.go(Math.cos(a) * 5, Math.sin(a) * 5, null, 'supervising')
+      ch.wanderTimer = 8 + Math.random() * 10
+    }
+  } else if (ch.rider === 'officer-meter') {
+    // Patrols the connector district by day.
+    if (night) {
+      if (ch.state === 'sleeping') return
+      goSleep(ch)
+      return
+    }
+    if (ch.state === 'sleeping') {
+      wakeUp(ch)
+      return
+    }
+    if (!ch.moving() && ch.waitTimer <= 0) {
+      const built = world.plots.filter((p) => p.buildingId && !p.construction)
+      if (built.length) {
+        const p = built[Math.floor(Math.random() * built.length)]
+        const b = world.buildings[p.buildingId!]
+        const door = doorOf(b)
+        ch.go(
+          door.x,
+          door.z,
+          () => {
+            ch.waitTimer = 4 + Math.random() * 4
+          },
+          'patrolling',
+        )
+      } else {
+        ch.waitTimer = 5
+      }
+    }
+  } else if (ch.rider === 'pivot') {
+    // Nightshift: sleeps by day, patrols by night.
+    if (!night) {
+      if (ch.state === 'sleeping') return
+      goSleep(ch)
+      return
+    }
+    if (ch.state === 'sleeping') {
+      wakeUp(ch)
+      return
+    }
+    if (!ch.moving() && ch.waitTimer <= 0) {
+      const arboraDoor = buildingDoor('arbora') ?? { x: 0, z: 0 }
+      const spots = [arboraDoor, { x: -45, z: -45 }, { x: -65, z: 30 }, { x: -5, z: 15 }]
+      const s = spots[Math.floor(Math.random() * spots.length)]
+      ch.go(
+        s.x,
+        s.z,
+        () => {
+          ch.waitTimer = 5 + Math.random() * 5
+        },
+        'night patrol',
+      )
+    }
+  }
+}
+
+function goSleep(ch: Character): void {
+  if (ch.state === 'sleeping' || ch.moving()) return
+  ch.state = 'sleeping'
+  ch.mood = 'recharging'
+  ch.go(
+    ch.homeDoor.x,
+    ch.homeDoor.z,
+    () => {
+      ch.visible = false
+      bus.emit(makeEvent('character.sleeping', { character: ch.id }, `${ch.name} is home for the night`))
+    },
+    'heading home',
+  )
+}
+
+function wakeUp(ch: Character): void {
+  if (ch.state !== 'sleeping') return
+  ch.visible = true
+  ch.pos = { ...ch.homeDoor }
+  ch.state = 'idle'
+  ch.mood = ch.kind === 'human' ? 'supervising' : 'wandering'
+  ch.wanderTimer = 2 + Math.random() * 6
+  bus.emit(makeEvent('character.waking', { character: ch.id }, `${ch.name} is up and about`))
+}
+
+// ---- Agent behaviour ------------------------------------------------------
+
+function tickAgent(ch: Character, dtReal: number): void {
+  const night = isNight(world.clock)
+
+  if (ch.state === 'sleeping') {
+    if (!night) wakeUp(ch)
+    return
+  }
+
+  // Night commute: finish the current tool call, then head home.
+  if (night && (ch.state === 'idle' || ch.state === 'tasked' || ch.state === 'awaiting')) {
+    if (ch.state === 'awaiting') ch.state = 'tasked'
+    if (!ch.moving()) goSleep(ch)
+    return
+  }
+  if (night && ch.state === 'working') {
+    // Let the in-flight call finish, then sleep.
+    ch.workTimer -= dtReal
+    if (ch.workTimer <= 0) {
+      ch.task = null
+      goSleep(ch)
+    }
+    return
+  }
+
+  switch (ch.state) {
+    case 'idle': {
+      ch.wanderTimer -= dtReal
+      if (!ch.moving() && ch.wanderTimer <= 0) {
+        // Stroll: plaza, a park, or the waterfront.
+        const spots = [
+          [Math.random() * 10 - 5, Math.random() * 10 - 5],
+          [12 + Math.random() * 6, -8 + Math.random() * 6],
+          [22 + Math.random() * 6, -28 + Math.random() * 6],
+          [-8 + Math.random() * 6, 12 + Math.random() * 6],
+        ]
+        const s = spots[Math.floor(Math.random() * spots.length)]
+        ch.go(s[0], s[1], null)
+        ch.wanderTimer = 6 + Math.random() * 8
+      }
+      break
+    }
+    case 'working': {
+      if (ch.retryWait > 0) {
+        ch.retryWait -= dtReal
+        if (ch.retryWait <= 0) beginToolCall(ch)
+        break
+      }
+      ch.workTimer += dtReal
+      ch.roomTimer += dtReal
+      if (ch.roomTimer > 15 && ch.task) {
+        ch.roomTimer = 0
+        const rooms = world.buildings[ch.task.buildingId].rooms
+        ch.roomIndex = (ch.roomIndex + 1) % rooms.length
+      }
+      if (ch.workTimer >= ch.callDuration) finishToolCall(ch)
+      break
+    }
+    case 'committing': {
+      if (ch.moving()) break
+      ch.workTimer -= dtReal
+      if (ch.workTimer <= 0) finishCommitting(ch)
+      break
+    }
+    case 'tasked':
+    case 'awaiting':
+      break // arrival hooks drive the next state
+    default:
+      break
+  }
+}
+
+// ---- Main tick ------------------------------------------------------------
+
+export function tickSim(dtGame: number, dtReal: number): void {
+  world.clock += dtGame
+  if (world.clock >= 86400) {
+    world.clock -= 86400
+    world.day++
+  }
+
+  // Auto tasking (daytime only, bounded concurrency).
+  autoTaskTimer -= dtReal
+  if (autoTaskTimer <= 0) {
+    autoTaskTimer = AUTO_TASK_MIN + Math.random() * (AUTO_TASK_MAX - AUTO_TASK_MIN)
+    if (!isNight(world.clock)) {
+      const active = world.characters.filter(
+        (c) => c.kind === 'ai' && ['tasked', 'working', 'committing', 'awaiting'].includes(c.state),
+      ).length
+      if (active < 6) {
+        const idle = world.characters.filter((c) => c.kind === 'ai' && c.state === 'idle')
+        if (idle.length) {
+          const agent = idle[Math.floor(Math.random() * idle.length)]
+          // A freshly completed building is owed its first visit.
+          const owed = world.firstVisit ? world.buildings[world.firstVisit.buildingId] : null
+          const building = owed ?? pickBuilding()
+          if (building) {
+            const task = makeTask(agent, building)
+            startWork(agent, task)
+            if (owed) world.firstVisit = null
+          }
+        }
+      }
+    }
+  }
+
+  for (const ch of world.characters) {
+    ch.wanderTimer -= dtReal
+    ch.waitTimer -= dtReal
+    if (ch.kind === 'ai') tickAgent(ch, dtReal)
+    else tickHumans(ch, dtReal)
+    ch.move(dtReal)
+  }
+
+  // Construction (real-time, so SC-003 holds at any speed).
+  for (const plot of world.plots) {
+    if (!plot.construction) continue
+    const c = plot.construction
+    c.progress += dtReal / CONSTRUCTION_REAL_S
+    for (const m of [0.25, 0.5, 0.75]) {
+      if (c.progress >= m && c.lastMilestone < m) {
+        c.lastMilestone = m
+        const b = world.buildings[c.connectorId]
+        bus.emit(makeEvent('construction.progress', { building: b.id }, `${b.name}: ${Math.round(m * 100)}% complete`))
+      }
+    }
+    if (c.progress >= 1) completeConstruction(plot)
+  }
+
+  // The owed first visit expires if the city stays idle.
+  if (world.firstVisit) {
+    world.firstVisit.age += dtReal
+    if (world.firstVisit.age > FIRST_VISIT_GRACE_S) world.firstVisit = null
+  }
+
+  // Building decay.
+  for (const b of Object.values(world.buildings)) {
+    if (b.fresh > 0) b.fresh = Math.max(0, b.fresh - dtReal)
+    if (b.flash > 0) b.flash = Math.max(0, b.flash - dtReal * 0.8)
+  }
+}
+
+// ---- Accessors (selection API, UI, tests) ----------------------------------
+
+export function getCharacter(id: string): Character | undefined {
+  return world.characters.find((c) => c.id === id)
+}
+
+export function getBuilding(id: string): Building | undefined {
+  return world.buildings[id]
+}
+
+// Test seam: reset the world between cases.
+export function resetSim(): void {
+  world.day = 1
+  world.clock = 9 * 3600
+  world.characters = []
+  world.buildings = {}
+  world.plots = PLOTS.map((p) => ({
+    x: p.x,
+    z: p.z,
+    buildingId: null,
+    reservedId: null,
+    reservedName: null,
+    construction: null,
+  }))
+  world.tasks = []
+  world.stats = { knowledge: 0, toolCalls: 0, tasksDone: 0, incidents: 0, approvals: 0, dispatches: 0 }
+  world.firstVisit = null
+  world.connectors = []
+  world.initialized = false
+  autoTaskTimer = 5
+}

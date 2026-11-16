@@ -5,6 +5,7 @@
  * {@link AppSurface} list lives in `surfaces.ts`.
  */
 import type { RouteDef } from '@/lib/nav-registry'
+import { APP_ROUTES as CITY_ROUTES } from './city/routes'
 import { APP_ROUTES as MARKETS_ROUTES } from './markets/routes'
 
-export const APP_ROUTES: readonly RouteDef[] = [...MARKETS_ROUTES]
+export const APP_ROUTES: readonly RouteDef[] = [...MARKETS_ROUTES, ...CITY_ROUTES]
