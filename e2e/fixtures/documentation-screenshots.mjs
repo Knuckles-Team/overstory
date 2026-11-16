@@ -31,7 +31,7 @@ export const responses = {
     csrf_token: fixture,
   },
   '/api/configure': { models: [], builtinTools: [] },
-  '/api/enhanced/models': { models: [], default_id: '' },
+  '/api/v1/ops/models.list': operation({ kind: 'chat', models: [] }),
   '/api/chats': [],
   '/api/chats/': { messages: [] },
   '/api/enhanced/mcp/servers/arbora/tools': { tools: [], total: 0, offset: 0, limit: 200, has_more: false },
