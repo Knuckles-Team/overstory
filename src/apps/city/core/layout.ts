@@ -3,7 +3,10 @@
 //
 // The connector district grows with the fleet: six columns × thirteen rows
 // (78 plots) west of the main grid hold the full registered fleet catalog
-// (74 servers as of the 2026-11-15 capture) with room to spare.
+// (74 servers as of the 2026-11-15 capture) with room to spare. Plots are
+// grouped by business domain (CONNECTOR_DISTRICT) so the district's
+// geography carries meaning (OVERSTORY-CITY-R002).
+import { CONNECTOR_DISTRICT } from './ecosystem'
 
 export const X_ROADS = [-80, -70, -60, -50, -40, -30, -20, -10, 0, 10, 20, 30]
 export const Z_ROADS = [-60, -50, -40, -30, -20, -10, 0, 10, 20, 30, 40, 50, 60, 70]
@@ -60,6 +63,16 @@ export const PLOTS: Vec2[] = (() => {
   return out
 })()
 export const PLOT_W = 7
+
+/**
+ * District plot ordering (R002 amendment). Plots are reserved in business-
+ * domain order — the domains declared in `CONNECTOR_DISTRICT` (ecosystem.ts)
+ * — so each domain is a contiguous block of the district, never a
+ * catalog-order scatter: the sim's `initSim` places connectors through
+ * `connectorsByDomain`, which orders by these bands. The core landmarks
+ * (BUILDING_POS above) sit at the map's centre, east of the district.
+ */
+export const DISTRICT_DOMAINS: readonly string[] = CONNECTOR_DISTRICT.map((d) => d.id)
 
 // Residential quarter (east) — agents and humans sleep here at night.
 // Two columns × nine rows: a home for every character in the roster.

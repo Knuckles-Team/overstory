@@ -9,14 +9,17 @@
 import { describe, expect, it } from 'vitest'
 import {
   ARBORA_CORE_SERVER,
+  CONNECTOR_DISTRICT,
   CORE_LANDMARKS,
   FLEET_SNAPSHOT,
   ROSTER,
   SIM_TOOLS,
+  connectorsByDomain,
+  domainOf,
   fleetToConnectors,
   type FleetServer,
 } from '../core/ecosystem'
-import { PLOTS } from '../core/layout'
+import { BUILDING_POS, PLOTS } from '../core/layout'
 
 describe('fleet snapshot (SIMULATED source, 2026-11-15 capture)', () => {
   it('carries the full registered catalog: 7 served, 67 registered-unpublished', () => {
@@ -103,6 +106,57 @@ describe('fleetToConnectors (R002)', () => {
   })
 })
 
+describe('district domains (R002)', () => {
+  it('declares eight business domains, the last a keyword-free catch-all', () => {
+    expect(CONNECTOR_DISTRICT).toHaveLength(8)
+    expect(CONNECTOR_DISTRICT[CONNECTOR_DISTRICT.length - 1]).toEqual({ id: 'general', keywords: [] })
+    for (const d of CONNECTOR_DISTRICT.slice(0, -1)) expect(d.keywords.length).toBeGreaterThan(0)
+  })
+
+  it('domainOf maps connector names to their domain by keyword, general otherwise', () => {
+    expect(domainOf('sql-mcp')).toBe('data')
+    expect(domainOf('gitlab-mcp')).toBe('dev')
+    expect(domainOf('mealie-mcp')).toBe('home')
+    expect(domainOf('mattermost-mcp')).toBe('comms')
+    expect(domainOf('totally-unknown-thing')).toBe('general')
+  })
+
+  it('connectorsByDomain groups by domain, stable within each domain', () => {
+    const connectors = fleetToConnectors(FLEET_SNAPSHOT)
+    const sorted = connectorsByDomain(connectors).map((c) => c.id)
+    expect(sorted).toHaveLength(74)
+    // Same multiset of ids — no connector is dropped or invented.
+    expect([...sorted].sort()).toEqual(connectors.map((c) => c.id).sort())
+    // Within each domain the catalog order is preserved (stable).
+    const catalogIds = FLEET_SNAPSHOT.map((s) => s.server)
+    for (const d of CONNECTOR_DISTRICT) {
+      const inDomain = sorted.filter((id) => domainOf(id) === d.id)
+      expect(inDomain).toEqual(catalogIds.filter((id) => domainOf(id) === d.id))
+    }
+    // Domains are contiguous: no later domain interleaves an earlier one.
+    const order = CONNECTOR_DISTRICT.map((d) => d.id)
+    let prevIdx = -1
+    for (const id of sorted) {
+      const idx = order.indexOf(domainOf(id))
+      expect(idx, `${id} breaks domain contiguity`).toBeGreaterThanOrEqual(prevIdx)
+      prevIdx = idx
+    }
+  })
+
+  it('the core landmarks sit at the map centre, not at its edge (R004/R002)', () => {
+    // The district block is west of the main grid (x < 0); the landmarks are
+    // the centre landmarks of the map, east of the district.
+    const districtMaxX = Math.max(...PLOTS.map((p) => p.x))
+    for (const l of CORE_LANDMARKS) {
+      const pos = BUILDING_POS[l.id]
+      expect(pos, `missing fixed position for ${l.id}`).toBeDefined()
+      expect(pos.x).toBeGreaterThan(districtMaxX)
+      expect(Math.abs(pos.x)).toBeLessThan(80)
+      expect(Math.abs(pos.z)).toBeLessThan(80)
+    }
+  })
+})
+
 describe('district sizing (R002)', () => {
   it('holds 78 plots: the current 74-connector catalog always fits', () => {
     expect(PLOTS.length).toBe(78)
@@ -133,12 +187,16 @@ describe('core landmarks (R004)', () => {
 })
 
 describe('roster (R005)', () => {
-  it('is 17 citizens: 14 AI agents and 3 human operators, each a distinct rider', () => {
+  it('is 17 citizens: 14 AI agents and 3 simulated NPC operators, each a distinct rider', () => {
     expect(ROSTER).toHaveLength(17)
     const ai = ROSTER.filter((r) => r.kind === 'ai')
-    const humans = ROSTER.filter((r) => r.kind === 'human')
+    const npc = ROSTER.filter((r) => r.kind === 'npc')
     expect(ai).toHaveLength(14)
-    expect(humans).toHaveLength(3)
+    expect(npc).toHaveLength(3)
+    // The operators are fixed characters, not real operators (R005): each
+    // carries the simulated label the badge and inspector surface.
+    for (const r of npc) expect(r.role).toContain('Simulated')
+    expect(ROSTER.map((r) => r.kind)).not.toContain('human')
     expect(new Set(ROSTER.map((r) => r.rider)).size).toBe(ROSTER.length)
   })
 })

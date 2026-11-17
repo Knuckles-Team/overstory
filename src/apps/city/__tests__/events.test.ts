@@ -11,6 +11,7 @@ import {
   EVENT_TYPES,
   bus,
   externalDropped,
+  feedFullySimulated,
   getMode,
   injectLive,
   makeEvent,
@@ -86,6 +87,35 @@ describe('recent ring (R010)', () => {
   })
 })
 
+describe('provenance (R010)', () => {
+  it('makeEvent stamps simulated provenance by default', () => {
+    const evt = makeEvent('character.idle')
+    expect(evt.provenance).toBe('simulated')
+    const stamped = bus.emit(evt)
+    expect(stamped.provenance).toBe('simulated')
+  })
+
+  it('injectLive stamps live provenance — the caller can never set it', () => {
+    expect(injectLive({ type: 'tool.call', detail: 'from the fleet' })).toBe(true)
+    const evt = bus.recent()[bus.recent().length - 1]
+    expect(evt.provenance).toBe('live')
+    // Even a caller that tries to pass a simulated provenance gets live.
+    expect(injectLive({ type: 'tool.call', provenance: 'simulated' })).toBe(true)
+    expect(bus.recent()[bus.recent().length - 1].provenance).toBe('live')
+  })
+
+  it('the feed badge condition: fully simulated until the first live event lands', () => {
+    expect(feedFullySimulated()).toBe(true) // empty ring: nothing live has landed
+    bus.emit(makeEvent('task.assigned', {}, 'x'))
+    expect(feedFullySimulated()).toBe(true)
+    expect(injectLive({ type: 'tool.call' })).toBe(true)
+    expect(feedFullySimulated()).toBe(false)
+    // Once a live event lands the badge stays cleared.
+    bus.emit(makeEvent('task.done', {}, 'y'))
+    expect(feedFullySimulated()).toBe(false)
+  })
+})
+
 describe('clock stamping and mode', () => {
   it('stamps events from the bound time source (the in-game clock)', () => {
     setTimeSource(() => 9 * 3600 + 123)
@@ -95,7 +125,7 @@ describe('clock stamping and mode', () => {
 
   it('lets callers override the timestamp', () => {
     setTimeSource(() => 42)
-    const evt = bus.emit({ type: 'tool.call', ts: 7 })
+    const evt = bus.emit(makeEvent('tool.call', { ts: 7 }, 't'))
     expect(evt.ts).toBe(7)
   })
 

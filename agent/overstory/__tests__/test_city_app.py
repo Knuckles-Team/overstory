@@ -13,10 +13,11 @@ refuses.
 
 from __future__ import annotations
 
+import asyncio
 import json
 import time
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, Protocol
 
 from fastapi import FastAPI, HTTPException
 from fastapi.testclient import TestClient
@@ -288,3 +289,126 @@ def test_default_apps_registers_one_city_backend() -> None:
     cities = [a for a in default_apps() if a.app_id == 'city']
     assert len(cities) == 1
     assert cities[0].available() is True
+
+
+class _FleetInvoker(Protocol):
+    """The structural invoker seam the gateway takes (``FakeFleet`` and the
+    counting doubles both satisfy it)."""
+
+    async def invoke(self, op_id: str, params: dict[str, Any]) -> Any: ...
+
+
+def _gateway(fake: _FleetInvoker, **kwargs: Any) -> CityGateway:
+    return CityGateway(invoke=fake.invoke, clock=time.time, **kwargs)
+
+
+def test_the_cache_is_scoped_by_principal_and_tenant() -> None:
+    from overstory.host import ActorContext, use_actor
+
+    async def scenario() -> tuple[int, int, bool]:
+        fake = FakeFleet()
+        gateway = _gateway(fake)
+        with use_actor(ActorContext(actor_id='alice', tenant_id='t1')):
+            first = await gateway.fleet()
+        with use_actor(ActorContext(actor_id='bob', tenant_id='t1')):
+            await gateway.fleet()
+        with use_actor(ActorContext(actor_id='alice', tenant_id='t2')):
+            await gateway.fleet()
+        calls_after_three = len(fake.calls)
+        with use_actor(ActorContext(actor_id='alice', tenant_id='t1')):
+            again = await gateway.fleet()  # same caller: served from cache
+        return calls_after_three, len(fake.calls), first.servers == again.servers
+
+    calls_after_three, calls_total, same_servers = asyncio.run(scenario())
+    # Three different (principal, tenant) pairs each cost one full read
+    # (browse + tool fan-out); the fourth call adds no upstream reads.
+    assert calls_after_three == 6
+    assert calls_total == 6
+    assert same_servers is True
+
+    # An unverified call (no bound actor) never shares a verified entry.
+    fake2 = FakeFleet()
+    gateway2 = _gateway(fake2)
+
+    async def unverified_then_verified() -> tuple[int, set[tuple[str, str]]]:
+        await gateway2.fleet()  # no bound actor here
+        with use_actor(ActorContext(actor_id='alice', tenant_id='t1')):
+            await gateway2.fleet()
+        return len(fake2.calls), set(gateway2._cache)
+
+    calls2, keys = asyncio.run(unverified_then_verified())
+    assert calls2 == 4  # two independent reads, no shared entry
+    assert keys == {('unverified', ''), ('alice', 't1')}
+
+
+def test_concurrent_cold_boots_share_one_in_flight_read() -> None:
+    fake = FakeFleet()
+    gateway = _gateway(fake)
+
+    async def scenario() -> tuple[int, bool]:
+        reads = await asyncio.gather(gateway.fleet(), gateway.fleet(), gateway.fleet())
+        return len(fake.calls), reads[0] is reads[1]
+
+    calls, same_read = asyncio.run(scenario())
+    assert calls == 2  # one browse + one tool read, not three fan-outs
+    assert same_read is True
+
+
+class _CountingFleet:
+    """A fleet invoker that records how many per-pack reads are in flight."""
+
+    def __init__(self, servers: list[str], delay: float = 0.02) -> None:
+        self.servers = servers
+        self.delay = delay
+        self.in_flight = 0
+        self.peak = 0
+        self.browse_calls = 0
+
+    async def invoke(self, op_id: str, params: dict[str, Any]) -> Any:
+        if params.get('query'):
+            server = params['query']
+            if server == 'slow-pack':
+                await asyncio.sleep(self.delay * 20)  # past the timeout
+                return {'items': []}
+            self.in_flight += 1
+            self.peak = max(self.peak, self.in_flight)
+            await asyncio.sleep(self.delay)
+            self.in_flight -= 1
+            return {
+                'items': [{'server': server, 'kind': 'tool', 'name': f'{server}-tool'}]
+            }
+        self.browse_calls += 1
+        return {
+            'servers': [
+                {
+                    'server': name,
+                    'surfaces': {'tools': {'count': 1}},
+                    'pack_status': 'served',
+                }
+                for name in self.servers
+            ]
+        }
+
+
+def test_the_fan_out_is_concurrent_with_a_cap_and_timeout() -> None:
+    # Twelve served packs: the fan-out peaks at the cap (8), not 12.
+    counting = _CountingFleet([f'pack-{i:02d}' for i in range(12)])
+    gateway = _gateway(counting, tool_read_timeout_s=0.5)
+    read = asyncio.run(gateway.fleet())
+    assert counting.browse_calls == 1
+    assert counting.peak <= 8  # the concurrency cap held
+    assert counting.peak > 1  # and the reads really ran concurrently
+    assert all(s['tools'] == [f'{s["server"]}-tool'] for s in read.servers)
+
+    # A pack that outlives the per-call timeout answers [] instead of
+    # holding the whole read.
+    slow = _CountingFleet(
+        ['slow-pack'] + [f'pack-{i:02d}' for i in range(1, 8)], delay=0.01
+    )
+    gateway_slow = _gateway(slow, tool_read_timeout_s=0.05)
+    t0 = time.time()
+    read_slow = asyncio.run(gateway_slow.fleet())
+    assert time.time() - t0 < 2.0  # the slow pack did not hold the read
+    by_name = {s['server']: s for s in read_slow.servers}
+    assert by_name['slow-pack']['tools'] == []
+    assert by_name['pack-01']['tools'] == ['pack-01-tool']

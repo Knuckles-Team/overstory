@@ -9,10 +9,19 @@ browser's boot costs at most one upstream read, and it turns an absent or
 unreachable capability into :class:`CityUnavailable` so a route answers a
 stated absence (503) instead of an error. A typed Arbora refusal (any
 ``HTTPException`` other than 501/503) passes through with its own code.
+
+Cache scoping: the normalized read is cached per (principal, tenant), the
+verified identity of the caller (the ambient bound actor of the host). If
+``fleet.catalog.list`` is scoped by role or tenant, one caller's view is
+never served to another. Concurrent cold boots for the same key share one
+in-flight read (single flight); the per-pack tool-name fan-out runs
+concurrently under a cap with a per-call timeout, so a slow pack cannot
+hold the whole read.
 """
 
 from __future__ import annotations
 
+import asyncio
 import time
 from collections.abc import Awaitable, Callable, Mapping
 from dataclasses import dataclass, replace
@@ -20,6 +29,8 @@ from datetime import UTC, datetime
 from typing import Any
 
 from fastapi import HTTPException
+
+from ...host import bound_actor
 
 #: How long a normalized fleet read is trusted (browser boots may run on a
 #: read up to this old; the age is reported, never hidden).
@@ -37,6 +48,19 @@ BROWSE_PARAMS: dict[str, Any] = {'browse': True, 'summary': True}
 #: as simulated).
 TOOL_NAMES_LIMIT = 12
 _NAME_LIMIT = 200
+
+#: The per-pack tool-name fan-out runs concurrently, but at most this many
+#: upstream reads are in flight at once.
+FAN_OUT_CONCURRENCY = 8
+
+#: A single per-pack tool read is bounded; past this it counts as failed
+#: (the pack shows no served tools) instead of holding the whole read.
+TOOL_READ_TIMEOUT_S = 5.0
+
+#: Cache keys for calls with no verified actor bound (tests, or a host
+#: without session enforcement). A verified caller can never share a
+#: cache entry with another caller, or with an unverified one.
+_UNVERIFIED_PRINCIPAL = 'unverified'
 
 
 class CityUnavailable(Exception):
@@ -97,8 +121,28 @@ def _classified(error: Exception) -> Exception:
     return CityUnavailable('The fleet catalog is not available')
 
 
+def _cache_key(
+    principal: str | None = None, tenant: str | None = None
+) -> tuple[str, str]:
+    """The (principal, tenant) the read is cached for.
+
+    The verified identity is the ambient bound actor of the host (the
+    request's session); an explicit override is accepted for tests. A call
+    with no verified actor caches under its own dedicated key, never
+    sharing an entry with any verified caller.
+    """
+
+    actor = bound_actor()
+    if principal is None and actor is not None:
+        principal = actor.actor_id
+    if tenant is None and actor is not None:
+        tenant = actor.tenant_id
+    return (principal or _UNVERIFIED_PRINCIPAL, tenant or '')
+
+
 class CityGateway:
-    """Runs one fleet read and caches its normalized answer for the TTL."""
+    """Runs one fleet read per (principal, tenant) and caches each for the
+    TTL; concurrent cold boots single-flight per key."""
 
     def __init__(
         self,
@@ -106,42 +150,84 @@ class CityGateway:
         *,
         cache_ttl_s: float = CACHE_TTL_S,
         clock: Callable[[], float] = time.time,
+        concurrency: int = FAN_OUT_CONCURRENCY,
+        tool_read_timeout_s: float = TOOL_READ_TIMEOUT_S,
     ) -> None:
         self._invoke = invoke
         self._cache_ttl_s = cache_ttl_s
         self._clock = clock
-        self._read: FleetRead | None = None
-        self._captured_at: float = 0.0
+        self._concurrency = max(1, concurrency)
+        self._tool_read_timeout_s = tool_read_timeout_s
+        self._cache: dict[tuple[str, str], tuple[FleetRead, float]] = {}
+        self._inflight: dict[tuple[str, str], asyncio.Future[FleetRead]] = {}
+        self._fan_out_lock: asyncio.Semaphore | None = None
 
-    async def fleet(self) -> FleetRead:
-        """One normalized fleet read, cached for the TTL."""
+    async def fleet(
+        self, principal: str | None = None, tenant: str | None = None
+    ) -> FleetRead:
+        """One normalized fleet read for the caller, cached for the TTL;
+        concurrent cold boots share one in-flight read."""
 
-        if (
-            self._read is not None
-            and self._clock() - self._captured_at < self._cache_ttl_s
-        ):
+        key = _cache_key(principal, tenant)
+        cached = self._cache.get(key)
+        if cached is not None and self._clock() - cached[1] < self._cache_ttl_s:
+            read, captured_at = cached
             return replace(
-                self._read,
-                age_seconds=max(0.0, self._clock() - self._captured_at),
+                read,
+                age_seconds=max(0.0, self._clock() - captured_at),
             )
-        read = await self._fresh_read()
-        self._read = read
-        self._captured_at = self._clock()
-        return read
+        flight = self._inflight.get(key)
+        if flight is None:
+            flight = asyncio.get_running_loop().create_future()
+            self._inflight[key] = flight
+            flight.add_done_callback(lambda _fut: self._inflight.pop(key, None))
+            try:
+                read = await self._fresh_read()
+            except Exception as error:
+                flight.set_exception(error)
+                flight.exception()  # mark retrieved; waiters still get the error
+                raise
+            self._cache[key] = (read, self._clock())
+            flight.set_result(read)
+            return read
+        return await flight
 
     async def _fresh_read(self) -> FleetRead:
         value = await self._value(CATALOG_OPERATION, dict(BROWSE_PARAMS))
+        normalized = normalize_fleet(value)
+        tool_reads = {
+            entry['server']: self._bounded_tool_names(entry['server'])
+            for entry in normalized
+            if entry['packStatus'] == 'served' and entry['toolCount'] > 0
+        }
+        tools_by_server: dict[str, list[str]] = {}
+        if tool_reads:
+            results = await asyncio.gather(*tool_reads.values())
+            tools_by_server = dict(zip(tool_reads.keys(), results, strict=True))
         servers: list[dict[str, Any]] = []
-        for entry in normalize_fleet(value):
-            if entry['packStatus'] == 'served' and entry['toolCount'] > 0:
-                entry['tools'] = await self._tool_names(entry['server'])
-            else:
-                entry['tools'] = []
+        for entry in normalized:
+            entry = dict(entry)
+            entry['tools'] = tools_by_server.get(entry['server'], [])
             servers.append(entry)
         captured_at = datetime.fromtimestamp(self._clock(), tz=UTC).isoformat(
             timespec='seconds'
         )
         return FleetRead(servers=servers, captured_at=captured_at)
+
+    async def _bounded_tool_names(self, server: str) -> list[str]:
+        """Representative served tool names for one pack, under the fan-out
+        cap and the per-call timeout ([] when the read fails or times out
+        — the city marks the set simulated)."""
+
+        if self._fan_out_lock is None:
+            self._fan_out_lock = asyncio.Semaphore(self._concurrency)
+        async with self._fan_out_lock:
+            try:
+                return await asyncio.wait_for(
+                    self._tool_names(server), timeout=self._tool_read_timeout_s
+                )
+            except (TimeoutError, CityUnavailable):
+                return []
 
     async def _tool_names(self, server: str) -> list[str]:
         """Representative served tool names for one pack ([] when the read

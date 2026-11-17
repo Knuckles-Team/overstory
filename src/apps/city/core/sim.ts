@@ -7,10 +7,53 @@
 // construction, task cadence — are paced in *real* seconds at 1× so motion
 // and work look natural. The speed control multiplies both together; nothing
 // else changes.
+//
+// Determinism (R014): every random draw goes through the injected seeded
+// PRNG (prng.ts) — `Math.random()` is never called in this module. Activity
+// (R026): the sim defaults to `quiet` (no auto-tasking, no wandering, no
+// patrol); `demo` restores the continuous behaviour. Operator actions are
+// recorded with in-game timestamps for the replay driver (R029).
 
-import { CORE_LANDMARKS, ROSTER, SIM_TOOLS, type ConnectorDef, type CoreDef } from './ecosystem'
+import { CORE_LANDMARKS, ROSTER, SIM_TOOLS, connectorsByDomain, type ConnectorDef, type CoreDef } from './ecosystem'
 import { BUILDING_POS, PLOTS, HOUSES, buildingDoor, plotDoor, findPath, type Vec2 } from './layout'
 import { bus, makeEvent, type CityEvent } from './events'
+import { defaultPrng, type Prng } from './prng'
+
+// ---- Agent state machine (R006) --------------------------------------------
+// One declared lifecycle the sim, the tests and the documentation all read.
+// Every state change goes through `transition`, which refuses an illegal
+// change (a refused transition is a visible queued event, never a silent
+// state write).
+export const AGENT_STATES = ['idle', 'tasked', 'traveling', 'working', 'committing', 'awaiting', 'sleeping'] as const
+export type AgentState = (typeof AGENT_STATES)[number]
+
+export const AGENT_TRANSITIONS: Record<AgentState, readonly AgentState[]> = {
+  idle: ['tasked', 'awaiting', 'sleeping'],
+  tasked: ['traveling', 'sleeping'],
+  traveling: ['working', 'awaiting', 'committing', 'sleeping'],
+  working: ['working', 'traveling', 'committing', 'sleeping'],
+  committing: ['idle', 'traveling', 'sleeping'],
+  awaiting: ['traveling', 'idle', 'sleeping'],
+  sleeping: ['idle'],
+}
+
+/** True when `from → to` is declared (or a no-op self transition). */
+export function canTransition(from: AgentState, to: AgentState): boolean {
+  return from === to || AGENT_TRANSITIONS[from].includes(to)
+}
+
+// ---- Activity mode (R026) ----------------------------------------------------
+export type ActivityMode = 'quiet' | 'demo'
+
+// ---- Operator action record (R029) -------------------------------------------
+/** One recorded operator action, stamped with the in-game absolute time. */
+export interface RecordedAction {
+  kind: 'dispatch' | 'onboard' | 'approve'
+  /** Monotonic in-game seconds (does not wrap at midnight). */
+  ts: number
+  /** The dispatched agent id (dispatch) or connector id (onboard). */
+  target?: string
+}
 
 export interface Plot {
   x: number
@@ -59,15 +102,17 @@ export interface Building {
 
 class Character {
   id: string
-  kind: 'ai' | 'human'
+  kind: 'ai' | 'npc'
   name: string
   rider: string
   hue: number
   role: string
-  state = 'idle'
+  state: AgentState = 'idle'
   mood = ''
   context: number
   visible = true
+  /** Every v1 character is simulated (R005/R010); live presence is R023. */
+  provenance: 'simulated' | 'live' = 'simulated'
   task: Task | null = null
   path: number[][] = []
   pathPos = 0
@@ -88,22 +133,19 @@ class Character {
   events: { type: string; detail: string }[] = []
   pos: Vec2 = { x: 0, z: 0 }
 
-  constructor(
-    entry: { kind: 'ai' | 'human'; rider: string; name: string; hue: number; role?: string },
-    index: number,
-  ) {
+  constructor(entry: { kind: 'ai' | 'npc'; rider: string; name: string; hue: number; role?: string }, index: number) {
     this.id = entry.rider
     this.kind = entry.kind
     this.name = entry.name
     this.rider = entry.rider
     this.hue = entry.hue
     this.role = entry.role ?? 'Autonomous agent from the Meristem harness'
-    this.mood = this.kind === 'human' ? 'supervising' : 'wandering'
-    this.context = 10 + Math.random() * 15
-    this.walkPhase = Math.random() * Math.PI * 2
+    this.mood = this.kind === 'npc' ? 'supervising' : 'wandering'
+    this.context = 10 + simRandom() * 15
+    this.walkPhase = simRandom() * Math.PI * 2
     this.home = HOUSES[index % HOUSES.length]
     this.homeDoor = { x: this.home.x - 4, z: this.home.z }
-    this.wanderTimer = 2 + Math.random() * 6
+    this.wanderTimer = 2 + simRandom() * 6
   }
 
   setPos(x: number, z: number): void {
@@ -158,7 +200,11 @@ class Character {
 export const world = {
   day: 1,
   clock: 9 * 3600, // in-game seconds since midnight; the city wakes at 09:00
+  /** Monotonic in-game seconds (no midnight wrap) — action-record timestamps. */
+  absGameS: 9 * 3600,
   timeScale: 144, // in-game seconds per real second at 1× (1 day = 10 min)
+  /** Activity mode: quiet (default) or labelled demo (R026). */
+  activity: 'quiet' as ActivityMode,
   characters: [] as Character[],
   buildings: {} as Record<string, Building>,
   plots: PLOTS.map((p) => ({
@@ -170,6 +216,8 @@ export const world = {
     construction: null,
   })) as Plot[],
   tasks: [] as Task[],
+  /** Operator actions recorded for the replay driver (R029). */
+  actions: [] as RecordedAction[],
   stats: { knowledge: 0, toolCalls: 0, tasksDone: 0, incidents: 0, approvals: 0, dispatches: 0 },
   firstVisit: null as { buildingId: string; age: number } | null,
   /** The current connector catalog (from the fleet read or the snapshot). */
@@ -184,6 +232,41 @@ export const isNight = (clock: number): boolean => clock >= NIGHT_START || clock
 /** Named behaviour constants (tests adjust the probabilities, never the logic). */
 export const TUNING = {
   approvalChance: 0.2,
+}
+
+// ---- The seeded PRNG (R014) -------------------------------------------------
+// The only randomness the simulation uses. Tests and the replay driver
+// replace it with an identically-seeded instance for exact sequences.
+let rng: Prng = defaultPrng()
+
+/** Inject a PRNG (tests, replay). */
+export function setSimRandom(p: Prng): void {
+  rng = p
+}
+
+/** One deterministic draw in [0, 1). */
+export function simRandom(): number {
+  return rng()
+}
+
+/** Set the activity mode (R026): quiet is the default, demo is labelled. */
+export function setActivity(mode: ActivityMode): void {
+  world.activity = mode
+}
+
+export function getActivity(): ActivityMode {
+  return world.activity
+}
+
+/** The single guarded state change (R006): refuses illegal transitions. */
+export function transition(ch: Character, to: AgentState): boolean {
+  if (to === ch.state) return true
+  if (!canTransition(ch.state, to)) {
+    bus.emit(makeEvent('task.queued', { character: ch.id }, `Illegal state change ${ch.state} → ${to} refused`))
+    return false
+  }
+  ch.state = to
+  return true
 }
 
 /**
@@ -259,16 +342,18 @@ function placeConnector(def: ConnectorDef, plot: Plot, prebuilt: boolean): void 
 /**
  * Seed the city from a connector list (fleet read or snapshot). Served packs
  * are built and online; registered-unpublished packs reserve a named plot
- * (OVERSTORY-CITY-R002/R008).
+ * (OVERSTORY-CITY-R002/R008). Plots are reserved in district-domain order
+ * (never catalog order) so each domain is a contiguous block of the district.
  */
 export function initSim(connectors: ConnectorDef[]): void {
   if (world.initialized) return
   world.connectors = connectors
+  world.absGameS = world.clock
 
   for (const c of CORE_LANDMARKS) world.buildings[c.id] = makeBuilding(c, 'core')
 
   let plotIdx = 0
-  for (const c of connectors) {
+  for (const c of connectorsByDomain(connectors)) {
     if (plotIdx >= world.plots.length) break
     const plot = world.plots[plotIdx++]
     if (c.packStatus === 'served') {
@@ -300,6 +385,7 @@ export function onboardConnector(connectorId: string): boolean {
   }
   const def = world.connectors.find((c) => c.id === connectorId)
   if (!def) return false
+  world.actions.push({ kind: 'onboard', ts: world.absGameS, target: connectorId })
   plot.reservedId = null
   plot.reservedName = null
   placeConnector(def, plot, false)
@@ -328,7 +414,7 @@ function pickBuilding(): Building | null {
     total += w
     return w
   })
-  let r = Math.random() * total
+  let r = simRandom() * total
   for (let i = 0; i < candidates.length; i++) {
     r -= weights[i]
     if (r <= 0) return candidates[i]
@@ -337,15 +423,15 @@ function pickBuilding(): Building | null {
 }
 
 function makeTask(agent: Character, building: Building): Task {
-  const tool = building.tools[Math.floor(Math.random() * building.tools.length)]
+  const tool = building.tools[Math.floor(simRandom() * building.tools.length)]
   const task: Task = {
     id: `t-${++taskSeq}`,
     agentId: agent.id,
     buildingId: building.id,
     tool,
-    approvalRequired: Math.random() < TUNING.approvalChance,
+    approvalRequired: simRandom() < TUNING.approvalChance,
     state: 'active',
-    calls: 1 + Math.floor(Math.random() * 3),
+    calls: 1 + Math.floor(simRandom() * 3),
   }
   world.tasks.unshift(task)
   if (world.tasks.length > 40) world.tasks.pop()
@@ -359,7 +445,7 @@ export function dispatchTask(agentId?: string): boolean {
   if (agent && agent.state !== 'idle') agent = null
   // The index may be undefined when the idle pool is empty; keep the check
   // honest by widening through an explicit null.
-  const fallback = idle.length ? idle[Math.floor(Math.random() * idle.length)] : null
+  const fallback = idle.length ? idle[Math.floor(simRandom() * idle.length)] : null
   agent ??= fallback
   if (!agent) {
     bus.emit(makeEvent('task.queued', {}, 'No idle agent — task will start when one is free'))
@@ -369,6 +455,7 @@ export function dispatchTask(agentId?: string): boolean {
   if (!building) return false
   const task = makeTask(agent, building)
   world.stats.dispatches++
+  world.actions.push({ kind: 'dispatch', ts: world.absGameS, target: agent.id })
   startWork(agent, task)
   bus.emit(
     makeEvent(
@@ -388,6 +475,7 @@ export function dispatchTask(agentId?: string): boolean {
 function startWork(agent: Character, task: Task): void {
   const building = world.buildings[task.buildingId]
   const refs = { character: agent.id, task: task.id, building: building.id }
+  transition(agent, 'tasked')
   if (task.approvalRequired) {
     task.state = 'pending_approval'
     const gate = doorOf(world.buildings.arbora)
@@ -395,7 +483,7 @@ function startWork(agent: Character, task: Task): void {
       gate.x,
       gate.z,
       () => {
-        agent.state = 'awaiting'
+        transition(agent, 'awaiting')
         agent.mood = 'awaiting approval'
         bus.emit(
           makeEvent(
@@ -411,6 +499,7 @@ function startWork(agent: Character, task: Task): void {
     bus.emit(assigned)
     bus.emit(makeEvent('character.traveling', refs, `${agent.name} heads to the gate for approval`))
     agent.logEvent(assigned)
+    transition(agent, 'traveling')
   } else {
     const door = doorOf(building)
     agent.go(
@@ -425,8 +514,8 @@ function startWork(agent: Character, task: Task): void {
     bus.emit(assigned)
     bus.emit(makeEvent('character.traveling', refs, `${agent.name} heads to ${building.name}`))
     agent.logEvent(assigned)
+    transition(agent, 'traveling')
   }
-  agent.state = 'tasked'
 }
 
 function beginToolCall(agent: Character): void {
@@ -435,19 +524,19 @@ function beginToolCall(agent: Character): void {
   const building = world.buildings[task.buildingId]
   if (world.firstVisit?.buildingId === task.buildingId) world.firstVisit = null
   if (agent.retryWait > 0) {
-    agent.state = 'working'
+    transition(agent, 'working')
     agent.mood = 'retrying after incident'
-    agent.callDuration = 3 + Math.random() * 2
+    agent.callDuration = 3 + simRandom() * 2
     agent.retryWait = 0
     return
   }
-  agent.state = 'working'
+  transition(agent, 'working')
   agent.mood = 'focused'
   agent.callsLeft = task.calls
   agent.workTimer = 0
-  agent.callDuration = 2.5 + Math.random() * 2.5 // real seconds
+  agent.callDuration = 2.5 + simRandom() * 2.5 // real seconds
   agent.roomTimer = 0
-  agent.roomIndex = Math.floor(Math.random() * building.rooms.length)
+  agent.roomIndex = Math.floor(simRandom() * building.rooms.length)
   world.buildings[task.buildingId].visits++
   bus.emit(
     makeEvent(
@@ -462,9 +551,9 @@ function finishToolCall(agent: Character): void {
   const task = agent.task
   if (!task) return
   const building = world.buildings[task.buildingId]
-  agent.context = Math.min(100, agent.context + 12 + Math.random() * 8)
+  agent.context = Math.min(100, agent.context + 12 + simRandom() * 8)
 
-  if (Math.random() < 0.1 && agent.callsLeft > 1) {
+  if (simRandom() < 0.1 && agent.callsLeft > 1) {
     // Incident: refused result, one retry.
     world.stats.incidents++
     building.flash = 1
@@ -488,7 +577,7 @@ function finishToolCall(agent: Character): void {
 
   agent.callsLeft--
   if (agent.context >= 85 && agent.callsLeft > 0) {
-    // Context compaction detour to the vault.
+    // Context compaction detour to the vault (traveling → committing).
     const vault = world.buildings.medulla
     const door = doorOf(vault)
     agent.commitPhase = 'compacting'
@@ -499,13 +588,14 @@ function finishToolCall(agent: Character): void {
         `${agent.name}'s context reached ${Math.round(agent.context)}% — compacting at the vault`,
       ),
     )
-    agent.state = 'committing'
+    transition(agent, 'traveling')
     agent.mood = 'compacting memory'
     agent.go(
       door.x,
       door.z,
       () => {
         agent.workTimer = 6 // real seconds of compaction
+        transition(agent, 'committing')
       },
       'compacting memory',
     )
@@ -523,7 +613,7 @@ function finishToolCall(agent: Character): void {
     commitKnowledge(agent)
   } else {
     agent.workTimer = 0
-    agent.callDuration = 2.5 + Math.random() * 2.5
+    agent.callDuration = 2.5 + simRandom() * 2.5
     bus.emit(
       makeEvent(
         'tool.call',
@@ -538,14 +628,15 @@ function commitKnowledge(agent: Character): void {
   const task = agent.task
   const vault = world.buildings.medulla
   const door = doorOf(vault)
-  agent.state = 'committing'
+  agent.commitPhase = 'committing'
+  transition(agent, 'traveling')
   agent.mood = 'committing knowledge'
   agent.go(
     door.x,
     door.z,
     () => {
       agent.workTimer = 4
-      agent.commitPhase = 'committing'
+      transition(agent, 'committing')
     },
     'committing knowledge',
   )
@@ -560,9 +651,10 @@ function commitKnowledge(agent: Character): void {
 
 function finishCommitting(agent: Character): void {
   if (agent.commitPhase === 'compacting') {
-    agent.context = 25 + Math.random() * 15
+    agent.context = 25 + simRandom() * 15
     const b = world.buildings[agent.task ? agent.task.buildingId : 'arbora']
     const door = doorOf(b)
+    transition(agent, 'traveling')
     agent.go(
       door.x,
       door.z,
@@ -588,15 +680,15 @@ function finishCommitting(agent: Character): void {
     ),
   )
   agent.task = null
-  agent.state = 'idle'
+  transition(agent, 'idle')
   agent.mood = 'wandering'
   const evt = makeEvent('character.idle', { character: agent.id }, `${agent.name} is back to idle`)
   bus.emit(evt)
   agent.logEvent(evt)
-  agent.wanderTimer = 3 + Math.random() * 8
+  agent.wanderTimer = 3 + simRandom() * 8
 }
 
-// ---- Human behaviour ------------------------------------------------------
+// ---- Simulated operator behaviour (R005/R007) ------------------------------
 
 function tickHumans(ch: Character, _dtReal: number): void {
   const night = isNight(world.clock)
@@ -609,7 +701,8 @@ function tickHumans(ch: Character, _dtReal: number): void {
       goSleep(ch)
       return
     }
-    // Resolve pending approvals at the gate.
+    // Resolve pending approvals at the gate — governed behaviour, so it runs
+    // in every activity mode (R007).
     const pending = world.tasks.find((t) => t.state === 'pending_approval')
     if (pending && ch.state !== 'awaiting') {
       const gate = doorOf(world.buildings.arbora)
@@ -618,7 +711,7 @@ function tickHumans(ch: Character, _dtReal: number): void {
         gate.x,
         gate.z,
         () => {
-          ch.state = 'awaiting'
+          transition(ch, 'awaiting')
           ch.waitTimer = 2
         },
         'approving',
@@ -627,12 +720,13 @@ function tickHumans(ch: Character, _dtReal: number): void {
     }
     if (ch.state === 'awaiting') {
       if (ch.waitTimer <= 0) {
-        ch.state = 'idle'
+        transition(ch, 'idle')
         ch.mood = 'supervising'
         const pending2 = world.tasks.find((t) => t.state === 'pending_approval')
         if (pending2) {
           world.stats.approvals++
           pending2.state = 'active'
+          world.actions.push({ kind: 'approve', ts: world.absGameS })
           const agent = world.characters.find((c) => c.id === pending2.agentId)
           const building = world.buildings[pending2.buildingId]
           bus.emit(
@@ -652,7 +746,7 @@ function tickHumans(ch: Character, _dtReal: number): void {
               },
               'en route',
             )
-            agent.state = 'tasked'
+            transition(agent, 'traveling')
             bus.emit(
               makeEvent(
                 'character.traveling',
@@ -665,14 +759,14 @@ function tickHumans(ch: Character, _dtReal: number): void {
       }
       return
     }
-    if (ch.state === 'idle' && !ch.moving() && ch.wanderTimer <= 0) {
-      // Stroll the plaza.
-      const a = Math.random() * Math.PI * 2
+    // Stroll the plaza — labelled demo behaviour only (R026).
+    if (world.activity === 'demo' && ch.state === 'idle' && !ch.moving() && ch.wanderTimer <= 0) {
+      const a = simRandom() * Math.PI * 2
       ch.go(Math.cos(a) * 5, Math.sin(a) * 5, null, 'supervising')
-      ch.wanderTimer = 8 + Math.random() * 10
+      ch.wanderTimer = 8 + simRandom() * 10
     }
   } else if (ch.rider === 'officer-meter') {
-    // Patrols the connector district by day.
+    // Patrols the connector district by day — labelled demo behaviour (R026).
     if (night) {
       if (ch.state === 'sleeping') return
       goSleep(ch)
@@ -682,17 +776,17 @@ function tickHumans(ch: Character, _dtReal: number): void {
       wakeUp(ch)
       return
     }
-    if (!ch.moving() && ch.waitTimer <= 0) {
+    if (world.activity === 'demo' && !ch.moving() && ch.waitTimer <= 0) {
       const built = world.plots.filter((p) => p.buildingId && !p.construction)
       if (built.length) {
-        const p = built[Math.floor(Math.random() * built.length)]
+        const p = built[Math.floor(simRandom() * built.length)]
         const b = world.buildings[p.buildingId!]
         const door = doorOf(b)
         ch.go(
           door.x,
           door.z,
           () => {
-            ch.waitTimer = 4 + Math.random() * 4
+            ch.waitTimer = 4 + simRandom() * 4
           },
           'patrolling',
         )
@@ -701,7 +795,7 @@ function tickHumans(ch: Character, _dtReal: number): void {
       }
     }
   } else if (ch.rider === 'pivot') {
-    // Nightshift: sleeps by day, patrols by night.
+    // Nightshift: sleeps by day, patrols by night (demo behaviour, R026).
     if (!night) {
       if (ch.state === 'sleeping') return
       goSleep(ch)
@@ -711,15 +805,15 @@ function tickHumans(ch: Character, _dtReal: number): void {
       wakeUp(ch)
       return
     }
-    if (!ch.moving() && ch.waitTimer <= 0) {
+    if (world.activity === 'demo' && !ch.moving() && ch.waitTimer <= 0) {
       const arboraDoor = buildingDoor('arbora') ?? { x: 0, z: 0 }
       const spots = [arboraDoor, { x: -45, z: -45 }, { x: -65, z: 30 }, { x: -5, z: 15 }]
-      const s = spots[Math.floor(Math.random() * spots.length)]
+      const s = spots[Math.floor(simRandom() * spots.length)]
       ch.go(
         s.x,
         s.z,
         () => {
-          ch.waitTimer = 5 + Math.random() * 5
+          ch.waitTimer = 5 + simRandom() * 5
         },
         'night patrol',
       )
@@ -729,7 +823,7 @@ function tickHumans(ch: Character, _dtReal: number): void {
 
 function goSleep(ch: Character): void {
   if (ch.state === 'sleeping' || ch.moving()) return
-  ch.state = 'sleeping'
+  transition(ch, 'sleeping')
   ch.mood = 'recharging'
   ch.go(
     ch.homeDoor.x,
@@ -746,9 +840,9 @@ function wakeUp(ch: Character): void {
   if (ch.state !== 'sleeping') return
   ch.visible = true
   ch.pos = { ...ch.homeDoor }
-  ch.state = 'idle'
-  ch.mood = ch.kind === 'human' ? 'supervising' : 'wandering'
-  ch.wanderTimer = 2 + Math.random() * 6
+  transition(ch, 'idle')
+  ch.mood = ch.kind === 'npc' ? 'supervising' : 'wandering'
+  ch.wanderTimer = 2 + simRandom() * 6
   bus.emit(makeEvent('character.waking', { character: ch.id }, `${ch.name} is up and about`))
 }
 
@@ -763,8 +857,7 @@ function tickAgent(ch: Character, dtReal: number): void {
   }
 
   // Night commute: finish the current tool call, then head home.
-  if (night && (ch.state === 'idle' || ch.state === 'tasked' || ch.state === 'awaiting')) {
-    if (ch.state === 'awaiting') ch.state = 'tasked'
+  if (night && (ch.state === 'idle' || ch.state === 'tasked' || ch.state === 'traveling' || ch.state === 'awaiting')) {
     if (!ch.moving()) goSleep(ch)
     return
   }
@@ -781,17 +874,18 @@ function tickAgent(ch: Character, dtReal: number): void {
   switch (ch.state) {
     case 'idle': {
       ch.wanderTimer -= dtReal
-      if (!ch.moving() && ch.wanderTimer <= 0) {
+      // Wandering is labelled demo behaviour (R026): quiet agents stand by.
+      if (world.activity === 'demo' && !ch.moving() && ch.wanderTimer <= 0) {
         // Stroll: plaza, a park, or the waterfront.
         const spots = [
-          [Math.random() * 10 - 5, Math.random() * 10 - 5],
-          [12 + Math.random() * 6, -8 + Math.random() * 6],
-          [22 + Math.random() * 6, -28 + Math.random() * 6],
-          [-8 + Math.random() * 6, 12 + Math.random() * 6],
+          [simRandom() * 10 - 5, simRandom() * 10 - 5],
+          [12 + simRandom() * 6, -8 + simRandom() * 6],
+          [22 + simRandom() * 6, -28 + simRandom() * 6],
+          [-8 + simRandom() * 6, 12 + simRandom() * 6],
         ]
-        const s = spots[Math.floor(Math.random() * spots.length)]
+        const s = spots[Math.floor(simRandom() * spots.length)]
         ch.go(s[0], s[1], null)
-        ch.wanderTimer = 6 + Math.random() * 8
+        ch.wanderTimer = 6 + simRandom() * 8
       }
       break
     }
@@ -818,6 +912,7 @@ function tickAgent(ch: Character, dtReal: number): void {
       break
     }
     case 'tasked':
+    case 'traveling':
     case 'awaiting':
       break // arrival hooks drive the next state
     default:
@@ -829,6 +924,7 @@ function tickAgent(ch: Character, dtReal: number): void {
 
 export function tickSim(dtGame: number, dtReal: number): void {
   world.clock += dtGame
+  world.absGameS += dtGame
   if (world.clock >= 86400) {
     world.clock -= 86400
     world.day++
@@ -837,22 +933,28 @@ export function tickSim(dtGame: number, dtReal: number): void {
   // Auto tasking (daytime only, bounded concurrency).
   autoTaskTimer -= dtReal
   if (autoTaskTimer <= 0) {
-    autoTaskTimer = AUTO_TASK_MIN + Math.random() * (AUTO_TASK_MAX - AUTO_TASK_MIN)
+    autoTaskTimer = AUTO_TASK_MIN + simRandom() * (AUTO_TASK_MAX - AUTO_TASK_MIN)
     if (!isNight(world.clock)) {
-      const active = world.characters.filter(
-        (c) => c.kind === 'ai' && ['tasked', 'working', 'committing', 'awaiting'].includes(c.state),
-      ).length
-      if (active < 6) {
-        const idle = world.characters.filter((c) => c.kind === 'ai' && c.state === 'idle')
-        if (idle.length) {
-          const agent = idle[Math.floor(Math.random() * idle.length)]
-          // A freshly completed building is owed its first visit.
-          const owed = world.firstVisit ? world.buildings[world.firstVisit.buildingId] : null
-          const building = owed ?? pickBuilding()
+      const idle = world.characters.filter((c) => c.kind === 'ai' && c.state === 'idle')
+      const owed = world.firstVisit ? world.buildings[world.firstVisit.buildingId] : null
+      if (owed && idle.length) {
+        // A freshly completed building is owed its first visit — real
+        // activity, so it is dispatched in every mode (R008).
+        const agent = idle[Math.floor(simRandom() * idle.length)]
+        const task = makeTask(agent, owed)
+        startWork(agent, task)
+        world.firstVisit = null
+      } else if (world.activity === 'demo') {
+        // Continuous auto-tasking is labelled demo behaviour (R026).
+        const active = world.characters.filter(
+          (c) => c.kind === 'ai' && ['tasked', 'working', 'committing', 'awaiting'].includes(c.state),
+        ).length
+        if (active < 6 && idle.length) {
+          const agent = idle[Math.floor(simRandom() * idle.length)]
+          const building = pickBuilding()
           if (building) {
             const task = makeTask(agent, building)
             startWork(agent, task)
-            if (owed) world.firstVisit = null
           }
         }
       }
@@ -909,6 +1011,8 @@ export function getBuilding(id: string): Building | undefined {
 export function resetSim(): void {
   world.day = 1
   world.clock = 9 * 3600
+  world.absGameS = 9 * 3600
+  world.activity = 'quiet'
   world.characters = []
   world.buildings = {}
   world.plots = PLOTS.map((p) => ({
@@ -920,9 +1024,11 @@ export function resetSim(): void {
     construction: null,
   }))
   world.tasks = []
+  world.actions = []
   world.stats = { knowledge: 0, toolCalls: 0, tasksDone: 0, incidents: 0, approvals: 0, dispatches: 0 }
   world.firstVisit = null
   world.connectors = []
   world.initialized = false
   autoTaskTimer = 5
+  taskSeq = 0
 }

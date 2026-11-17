@@ -20,9 +20,10 @@ interface PinSpec {
   source_path: string
   sha256: string
   bytes: number
+  license: string
 }
 
-let lock: { files: Record<string, PinSpec> }
+let lock: { files: Record<string, PinSpec>; license_allowlist: string[] }
 
 beforeAll(() => {
   const raw = JSON.parse(readFileSync(join(ASSETS_DIR, 'city-assets', 'assets.lock.json'), 'utf8'))
@@ -42,6 +43,37 @@ describe('lockfile (R013)', () => {
     expect(paths).toHaveLength(18)
     expect(paths).toContain('city-assets/riders/player.glb')
     for (const p of paths) expect(p.startsWith('city-assets/')).toBe(true)
+  })
+
+  it('every pin carries a license inside the lockfile allowlist (R013 gate)', () => {
+    expect(lock.license_allowlist.length).toBeGreaterThan(0)
+    for (const [path, spec] of Object.entries(lock.files)) {
+      expect(spec.license.length, `${path}: missing license`).toBeGreaterThan(0)
+      expect(lock.license_allowlist, `${path}: license "${spec.license}" outside the allowlist`).toContain(
+        spec.license,
+      )
+    }
+  })
+
+  it('the schema requires the per-file license and a non-empty allowlist', () => {
+    // A pin without a license fails the schema (licensing is a gate, not a note).
+    const noLicense = {
+      files: { 'x.glb': { source_path: 'x.glb', sha256: 'a'.repeat(64), bytes: 10 } },
+      license_allowlist: ['MIT'],
+    }
+    expect(assetsLockSchema.safeParse(noLicense).success).toBe(false)
+    // An empty allowlist fails the schema.
+    const noAllowlist = {
+      files: { 'x.glb': { source_path: 'x.glb', sha256: 'a'.repeat(64), bytes: 10, license: 'MIT' } },
+      license_allowlist: [],
+    }
+    expect(assetsLockSchema.safeParse(noAllowlist).success).toBe(false)
+    // A well-formed lock parses.
+    const ok = {
+      files: { 'x.glb': { source_path: 'x.glb', sha256: 'a'.repeat(64), bytes: 10, license: 'MIT' } },
+      license_allowlist: ['MIT', 'CC0-1.0'],
+    }
+    expect(assetsLockSchema.safeParse(ok).success).toBe(true)
   })
 
   it('verifies every pinned file: byte count and SHA-256 (18/18)', () => {

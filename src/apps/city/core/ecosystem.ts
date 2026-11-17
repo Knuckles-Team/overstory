@@ -267,13 +267,127 @@ export function fleetToConnectors(fleet: FleetServer[]): ConnectorDef[] {
     })
 }
 
+// ---- District domains (R002 amendment) -------------------------------------
+// The connector district is grouped by business domain, not catalog order, so
+// the map's geography itself carries meaning. A connector's domain is picked
+// from keywords in its name; names matching no keyword fall to `general`. The
+// sim reserves plots in this domain order (stable within a domain), and
+// layout.ts derives the district's plot bands from this list.
+export interface DistrictDomain {
+  id: string
+  /** A connector joins this domain when its name contains one of these. */
+  keywords: string[]
+}
+
+export const CONNECTOR_DISTRICT: readonly DistrictDomain[] = [
+  {
+    id: 'data',
+    keywords: [
+      'sql',
+      'document',
+      'vector',
+      'kafka',
+      'jena',
+      'lakekeeper',
+      'data-science',
+      'egeria',
+      'spark',
+      'lucerna',
+      'scholarx',
+    ],
+  },
+  {
+    id: 'dev',
+    keywords: [
+      'github',
+      'gitlab',
+      'docker',
+      'container',
+      'atlassian',
+      'camunda',
+      'ansible',
+      'plane',
+      'microsoft',
+      'repository',
+      'leanix',
+      'archimate',
+      'caddy',
+      'cloudflare',
+      'portainer',
+      'langfuse',
+      'systems-manager',
+      'technitium',
+      'tunnel',
+    ],
+  },
+  {
+    id: 'security',
+    keywords: ['openbao', 'keycloak', 'okta', 'vaultwarden', 'ciso', 'onetrust', 'lgtm', 'legal'],
+  },
+  {
+    id: 'media',
+    keywords: [
+      'audio',
+      '-arr-',
+      'audiobookshelf',
+      'jellyfin',
+      'media-downloader',
+      'owncast',
+      'craft',
+      'qbittorrent',
+      'rom-manager',
+    ],
+  },
+  {
+    id: 'documents',
+    keywords: ['paperless', 'stirlingpdf', 'archivebox', 'webarchiver', 'nextcloud', 'objectstore', 'gramps'],
+  },
+  {
+    id: 'comms',
+    keywords: ['mattermost', 'listmonk', 'postiz', 'freshrss', 'salesforce', 'servicenow', 'fan-manager'],
+  },
+  {
+    id: 'home',
+    keywords: ['home-assistant', 'mealie', 'wger', 'erpnext', 'firefly'],
+  },
+  { id: 'general', keywords: [] },
+]
+
+/** The business domain a connector name belongs to (R002). */
+export function domainOf(server: string): string {
+  for (const d of CONNECTOR_DISTRICT) {
+    if (d.keywords.some((k) => server.includes(k))) return d.id
+  }
+  return 'general'
+}
+
+/**
+ * Connectors ordered by district domain (stable within each domain, so the
+ * catalog order still decides the sequence inside a domain). The sim places
+ * plots in this order — never in raw catalog order — so each domain is a
+ * contiguous block of the district (R002).
+ */
+export function connectorsByDomain(connectors: ConnectorDef[]): ConnectorDef[] {
+  const order = CONNECTOR_DISTRICT.map((d) => d.id)
+  return connectors
+    .map((c, i) => ({ c, i }))
+    .sort((a, b) => {
+      const da = order.indexOf(domainOf(a.c.id))
+      const db = order.indexOf(domainOf(b.c.id))
+      return da !== db ? da - db : a.i - b.i
+    })
+    .map((e) => e.c)
+}
+
 // ---- Roster: every pinned rider becomes one citizen ------------------------
-// kind "human" marks real operators; everyone else is an AI agent from the
-// harness. Character names come from the vendored asset pack, never from
-// operator identities (OVERSTORY-CITY-R017).
+// kind "npc" marks the simulated operator characters (fixed characters, not
+// real operators — labelled simulated in the badge and inspector until real
+// presence lands, R023); everyone else is an AI agent from the harness.
+// Character names come from the vendored asset pack, never from operator
+// identities (OVERSTORY-CITY-R017).
 
 export interface RosterEntry {
-  kind: 'ai' | 'human'
+  kind: 'ai' | 'npc'
   rider: string
   name: string
   hue: number
@@ -282,25 +396,25 @@ export interface RosterEntry {
 
 export const ROSTER: RosterEntry[] = [
   {
-    kind: 'human',
+    kind: 'npc',
     rider: 'the-mayor',
     name: 'The Mayor',
     hue: 0.02,
-    role: 'Chief operator — dispatches and approves',
+    role: 'Simulated chief operator — dispatches and approves',
   },
   {
-    kind: 'human',
+    kind: 'npc',
     rider: 'officer-meter',
     name: 'Officer Meter',
     hue: 0.07,
-    role: 'Fleet supervisor — patrols the connector district',
+    role: 'Simulated fleet supervisor — patrols the connector district',
   },
   {
-    kind: 'human',
+    kind: 'npc',
     rider: 'pivot',
     name: 'Nightshift',
     hue: 0.12,
-    role: 'Night operator — works while the city sleeps',
+    role: 'Simulated night operator — works while the city sleeps',
   },
   { kind: 'ai', rider: 'chad-speedwell', name: 'Chad Speedwell', hue: 0.05 },
   { kind: 'ai', rider: 'deacon-vane', name: 'Deacon Vane', hue: 0.11 },

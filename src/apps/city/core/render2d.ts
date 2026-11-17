@@ -5,6 +5,7 @@
  * view over the shared world state, never a second system.
  */
 import { X_ROADS, Z_ROADS, WATER_Z, PLOT_W, HOUSES, PARKS, PIER } from './layout'
+import { encodingColor } from './encoding'
 import { world as simWorld } from './sim'
 import type { CityRenderer, SelectionHit } from './types'
 
@@ -25,6 +26,7 @@ export function supportsWebGL(): boolean {
 const STATE_COLORS: Record<string, string> = {
   idle: '#8a94a8',
   tasked: '#5ea0ff',
+  traveling: '#5ea0ff',
   working: '#ffd166',
   committing: '#b08cff',
   sleeping: '#4a5568',
@@ -146,7 +148,8 @@ export function init2D(
       ctx.fillStyle = plot.construction ? 'rgba(199,162,74,0.4)' : 'rgba(255,255,255,0.07)'
       ctx.fillRect(x, z, PLOT_W * scale, PLOT_W * scale)
       if (plot.construction) {
-        ctx.fillStyle = '#c7a24a'
+        // Scaffolding colour comes from the one encoding table (R025).
+        ctx.fillStyle = `#${encodingColor('scaffolding').toString(16).padStart(6, '0')}`
         const p = plot.construction.progress
         ctx.fillRect(x, z + (1 - p) * PLOT_W * scale, PLOT_W * scale, p * PLOT_W * scale)
       }
@@ -180,11 +183,11 @@ export function init2D(
       if (!ch.visible) continue
       const x = px(ch.pos.x)
       const z = pz(ch.pos.z)
-      ctx.fillStyle = ch.kind === 'human' ? '#ffd166' : (STATE_COLORS[ch.state] ?? '#8a94a8')
+      ctx.fillStyle = ch.kind === 'npc' ? '#ffd166' : (STATE_COLORS[ch.state] ?? '#8a94a8')
       ctx.beginPath()
       ctx.arc(x, z, Math.max(3, scale * 0.9), 0, Math.PI * 2)
       ctx.fill()
-      if (ch.kind === 'human') {
+      if (ch.kind === 'npc') {
         ctx.strokeStyle = '#fff'
         ctx.lineWidth = 1.5
         ctx.stroke()

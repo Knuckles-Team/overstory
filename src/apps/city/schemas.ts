@@ -39,10 +39,17 @@ export const assetsLockPinSchema = z.object({
   source_path: z.string().min(1),
   sha256: z.string().length(64),
   bytes: z.number().int().positive(),
+  /** The asset's own license — the generator model's terms, for generated assets. */
+  license: z.string().min(1),
 })
 
 export const assetsLockSchema = z.object({
   files: z.record(z.string(), assetsLockPinSchema),
+  /**
+   * The license allowlist (R013 amendment): licensing is a gate, not a note —
+   * startup verification refuses any pin whose license is outside this list.
+   */
+  license_allowlist: z.array(z.string().min(1)).min(1),
 })
 
 export type FleetServer = z.infer<typeof fleetServerSchema>

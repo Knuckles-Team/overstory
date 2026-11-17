@@ -1,36 +1,40 @@
 /**
  * @file sim.test.ts
- * @description The simulation engine (OVERSTORY-CITY-R005…R009, R011,
- * R012) under deterministic seeded ticks: the boot population, the full
- * task chain within its real-time bound, construction and first-visit
- * bounds, the day/night cycle, speed semantics and the selection API.
- * `Math.random` is an LCG so every bound is reproducible.
+ * @description The simulation engine (OVERSTORY-CITY-R002/R005…R012, R014,
+ * R026, R029) under deterministic seeded ticks: the boot population, the
+ * guarded state machine, quiet-by-default activity gating, the full task
+ * chain within its real-time bound, construction and first-visit bounds, the
+ * day/night cycle, speed semantics, the selection API and the deterministic
+ * replay of recorded operator actions.
+ *
+ * The simulation draws only through the injected seeded PRNG (R014) — tests
+ * replace it with an identically-seeded instance so every bound is
+ * reproducible, and they assert `Math.random` is never called in the sim.
  */
-// spec: OVERSTORY-CITY-R005, OVERSTORY-CITY-R006, OVERSTORY-CITY-R007, OVERSTORY-CITY-R008, OVERSTORY-CITY-R009, OVERSTORY-CITY-R011, OVERSTORY-CITY-R012
+// spec: OVERSTORY-CITY-R002, OVERSTORY-CITY-R005, OVERSTORY-CITY-R006, OVERSTORY-CITY-R007, OVERSTORY-CITY-R008, OVERSTORY-CITY-R009, OVERSTORY-CITY-R011, OVERSTORY-CITY-R012, OVERSTORY-CITY-R014, OVERSTORY-CITY-R026, OVERSTORY-CITY-R029
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { FLEET_SNAPSHOT, fleetToConnectors } from '../core/ecosystem'
-import { EVENT_TYPES, bus } from '../core/events'
+import { FLEET_SNAPSHOT, connectorsByDomain, fleetToConnectors } from '../core/ecosystem'
+import { EVENT_TYPES, bus, setTimeSource } from '../core/events'
 import { inWater } from '../core/layout'
+import { DEFAULT_SEED, mulberry32 } from '../core/prng'
+import { REPLAY_DEFAULT_DURATION_GAME_S, replayRun } from '../core/replay'
 import {
+  AGENT_STATES,
+  AGENT_TRANSITIONS,
   TUNING,
+  canTransition,
   dispatchTask,
   getBuilding,
   getCharacter,
   initSim,
   onboardConnector,
   resetSim,
+  setActivity,
+  setSimRandom,
   tickSim,
+  transition,
   world,
 } from '../core/sim'
-import { setTimeSource } from '../core/events'
-
-function lcg(seed: number): () => number {
-  let s = seed >>> 0
-  return () => {
-    s = (s * 1664525 + 1013904223) >>> 0
-    return s / 4294967296
-  }
-}
 
 const STEP = 1 / 30 // real (wall) seconds per tick
 let wall = 0 // wall seconds ticked so far
@@ -46,7 +50,7 @@ beforeEach(() => {
   bus.reset()
   resetSim()
   wall = 0
-  vi.spyOn(Math, 'random').mockImplementation(lcg(20261115))
+  setSimRandom(mulberry32(DEFAULT_SEED))
   setTimeSource(() => world.clock)
 })
 
@@ -58,14 +62,23 @@ function boot(): void {
   initSim(fleetToConnectors(FLEET_SNAPSHOT))
 }
 
+function positions(): [number, number][] {
+  return world.characters.map((c) => [c.pos.x, c.pos.z])
+}
+
 describe('boot state (R005/R002/R004)', () => {
-  it('spawns the pinned roster: 17 characters, 14 AI + 3 human', () => {
+  it('spawns the pinned roster: 17 characters, 14 AI + 3 simulated NPC operators', () => {
     boot()
     const ai = world.characters.filter((c) => c.kind === 'ai').length
-    const humans = world.characters.filter((c) => c.kind === 'human').length
+    const npc = world.characters.filter((c) => c.kind === 'npc').length
     expect(world.characters).toHaveLength(17)
     expect(ai).toBe(14)
-    expect(humans).toBe(3)
+    expect(npc).toBe(3)
+    // Every v1 character is labelled simulated until real presence lands (R010).
+    expect(world.characters.every((c) => c.provenance === 'simulated')).toBe(true)
+    for (const c of world.characters.filter((x) => x.kind === 'npc')) {
+      expect(c.role).toContain('Simulated')
+    }
   })
 
   it('builds the seven core landmarks, each with a door', () => {
@@ -97,6 +110,105 @@ describe('boot state (R005/R002/R004)', () => {
     expect(reserved).toHaveLength(67)
     expect(reserved.every((p) => !p.buildingId && !p.construction)).toBe(true)
     expect(world.plots.find((p) => p.reservedId === 'searxng-mcp')?.reservedName).toBe('Searxng')
+  })
+
+  it('reserves plots in district-domain order, never catalog order (R002)', () => {
+    boot()
+    const order = connectorsByDomain(fleetToConnectors(FLEET_SNAPSHOT)).map((c) => c.id)
+    const plotIndex = new Map<string, number>()
+    world.plots.forEach((p, i) => {
+      if (p.buildingId) plotIndex.set(p.buildingId, i)
+      if (p.reservedId) plotIndex.set(p.reservedId, i)
+    })
+    expect(plotIndex.size).toBe(74)
+    // The plot sequence follows the domain-grouped order exactly.
+    let prev = -1
+    for (const id of order) {
+      const i = plotIndex.get(id)
+      expect(i, `${id} missing from the plots`).toBeTypeOf('number')
+      expect(i, `${id} out of domain order`).toBeGreaterThan(prev)
+      prev = i!
+    }
+  })
+})
+
+describe('state machine (R006)', () => {
+  it('declares the full state set, and every state can reach sleep', () => {
+    expect(AGENT_STATES).toEqual(['idle', 'tasked', 'traveling', 'working', 'committing', 'awaiting', 'sleeping'])
+    for (const from of AGENT_STATES) {
+      const targets = AGENT_TRANSITIONS[from]
+      expect(targets).toBeDefined()
+      for (const to of targets) expect(AGENT_STATES).toContain(to)
+      expect(canTransition(from, 'sleeping'), `${from} cannot sleep`).toBe(true)
+    }
+  })
+
+  it('declares the legal lifecycle path end to end', () => {
+    expect(canTransition('idle', 'tasked')).toBe(true)
+    expect(canTransition('tasked', 'traveling')).toBe(true)
+    expect(canTransition('traveling', 'working')).toBe(true)
+    expect(canTransition('working', 'committing')).toBe(true)
+    expect(canTransition('committing', 'idle')).toBe(true)
+  })
+
+  it('refuses an illegal transition with a visible queued event, never a silent write', () => {
+    boot()
+    const ch = getCharacter('chad-speedwell')
+    expect(ch?.state).toBe('idle')
+    const queued: string[] = []
+    bus.subscribe((e) => {
+      if (e.type === 'task.queued') queued.push(e.detail ?? '')
+    })
+    expect(transition(ch!, 'working')).toBe(false) // idle → working is not declared
+    expect(ch?.state).toBe('idle') // the refused change is not written
+    expect(queued.some((d) => d.includes('refused'))).toBe(true)
+  })
+
+  it('allows a declared transition', () => {
+    boot()
+    const ch = getCharacter('chad-speedwell')
+    expect(transition(ch!, 'tasked')).toBe(true)
+    expect(ch?.state).toBe('tasked')
+  })
+})
+
+describe('quiet by default (R026)', () => {
+  it('boots quiet: no auto-task, no wander, no patrol without an operator action', () => {
+    boot()
+    expect(world.activity).toBe('quiet')
+    const types: string[] = []
+    bus.subscribe((e) => types.push(e.type))
+    // AI agents hold their ground in quiet: no wandering, no tasks. The
+    // night operator walking home by day is governed citizen behaviour, so
+    // the stillness bound is asserted on the AI agents.
+    const start = world.characters.filter((c) => c.kind === 'ai').map((c) => [c.pos.x, c.pos.z] as [number, number])
+    tick(1800) // 60 real s at 1×
+    expect(types).not.toContain('task.assigned') // no auto-tasking
+    expect(types).not.toContain('character.traveling') // no wandering
+    const now = world.characters.filter((c) => c.kind === 'ai').map((c) => [c.pos.x, c.pos.z] as [number, number])
+    expect(now).toEqual(start)
+  })
+
+  it('demo restores the continuous behaviour: auto-tasking and wander motion', () => {
+    boot()
+    setActivity('demo')
+    expect(world.activity).toBe('demo')
+    const assigned: string[] = []
+    bus.subscribe((e) => {
+      if (e.type === 'task.assigned') assigned.push(e.character ?? '')
+    })
+    const start = positions()
+    tick(1500) // 50 real s at 1×
+    expect(assigned.length).toBeGreaterThan(0)
+    expect(positions()).not.toEqual(start)
+  })
+
+  it('setActivity toggles the mode and resetSim returns to quiet', () => {
+    boot()
+    setActivity('demo')
+    expect(world.activity).toBe('demo')
+    resetSim()
+    expect(world.activity).toBe('quiet')
   })
 })
 
@@ -221,6 +333,7 @@ describe('SC-003: construction and first visit (R008)', () => {
 describe('day/night cycle (R009) — SC-005 full day at 4x', () => {
   it('runs a complete day at 4x in ~2.5 real minutes with all invariants holding', () => {
     boot()
+    setActivity('demo') // continuous behaviour; the sleep/wake cycle itself is governed
     const dayStart = world.day
     const clockStart = world.clock
     const stats0 = { ...world.stats }
@@ -253,6 +366,7 @@ describe('day/night cycle (R009) — SC-005 full day at 4x', () => {
 
   it('no new tasks start at night', () => {
     boot()
+    setActivity('demo') // auto-tasking is the behaviour under test at night
     world.clock = 22 * 3600
     const assigned: string[] = []
     bus.subscribe((e) => {
@@ -260,6 +374,93 @@ describe('day/night cycle (R009) — SC-005 full day at 4x', () => {
     })
     tick(30 * 30) // 30 real s at 1x (43 in-game minutes, still night)
     expect(assigned).toHaveLength(0)
+  })
+})
+
+describe('seeded PRNG (R014)', () => {
+  it('the simulation never calls Math.random', () => {
+    const spy = vi.spyOn(Math, 'random')
+    boot()
+    dispatchTask()
+    tick(900) // 30 real s of full behaviour
+    expect(spy).not.toHaveBeenCalled()
+  })
+
+  it('the same seed boots the identical city', () => {
+    boot()
+    const a = world.characters.map((c) => ({
+      id: c.id,
+      context: c.context,
+      walkPhase: c.walkPhase,
+      wanderTimer: c.wanderTimer,
+      pos: c.pos,
+    }))
+    resetSim()
+    setSimRandom(mulberry32(DEFAULT_SEED))
+    initSim(fleetToConnectors(FLEET_SNAPSHOT))
+    const b = world.characters.map((c) => ({
+      id: c.id,
+      context: c.context,
+      walkPhase: c.walkPhase,
+      wanderTimer: c.wanderTimer,
+      pos: c.pos,
+    }))
+    expect(b).toEqual(a)
+  })
+})
+
+describe('replay (R029)', () => {
+  // Compare runs by their observable content, not bus-assigned ids: the
+  // module-level id counter keeps incrementing across runs by design.
+  const sig = (
+    events: {
+      type: string
+      ts?: number
+      detail?: string
+      character?: string
+      building?: string
+      provenance: string
+    }[],
+  ) => events.map((e) => [e.type, e.ts, e.detail, e.character, e.building, e.provenance])
+
+  it('records operator actions with their in-game timestamps', () => {
+    boot()
+    expect(dispatchTask()).toBe(true)
+    expect(onboardConnector('searxng-mcp')).toBe(true)
+    expect(world.actions).toEqual([
+      { kind: 'dispatch', ts: 9 * 3600, target: expect.any(String) },
+      { kind: 'onboard', ts: 9 * 3600, target: 'searxng-mcp' },
+    ])
+  })
+
+  it('the same seed plus the same recorded actions yields the identical event sequence', () => {
+    boot()
+    dispatchTask()
+    const actions = world.actions.slice()
+    bus.reset()
+    const a = replayRun(actions)
+    const b = replayRun(actions)
+    expect(a.events.length).toBeGreaterThan(0)
+    expect(a.events.some((e) => e.type === 'task.assigned')).toBe(true)
+    expect(sig(a.events)).toEqual(sig(b.events))
+    // The fixed schedule: ~300 in-game seconds of city life.
+    expect(a.finalAbsGameS).toBe(9 * 3600 + REPLAY_DEFAULT_DURATION_GAME_S)
+  })
+
+  it('scrubbing to a recorded action reproduces the state deterministically', () => {
+    boot()
+    dispatchTask()
+    const actions = world.actions.slice()
+    const until = actions[0].ts - 9 * 3600 + 5 // one fixed tick past the dispatch
+    const snapshot = () => ({
+      stats: { ...world.stats },
+      states: world.characters.map((c) => [c.id, c.state] as [string, string]),
+      absGameS: world.absGameS,
+    })
+    replayRun(actions, { durationGameS: until, dtGame: 5 })
+    const s1 = snapshot()
+    replayRun(actions, { durationGameS: until, dtGame: 5 })
+    expect(snapshot()).toEqual(s1)
   })
 })
 
@@ -307,6 +508,8 @@ describe('selection API (R011)', () => {
     expect(ch?.name).toBe('Chad Speedwell')
     expect(ch?.kind).toBe('ai')
     expect(ch?.state).toBe('idle')
+    const mayor = getCharacter('the-mayor')
+    expect(mayor?.kind).toBe('npc')
     const building = getBuilding('sql-mcp')
     expect(building?.name).toBe('Sql')
     expect(building?.category).toBe('connector')

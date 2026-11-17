@@ -1,6 +1,12 @@
 // The single typed event bus. Every visible behaviour in the city is driven
-// by an event emitted here (OVERSTORY-CITY-R010). Simulation and the live
+// by a event emitted here (OVERSTORY-CITY-R010). Simulation and the live
 // bridge emit the same vocabulary.
+//
+// Provenance (R010 amendment): every event carries a `provenance` flag —
+// `simulated` or `live`. In this delivery every event the simulation emits is
+// `simulated`; only an external live stream (R020, not yet landed) injects
+// `live` events. While the recent ring is entirely simulated the feed shows a
+// "simulated activity" badge; it clears only once a live event lands.
 
 export const EVENT_TYPES = [
   'character.spawned',
@@ -29,6 +35,8 @@ export const EVENT_TYPES = [
 
 export type EventType = (typeof EVENT_TYPES)[number]
 
+export type EventProvenance = 'simulated' | 'live'
+
 export interface CityEvent {
   id?: string
   type: string
@@ -38,6 +46,8 @@ export interface CityEvent {
   task?: string
   mode?: string
   detail?: string
+  /** Where this event came from: the seeded simulation, or the live stream. */
+  provenance: EventProvenance
 }
 
 type Listener = (evt: CityEvent) => void
@@ -92,8 +102,9 @@ export function makeEvent(type: string, refs: Partial<CityEvent> = {}, detail = 
     console.warn('[events] unknown type', type)
   }
   // ts is assigned by emit() from the active time source (in-game clock);
-  // callers may override it explicitly.
-  return { type, ...refs, detail }
+  // callers may override it explicitly. Provenance defaults to the seeded
+  // simulation; the live bridge stamps its own (R010).
+  return { type, ...refs, detail, provenance: refs.provenance ?? 'simulated' }
 }
 
 // ---- Mode + live bridge hook -----------------------------------------------
@@ -120,18 +131,29 @@ export function getMode(): 'simulated' | 'live' {
 
 /**
  * Inject an external (live) event. Shape: { type, character?, building?,
- * task?, detail?, ts? }. Returns true when accepted.
+ * task?, detail?, ts? }. Returns true when accepted. Live events are stamped
+ * `provenance: 'live'` so the feed can tell them apart from the simulation
+ * (R010) — the caller never sets it.
  */
-export function injectLive(evt: CityEvent | null | undefined): boolean {
+export function injectLive(evt: (Partial<CityEvent> & { type: string }) | null | undefined): boolean {
   if (!evt || typeof evt.type !== 'string') return false
   if (!(EVENT_TYPES as readonly string[]).includes(evt.type)) {
     droppedExternal++
     return false
   }
-  emit({ ...evt, ts: evt.ts ?? 0 })
+  emit({ ...evt, ts: evt.ts ?? 0, provenance: 'live' })
   return true
 }
 
 export function externalDropped(): number {
   return droppedExternal
+}
+
+/**
+ * True while the recent ring holds only simulated events — the condition the
+ * feed badge ("simulated activity") shows on. It clears the first time a live
+ * event lands (R020), never before.
+ */
+export function feedFullySimulated(): boolean {
+  return recent.every((e) => e.provenance === 'simulated')
 }
