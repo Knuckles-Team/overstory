@@ -2,7 +2,7 @@
 
 Governing spec: [spec.md](spec.md). Design: [plan.md](plan.md). Rows: [requirements.md](requirements.md).
 
-Producer first: the fleet seam (R003) and the world producers (R002, R004, R005) land before the simulation that consumes them, and the page shell (R001, R014, R016) lands last. Follow-on rows (R019–R024) are specified, not scheduled for this delivery.
+Producer first: the fleet seam (R003) and the world producers (R002, R004, R005) land before the simulation that consumes them, and the page shell (R001, R014, R016) lands last. Follow-on rows (R019–R024) are specified, not scheduled for this delivery. The 2026-11-17 review amendments (T025–T038) land after the v1 foundation: the encoding table and renderer split first, then the host-cache amendment, the sim amendments (state machine, provenance, PRNG, quiet/demo, replay), the accessibility work, and the tour last.
 
 - [x] T001 OVERSTORY-CITY-R002 Fleet-driven connector district. Touches `src/apps/city/core/ecosystem.ts`, `src/apps/city/core/layout.ts`.
 - [x] T002 OVERSTORY-CITY-R004 Seven core landmarks. Touches `src/apps/city/core/ecosystem.ts`.
@@ -28,3 +28,17 @@ Producer first: the fleet seam (R003) and the world producers (R002, R004, R005)
 - [ ] T022 OVERSTORY-CITY-R022 Follow-on: prompt-driven NPC dialogue (no v1 code).
 - [ ] T023 OVERSTORY-CITY-R023 Follow-on: human visitor presence (no v1 code).
 - [ ] T024 OVERSTORY-CITY-R024 Follow-on: asset scale-out through provenance (no v1 code).
+- [ ] T025 OVERSTORY-CITY-R025 Visual encoding table and HUD legend; split `render3d.ts` into the `render3d/` modules (scene, labels, buildings, characters, picking) behind the facade. Touches `src/apps/city/core/encoding.ts`, `src/apps/city/core/render3d/`, `src/apps/city/core/render2d.ts`, `src/apps/city/core/ui.ts`.
+- [ ] T026 OVERSTORY-CITY-R026 Quiet-by-default activity with the labelled demo mode. Touches `src/apps/city/core/sim.ts`, `src/apps/city/core/ui.ts`, `src/apps/city/components/CityPage.tsx`.
+- [ ] T027 OVERSTORY-CITY-R027 Keyboard accessibility for the population list, inspector, modal and the 3D/2D toggle. Touches `src/apps/city/components/CityPage.tsx`, `src/apps/city/core/ui.ts`.
+- [ ] T028 OVERSTORY-CITY-R028 Performance budgets as acceptance criteria, checked in tests against the bundled snapshot. Touches `src/apps/city/core/budgets.ts`, `src/apps/city/__tests__/`.
+- [ ] T029 OVERSTORY-CITY-R029 Time scrubber and deterministic replay of recorded operator actions. Touches `src/apps/city/core/sim.ts`, `src/apps/city/core/replay.ts`, `src/apps/city/core/ui.ts`, `src/apps/city/components/CityPage.tsx`.
+- [ ] T030 OVERSTORY-CITY-R030 First-visit tour and always-available legend. Touches `src/apps/city/core/ui.ts`, `src/apps/city/components/CityPage.tsx`.
+- [ ] T031 OVERSTORY-CITY-R003 Amendment: principal- and tenant-scoped fleet cache, single-flight cold read, bounded concurrent fan-out with per-call timeout. Touches `agent/overstory/apps/city/gateway.py`, `agent/overstory/__tests__/test_city_app.py`.
+- [ ] T032 OVERSTORY-CITY-R002 Amendment: domain-grouped district placement with the core landmarks at the centre. Touches `src/apps/city/core/ecosystem.ts`, `src/apps/city/core/layout.ts`.
+- [ ] T033 OVERSTORY-CITY-R005 Amendment: re-kind the three operator characters as simulated NPCs, labelled in the badge and inspector. Touches `src/apps/city/core/ecosystem.ts`, `src/apps/city/core/sim.ts`, `src/apps/city/core/ui.ts`.
+- [ ] T034 OVERSTORY-CITY-R006 Amendment: the explicit transition table and the single guarded transition function. Touches `src/apps/city/core/sim.ts`.
+- [ ] T035 OVERSTORY-CITY-R010 Amendment: per-event provenance and the simulated-activity feed badge. Touches `src/apps/city/core/events.ts`, `src/apps/city/core/ui.ts`.
+- [ ] T036 OVERSTORY-CITY-R013 Amendment: license allowlist gate and automated asset QA budgets. Touches `public/city-assets/assets.lock.json`, `src/apps/city/schemas.ts`, `src/apps/city/components/CityPage.tsx`, `src/apps/city/__tests__/`.
+- [ ] T037 OVERSTORY-CITY-R014 Amendment: the seeded PRNG and the `LIVE` = connector-district-only split. Touches `src/apps/city/core/prng.ts`, `src/apps/city/core/sim.ts`, `src/apps/city/core/ui.ts`.
+- [ ] T038 OVERSTORY-CITY-R015 Amendment: the WebGL context-loss fallback to the 2D schematic. Touches `src/apps/city/core/render3d/scene.ts`, `src/apps/city/components/CityPage.tsx`.

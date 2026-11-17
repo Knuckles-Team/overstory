@@ -24,7 +24,15 @@ Open the app at the Vite origin (port 9000 per `vite.config.ts`):
 - `?speed=0|1|2|4` sets the initial simulation speed (the top-bar
   buttons switch it live; `0` pauses the clock and all action timers
   together).
-- No WebGL → the 2D schematic renders instead of the 3D scene.
+- The city is **quiet by default**: no agent moves on its own until an
+  operator acts (dispatch, onboard). `?demo=1` — or the labelled toggle
+  in the top bar — switches to the continuous demo activity.
+- The encoding legend (what each visual means) is always available in the
+  HUD; a short tour runs on first visit and can be re-opened.
+- The time scrubber replays recorded history deterministically per seed.
+- No WebGL — or a lost WebGL context — → the 2D schematic renders instead
+  of the 3D scene (also reachable through the 3D/2D toggle; it is the
+  accessible non-canvas view).
 
 Verification:
 

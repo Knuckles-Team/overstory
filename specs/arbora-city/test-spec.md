@@ -21,16 +21,21 @@ Governing spec: [spec.md](spec.md).
   - describe `core landmarks (R004)`: exactly 7 landmarks, each with a
     name, role and ≥1 internal location. Bound:
     `// spec: OVERSTORY-CITY-R004`.
-  - describe `roster (R005)`: 17 citizens — 14 AI agents and 3 human
-    operators, each a distinct rider. Bound:
-    `// spec: OVERSTORY-CITY-R005`.
+  - describe `roster (R005)`: 17 citizens — 14 AI agents and 3 simulated
+    NPC operator characters (labelled simulated), each a distinct rider.
+    Bound: `// spec: OVERSTORY-CITY-R005`.
 - `src/apps/city/__tests__/sim.test.ts` (deterministic ticks, real-second
   pacing)
   - describe `boot state (R005/R002/R004)`: the pinned roster spawns (17
-    characters, 14 AI + 3 human); the seven core landmarks build, each
-    with a door; served packs boot as built online buildings with their
-    real tools; registered packs reserve named plots, unbuilt. Bound:
-    `// spec: OVERSTORY-CITY-R005`.
+    characters, 14 AI + 3 simulated NPC operators); the seven core landmarks
+    build, each with a door; served packs boot as built online buildings
+    with their real tools; registered packs reserve named plots, unbuilt;
+    plots are grouped by domain keyword with the landmarks at the centre.
+    Bound: `// spec: OVERSTORY-CITY-R005`.
+  - describe `state machine (R006)`: `AGENT_STATES`/`AGENT_TRANSITIONS`
+    declare the lifecycle; the guarded transition function refuses an
+    illegal transition with a visible queued event; a full legal chain
+    emits every transition event. Bound: `// spec: OVERSTORY-CITY-R006`.
   - describe `SC-002: dispatched task runs the full chain within 60 real
     s (R006/R007)`: assign → travel → tool call (naming a real building
     tool) → result → knowledge commit → idle, ≤ 60 real s at 1×; context
@@ -56,6 +61,14 @@ Governing spec: [spec.md](spec.md).
     `// spec: OVERSTORY-CITY-R012`.
   - describe `selection API (R011)`: selecting a character or building
     returns its record. Bound: `// spec: OVERSTORY-CITY-R011`.
+  - describe `quiet and demo (R026)`: in quiet mode no task, wander or
+    patrol event occurs without an operator action; in demo mode the
+    continuous behaviour runs; the mode is labelled in the badge. Bound:
+    `// spec: OVERSTORY-CITY-R026`.
+  - describe `deterministic replay (R029)`: the same seed plus the same
+    recorded operator actions yields the identical event sequence;
+    scrubbing to a recorded action reproduces the state deterministically.
+    Bound: `// spec: OVERSTORY-CITY-R029`.
 - `src/apps/city/__tests__/events.test.ts`
   - describe `vocabulary (R010)`: every declared type is accepted through
     the live bridge; unknown types are counted, not fatal.
@@ -64,15 +77,35 @@ Governing spec: [spec.md](spec.md).
     not kill the bus; ids are unique per emission.
   - describe `clock stamping and mode`: events are stamped from the bound
     time source; `setMode` emits `mode.selected` with the reason.
+  - describe `provenance (R010)`: every event carries `provenance`
+    (`simulated` or `live`); while the feed is fully simulated the badge
+    reads "simulated activity"; a live-provenance event clears it.
     Bound: `// spec: OVERSTORY-CITY-R010`.
 - `src/apps/city/__tests__/assets.test.ts`
   - describe `lockfile (R013)`: pins exactly 18 files (17 riders + 1
-    marker); verifies every pinned file (byte count and sha256, 18/18);
-    stays under the 5 MB budget; a corrupted pin refuses after one
-    retry. Bound: `// spec: OVERSTORY-CITY-R013`.
+    marker); every pin carries a `license` inside the top-level
+    `license_allowlist`; verifies every pinned file (byte count and sha256,
+    18/18); stays under the 5 MB budget; a corrupted pin refuses after one
+    retry; a pin with a license outside the allowlist is refused. Bound:
+    `// spec: OVERSTORY-CITY-R013`.
   - describe `pinned byte cache (R013)`: the verified bytes are served
     exactly once per pin; a re-pin replaces the previous bytes.
     Bound: `// spec: OVERSTORY-CITY-R013`.
+- `src/apps/city/__tests__/assetQa.test.ts`
+  - describe `asset QA (R013/R028)`: parses every pinned GLB and checks the
+    budgets from `budgets.ts` — triangles ≤ 4000, materials ≤ 16, texture
+    size ≤ 2048 px, bounds within the stated range; a failing asset never
+    enters the lock. Bound: `// spec: OVERSTORY-CITY-R028`.
+- `src/apps/city/__tests__/encoding.test.ts`
+  - describe `encoding table (R025)`: each visual channel maps to exactly
+    one fact; the legend text is derived from the same table; the scene
+    modules read the table, not a copy. Bound:
+    `// spec: OVERSTORY-CITY-R025`.
+- `src/apps/city/__tests__/perfBudget.test.ts`
+  - describe `performance budgets (R028)`: the scene graph over the
+    bundled snapshot (R014) is within the draw-call budget; the fps targets
+    (60 integrated / 30 mobile) are stated. Bound:
+    `// spec: OVERSTORY-CITY-R028`.
 - `src/apps/city/__tests__/render2d.test.ts`
   - describe `supportsWebGL probe (R015)`: true when a GL context exists;
     false when none can be created or creation throws.
@@ -88,6 +121,16 @@ Governing spec: [spec.md](spec.md).
     fleet read fails; verifies every pinned asset at startup (18 verified
     events, no failures); lists the connectors from the live fleet in
     the onboard modal. Bound: `// spec: OVERSTORY-CITY-R014`.
+  - describe `context loss (R015)`: a `webglcontextlost` that is not
+    restored swaps the renderer to the 2D schematic — no dead canvas.
+    Bound: `// spec: OVERSTORY-CITY-R015`.
+  - describe `a11y (R027)`: the population list, the inspector and the
+    modal are keyboard reachable; the 3D/2D toggle is keyboard operable;
+    zero `jsx-a11y` findings on the city sources. Bound:
+    `// spec: OVERSTORY-CITY-R027`.
+  - describe `tour (R030)`: the first-visit tour runs once per session,
+    is skippable, and the legend stays available. Bound:
+    `// spec: OVERSTORY-CITY-R030`.
   - describe `unmount safety (R018)`: disposes the renderer and schedules
     no animation frame afterwards. Bound:
     `// spec: OVERSTORY-CITY-R018`.
@@ -101,6 +144,16 @@ Governing spec: [spec.md](spec.md).
   OVERSTORY-CITY-R003: the normalized shape over a fake gateway.
 - `test_the_catalog_is_cached_for_sixty_seconds` — OVERSTORY-CITY-R003:
   the second call within 60 s is served from cache (one upstream read).
+- `test_the_cache_is_scoped_by_principal_and_tenant` —
+  OVERSTORY-CITY-R003: a different verified principal or tenant gets its
+  own cache entry; no caller is served another caller's view.
+- `test_concurrent_cold_boots_share_one_in_flight_read` —
+  OVERSTORY-CITY-R003: single flight — concurrent cold boots produce one
+  upstream fan-out, all resolve to the same normalized answer.
+- `test_the_fan_out_is_concurrent_with_a_cap_and_timeout` —
+  OVERSTORY-CITY-R003: the per-pack tool-name reads run concurrently under
+  the concurrency cap (8) with a per-call timeout (5 s); a slow pack does
+  not hold the fan-out past the timeout.
 - `test_an_unreachable_or_absent_catalog_is_a_stated_503` and
   `test_any_other_upstream_failure_is_unavailable_too` —
   OVERSTORY-CITY-R003: 503 with a stated reason.
@@ -132,40 +185,51 @@ Governing spec: [spec.md](spec.md).
   door trigger enters; the interior renders the building's rooms with the
   same selection and inspector.
 - OVERSTORY-CITY-R020: `src/apps/city/__tests__/events.test.ts::live` —
-  the `injectLive` seam feeds live run events into the same vocabulary;
-  the simulated stream is replaced in `LIVE` mode.
+  the `injectLive` seam feeds the served activity stream (run-trace
+  records, provenance `live`) into the same vocabulary; the simulated
+  stream is replaced in `LIVE` mode; agents map to persistent characters
+  through host-assigned pseudonymous ids.
 - OVERSTORY-CITY-R021: `src/apps/city/__tests__/ecosystem.test.ts::layout` —
-  placement comes from the served world-view graph; geometry tuning
-  stays in-repo.
+  placement and the spatial relations come from the served world-view
+  graph (medulla world-view spec, through the served layout read in the
+  arbora fleet spec); geometry tuning stays in-repo.
 - OVERSTORY-CITY-R022: `src/apps/city/__tests__/CityPage.test.tsx::dialogue`
   — the dialogue panel opens over the chat surface; the reply loop rides
-  the served Meristem operation.
+  the served Meristem operation; the NPC prompt is a revisioned prompt
+  asset; untrusted connector data gets the injection handling.
 - OVERSTORY-CITY-R023: `src/apps/city/__tests__/sim.test.ts::presence` —
-  a guest character renders from the ephemeral presence channel.
+  a guest character renders from the one presence channel (snapshot
+  interval, bounded update rate; per-frame movement never durable).
 - OVERSTORY-CITY-R024: `src/apps/city/__tests__/assets.test.ts::scaleout` —
   new lockfile entries with per-asset provenance pass the startup
   verification (R013).
 
 ## Quality and release proof
 
-- `pnpm build` — record the chunk report (capture 2026-11-16): the shell
-  chunk (`index-2WG4vo9o.js`, 357.39 kB) holds **zero** scene-library
+- `pnpm build` — record the chunk report (capture 2026-11-17): the shell
+  chunk (`index-DODerBU1.js`, 357.49 kB) holds **zero** scene-library
   references; the three.js core ships in the on-demand chunk
-  `OrbitControls-Bb8IkPSG.js` (600.97 kB), which is shared with the
-  pre-existing graph 3D views (`model-DKoC20zT.js`, imported by the
-  `AtlasView`/`Graph3DView`/`Graph3DLodView` chunks already on main before
-  this lane); the city chunk group is `CityPage-CtP-f1-v.js` (112.84 kB,
-  city core plus the `THREE.BufferGeometryUtils` warn strings pulled in by
-  the model loader's static dependency). The invariant is: the scene
-  library is never in the shell bundle (OVERSTORY-CITY-R016).
+  `OrbitControls-Bb8IkPSG.js` (600.97 kB), shared with the pre-existing
+  graph 3D views (`model-DKoC20zT.js`, imported by the `AtlasView`/
+  `Graph3DView`/`Graph3DLodView` chunks already on main before this lane);
+  the city chunk group is `CityPage-5mdJ777h.js` (124.31 kB — the city core
+  plus the `render3d/` split, replay driver, encoding table and budgets).
+  The invariant is: the scene library is never in the shell bundle
+  (OVERSTORY-CITY-R016).
 - Asset weight: `du -sb public/city-assets/riders` = 503,452 bytes <
   5 MB.
 - Lockfile: every pin in `public/city-assets/assets.lock.json` verifies
-  against the on-disk bytes (size + sha256) — 18/18.
-- Suites: `pnpm vitest run src/apps/city` (59/59) and
+  against the on-disk bytes (size + sha256) — 18/18; every pin carries a
+  `license` inside the top-level `license_allowlist` (R013 gate), and the
+  asset-QA suites parse every GLB from its real bytes against the one
+  budgets table (triangles / materials / texture size — 18/18 within
+  budget, zero embedded images).
+- Suites: `pnpm vitest run src/apps/city` (104/104, 10 files) and
   `uv run --no-sync pytest agent/overstory/__tests__/test_city_app.py`
-  (9/9) green on the branch; full `pnpm test` (2906) and full `pytest`
-  (590 passed, 12 skipped) green.
+  (12/12) green on the branch; full `pnpm test` (2958 passed) and full
+  `uv run --no-sync pytest tests agent/overstory/__tests__` (578 passed,
+  12 skipped, 1 xfailed) green. `pnpm run typecheck` and `pnpm run lint`
+  (0 errors; the remaining warnings are the pre-existing baseline) green.
 - `uvx pre-commit run --config .config/pre-commit.yaml --all-files` passes
   on the branch.
 - Headless browser proof (when a host is available): the page boots, the

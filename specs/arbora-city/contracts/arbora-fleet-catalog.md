@@ -61,6 +61,20 @@ connector district because it is a core landmark.
 ## Test vectors
 
 - Consumer: `agent/overstory/__tests__/test_city_app.py` (shape over a
-  fake gateway, 60 s cache, 503 path, typed refusal, whitelist).
+  fake gateway, 60 s cache, 503 path, typed refusal, whitelist,
+  principal-and-tenant-scoped cache, single-flight cold boot, bounded
+  concurrent fan-out).
 - Provider: the fleet catalog served tests in the arbora repository
   (catalog list and onboarding hot-path proofs).
+
+## Notes (2026-11-17 review)
+
+- The host cache is keyed by the verified principal and tenant
+  (OVERSTORY-CITY-R003): no caller is ever served another caller's view;
+  concurrent cold boots share one in-flight read (single flight) and the
+  per-pack fan-out runs concurrently under a cap with a per-call timeout.
+- The follow-on served layout read (the city-layout row in this
+  fleet-catalog spec) extends this catalog seam: it serves the tenant's
+  spatial layout from the medulla world-view spec, which supplies the
+  spatial facts behind it (see the overstory spec's follow-on rows
+  R019–R024 and their `Depends:` lines).

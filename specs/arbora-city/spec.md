@@ -1,6 +1,6 @@
 # OVERSTORY-CITY — Arbora City
 
-**Owner:** `overstory`. Cross-repo IDs: the provider-side fleet-catalog row is recorded in [contracts/arbora-fleet-catalog.md](contracts/arbora-fleet-catalog.md); no other cross-repo row. State is computed by the generator, never written here.
+**Owner:** `overstory`. Cross-repo IDs: the provider-side fleet-catalog row is recorded in [contracts/arbora-fleet-catalog.md](contracts/arbora-fleet-catalog.md); the follow-on rows R019–R024 additionally name owner rows in the arbora specs (the served layout read, the presence channel, the activity stream) and the medulla specs (the world-view ontology, the run-trace and prompt-asset vocabularies). State is computed by the generator, never written here.
 
 Component: Arbora City (hosted app)
 Depends-on: [OVERSTORY-APPS](../arbora-app-surface/spec.md), [OVERSTORY-API](../arbora-api-consumer/spec.md)
@@ -15,7 +15,9 @@ fleet is a building in the connector district — served connectors stand built
 and online, registered connectors stand as planned plots; every AI agent and
 human operator is a walking low-poly character. Autonomous work is visible at
 a glance: agents travel, work, commit knowledge and sleep on a day/night
-cycle, and an activity feed speaks the platform's operation vocabulary.
+cycle, and an activity feed speaks the platform's operation vocabulary. Every
+simulated element is labelled as such; every visual encodes one fact, and
+nothing moves without a reason.
 
 ## User Scenarios & Testing
 
@@ -54,18 +56,19 @@ redeployment.
    queued event; the district is sized (78 plots) so this cannot occur with
    the current catalog.
 
-### User Story 3 - Humans and AI are never confused (Priority: P1)
+### User Story 3 - Simulated operators are never mistaken for real ones (Priority: P1)
 
-A person can always tell a human operator from an AI agent.
+A person can always tell a simulated operator character from an AI agent,
+and can see which elements of the city are simulated.
 
 **Acceptance scenarios**
 
 1. Given the population list is open, When the person reads any row, Then the
-   row shows a `HUMAN` or `AI` kind badge plus the character's state and
-   context bar.
+   row shows an `AI` or `NPC` kind badge plus the character's state and
+   context bar; the NPC rows are labelled simulated.
 2. Given the page shows the full population, When the city boots, Then it
-   contains exactly 14 AI agents and 3 human operators, each a distinct
-   pinned low-poly GLB character.
+   contains exactly 14 AI agents and 3 simulated operator characters (NPC
+   kind), each a distinct pinned low-poly GLB character.
 
 ### User Story 4 - Steer the platform from the city (Priority: P2)
 
@@ -109,11 +112,17 @@ Every failure path is visible and typed.
 3. Given WebGL is unavailable, When the page loads, Then a 2D schematic of
    the same city graph renders with the same characters, events and
    inspector.
+4. Given the WebGL context is lost, When the loss is not restored, Then the
+   2D schematic takes over the canvas — no dead canvas.
 
 ### Edge Cases
 
 - Arbora unreachable → `SIMULATED` mode with the bundled fleet snapshot;
   banner states the reason; simulation continues.
+- The WebGL context is lost → the 2D schematic takes over; the simulation
+  and the feed continue uninterrupted.
+- The city is quiet by default → with no operator action, no agent moves on
+  its own; the labelled demo mode restores the continuous behaviour.
 - A pinned asset fails to fetch or hashes wrong → retry once; on second
   failure the character renders as the placeholder cube, a typed failure
   event is emitted, and the feed shows it.
@@ -129,11 +138,12 @@ Every failure path is visible and typed.
 
 - **FR-001**: The city is a hosted app at `/apps/city` with an honest mode — live fleet, or a labeled simulated fallback over the bundled snapshot — a 2D fallback when WebGL is absent, and lazy loading that leaves the shell bundle untouched. Rows: OVERSTORY-CITY-R001, OVERSTORY-CITY-R003, OVERSTORY-CITY-R014, OVERSTORY-CITY-R015, OVERSTORY-CITY-R016.
 - **FR-002**: The connector district is the live fleet: one named plot per fleet server, served packs built online, registered packs planned, and a visible construction sequence when a pack is published. Rows: OVERSTORY-CITY-R002, OVERSTORY-CITY-R008.
-- **FR-003**: Seven core landmarks (one per platform component) and a pinned, permissive-licensed character population. Rows: OVERSTORY-CITY-R004, OVERSTORY-CITY-R005.
-- **FR-004**: A deterministic simulation of agent and operator activity: lifecycle, dispatch and approval, day/night, speed control, selection and inspector. Rows: OVERSTORY-CITY-R006, OVERSTORY-CITY-R007, OVERSTORY-CITY-R009, OVERSTORY-CITY-R011, OVERSTORY-CITY-R012.
+- **FR-003**: Seven core landmarks (one per platform component) and a pinned, permissive-licensed character population — 14 AI agents plus 3 simulated operator characters, re-kinded as NPC and labelled simulated. Rows: OVERSTORY-CITY-R004, OVERSTORY-CITY-R005.
+- **FR-004**: A seeded, deterministic simulation of agent and operator activity: an explicit state machine with one guarded transition, dispatch and approval, day/night, speed control, selection and inspector. Rows: OVERSTORY-CITY-R006, OVERSTORY-CITY-R007, OVERSTORY-CITY-R009, OVERSTORY-CITY-R011, OVERSTORY-CITY-R012.
 - **FR-005**: An activity feed in the platform's typed event vocabulary, and pinned asset verification at startup. Rows: OVERSTORY-CITY-R010, OVERSTORY-CITY-R013.
 - **FR-006**: No credentials or identities in the browser, and safe unmount with no surviving background work. Rows: OVERSTORY-CITY-R017, OVERSTORY-CITY-R018.
-- **FR-007**: The follow-on world: enterable buildings, live ecosystem mirroring, Medulla-backed layout, NPC dialogue, visitor presence and asset scale-out. Rows: OVERSTORY-CITY-R019, OVERSTORY-CITY-R020, OVERSTORY-CITY-R021, OVERSTORY-CITY-R022, OVERSTORY-CITY-R023, OVERSTORY-CITY-R024.
+- **FR-007**: The follow-on world: enterable buildings, live ecosystem mirroring, Medulla-backed layout, NPC dialogue, visitor presence and asset scale-out — each naming its owner rows in the arbora and medulla specs. Rows: OVERSTORY-CITY-R019, OVERSTORY-CITY-R020, OVERSTORY-CITY-R021, OVERSTORY-CITY-R022, OVERSTORY-CITY-R023, OVERSTORY-CITY-R024.
+- **FR-008**: The city reads like the platform it mirrors: one visual encoding table with an always-on legend, quiet-by-default activity with a labelled demo mode, full keyboard accessibility, performance budgets as acceptance criteria, a time scrubber over deterministically replayable history, and a first-visit tour. Rows: OVERSTORY-CITY-R025, OVERSTORY-CITY-R026, OVERSTORY-CITY-R027, OVERSTORY-CITY-R028, OVERSTORY-CITY-R029, OVERSTORY-CITY-R030.
 
 ## Success Criteria
 
@@ -145,9 +155,12 @@ Every failure path is visible and typed.
 
 ## Assumptions
 
-- City *activity* (walking agents, tasks, day/night) is the deterministic
-  simulation in both modes in this delivery; live run-event consumption is
-  the follow-on row OVERSTORY-CITY-R020, not part of this delivery.
+- City *activity* (walking agents, tasks, day/night) is the seeded
+  deterministic simulation in both modes in this delivery; `LIVE` covers the
+  connector district only — the building list comes from the fleet, and
+  every activity element is labelled simulated (per-event provenance, feed
+  badge). Live run-event consumption is the follow-on row
+  OVERSTORY-CITY-R020, not part of this delivery.
 - The fleet catalog served by Arbora is the single authority for the
   connector district; the 78-plot district exceeds the current
   74-connector catalog, so growth never needs to extend the city geometry.

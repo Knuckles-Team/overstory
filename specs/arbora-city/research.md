@@ -45,3 +45,18 @@ commit, per-file sha256 and byte count in
 rejected) in `public/city-assets/SOURCES.md`, and startup verification of
 every pin in the app (OVERSTORY-CITY-R013). The overstory lane's commit
 and push are blocked on the upstream gate change landing first.
+
+## Licensing is a gate, not a note
+
+Question: when the asset scale-out (OVERSTORY-CITY-R024) uses generated
+models, whose licence must be checked?
+
+Resolution: not only the hosting repository's. Some 3D-generation model
+licences restrict use by territory or scale, so the generator model's
+terms are part of the asset's provenance. The lockfile therefore carries a
+per-file `license` and a top-level `license_allowlist`; startup
+verification refuses a pin whose license is outside the allowlist
+(OVERSTORY-CITY-R013), and every locked asset passes automated QA against
+the stated budgets (triangles ≤ 4000, materials ≤ 16, texture size ≤
+2048 px, bounds) with a rendered turnaround thumbnail on file for human
+review. A failing asset never enters the lock.

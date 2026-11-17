@@ -17,13 +17,13 @@ it adds no store, no second event source and no browser credential.
 
 - **Language/Version**: TypeScript under the repository strict `tsconfig.json` (`pnpm typecheck`) for the app; Python 3.12–3.14 (FastAPI) for the host adapter.
 - **Primary Dependencies**: `three` (scene library, lazy-chunked — already a locked dependency on main, shared with the pre-existing graph 3D views), `react` 19, `zod` response schemas, `fastapi` host — the rest are already locked.
-- **Storage**: none. The host is stateless apart from a 60 s in-memory fleet cache; simulation state is browser-local and ephemeral.
+- **Storage**: none. The host is stateless apart from a 60 s in-memory fleet cache keyed by the verified principal and tenant (single flight for concurrent cold boots, bounded concurrent fan-out with a per-call timeout); simulation state is browser-local and ephemeral.
 - **Testing**: vitest (frontend, deterministic tick pacing) and pytest (FastAPI `TestClient` contract over a fake gateway); one `path::name` test per row in requirements.md.
 - **Target Platform**: modern browsers; WebGL2 scene with a canvas 2D schematic fallback; Node build through the repository Vite config.
 - **Project Type**: web (hosted app plus a same-origin FastAPI adapter, per the OVERSTORY-APPS app pattern).
-- **Performance Goals**: 60 fps at 1× on mid-range hardware; zero scene-library references in the shell chunk; pinned character assets under 5 MB (18 GLBs, ~0.5 MB); one fetch per pinned file.
-- **Constraints**: no credential, token or identity value in the browser (R017); fleet data only through the host (R003); city activity is a labeled deterministic simulation, not a decision; no new store or event source.
-- **Scale/Scope**: 24 rows; 75 fleet servers (7 served, 67 registered-unpublished, arbora core excluded); 78 plots; 17 characters; 18 pinned GLBs.
+- **Performance Goals**: 60 fps at 1× on mid-range hardware; zero scene-library references in the shell chunk; pinned character assets under 5 MB (18 GLBs, ~0.5 MB); one fetch per pinned file; the stated budgets of R028 (triangles ≤ 4000 per building, draw calls ≤ 150 per district, texture memory ≤ 32 MB, 60 fps integrated / 30 fps mobile), checked in tests against the bundled snapshot.
+- **Constraints**: no credential, token or identity value in the browser (R017); fleet data only through the host (R003); city activity is the labelled seeded simulation in both modes, not a decision; no new store or event source; the simulation draws randomness only from the injected seeded PRNG (R014); licensing is a gate — the lockfile allowlist is checked at startup (R013).
+- **Scale/Scope**: 30 rows; 75 fleet servers (7 served, 67 registered-unpublished, arbora core excluded); 78 plots; 17 characters (14 AI agents, 3 simulated NPC operators); 18 pinned GLBs.
 
 ## Constitution Check
 
@@ -46,14 +46,22 @@ src/apps/city/
 │   ├── ecosystem.ts         fleet→connectors mapping, landmarks, roster, bundled snapshot
 │   ├── layout.ts            geometry: roads, water, 78 plots, houses, parks, path graph
 │   ├── assets.ts            verified-byte asset cache (one fetch per pin)
-│   ├── events.ts            typed event bus + vocabulary + recent ring
+│   ├── events.ts            typed event bus + vocabulary + recent ring + provenance
 │   ├── sim.ts               world state machine (the only writer of world state)
-│   ├── render3d.ts          scene: landmarks, construction, characters, day/night, selection
-│   ├── render2d.ts          canvas schematic fallback (same layout + world)
+│   ├── prng.ts              seeded PRNG (mulberry32, injectable; the only randomness)
+│   ├── replay.ts            recorded-action replay driver for the time scrubber
+│   ├── encoding.ts          the one visual-encoding table + legend text (R025)
+│   ├── budgets.ts           asset QA and performance budgets as data (R013/R028)
+│   ├── render3d/            the 3D scene, split from render3d.ts: scene.ts (renderer,
+│   │                        day/night, context loss), labels.ts, buildings.ts,
+│   │                        characters.ts, picking.ts
+│   ├── render3d.ts          facade: the init3D entry point over the render3d/ modules
+│   ├── render2d.ts          canvas schematic (2D fallback, top zoom level, a11y view)
 │   └── ui.ts                top bar, population list, inspector, feed, dispatch/onboard, speed
 └── __tests__/               vitest suites (see test-spec.md)
 public/city-assets/
-├── assets.lock.json         18 pins: source commit, sha256, byte count
+├── assets.lock.json         18 pins: source commit, sha256, byte count, license,
+│                            license_allowlist (checked at startup)
 ├── SOURCES.md               dataset survey (used and rejected)
 └── riders/*.glb             17 rider models + 1 placeholder cube (~0.5 MB)
 agent/overstory/apps/city/
@@ -96,8 +104,8 @@ The seven design answers:
 - **Cohesion.** The simulation core, the renderers, the UI panels and the page shell change together and live beside each other under `src/apps/city/`; the host read lives beside the other app backends under `agent/overstory/apps/`; the pinned assets and their lockfile live together under `public/city-assets/`.
 - **Dependency direction.** The page shell depends on the core modules; the renderers depend on `layout.ts` (one geometry authority) and the `sim.ts` world; the host depends on the host's existing invoke seam. Nothing new points upward; the new app registers into the existing `APP_SURFACES` list.
 - **Interface depth.** none — no new abstraction. Every seam reuses an existing one: the `AppSurface` contract (`src/apps/index.ts`), `fetchValidated` (`src/lib/api-validation.ts`), the injected invoke in `agent/overstory/apps/city/gateway.py`, the `RouteDef` registry (`src/lib/nav-registry.ts`).
-- **Special cases.** Live/simulated mode is one decision with two sources and a visible badge, not a branch per failure. The 2D fallback is a view over the identical world, not a parallel system. District overflow is one bounded refusal (queued event), not per-plot patches.
-- **State.** The character lifecycle is a state machine with named states (`idle`, `tasked`, `traveling`, `working`, `committing`, `sleeping`, `patrolling`) in `sim.ts`; construction is a milestone stream (`construction.progress` every 25%) to a terminal built state; the asset cache holds verified bytes keyed by pin. No flag or nullable timestamp carries meaning.
+- **Special cases.** Live/simulated mode is one decision with two sources and a visible badge, not a branch per failure. The 2D fallback is a view over the identical world, not a parallel system; a lost WebGL context falls back to it (R015). District overflow is one bounded refusal (queued event), not per-plot patches. An illegal state transition is refused at the guarded function (R006); a license outside the allowlist is refused at startup (R013).
+- **State.** The character lifecycle is the declared state machine (R006): `AGENT_STATES` and `AGENT_TRANSITIONS`, one guarded transition function; the activity mode is `quiet` (default) or `demo` (R026); randomness is the injected seeded PRNG (R014); construction is a milestone stream (`construction.progress` every 25%) to a terminal built state; the asset cache holds verified bytes keyed by pin; replay records operator actions for the scrubber (R029). No flag or nullable timestamp carries meaning.
 - **Environment.** Nothing a deployment varies is hardcoded: the speed query parameter, the fleet host (the host's existing gateway configuration) and the asset origin (same-origin `/city-assets`) are all configuration or ambient; the local debug path is documented in [quickstart.md](quickstart.md).
 
 ### Architecture
@@ -197,8 +205,8 @@ rules:
   exactly what R001–R018 ship (app surface, scene, simulation core, host
   read seam).
 - **Durable world state, ontology, NPC memory, spatial relations and
-  provenance belong to Medulla / epistemic-graph** — the world-view
-  ontology is spec'd there, not here; Overstory consumes it later through
+  provenance belong to Medulla** — the world-view ontology is spec'd there
+  (the world-view spec), not here; Overstory consumes it later through
   served operations (R021).
 - **Live agent activity and streams belong to arbora / agent-utilities** —
   run-event consumption is the follow-on seam named under Cross-repo
@@ -210,7 +218,7 @@ Phase → delivery map:
 |---|---|---|
 | Overstory embedding (app pattern, scene-library dependency) | shipped (`/apps/city`) | — |
 | Walkable exterior shell | orbit + click-to-inspect + 2D fallback; no first-person yet | R019 |
-| World-view ontology plus layout data flow | connector district from the live fleet catalog; layout authority in-repo for now | R021 (the ontology itself is spec'd in epistemic-graph) |
+| World-view ontology plus layout data flow | connector district from the live fleet catalog; layout authority in-repo for now | R021 (the ontology itself is spec'd in Medulla) |
 | Interiors plus portals | not started | R019 |
 | Prompt-driven NPCs | deterministic roster behavior (17 citizens, 3 humans) | R022 (LLM execution in Meristem) |
 | Harness agent mirroring | city activity is the deterministic simulation in both modes (R014) | R020 (the stream is served by arbora) |
@@ -226,6 +234,68 @@ the app section. Raw scene library (no framework wrapper), matching the
 repository's existing 3D view patterns. The asset-admission pattern
 (lockfile + provenance + startup verification, R013) is already built and
 is the intake path for the later asset expansion (R024).
+
+#### 2026-11-17: PR review — provenance, determinism, and the cross-repo owners
+
+The v1 delivery was reviewed point by point (36 points, ordered by impact).
+The must-fix findings are implemented in v1, the plan-scope gaps are now
+specified rows with named owners, and the game-design and asset-pipeline
+points are specified as rows or follow-ons:
+
+- **Provenance and honesty (must-fix).** `LIVE` now means exactly the
+  connector district; every activity element carries a per-event provenance
+  flag and the feed shows a "simulated activity" badge (R010, R014). The
+  three fictional operator characters are re-kinded as NPC and labelled
+  simulated (R005, R007).
+- **Determinism (must-fix).** One seeded PRNG (mulberry32, fixed default
+  seed, injectable) drives every random draw; `Math.random()` is gone from
+  the simulation, so runs replay and tests assert exact sequences (R014).
+  The time scrubber replays recorded operator actions against that seed
+  (R029).
+- **Host read (must-fix).** The fleet cache is keyed by the verified
+  principal and tenant; cold boots single-flight the in-flight read; the
+  per-pack fan-out runs concurrently under a cap with a per-call timeout
+  (R003).
+- **State machine (plan gap, now v1).** The lifecycle is one declared
+  transition table with a single guarded transition function (R006).
+- **Cross-repo owners (plan gap, now specified).** The follow-on rows
+  R019–R024 name their owners in the owning repositories: the served
+  layout read row in the arbora fleet-catalog spec, the presence-channel
+  row and the activity-stream row in the arbora hosted-operations spec,
+  and the three world-view rows in the medulla world-view spec, with the
+  run-trace and prompt-asset rows from the medulla orchestration
+  vocabulary. The owner rows were created in those repositories first;
+  this spec's `Depends:` lines point at them. The world-view ontology adds
+  only spatial classes and relations extending the core ontology — not a
+  parallel model — and the layout is derived from the catalog with stored
+  manual overrides only (review points 14–15).
+- **Quality (v1).** `render3d.ts` is split into `render3d/` modules
+  (scene, labels, buildings, characters, picking) behind the facade
+  (R025); a lost WebGL context falls back to the 2D schematic (R015); the
+  population list, inspector and modal are keyboard reachable with the
+  2D view as the non-canvas equivalent, and the `jsx-a11y` findings are
+  fixed (R027); the lockfile carries per-file licenses and an allowlist
+  that startup verification enforces, plus automated asset QA budgets
+  (R013).
+- **Game design (v1).** One visual encoding table with an always-on HUD
+  legend (R025); quiet-by-default activity with a labelled demo mode
+  (R026); the 2D schematic doubles as the top semantic-zoom level
+  (R015); districts group by business domain with the core landmarks at
+  the centre (R002); performance budgets are acceptance criteria checked
+  in tests against the bundled snapshot (R028); first-visit tour
+  (R030).
+- **Identity (follow-on, now specified).** Real agents map to persistent
+  characters through a stable pseudonymous id assigned on the host, never
+  the agent's identity — R017 stays intact (R020).
+- **Asset scale-out (follow-on, now specified).** The craft-suite asset
+  pipeline is specified in R024: locked style bible and reference sheet,
+  fixed per-asset pipeline, kits over one-offs, one shared rigged base
+  body, splats for vistas only, governed spend, and automated QA — a
+  failing asset never enters the lock.
+
+The week estimates in the phase plan are replaced by these rows' exit
+criteria and bound tests; each phase's work is filed in the owner
+repository's spec with `Depends:` links (review point 18).
 
 ### Rejected alternatives
 
