@@ -92,6 +92,8 @@ export function initUI(world: World, renderer: CityRenderer, actions: CityAction
   let rendererRef = renderer
   let selected: SelectionHit | null = null
   let modalOpen = false
+  /** The structural key of the last built inspector scaffold (in-place patching). */
+  let inspectorLastKey = ''
 
   // ---- Top bar -------------------------------------------------------------
   function updateTopBar(): void {
@@ -126,37 +128,164 @@ export function initUI(world: World, renderer: CityRenderer, actions: CityAction
   }
 
   // ---- Population list (R027: keyboard reachable) ----------------------------
-  function updatePopList(): void {
-    let html = ''
-    for (const ch of world.characters) {
-      const sel = selected?.kind === 'character' && selected.id === ch.id
-      html += `<li class="pop-row${sel ? ' selected' : ''}" tabindex="0" role="button"
-        aria-label="${escapeHtml(ch.name)}, state ${escapeHtml(ch.state)}, ${
-          ch.kind === 'npc' ? 'simulated operator' : 'AI agent'
-        }" data-id="${escapeHtml(ch.id)}">
-        <span class="dot" style="background:${STATE_COLORS[ch.state] ?? '#888'}"></span>
-        <span class="pop-name">${escapeHtml(ch.name)}</span>
-        <span class="chip ${ch.kind === 'npc' ? 'npc' : 'ai'}">${ch.kind === 'npc' ? 'NPC' : 'AI'}</span>
-        <span class="ctxbar"><span style="width:${Math.round(ch.context)}%"></span></span>
-      </li>`
-    }
-    els.popList.innerHTML = html
-    for (const row of els.popList.querySelectorAll<HTMLElement>('.pop-row')) {
-      row.addEventListener('click', () => {
+  // Rows are created once per character and patched in place at the panel
+  // refresh: the list is re-ordered by moving the existing nodes, never
+  // rebuilt, so a selection, focus or hover survives the 4 Hz tick and the
+  // event listeners are bound exactly once per row.
+  const popRows = new Map<string, HTMLElement>()
+
+  function createPopRow(ch: (typeof world.characters)[number]): HTMLElement {
+    const row = document.createElement('li')
+    row.className = 'pop-row'
+    row.tabIndex = 0
+    row.setAttribute('role', 'button')
+    row.dataset.id = ch.id
+    row.innerHTML = `<span class="dot"></span>
+      <span class="pop-name">${escapeHtml(ch.name)}</span>
+      <span class="chip ${ch.kind === 'npc' ? 'npc' : 'ai'}">${ch.kind === 'npc' ? 'NPC' : 'AI'}</span>
+      <span class="ctxbar"><span style="width:0%"></span></span>`
+    row.addEventListener('click', () => {
+      select({ kind: 'character', id: row.dataset.id ?? '' })
+    })
+    // Keyboard: Enter or Space activates a focused row (R027).
+    row.addEventListener('keydown', (e: KeyboardEvent) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault()
         select({ kind: 'character', id: row.dataset.id ?? '' })
-      })
-      // Keyboard: Enter or Space activates a focused row (R027).
-      row.addEventListener('keydown', (e: KeyboardEvent) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault()
-          select({ kind: 'character', id: row.dataset.id ?? '' })
-        }
-      })
+      }
+    })
+    return row
+  }
+
+  function updatePopList(): void {
+    for (const ch of world.characters) {
+      let row = popRows.get(ch.id)
+      if (!row) {
+        row = createPopRow(ch)
+        popRows.set(ch.id, row)
+      }
+      // Patch only the dynamic parts: selection, aria label, state colour
+      // and the context bar.
+      row.classList.toggle('selected', selected?.kind === 'character' && selected.id === ch.id)
+      row.setAttribute(
+        'aria-label',
+        `${ch.name}, state ${ch.state}, ${ch.kind === 'npc' ? 'simulated operator' : 'AI agent'}`,
+      )
+      const dot = row.querySelector<HTMLElement>('.dot')
+      if (dot) dot.style.background = STATE_COLORS[ch.state] ?? '#888'
+      const bar = row.querySelector<HTMLElement>('.ctxbar > span')
+      if (bar) bar.style.width = `${Math.round(ch.context)}%`
+      // Roster order: appendChild moves an existing node to its place.
+      els.popList.appendChild(row)
+    }
+    // A replay that changed the roster drops the rows that left.
+    for (const [id, row] of popRows) {
+      if (!world.characters.some((c) => c.id === id)) {
+        row.remove()
+        popRows.delete(id)
+      }
     }
   }
 
   // ---- Inspector ---------------------------------------------------------------
+  // The inspector rebuilds its scaffold only when the selection's structure
+  // changes (who is selected, whether they hold a task, whether their plot
+  // is under construction). Between rebuilds the 4 Hz tick patches the
+  // dynamic slots in place — state, mood, context, construction progress —
+  // so the panel never flashes and the aria-live region stays stable.
+  function inspectorKey(): string {
+    if (!selected) return 'none'
+    const selId = selected.id // captured: narrowing resets across the find() calls
+    if (selected.kind === 'character') {
+      const ch = world.characters.find((c) => c.id === selId)
+      return `ch:${selId}:${ch?.task?.id ?? ''}`
+    }
+    const b = selId in world.buildings ? world.buildings[selId] : null
+    const plot = world.plots.find((p) => p.buildingId === selId)
+    return `b:${selId}:${plot?.construction ? 'c' : '-'}:${b?.packStatus ?? '-'}`
+  }
+
+  function patchInspector(): void {
+    if (!selected) return
+    const selId = selected.id // captured: narrowing resets across the DOM reads
+    if (selected.kind === 'character') {
+      const ch = world.characters.find((c) => c.id === selId)
+      if (!ch) return
+      const state = els.inspector.querySelector<HTMLElement>('[data-slot="state"]')
+      if (state) {
+        state.style.color = STATE_COLORS[ch.state] ?? '#888'
+        state.textContent = ch.state
+      }
+      const mood = els.inspector.querySelector<HTMLElement>('[data-slot="mood"]')
+      if (mood) mood.textContent = ch.mood
+      const ctx = els.inspector.querySelector<HTMLElement>('[data-slot="context"]')
+      if (ctx) ctx.textContent = `${Math.round(ch.context)}%`
+      const bar = els.inspector.querySelector<HTMLElement>('[data-slot="ctxbar"] > span')
+      if (bar) bar.style.width = `${Math.round(ch.context)}%`
+      const approval = els.inspector.querySelector<HTMLElement>('[data-slot="approval"]')
+      if (approval && ch.task) {
+        approval.textContent = ch.task.approvalRequired
+          ? ch.task.state === 'pending_approval'
+            ? 'pending'
+            : 'required'
+          : 'not required'
+      }
+      const events = els.inspector.querySelector<HTMLElement>('[data-slot="events"]')
+      if (events) {
+        const key = `ch-e:${selected.id}:${ch.events.length}:${ch.events[ch.events.length - 1]?.detail ?? ''}`
+        if (events.dataset.key !== key) {
+          events.dataset.key = key
+          events.innerHTML = ch.events
+            .map(
+              (e) =>
+                `<div class="evt-mini"><span class="chip-evt" style="color:${TYPE_COLORS[e.type] ?? '#888'}">${escapeHtml(e.type)}</span> ${escapeHtml(e.detail || '')}</div>`,
+            )
+            .join('')
+        }
+      }
+      return
+    }
+    const b = selId in world.buildings ? world.buildings[selId] : null
+    if (!b) return
+    const visits = els.inspector.querySelector<HTMLElement>('[data-slot="visits"]')
+    if (visits) visits.textContent = String(b.visits)
+    const cProg = els.inspector.querySelector<HTMLElement>('[data-slot="cprogress"]')
+    if (cProg) {
+      const plot = world.plots.find((p) => p.buildingId === b.id)
+      const pct = Math.round((plot?.construction?.progress ?? 0) * 100)
+      cProg.textContent = `${pct}%`
+      const bar = els.inspector.querySelector<HTMLElement>('[data-slot="cbar"] > span')
+      if (bar) bar.style.width = `${pct}%`
+    }
+    const rooms = els.inspector.querySelector<HTMLElement>('[data-slot="rooms"]')
+    if (rooms) {
+      // Only re-render the room plan when the occupants actually changed.
+      const inside = world.characters.filter((c) => c.state === 'working' && c.task?.buildingId === b.id)
+      const key = inside.map((c) => `${c.id}:${c.roomIndex}`).join('|')
+      if (rooms.dataset.key !== key) {
+        rooms.dataset.key = key
+        rooms.innerHTML = b.rooms
+          .map((r) => {
+            const here = inside.filter((c) => b.rooms[c.roomIndex] === r)
+            const dots = here
+              .map(
+                (c) =>
+                  `<span class="room-dot" title="${escapeHtml(c.name)}" style="background:${STATE_COLORS[c.state]}"></span>`,
+              )
+              .join('')
+            return `<div class="room">${escapeHtml(r)}${dots}</div>`
+          })
+          .join('')
+      }
+    }
+  }
+
   function renderInspector(): void {
+    if (inspectorKey() === inspectorLastKey && els.inspector.childElementCount > 0) {
+      patchInspector()
+      return
+    }
+    inspectorLastKey = inspectorKey()
     if (!selected) {
       els.inspector.innerHTML = `<div class="empty">
         <h3>Arbora City</h3>
@@ -189,32 +318,36 @@ export function initUI(world: World, renderer: CityRenderer, actions: CityAction
           ch.kind === 'npc' ? 'SIMULATED OPERATOR' : 'AI AGENT'
         }</span></h3>
         <p class="role">${escapeHtml(ch.role)}</p>
-        <div class="kv"><span>State</span><b style="color:${STATE_COLORS[ch.state]}">${escapeHtml(ch.state)}</b></div>
-        <div class="kv"><span>Mood</span><b>${escapeHtml(ch.mood)}</b></div>
-        <div class="kv"><span>Context</span><b>${Math.round(ch.context)}%</b></div>
-        <div class="ctxbar big"><span style="width:${Math.round(ch.context)}%"></span></div>
+        <div class="kv"><span>State</span><b data-slot="state" style="color:${STATE_COLORS[ch.state]}">${escapeHtml(ch.state)}</b></div>
+        <div class="kv"><span>Mood</span><b data-slot="mood">${escapeHtml(ch.mood)}</b></div>
+        <div class="kv"><span>Context</span><b data-slot="context">${Math.round(ch.context)}%</b></div>
+        <div class="ctxbar big" data-slot="ctxbar"><span style="width:${Math.round(ch.context)}%"></span></div>
         ${
           task
             ? `<div class="kv"><span>Task</span><b>${escapeHtml(task.tool)}</b></div>
         <div class="kv"><span>At</span><b>${b ? escapeHtml(b.name) : '—'}</b></div>
-        <div class="kv"><span>Approval</span><b>${task.approvalRequired ? (task.state === 'pending_approval' ? 'pending' : 'required') : 'not required'}</b></div>`
+        <div class="kv"><span>Approval</span><b data-slot="approval">${task.approvalRequired ? (task.state === 'pending_approval' ? 'pending' : 'required') : 'not required'}</b></div>`
             : ''
         }
         <h4>Recent activity</h4>
-        ${events || '<div class="evt-mini">—</div>'}`
+        <div data-slot="events" data-key="ch-e:${ch.id}:${ch.events.length}:${ch.events[ch.events.length - 1]?.detail ?? ''}">${
+          events || '<div class="evt-mini">—</div>'
+        }</div>`
       return
     }
     const b = selected.id in world.buildings ? world.buildings[selected.id] : null
     if (!b) return
     const plot = world.plots.find((p) => p.buildingId === b.id)
     const tools = b.tools.map((t) => `<span class="tool">${escapeHtml(t)}</span>`).join('')
-    // Room plan with the agents currently inside.
+    // Room plan with the agents currently inside. The occupant key is the
+    // same signature patchInspector() compares on, so a stable room plan is
+    // never re-rendered.
+    const inside = world.characters.filter((c) => c.state === 'working' && c.task?.buildingId === b.id)
+    const insideKey = inside.map((c) => `${c.id}:${c.roomIndex}`).join('|')
     const rooms = b.rooms
       .map((r) => {
-        const inside = world.characters.filter(
-          (c) => c.state === 'working' && c.task?.buildingId === b.id && b.rooms[c.roomIndex] === r,
-        )
-        const dots = inside
+        const here = inside.filter((c) => b.rooms[c.roomIndex] === r)
+        const dots = here
           .map(
             (c) =>
               `<span class="room-dot" title="${escapeHtml(c.name)}" style="background:${STATE_COLORS[c.state]}"></span>`,
@@ -224,8 +357,8 @@ export function initUI(world: World, renderer: CityRenderer, actions: CityAction
       })
       .join('')
     const construction = plot?.construction
-      ? `<div class="kv"><span>Construction</span><b>${Math.round(plot.construction.progress * 100)}%</b></div>
-            <div class="ctxbar big build"><span style="width:${Math.round(plot.construction.progress * 100)}%"></span></div>`
+      ? `<div class="kv"><span>Construction</span><b data-slot="cprogress">${Math.round(plot.construction.progress * 100)}%</b></div>
+            <div class="ctxbar big build" data-slot="cbar"><span style="width:${Math.round(plot.construction.progress * 100)}%"></span></div>`
       : ''
     const fleetRows =
       b.category === 'connector'
@@ -240,12 +373,12 @@ export function initUI(world: World, renderer: CityRenderer, actions: CityAction
       <p class="role">${escapeHtml(b.category === 'core' ? b.role : b.blurb || b.role)}</p>
       ${construction}
       ${fleetRows}
-      <div class="kv"><span>Visits</span><b>${b.visits}</b></div>
+      <div class="kv"><span>Visits</span><b data-slot="visits">${b.visits}</b></div>
       <h4>Tools</h4>
       <div class="tools">${tools}</div>
       ${simToolsNote}
       <h4>Locations inside</h4>
-      <div class="rooms">${rooms}</div>`
+      <div class="rooms" data-slot="rooms" data-key="${insideKey}">${rooms}</div>`
   }
 
   function select(hit: SelectionHit | null): void {
@@ -263,11 +396,24 @@ export function initUI(world: World, renderer: CityRenderer, actions: CityAction
   }
 
   // ---- Feed --------------------------------------------------------------------
+  // Every row carries its provenance mark (R010): LIVE rows come from the
+  // platform stream, SIM rows from the seeded simulation; a REPLAY mark
+  // labels rows emitted inside the scrubber's replayed window (R029). The
+  // marks come from the event the bus stamped — the row never decides.
+  function provenanceMarks(evt: CityEvent): string {
+    const prov =
+      evt.provenance === 'live'
+        ? '<span class="prov-chip live" title="Live platform event">LIVE</span>'
+        : '<span class="prov-chip sim" title="Simulated activity">SIM</span>'
+    const replay = evt.replay ? '<span class="prov-chip replay" title="Inside the replayed window">REPLAY</span>' : ''
+    return `${prov}${replay}`
+  }
+
   function pushFeed(evt: CityEvent): void {
     const colors = TYPE_COLORS[evt.type] ?? '#8a94a8'
     const div = document.createElement('div')
     div.className = 'feed-item'
-    div.innerHTML = `<span class="feed-time">${evt.ts !== undefined ? fmtClock(evt.ts) : ''}</span><span class="chip-evt" style="color:${colors};border-color:${colors}55">${escapeHtml(evt.type)}</span><span class="feed-text">${escapeHtml(evt.detail ?? '')}</span>`
+    div.innerHTML = `<span class="feed-time">${evt.ts !== undefined ? fmtClock(evt.ts) : ''}</span>${provenanceMarks(evt)}<span class="chip-evt" style="color:${colors};border-color:${colors}55">${escapeHtml(evt.type)}</span><span class="feed-text">${escapeHtml(evt.detail ?? '')}</span>`
     els.feedList.prepend(div)
     while (els.feedList.children.length > 40) {
       const last = els.feedList.lastElementChild

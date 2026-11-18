@@ -7,15 +7,17 @@
  * replayed history is deterministic per seed: the same seed plus the same
  * recorded actions always yields the identical event sequence.
  *
- * Every run starts from a fresh, fully-reset world over the bundled snapshot
- * (R014) — the driver owns no state of its own and never runs two worlds at
- * once. The event bus is left intact: the caller's subscriptions keep
+ * Every run starts from a fresh, fully-reset world over the fleet source it
+ * is handed (default: the bundled snapshot, R014) — a replay of a LIVE city
+ * boots from the served catalog the live city booted from, so the replayed
+ * window is the same city, not a stand-in. The driver owns no state of its
+ * own and never runs two worlds at once. The event bus is left intact: the caller's subscriptions keep
  * receiving the replayed events, which is what makes the scrubber (R029)
  * show the replayed history in the live feed. A test that wants a clean
  * bus calls `bus.reset()` itself before running.
  */
-import { FLEET_SNAPSHOT, fleetToConnectors } from './ecosystem'
-import { bus, setTimeSource, type CityEvent } from './events'
+import { FLEET_SNAPSHOT, fleetToConnectors, type FleetServer } from './ecosystem'
+import { bus, setReplaying, setTimeSource, type CityEvent } from './events'
 import { DEFAULT_SEED, mulberry32 } from './prng'
 import {
   dispatchTask,
@@ -40,6 +42,12 @@ export interface ReplayOptions {
   dtGame?: number
   /** Real seconds per tick (default: dtGame / timeScale at 1×). */
   dtReal?: number
+  /**
+   * The fleet source the replayed world boots from (default: the bundled
+   * snapshot). The page hands in the source its active mode booted from, so
+   * a LIVE city replays its served catalog, never the snapshot (R029).
+   */
+  fleet?: FleetServer[]
 }
 
 export interface ReplayResult {
@@ -71,20 +79,28 @@ export function replayRun(actions: RecordedAction[], opts: ReplayOptions = {}): 
 
   const events: CityEvent[] = []
   const unsub = bus.subscribe((e) => events.push(e))
-  initSim(fleetToConnectors(FLEET_SNAPSHOT))
-
-  const due = [...actions].sort((a, b) => a.ts - b.ts)
-  let ai = 0
-  const target = world.absGameS + duration
-  while (world.absGameS < target) {
-    // Inject every recorded action due at or before the current tick.
-    while (ai < due.length && due[ai].ts <= world.absGameS) {
-      const a = due[ai++]
-      if (a.kind === 'dispatch') dispatchTask(a.target)
-      else if (a.kind === 'onboard') onboardConnector(a.target ?? '')
+  // Every event emitted inside the replayed run carries the replay mark, so
+  // the feed can label the replayed window (R029). The mark spans the whole
+  // run — boot, injected actions and every tick — and is always cleared,
+  // even when a boot fails.
+  setReplaying(true)
+  try {
+    initSim(fleetToConnectors(opts.fleet ?? FLEET_SNAPSHOT))
+    const due = [...actions].sort((a, b) => a.ts - b.ts)
+    let ai = 0
+    const target = world.absGameS + duration
+    while (world.absGameS < target) {
+      // Inject every recorded action due at or before the current tick.
+      while (ai < due.length && due[ai].ts <= world.absGameS) {
+        const a = due[ai++]
+        if (a.kind === 'dispatch') dispatchTask(a.target)
+        else if (a.kind === 'onboard') onboardConnector(a.target ?? '')
+      }
+      tickSim(dtGame, dtReal)
     }
-    tickSim(dtGame, dtReal)
+  } finally {
+    setReplaying(false)
+    unsub()
   }
-  unsub()
   return { events, finalAbsGameS: world.absGameS, finalClock: world.clock, finalDay: world.day }
 }

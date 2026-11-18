@@ -14,7 +14,7 @@
  * asserting, then unmounts so the effect cleanup runs and no bus ring,
  * world state or in-flight boot leaks into the next test.
  */
-// spec: OVERSTORY-CITY-R012, OVERSTORY-CITY-R013, OVERSTORY-CITY-R014, OVERSTORY-CITY-R015, OVERSTORY-CITY-R018, OVERSTORY-CITY-R026, OVERSTORY-CITY-R027, OVERSTORY-CITY-R030
+// spec: OVERSTORY-CITY-R012, OVERSTORY-CITY-R013, OVERSTORY-CITY-R014, OVERSTORY-CITY-R015, OVERSTORY-CITY-R018, OVERSTORY-CITY-R026, OVERSTORY-CITY-R027, OVERSTORY-CITY-R029, OVERSTORY-CITY-R030
 import { readFileSync } from 'node:fs'
 import { webcrypto } from 'node:crypto'
 import { join } from 'node:path'
@@ -22,6 +22,7 @@ import { beforeAll, describe, expect, it, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import CityPage, { parseDemoParam, parseSpeedParam } from '../components/CityPage'
 import { init3D } from '../core/render3d'
+import { tickSim, world } from '../core/sim'
 import { TOUR_SESSION_KEY } from '../core/ui'
 import type { CityRenderer } from '../core/types'
 
@@ -256,6 +257,73 @@ describe('mode decision (R014)', () => {
       const names = Array.from(document.querySelectorAll('.c-name')).map((el) => el.textContent?.trim() ?? '')
       expect(names.some((n) => n.startsWith('Alpha'))).toBe(true)
       expect(names.some((n) => n.startsWith('Beta'))).toBe(true)
+    } finally {
+      view.unmount()
+    }
+  })
+})
+
+describe('replay (R029): the scrubber re-runs the actual city', () => {
+  it('a LIVE city replays its served catalog, not the bundled snapshot', async () => {
+    const view = await bootCity('live')
+    try {
+      // The live boot built the city from the served catalog (2 servers),
+      // not the bundled snapshot (74).
+      expect(world.connectors.length).toBe(2)
+      // Advance the clock past boot, then record an operator action inside
+      // the window the scrubber will seek, and seek.
+      for (let i = 0; i < 30; i++) tickSim(1, 1 / world.timeScale)
+      screen.getByRole('button', { name: 'Dispatch task' }).click()
+      const scrubber = document.getElementById('city-scrubber') as HTMLInputElement
+      // The 4 Hz panel refresh would have widened the range already; the
+      // operator drags within the range the UI exposed.
+      scrubber.max = String(world.absGameS - 9 * 3600)
+      scrubber.value = '15'
+      scrubber.dispatchEvent(new Event('input', { bubbles: true }))
+      // The replay is debounced (~250 ms) and boots from the same source.
+      await vi.waitFor(
+        () => {
+          expect(document.querySelector('.feed-item .prov-chip.replay')).not.toBeNull()
+        },
+        { timeout: 5_000 },
+      )
+      // The replayed city is still the served catalog — the snapshot's 74
+      // connectors never replaced it.
+      expect(world.connectors.length).toBe(2)
+      // The mode never swapped to the snapshot's mode.
+      expect(screen.getByText('LIVE')).toBeInTheDocument()
+      // And the readout states the replayed clock, not "live".
+      const readout = document.querySelector('.scrub-readout') as HTMLElement
+      expect(readout.textContent?.startsWith('replayed')).toBe(true)
+    } finally {
+      view.unmount()
+    }
+  })
+
+  it('a scrubber drag fires one replay, not one per input event', async () => {
+    const view = await bootCity('live')
+    try {
+      for (let i = 0; i < 30; i++) tickSim(1, 1 / world.timeScale)
+      screen.getByRole('button', { name: 'Dispatch task' }).click()
+      const scrubber = document.getElementById('city-scrubber') as HTMLInputElement
+      // The 4 Hz panel refresh would have widened the range already.
+      scrubber.max = String(world.absGameS - 9 * 3600)
+      // A drag: several input events in quick succession.
+      for (const v of ['5', '10', '15']) {
+        scrubber.value = v
+        scrubber.dispatchEvent(new Event('input', { bubbles: true }))
+      }
+      await vi.waitFor(
+        () => {
+          expect(document.querySelector('.feed-item .prov-chip.replay')).not.toBeNull()
+        },
+        { timeout: 5_000 },
+      )
+      // One replay run marks ~17 spawn rows; the feed keeps 40, so a
+      // saturated list (all rows replayed) means the drag multiplied runs.
+      const marked = document.querySelectorAll('.feed-item .prov-chip.replay').length
+      expect(marked).toBeGreaterThanOrEqual(17)
+      expect(marked).toBeLessThan(40)
     } finally {
       view.unmount()
     }

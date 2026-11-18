@@ -48,6 +48,8 @@ export interface CityEvent {
   detail?: string
   /** Where this event came from: the seeded simulation, or the live stream. */
   provenance: EventProvenance
+  /** True when the event fired inside a replayed run (R029): the feed labels the replayed window. */
+  replay?: boolean
 }
 
 type Listener = (evt: CityEvent) => void
@@ -62,9 +64,25 @@ export function setTimeSource(fn: () => number): void {
   timeSource = fn
 }
 
+// The replay window flag (R029): the replay driver raises it for the whole
+// duration of a replayed run so every event emitted then carries the replay
+// mark. Only the driver may set it; a caller event can never forge it.
+let replaying = false
+export function setReplaying(r: boolean): void {
+  replaying = r
+}
+export function isReplaying(): boolean {
+  return replaying
+}
+
 function emit(evt: CityEvent): CityEvent {
   evt.id = `ev-${++seq}`
   evt.ts = evt.ts ?? (timeSource ? timeSource() : 0)
+  // The replay mark is stamped by the bus from the replay driver's window
+  // flag — a caller-supplied mark is stripped, so the feed's "replayed"
+  // label is as trustworthy as its provenance mark (R029/R010).
+  if (replaying) evt.replay = true
+  else delete evt.replay
   // Every event lands in the recent ring, including startup asset-verification
   // and mode events: the UI mounts after them and must be able to replay a
   // complete picture (and surface asset failures) from the ring (P7).
@@ -94,6 +112,7 @@ export const bus = {
     listeners.clear()
     recent.length = 0
     droppedExternal = 0
+    replaying = false
   },
 }
 

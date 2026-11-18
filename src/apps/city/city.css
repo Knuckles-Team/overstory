@@ -446,6 +446,28 @@
   font-size: 10.5px;
   flex: 0 0 40px;
 }
+/* Per-row provenance marks (R010/R029): the bus stamps them, the row shows them. */
+.prov-chip {
+  border: 1px solid;
+  border-radius: 4px;
+  padding: 0 4px;
+  font-size: 9px;
+  letter-spacing: 0.4px;
+  flex: 0 0 auto;
+}
+.prov-chip.sim {
+  color: var(--city-text-dim);
+  border-color: var(--city-text-dim);
+  opacity: 0.7;
+}
+.prov-chip.live {
+  color: #3ddc84;
+  border-color: #3ddc84;
+}
+.prov-chip.replay {
+  color: #5ec8d8;
+  border-color: #5ec8d8;
+}
 .feed-item .chip-evt {
   border: 1px solid;
   border-radius: 4px;

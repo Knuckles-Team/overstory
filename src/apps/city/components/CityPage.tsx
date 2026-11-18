@@ -201,6 +201,14 @@ export default function CityPage() {
     // in-game timestamps, so the dedupe is stable).
     let historyActions: RecordedAction[] = []
     const actionKey = (a: RecordedAction): string => `${a.kind}:${a.ts}:${a.target ?? ''}`
+    // The fleet source this city booted from (R029): a replay must boot from
+    // the same source its mode decided — a LIVE city replays the served
+    // catalog, never the bundled snapshot.
+    let bootFleet: FleetServer[] = FLEET_SNAPSHOT
+    // The replay is synchronous work over the whole recorded history; a
+    // scrubber drag fires a burst of input events, so at most one replay
+    // lands per pause in the drag (~250 ms) and the readout stays live.
+    let scrubTimer: ReturnType<typeof setTimeout> | null = null
 
     function syncSpeedButtons(): void {
       for (const b of els.speedButtons) b.classList.toggle('active', Number(b.dataset.speed) === speed)
@@ -264,6 +272,9 @@ export default function CityPage() {
         // Host unreachable or 503 → SIMULATED; the banner states the reason.
       }
       if (isDisposed()) return
+      // Every replay of this city's history boots from this same source
+      // (R029): the scrubber shows the replayed window of the actual city.
+      bootFleet = fleet
 
       // 2. Bind the event clock first so every startup event is stamped with
       //    the in-game clock, then choose the mode and verify the pins.
@@ -330,16 +341,28 @@ export default function CityPage() {
           void swapView(v)
         },
         // R029: seek the recorded history — the deterministic replay driver
-        // replaces the world state, and the renderer rebinds to it.
+        // replaces the world state, and the renderer rebinds to it. Debounced
+        // to one replay per drag pause; the replay boots from the fleet
+        // source this city booted from, so a LIVE city never replays the
+        // bundled snapshot.
         scrub: (offsetS) => {
           if (isDisposed()) return
-          const merged = new Map<string, RecordedAction>()
-          for (const a of historyActions) merged.set(actionKey(a), a)
-          for (const a of world.actions) merged.set(actionKey(a), a)
-          historyActions = [...merged.values()].sort((a, b) => a.ts - b.ts)
-          replayRun(historyActions, { durationGameS: Math.max(0, Math.round(offsetS)), dtGame: 5 })
-          renderer?.resync?.()
-          ui?.refresh()
+          if (scrubTimer) clearTimeout(scrubTimer)
+          scrubTimer = setTimeout(() => {
+            scrubTimer = null
+            if (isDisposed()) return
+            const merged = new Map<string, RecordedAction>()
+            for (const a of historyActions) merged.set(actionKey(a), a)
+            for (const a of world.actions) merged.set(actionKey(a), a)
+            historyActions = [...merged.values()].sort((a, b) => a.ts - b.ts)
+            replayRun(historyActions, {
+              durationGameS: Math.max(0, Math.round(offsetS)),
+              dtGame: 5,
+              fleet: bootFleet,
+            })
+            renderer?.resync?.()
+            ui?.refresh()
+          }, 250)
         },
         startTour: () => {
           ui?.startTour()
@@ -377,10 +400,12 @@ export default function CityPage() {
     void boot()
 
     return () => {
-      // Unmount safety (OVERSTORY-CITY-R018): stop the loop, then the
-      // renderer, then the UI subscription, then the world and the bus.
+      // Unmount safety (OVERSTORY-CITY-R018): stop the loop, any pending
+      // replay, the renderer, the UI subscription, then the world and the
+      // bus.
       disposed = true
       cancelAnimationFrame(raf)
+      if (scrubTimer) clearTimeout(scrubTimer)
       observer?.disconnect()
       if (renderer) renderer.dispose()
       ui?.dispose()

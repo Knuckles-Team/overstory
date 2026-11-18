@@ -14,8 +14,10 @@ import {
   feedFullySimulated,
   getMode,
   injectLive,
+  isReplaying,
   makeEvent,
   setMode,
+  setReplaying,
   setTimeSource,
 } from '../core/events'
 
@@ -132,6 +134,31 @@ describe('provenance (R010)', () => {
     // Once a live event lands the badge stays cleared.
     bus.emit(makeEvent('task.done', {}, 'y'))
     expect(feedFullySimulated()).toBe(false)
+  })
+
+  it('the replay mark is stamped by the bus from the driver window, never by the caller', () => {
+    expect(isReplaying()).toBe(false)
+    // Outside a replay window the mark is absent — even when forged.
+    const forged = bus.emit({ type: 'task.queued', detail: 'x', provenance: 'simulated', replay: true })
+    expect(forged.replay).toBeUndefined()
+    // Inside the driver window every emitted event carries the mark.
+    setReplaying(true)
+    try {
+      const marked = bus.emit(makeEvent('character.spawned', { character: 'c' }, 'r'))
+      expect(marked.replay).toBe(true)
+      // The ring keeps the mark, so a feed replayed after the window still
+      // shows it.
+      expect(bus.recent().at(-1)?.replay).toBe(true)
+    } finally {
+      setReplaying(false)
+    }
+    // After the window the mark stops again.
+    const clear = bus.emit(makeEvent('task.queued', {}, 'live'))
+    expect(clear.replay).toBeUndefined()
+    // bus.reset() closes any forgotten window.
+    setReplaying(true)
+    bus.reset()
+    expect(isReplaying()).toBe(false)
   })
 })
 
