@@ -2,11 +2,12 @@
 
 The routes run through a real FastAPI app (``build_apps_router``) with a
 fake fleet invoker that answers the served operation ``fleet.catalog.list``
-with the captured live shape (browse + summary for the server list, a
-per-server tool-item read for served packs). The fake records every call,
-so the tests prove what the app asks Arbora for -- one browse read plus
-one bounded read per served pack -- and how it whitelists, caches and
-refuses.
+with the captured live shape (cursor-paginated browse + summary for the
+server list, a per-server tool-item read filtered by ``servers`` for
+served packs). The fake records every call, so the tests prove what the
+app asks Arbora for -- one browse read (plus pages) plus one bounded read
+per served pack -- and how it whitelists, caches, degrades one refused
+pack, bounds the whole read by a deadline and refuses.
 """
 
 # spec: OVERSTORY-CITY-R003, OVERSTORY-CITY-R017
@@ -19,6 +20,7 @@ import time
 from datetime import UTC, datetime
 from typing import Any, Protocol
 
+import pytest
 from fastapi import FastAPI, HTTPException
 from fastapi.testclient import TestClient
 from overstory.apps import AppBackend, build_apps_router, default_apps
@@ -89,25 +91,41 @@ TOOL_ITEMS: dict[str, list[Any]] = {
 
 
 class FakeFleet:
-    """The ``fleet.catalog.list`` invoker the gateway reaches."""
+    """The ``fleet.catalog.list`` invoker the gateway reaches.
+
+    ``browse`` answers a single-page catalog read; ``pages`` (cursor
+    keyed, None the first page) answers a paged one; ``servers``-filtered
+    calls answer the per-pack tool-item read. ``delay`` paces every call,
+    so a read is in flight long enough to observe the single-flight
+    state.
+    """
 
     def __init__(
         self,
         browse: dict[str, Any] = BROWSE,
         tool_items: dict[str, list[Any]] = TOOL_ITEMS,
         failure: Exception | None = None,
+        pages: dict[str | None, dict[str, Any]] | None = None,
+        delay: float = 0.0,
     ) -> None:
         self.calls: list[tuple[str, dict[str, Any]]] = []
         self.browse = browse
         self.tool_items = tool_items
         self.failure = failure
+        self.pages = pages
+        self.delay = delay
 
     async def invoke(self, op_id: str, params: dict[str, Any]) -> Any:
         self.calls.append((op_id, dict(params)))
+        if self.delay:
+            await asyncio.sleep(self.delay)
         if self.failure is not None:
             raise self.failure
-        if params.get('query'):
-            return {'items': self.tool_items.get(params['query'], [])}
+        if params.get('servers'):
+            server = params['servers'][0]
+            return {'items': self.tool_items.get(server, [])}
+        if self.pages is not None:
+            return self.pages[params.get('cursor')]
         return self.browse
 
 
@@ -119,8 +137,12 @@ class Clock:
         return self.value
 
 
-def _client(fake: FakeFleet, clock: Clock | None = None) -> TestClient:
-    gateway = CityGateway(invoke=fake.invoke, clock=clock or time.time)
+def _client(
+    fake: FakeFleet, clock: Clock | None = None, **gateway_kwargs: Any
+) -> TestClient:
+    gateway = CityGateway(
+        invoke=fake.invoke, clock=clock or time.time, **gateway_kwargs
+    )
     app = FastAPI()
     backend = AppBackend(
         app_id='city',
@@ -139,9 +161,9 @@ def test_the_fleet_route_serves_the_whitelisted_catalog() -> None:
 
     # Exactly one browse read and one tool read per served pack with tools.
     assert [op for op, _ in fake.calls] == ['fleet.catalog.list', 'fleet.catalog.list']
-    assert fake.calls[0][1] == {'browse': True, 'summary': True}
+    assert fake.calls[0][1] == {'browse': True, 'summary': True, 'limit': 100}
     assert fake.calls[1][1] == {
-        'query': 'alpha-mcp',
+        'servers': ['alpha-mcp'],
         'kinds': ['tool'],
         'limit': 12,
     }
@@ -365,8 +387,8 @@ class _CountingFleet:
         self.browse_calls = 0
 
     async def invoke(self, op_id: str, params: dict[str, Any]) -> Any:
-        if params.get('query'):
-            server = params['query']
+        if params.get('servers'):
+            server = params['servers'][0]
             if server == 'slow-pack':
                 await asyncio.sleep(self.delay * 20)  # past the timeout
                 return {'items': []}
@@ -412,3 +434,163 @@ def test_the_fan_out_is_concurrent_with_a_cap_and_timeout() -> None:
     by_name = {s['server']: s for s in read_slow.servers}
     assert by_name['slow-pack']['tools'] == []
     assert by_name['pack-01']['tools'] == ['pack-01-tool']
+
+
+def test_a_cancelled_leader_leaves_the_waiters_alive() -> None:
+    # The single flight is a real task the waiters shield: cancelling the
+    # first caller neither cancels the shared read nor strands the rest.
+    fake = FakeFleet(delay=0.05)
+    gateway = _gateway(fake)
+
+    async def scenario() -> tuple[list[dict[str, Any]], int, dict]:
+        first = asyncio.create_task(gateway.fleet())
+        await asyncio.sleep(0.005)  # the first call is in flight
+        second = asyncio.create_task(gateway.fleet())
+        first.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await first
+        read = await second
+        return read.servers, len(fake.calls), dict(gateway._inflight)
+
+    servers, calls, inflight = asyncio.run(scenario())
+    assert {s['server'] for s in servers} == {
+        'alpha-mcp',
+        'beta-mcp',
+        'gamma-mcp',
+        'arbora',
+    }
+    assert calls == 2  # one browse + one tool read, not a stranded re-read
+    assert inflight == {}  # no in-flight state survives the settlement
+
+
+class _RefusingFleet(FakeFleet):
+    """Refuses one pack's tool read with a typed upstream error."""
+
+    def __init__(self, refused: str, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+        self.refused = refused
+
+    async def invoke(self, op_id: str, params: dict[str, Any]) -> Any:
+        if params.get('servers') == [self.refused]:
+            raise HTTPException(502, 'upstream_refused')
+        return await super().invoke(op_id, params)
+
+
+def test_a_refused_pack_degrades_only_that_pack() -> None:
+    browse = {
+        'items': [],
+        'next_cursor': None,
+        'servers': [
+            {
+                'server': 'alpha-mcp',
+                'surfaces': {'tools': {'count': 5}},
+                'pack_status': 'served',
+            },
+            {
+                'server': 'beta-mcp',
+                'surfaces': {'tools': {'count': 2}},
+                'pack_status': 'served',
+            },
+        ],
+    }
+    tool_items = {
+        'alpha-mcp': [
+            {'server': 'alpha-mcp', 'kind': 'tool', 'name': f'alpha_{i}'}
+            for i in range(5)
+        ],
+        'beta-mcp': [
+            {'server': 'beta-mcp', 'kind': 'tool', 'name': f'beta_{i}'}
+            for i in range(2)
+        ],
+    }
+    fake = _RefusingFleet('alpha-mcp', browse=browse, tool_items=tool_items)
+    response = _client(fake).get('/api/apps/city/fleet')
+
+    # The refusal degrades one pack's tool list; the read as a whole stands.
+    assert response.status_code == 200
+    servers = {s['server']: s for s in response.json()['servers']}
+    assert servers['alpha-mcp']['tools'] == []
+    assert servers['alpha-mcp']['toolCount'] == 5
+    assert servers['beta-mcp']['tools'] == ['beta_0', 'beta_1']
+
+
+def test_the_catalog_read_paginates_by_cursor() -> None:
+    pages: dict[str | None, dict[str, Any]] = {
+        None: {
+            'items': [],
+            'next_cursor': 'page-2',
+            'servers': [
+                {
+                    'server': 'alpha-mcp',
+                    'surfaces': {'tools': {'count': 1}},
+                    'pack_status': 'served',
+                }
+            ],
+        },
+        'page-2': {
+            'items': [],
+            'next_cursor': None,
+            'servers': [
+                {
+                    'server': 'beta-mcp',
+                    'surfaces': {'tools': {'count': 0}},
+                    'pack_status': 'served',
+                }
+            ],
+        },
+    }
+    fake = FakeFleet(pages=pages)
+    body = _client(fake).get('/api/apps/city/fleet').json()
+
+    # Both pages' servers land in the answer, read by following the cursor.
+    assert {s['server'] for s in body['servers']} == {'alpha-mcp', 'beta-mcp'}
+    browses = [p for _, p in fake.calls if not p.get('servers')]
+    assert browses == [
+        {'browse': True, 'summary': True, 'limit': 100},
+        {'browse': True, 'summary': True, 'limit': 100, 'cursor': 'page-2'},
+    ]
+
+
+def test_a_paged_catalog_past_the_safety_cap_is_unavailable() -> None:
+    page: dict[str, Any] = {
+        'items': [],
+        'next_cursor': 'next',  # never terminates
+        'servers': [
+            {
+                'server': 'loop-mcp',
+                'surfaces': {'tools': {'count': 0}},
+                'pack_status': 'served',
+            }
+        ],
+    }
+    fake = FakeFleet(pages={None: page, 'next': page})
+    response = _client(fake).get('/api/apps/city/fleet')
+    assert response.status_code == 503
+    assert response.json()['detail'] == 'The fleet catalog read exceeded its page limit'
+    assert len(fake.calls) == 10  # the safety cap, not an endless loop
+
+
+def test_the_fresh_read_deadline_bounds_the_whole_read() -> None:
+    # A slow upstream past the overall fresh-read deadline answers the
+    # stated 503; the failed flight leaves no in-flight state behind.
+    slow = _CountingFleet(['pack-00'], delay=0.2)
+    gateway = CityGateway(
+        invoke=slow.invoke,
+        clock=time.time,
+        fresh_read_deadline_s=0.05,
+        tool_read_timeout_s=5.0,
+    )
+    app = FastAPI()
+    backend = AppBackend(
+        app_id='city',
+        router=build_city_router(gateway),
+        available=lambda: True,
+        unavailable_reason='never: the city degrades to its bundled snapshot',
+    )
+    app.include_router(build_apps_router([backend]))
+    client = TestClient(app)
+
+    response = client.get('/api/apps/city/fleet')
+    assert response.status_code == 503
+    assert response.json()['detail'] == 'The fleet catalog read exceeded its deadline'
+    assert gateway._inflight == {}
