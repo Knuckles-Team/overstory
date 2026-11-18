@@ -17,13 +17,13 @@ it adds no store, no second event source and no browser credential.
 
 - **Language/Version**: TypeScript under the repository strict `tsconfig.json` (`pnpm typecheck`) for the app; Python 3.12–3.14 (FastAPI) for the host adapter.
 - **Primary Dependencies**: `three` (scene library, lazy-chunked — already a locked dependency on main, shared with the pre-existing graph 3D views), `react` 19, `zod` response schemas, `fastapi` host — the rest are already locked.
-- **Storage**: none. The host is stateless apart from a 60 s in-memory fleet cache keyed by the verified principal and tenant (single flight for concurrent cold boots, bounded concurrent fan-out with a per-call timeout); simulation state is browser-local and ephemeral.
+- **Storage**: none. The host is stateless apart from a 60 s in-memory fleet cache keyed by the verified principal and tenant (cancellation-safe single flight for concurrent cold boots, an overall 30 s fresh-read deadline, cursor-paginated catalog read, bounded concurrent per-pack fan-out with a per-call timeout and per-pack degrade); simulation state is browser-local and ephemeral.
 - **Testing**: vitest (frontend, deterministic tick pacing) and pytest (FastAPI `TestClient` contract over a fake gateway); one `path::name` test per row in requirements.md.
 - **Target Platform**: modern browsers; WebGL2 scene with a canvas 2D schematic fallback; Node build through the repository Vite config.
 - **Project Type**: web (hosted app plus a same-origin FastAPI adapter, per the OVERSTORY-APPS app pattern).
-- **Performance Goals**: 60 fps at 1× on mid-range hardware; zero scene-library references in the shell chunk; pinned character assets under 5 MB (18 GLBs, ~0.5 MB); one fetch per pinned file; the stated budgets of R028 (triangles ≤ 4000 per building, draw calls ≤ 150 per district, texture memory ≤ 32 MB, 60 fps integrated / 30 fps mobile), checked in tests against the bundled snapshot.
+- **Performance Goals**: 60 fps at 1× on mid-range hardware; zero scene-library references in the shell chunk; pinned character assets under 5 MB (one shared rig with role variants per R033, replacing the 18-file rider pack); one fetch per pinned file; the stated budgets of R028 (triangles ≤ 4000 per building, draw calls ≤ 150 per district, texture memory ≤ 32 MB, 60 fps integrated / 30 fps mobile), measured from the real scene graph over the bundled snapshot and by measured frame time on the fidelity harness (R012.9), not asserted.
 - **Constraints**: no credential, token or identity value in the browser (R017); fleet data only through the host (R003); city activity is the labelled seeded simulation in both modes, not a decision; no new store or event source; the simulation draws randomness only from the injected seeded PRNG (R014); licensing is a gate — the lockfile allowlist is checked at startup (R013).
-- **Scale/Scope**: 30 rows; 75 fleet servers (7 served, 67 registered-unpublished, arbora core excluded); 78 plots; 17 characters (14 AI agents, 3 simulated NPC operators); 18 pinned GLBs.
+- **Scale/Scope**: 33 rows; 75 fleet servers (7 served, 67 registered-unpublished, arbora core excluded); 78 plots; 17 characters (14 AI agents, 3 simulated NPC operators); character assets move to one shared rig with role variants (R033), replacing the 18-file rider pack.
 
 ## Constitution Check
 
@@ -56,14 +56,30 @@ src/apps/city/
 │   │                        day/night, context loss), labels.ts, buildings.ts,
 │   │                        characters.ts, picking.ts
 │   ├── render3d.ts          facade: the init3D entry point over the render3d/ modules
-│   ├── render2d.ts          canvas schematic (2D fallback, top zoom level, a11y view)
+│   ├── render2d.ts          canvas schematic (2D fallback, city zoom level, a11y view)
 │   └── ui.ts                top bar, population list, inspector, feed, dispatch/onboard, speed
 └── __tests__/               vitest suites (see test-spec.md)
+src/lib/scene3d/             the shared 3D scene pipeline (OVERSTORY-DESIGN-R012):
+├── pipeline.ts              filmic tone mapping, HDR/PMREM environment, sun +
+│                            cascaded shadows, SSAO, emissive-only bloom, fog, sky
+├── tiers.ts                 the three quality tiers, chosen from measured frame time
+├── audit.ts                 material / density / label audits (R012.2/R012.3/R012.7)
+├── labels.ts                screen-space labels with collision avoidance (R012.7)
+├── roads.ts                 road-network generation and edit validation (R012.6)
+├── sequences.ts             interruptible state-change sequences (R012.5)
+├── characters.ts            the shared rig: clip set, crossfades, foot-speed match
+└── generators/              seeded procedural building / road / prop kits (R012.10)
 public/city-assets/
-├── assets.lock.json         18 pins: source commit, sha256, byte count, license,
+├── assets.lock.json         pins: source commit, sha256, byte count, license,
 │                            license_allowlist (checked at startup)
+├── manifest.json            the reviewed asset manifest (R012.10 pipeline input)
 ├── SOURCES.md               dataset survey (used and rejected)
-└── riders/*.glb             17 rider models + 1 placeholder cube (~0.5 MB)
+├── riders/*.glb             17 rider models + 1 placeholder cube (~0.5 MB;
+│                            superseded by the shared rig once R033 lands)
+└── characters/              the shared rig and role variants (R033)
+e2e/
+├── scene-fidelity.browser.ts  golden viewpoints + measured p95 frame time (R012.9)
+docs/art-direction.md        the style guide every asset is checked against (R012.8)
 agent/overstory/apps/city/
 ├── __init__.py              CityGateway + build_city_router exports
 ├── gateway.py               fleet read: normalization, 60 s cache, refusal classification
@@ -297,6 +313,87 @@ The week estimates in the phase plan are replaced by these rows' exit
 criteria and bound tests; each phase's work is filed in the owner
 repository's spec with `Depends:` links (review point 18).
 
+#### 2026-11-18: Re-review — the to-merge bar and the round-2 rework
+
+The re-review checked the 36 points against the code: about half are only
+partly done, three of the reply's claims do not match the code, and the
+visual quality is below the bar now written down as
+OVERSTORY-DESIGN-R012.x rows. This delivery fixes the to-merge list:
+findings 1–6, the true encoding legend (point 23), the honest scrubber
+(point 22), the measuring performance test (point 29), the 3D rebuild
+against R031–R033, and the golden-viewpoint proof per R012.9.
+
+**Backend (R003 amendment, T042).** The single flight becomes a real
+asyncio task with `asyncio.shield` for the waiters and `finally`
+cleanup, so a cancelled caller neither strands nor cancels the shared
+read (finding 1); a typed refusal or timeout on one pack degrades that
+pack's tool list to empty instead of failing the whole read (finding 6);
+the fresh read is bounded by an overall 30 s deadline; the catalog read
+paginates by cursor (`limit: 100`, safety cap ten pages) and the per-pack
+tool read filters by `servers: [name]` rather than free text (finding 7
+— the contract file now documents the live wire shape the code parses).
+
+**Frontend correctness.** The renderers honour the asset gate at render
+time (finding 4); disposal traverses the scene and force-loses the
+context (finding 5); `transition()` refusal results are honoured — state
+and behaviour never diverge (point 8); a refused dispatch targets a
+queued event, never a silent swap, and the action record is bounded
+(finding 8); refused events carry operator-facing wording; `Math.random`
+is gone from the renderers (point 2); feed rows show provenance and the
+streaming indicator stops claiming "live" while nothing live streams
+(point 1); the panels update in place so keyboard focus survives the 4 Hz
+refresh (point 12); the legend is true — the encoding table drives every
+rendered channel and the test verifies the scene against the table
+(points 23 and finding 3); the scrubber replays from the active mode's
+own fleet source and labels the replayed window (finding 2, point 22);
+the performance test builds the real scene graph and measures (point 29).
+
+**The 3D rebuild (R031–R033).** `src/lib/scene3d/` lands as the shared
+pipeline (filmic tone mapping, pinned HDR environment, sun + cascaded
+shadows, SSAO, emissive-only bloom, fog, sun-driven sky; the three
+quality tiers; the audits), the city's `render3d/` is rebuilt on it, and
+`docs/art-direction.md` fixes the style guide (R012.8). The cast moves to
+one shared rig — Khronos `glTF-Sample-Models-1.0` RobotExpressive, its
+eight clips mapped onto the R012.4 clip set, the license verified at
+fetch and admitted to the allowlist and SOURCES.md — with the
+pseudonymous ids (R020) naming the characters and the comic roster
+leaving the city (R033, point 27). Textures are runtime canvas-generated
+shared-atlas PBR sets (the R012.10 procedural route): no shipped texture
+files, and the decision is documented in the style guide. Operator layout
+editing (R032) lands in full — edit UX, validation, animation, re-routing
+and the gateway seam; the round-trip is proven by test with a fake
+injected invoke, and live persistence is the cross-repo follow-on (arbora's
+served layout read, ARBORA-FLEET-R084, spec-only in arbora main; the
+medulla world-view rows, planned) — stated as such in the PR reply.
+
+**Phases by owner (point 18).** The phase plan's phases are restructured
+by the owning repository; every row is filed in its owner's spec and the
+`Depends:` lines point at the owner rows:
+
+| Owner | Rows | State (2026-11-18) |
+|---|---|---|
+| Overstory (this repo) | R001–R018 (v1), R025–R033 (rounds 1–2) | this PR: v1 plus the round-2 rework |
+| Overstory (follow-on) | R019–R024 | specified, no v1 code |
+| Arbora | the `fleet.catalog.list` provider (ARBORA-FLEET-R040) | live; consumed by R003 |
+| Arbora | the served layout read (ARBORA-FLEET-R084) | spec-only in main (`ecaeeda2`); lands with R032's live persistence |
+| Arbora | the presence channel and the activity stream (hosted-operations spec) | spec'd; R020/R023 follow-ons |
+| Arbora | the engine catalog drift rows (`ONTOLOGY_ORPHAN`, `ONTOLOGY_CORE_CONFLICT`, `PACK_TOO_LARGE`) | filed 2026-11-18; blocks the `craft-suite-api` pack import (nothing served yet) |
+| Medulla | the world-view ontology (MEDULLA-WORLD-VIEW-R001/R002/R003) | spec'd, all planned; R021/R032 follow-on |
+| Medulla | the run-trace vocabulary and the prompt assets (orchestration vocabulary) | spec'd; R020/R022 follow-ons |
+| Meristem | the NPC dialogue reply loop | R022 follow-on |
+| Connectors | the craft-suite app tools (CONN-CRAFT-SUITE-API-APPS) | `registered_unpublished`, nothing served; the image-edit operations must land first (2026-11-17 correction); the R012.10 route 2 consumes them |
+| Pipelines | the spec standard | process dependency |
+
+**Fidelity proof (R012.9).** The golden viewpoints and the measured p95
+frame time run on the e2e fidelity harness. Against the live local
+no-auth stack the capture is still blocked by the three Arbora gaps
+(403 on `/api/*` under `WEBUI_AUTH_MODE=none`; zero connectors without
+credentials; the engine refusing the provisioned content pack) — rows for
+each are filed in the arbora specs, as the 2026-11-17 note stated. The
+harness runs now against the local `SIMULATED` city (bundled snapshot, no
+auth needed), and the live no-auth capture is recorded as pending in the
+test spec rather than claimed.
+
 ### Rejected alternatives
 
 - **Server-side rendered frames (WebRTC/WebGPU stream):** server GPU cost
@@ -319,7 +416,11 @@ asset verification and event seams; T006–T012 the simulation behavior
 (lifecycle, operators, construction, day/night, selection, speed, 2D
 fallback); T013–T014 the host read and the mode decision; T015–T018 the
 route wiring, credential whitelist and unmount safety. T019–T024 are the
-follow-on rows: specified, no v1 code, no schedule. Verification evidence
+follow-on rows: specified, no v1 code, no schedule. T025–T041 are the
+2026-11-17 review amendments and the fidelity rows R031–R033; T042–T053
+are the 2026-11-18 re-review amendments — one task per amended row — and
+land in this delivery with the R031–R033 rebuild: the host read first
+(T042), then the sim and the renderers (T043–T053). Verification evidence
 (tests, build chunk report, lockfile audit) is recorded per row in
 [checklists/requirements.md](checklists/requirements.md).
 

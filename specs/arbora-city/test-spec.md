@@ -34,8 +34,12 @@ Governing spec: [spec.md](spec.md).
     Bound: `// spec: OVERSTORY-CITY-R005`.
   - describe `state machine (R006)`: `AGENT_STATES`/`AGENT_TRANSITIONS`
     declare the lifecycle; the guarded transition function refuses an
-    illegal transition with a visible queued event; a full legal chain
-    emits every transition event. Bound: `// spec: OVERSTORY-CITY-R006`.
+    illegal transition with a visible queued event; the refusal result
+    is honoured by every caller (a refused transition neither walks,
+    changes mood nor emits success events); a refused event carries
+    operator-facing wording, not a raw invariant string; a full legal
+    chain emits every transition event. Bound:
+    `// spec: OVERSTORY-CITY-R006`.
   - describe `SC-002: dispatched task runs the full chain within 60 real
     s (R006/R007)`: assign → travel → tool call (naming a real building
     tool) → result → knowledge commit → idle, ≤ 60 real s at 1×; context
@@ -44,8 +48,9 @@ Governing spec: [spec.md](spec.md).
     `// spec: OVERSTORY-CITY-R006`.
   - describe `approval cycle (R007)`: a dispatch succeeds at boot; the
     approval cycle emits `task.pending_approval` then `task.approved`; a
-    dispatch with no idle agent fails with a queued event. Bound:
-    `// spec: OVERSTORY-CITY-R007`.
+    dispatch with no idle agent fails with a queued event; a dispatch
+    targeting a busy character is a visible queued event, never a silent
+    swap onto another agent. Bound: `// spec: OVERSTORY-CITY-R007`.
   - describe `SC-003: construction and first visit (R008)`: onboarding
     builds on an empty plot, `construction.progress` milestones every
     25%, completion ≤ 30 real s, first agent visit ≤ 2 real minutes;
@@ -67,8 +72,11 @@ Governing spec: [spec.md](spec.md).
     `// spec: OVERSTORY-CITY-R026`.
   - describe `deterministic replay (R029)`: the same seed plus the same
     recorded operator actions yields the identical event sequence;
-    scrubbing to a recorded action reproduces the state deterministically.
-    Bound: `// spec: OVERSTORY-CITY-R029`.
+    scrubbing to a recorded action reproduces the state deterministically;
+    a replay in `LIVE` mode boots from the served catalog, not the
+    bundled snapshot, and the mode badge never swaps; the feed shows the
+    labelled replayed window; the action record is bounded to the replay
+    window. Bound: `// spec: OVERSTORY-CITY-R029`.
 - `src/apps/city/__tests__/events.test.ts`
   - describe `vocabulary (R010)`: every declared type is accepted through
     the live bridge; unknown types are counted, not fatal.
@@ -79,8 +87,12 @@ Governing spec: [spec.md](spec.md).
     time source; `setMode` emits `mode.selected` with the reason.
   - describe `provenance (R010)`: every event carries `provenance`
     (`simulated` or `live`); while the feed is fully simulated the badge
-    reads "simulated activity"; a live-provenance event clears it.
-    Bound: `// spec: OVERSTORY-CITY-R010`.
+    reads "simulated activity"; a live-provenance event clears it; each
+    feed row shows the event's provenance mark; the streaming indicator
+    reads simulated activity while no live event has landed (never
+    "streaming live platform events"); feed detail text is
+    operator-facing prose, not raw invariant strings. Bound:
+    `// spec: OVERSTORY-CITY-R010`.
 - `src/apps/city/__tests__/assets.test.ts`
   - describe `lockfile (R013)`: pins exactly 18 files (17 riders + 1
     marker); every pin carries a `license` inside the top-level
@@ -94,18 +106,24 @@ Governing spec: [spec.md](spec.md).
 - `src/apps/city/__tests__/assetQa.test.ts`
   - describe `asset QA (R013/R028)`: parses every pinned GLB and checks the
     budgets from `budgets.ts` — triangles ≤ 4000, materials ≤ 16, texture
-    size ≤ 2048 px, bounds within the stated range; a failing asset never
-    enters the lock. Bound: `// spec: OVERSTORY-CITY-R028`.
+    size ≤ 2048 px, bounds within the stated range — with a rendered
+    turnaround thumbnail on file per asset; a failing asset never enters
+    the lock. Bound: `// spec: OVERSTORY-CITY-R028`.
+  - describe `render-time gate (R013)`: a refused or hash-mismatched pin
+    renders a labelled placeholder; the renderer never fetches
+    unverified bytes. Bound: `// spec: OVERSTORY-CITY-R013`.
 - `src/apps/city/__tests__/encoding.test.ts`
   - describe `encoding table (R025)`: each visual channel maps to exactly
     one fact; the legend text is derived from the same table; the scene
     modules read the table, not a copy. Bound:
     `// spec: OVERSTORY-CITY-R025`.
 - `src/apps/city/__tests__/perfBudget.test.ts`
-  - describe `performance budgets (R028)`: the scene graph over the
-    bundled snapshot (R014) is within the draw-call budget; the fps targets
-    (60 integrated / 30 mobile) are stated. Bound:
-    `// spec: OVERSTORY-CITY-R028`.
+  - describe `performance budgets (R028)`: builds the real scene graph
+    over the bundled snapshot (R014) and measures triangles per
+    building, draw calls per district and texture memory from it —
+    asserted constants do not count; the fps targets (60 integrated /
+    30 mobile) are met by measured frame time on the e2e fidelity
+    harness (R012.9). Bound: `// spec: OVERSTORY-CITY-R028`.
 - `src/apps/city/__tests__/render2d.test.ts`
   - describe `supportsWebGL probe (R015)`: true when a GL context exists;
     false when none can be created or creation throws.
@@ -122,18 +140,24 @@ Governing spec: [spec.md](spec.md).
     events, no failures); lists the connectors from the live fleet in
     the onboard modal. Bound: `// spec: OVERSTORY-CITY-R014`.
   - describe `context loss (R015)`: a `webglcontextlost` that is not
-    restored swaps the renderer to the 2D schematic — no dead canvas.
-    Bound: `// spec: OVERSTORY-CITY-R015`.
+    restored swaps the renderer to the 2D schematic — no dead canvas; a
+    `webglcontextrestored` resumes the 3D renderer; both listeners are
+    exercised through real dispatched DOM events, not direct callback
+    calls. Bound: `// spec: OVERSTORY-CITY-R015`.
   - describe `a11y (R027)`: the population list, the inspector and the
     modal are keyboard reachable; the 3D/2D toggle is keyboard operable;
-    zero `jsx-a11y` findings on the city sources. Bound:
-    `// spec: OVERSTORY-CITY-R027`.
+    the panels update in place — keyboard focus on a population row
+    survives the 4 Hz refresh; the DOM panels (list, inspector, feed,
+    controls) are usable without any canvas; zero `jsx-a11y` findings on
+    the city sources. Bound: `// spec: OVERSTORY-CITY-R027`.
   - describe `tour (R030)`: the first-visit tour runs once per session,
     is skippable, and the legend stays available. Bound:
     `// spec: OVERSTORY-CITY-R030`.
-  - describe `unmount safety (R018)`: disposes the renderer and schedules
-    no animation frame afterwards. Bound:
-    `// spec: OVERSTORY-CITY-R018`.
+  - describe `unmount safety (R018)`: disposes the renderer — the scene
+    graph is traversed (geometry, materials and textures disposed), the
+    controls are disposed and the WebGL context is force-lost — and
+    schedules no animation frame afterwards; a 2D/3D toggle never piles
+    up contexts. Bound: `// spec: OVERSTORY-CITY-R018`.
 
 ## Integration (pytest, FastAPI TestClient)
 
@@ -154,6 +178,21 @@ Governing spec: [spec.md](spec.md).
   OVERSTORY-CITY-R003: the per-pack tool-name reads run concurrently under
   the concurrency cap (8) with a per-call timeout (5 s); a slow pack does
   not hold the fan-out past the timeout.
+- `test_a_cancelled_leader_leaves_the_waiters_alive` —
+  OVERSTORY-CITY-R003: a cancelled first caller neither cancels nor
+  strands the shared read; the remaining waiters still resolve (the
+  single flight is a real task, waiters await it through `shield`, the
+  in-flight entry clears in `finally`).
+- `test_a_refused_pack_degrades_only_that_pack` — OVERSTORY-CITY-R003:
+  a typed refusal (403/502) on one pack's tool read degrades that pack's
+  tool list to empty; the read as a whole stands, the other packs
+  intact.
+- `test_the_catalog_read_paginates_by_cursor` — OVERSTORY-CITY-R003:
+  a multi-page catalog is read fully by following `next_cursor`
+  (`limit: 100`, safety cap ten pages).
+- `test_the_fresh_read_deadline_bounds_the_whole_read` —
+  OVERSTORY-CITY-R003: a slow upstream past the overall 30 s deadline
+  answers 503 with a stated reason.
 - `test_an_unreachable_or_absent_catalog_is_a_stated_503` and
   `test_any_other_upstream_failure_is_unavailable_too` —
   OVERSTORY-CITY-R003: 503 with a stated reason.
@@ -171,6 +210,9 @@ Governing spec: [spec.md](spec.md).
 
 - Host: gateway unavailable → 503 with a stated reason; typed refusal →
   4xx with the engine's code (FastAPI TestClient, fake gateway).
+- Host: one pack's tool read is refused → that pack's tool list is
+  empty and the read stands; a cancelled caller never cancels or
+  strands the shared read (fake gateway).
 - Host: a gateway response carrying extra fields is dropped by the
   normalization whitelist (no credential or extra identity can reach the
   browser) — OVERSTORY-CITY-R017.
@@ -204,9 +246,20 @@ Governing spec: [spec.md](spec.md).
   new lockfile entries with per-asset provenance pass the startup
   verification (R013).
 
-- OVERSTORY-CITY-R031: `e2e/city-fidelity.browser.ts::city_golden_viewpoints` (planned) —
-  the golden viewpoints, captured against the local no-auth stack, match the
-  approved images; the material, density and label audits pass on the live scene.
+- OVERSTORY-CITY-R031: `e2e/city-fidelity.browser.ts::city_golden_viewpoints` —
+  the golden viewpoints match the approved images; the material, density and
+  label audits pass on the live city scene. Runs against the local
+  `SIMULATED` city (bundled snapshot, no auth needed) in this delivery; the
+  capture against the local no-auth stack is recorded as pending the three
+  Arbora rows (403 on `/api/*` under `WEBUI_AUTH_MODE=none`; zero connectors
+  without credentials; the engine refusing the provisioned content pack).
+- OVERSTORY-DESIGN-R012.9: `e2e/scene-fidelity.browser.ts::golden_viewpoints_and_frame_time` —
+  the golden viewpoints (overview, district, street level, character
+  close-up, night, 2D view) match their approved images within tolerance,
+  and the measured p95 frame time meets each tier's budget (≤ 16.7 ms high
+  tier on the reference GPU, ≤ 33 ms low tier on integrated graphics).
+  Runs now against the local `SIMULATED` city; the live no-auth capture is
+  pending the three Arbora rows.
 - OVERSTORY-CITY-R032: `src/apps/city/__tests__/layout-edit.test.ts::override_round_trip` (planned) —
   building moves and road edits persist through the gateway and re-render for
   a second viewer; a disconnecting road edit is refused.

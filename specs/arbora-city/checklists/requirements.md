@@ -13,6 +13,12 @@ amendments 1–36): full frontend suite `pnpm test` 2958 passed; city suites
 `pnpm typecheck` clean; `pnpm lint` zero errors; `pnpm build` succeeded
 with the chunk report recorded in test-spec.md.
 
+Round 2 (2026-11-18 re-review): R002, R003, R005, R006, R007, R010,
+R013, R015, R018, R025, R027, R028 and R029 are amended, and R031–R033
+land in the same delivery. Their round-2 evidence is captured in this
+table by the rework commits; the 2026-11-17 evidence above stands for
+the pre-amendment rows.
+
 | ID | Status | Evidence |
 |----|--------|----------|
 | OVERSTORY-CITY-R001 | green | `src/apps/city/__tests__/surface.test.ts` (4 tests); `APP_SURFACES` registration in `src/apps/index.ts`; `src/lib/apps/__tests__/apps.test.ts` covers the contract. |
@@ -45,6 +51,9 @@ with the chunk report recorded in test-spec.md.
 | OVERSTORY-CITY-R028 | green | `assetQa.test.ts` describe `asset QA budgets (R013/R028)` (per-GLB triangle/material/texture budgets over the real bytes); `perfBudget.test.ts` describe `performance budgets over the bundled snapshot (R028)` (per-building triangle cost, per-domain draw-call cost, stated 60/30 fps targets) — both read the one `BUDGETS` table. |
 | OVERSTORY-CITY-R029 | green | `sim.test.ts` describe `replay (R029)` (actions recorded with in-game timestamps; same seed + same recorded actions → identical event sequence; scrubbing to a recorded action reproduces the state deterministically); the scrubber control is exercised in `CityPage.test.tsx` (labelled, wired to the replay driver). |
 | OVERSTORY-CITY-R030 | green | `CityPage.test.tsx` describe `first-visit tour (R030)` (runs on first visit, skippable, session-marked, does not re-run in the same session; legend always available); the tour state and session storage live in `ui.ts`/`CityPage.tsx`. |
+| OVERSTORY-CITY-R031 | in progress (round 2) | Row written 2026-11-17. The `render3d/` rebuild on `src/lib/scene3d/` and the e2e fidelity harness land in the round-2 rework. Golden-viewpoint capture against the local no-auth stack is pending three Arbora rows (403 on `/api/*` under `WEBUI_AUTH_MODE=none`; zero connectors without credentials; the engine refusing the provisioned content pack) — filed in the arbora specs; the harness runs against the local `SIMULATED` city until they land. Planned test: `e2e/city-fidelity.browser.ts::city_golden_viewpoints`. |
+| OVERSTORY-CITY-R032 | in progress (round 2) | Row written 2026-11-17. The edit UX, validation, animation, re-routing and the gateway seam land in the round-2 rework; the round-trip is proven by test with a fake injected invoke. Live persistence is the cross-repo follow-on: arbora's served layout read (ARBORA-FLEET-R084, spec-only in main) and the medulla world-view rows (MEDULLA-WORLD-VIEW-R002/R003, planned); stated as such in the PR reply. Planned test: `layout-edit.test.ts::override_round_trip`. |
+| OVERSTORY-CITY-R033 | in progress (round 2) | Row written 2026-11-17. The shared rig (Khronos `glTF-Sample-Models-1.0` RobotExpressive, eight clips mapped to the R012.4 clip set), the pseudonymous-id names and the role encoding land in the round-2 rework; the license is verified at fetch and admitted to the allowlist and SOURCES.md. Planned test: `ecosystem.test.ts::cast_encodes_role`. |
 
 Success criteria (from spec.md): SC-001 maps to `ecosystem.test.ts` and
 `sim.test.ts` boot state (counts of characters, landmarks, plots);

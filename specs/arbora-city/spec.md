@@ -1,6 +1,6 @@
 # OVERSTORY-CITY — Arbora City
 
-**Owner:** `overstory`. Cross-repo IDs: the provider-side fleet-catalog row is recorded in [contracts/arbora-fleet-catalog.md](contracts/arbora-fleet-catalog.md); the follow-on rows R019–R024 additionally name owner rows in the arbora specs (the served layout read, the presence channel, the activity stream) and the medulla specs (the world-view ontology, the run-trace and prompt-asset vocabularies). State is computed by the generator, never written here.
+**Owner:** `overstory`. Cross-repo IDs: the provider-side fleet-catalog row is recorded in [contracts/arbora-fleet-catalog.md](contracts/arbora-fleet-catalog.md); the follow-on rows R019–R024 additionally name owner rows in the arbora specs (the served layout read, the presence channel, the activity stream) and the medulla specs (the world-view ontology, the run-trace and prompt-asset vocabularies); R032's operator layout edits write through the same served layout read once it lands (ARBORA-FLEET-R084, with the medulla world-view rows supplying the override and spatial rules). State is computed by the generator, never written here.
 
 Component: Arbora City (hosted app)
 Depends-on: [OVERSTORY-APPS](../arbora-app-surface/spec.md), [OVERSTORY-API](../arbora-api-consumer/spec.md)
@@ -144,6 +144,7 @@ Every failure path is visible and typed.
 - **FR-006**: No credentials or identities in the browser, and safe unmount with no surviving background work. Rows: OVERSTORY-CITY-R017, OVERSTORY-CITY-R018.
 - **FR-007**: The follow-on world: enterable buildings, live ecosystem mirroring, Medulla-backed layout, NPC dialogue, visitor presence and asset scale-out — each naming its owner rows in the arbora and medulla specs. Rows: OVERSTORY-CITY-R019, OVERSTORY-CITY-R020, OVERSTORY-CITY-R021, OVERSTORY-CITY-R022, OVERSTORY-CITY-R023, OVERSTORY-CITY-R024.
 - **FR-008**: The city reads like the platform it mirrors: one visual encoding table with an always-on legend, quiet-by-default activity with a labelled demo mode, full keyboard accessibility, performance budgets as acceptance criteria, a time scrubber over deterministically replayable history, and a first-visit tour. Rows: OVERSTORY-CITY-R025, OVERSTORY-CITY-R026, OVERSTORY-CITY-R027, OVERSTORY-CITY-R028, OVERSTORY-CITY-R029, OVERSTORY-CITY-R030.
+- **FR-009**: The flagship bar: the 3D view meets the shared fidelity bar (the browser-design-system spec's R012.1–R012.9 rows), operators shape the layout through validated, animated, stored edits, and the cast reads as the fleet — one shared rig with role encoding replacing the borrowed roster. Rows: OVERSTORY-CITY-R031, OVERSTORY-CITY-R032, OVERSTORY-CITY-R033.
 
 ## Success Criteria
 
@@ -164,8 +165,10 @@ Every failure path is visible and typed.
 - The fleet catalog served by Arbora is the single authority for the
   connector district; the 78-plot district exceeds the current
   74-connector catalog, so growth never needs to extend the city geometry.
-- Character assets are the pinned MIT-licensed pack (18 files, ~0.5 MB);
-  buildings, roads and water are procedural geometry, not assets.
+- Character assets are pinned and permissively licensed: one shared rig
+  with role variants per OVERSTORY-CITY-R033 (the 2026-11-17 delivery
+  carried the 18-file rider pack); buildings, roads and water are
+  procedural geometry, not assets.
 - Target platforms are modern browsers; WebGL availability is probed at
   runtime and the 2D schematic covers its absence.
 - Success criteria are measured in real seconds at 1× (what an operator
