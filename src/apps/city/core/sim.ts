@@ -216,13 +216,33 @@ export const world = {
     construction: null,
   })) as Plot[],
   tasks: [] as Task[],
-  /** Operator actions recorded for the replay driver (R029). */
+  /** Operator actions recorded for the replay driver (R029), bounded. */
   actions: [] as RecordedAction[],
   stats: { knowledge: 0, toolCalls: 0, tasksDone: 0, incidents: 0, approvals: 0, dispatches: 0 },
   firstVisit: null as { buildingId: string; age: number } | null,
   /** The current connector catalog (from the fleet read or the snapshot). */
   connectors: [] as ConnectorDef[],
+  /**
+   * Connectors the catalog outgrew past the district's plots (R002):
+   * surfaced as a queued event at init — never silently dropped.
+   */
+  overflow: [] as ConnectorDef[],
   initialized: false,
+}
+
+/**
+ * The replay window the action record is bounded to (R029): ~300 in-game
+ * seconds, the fixed schedule the replay driver steps on. Older entries are
+ * dropped as new ones land, so the record never grows without bound.
+ */
+export const ACTION_WINDOW_GAME_S = 300
+
+/** One recorded operator action, stamped and bounded to the replay window. */
+function recordAction(kind: RecordedAction['kind'], target?: string): void {
+  world.actions.push({ kind, ts: world.absGameS, target })
+  while (world.actions.length > 0 && world.actions[0].ts < world.absGameS - ACTION_WINDOW_GAME_S) {
+    world.actions.shift()
+  }
 }
 
 export const NIGHT_START = 21 * 3600
@@ -258,11 +278,24 @@ export function getActivity(): ActivityMode {
   return world.activity
 }
 
-/** The single guarded state change (R006): refuses illegal transitions. */
+/**
+ * The single guarded state change (R006): refuses illegal transitions. The
+ * feed carries operator-facing wording; the raw invariant is logged, not
+ * shown. Every caller honours the result — a refused transition neither
+ * walks, changes mood nor emits success events, so state and behaviour
+ * never diverge.
+ */
 export function transition(ch: Character, to: AgentState): boolean {
   if (to === ch.state) return true
   if (!canTransition(ch.state, to)) {
-    bus.emit(makeEvent('task.queued', { character: ch.id }, `Illegal state change ${ch.state} → ${to} refused`))
+    console.warn(`[city] refused state change ${ch.id}: ${ch.state} → ${to}`)
+    bus.emit(
+      makeEvent(
+        'task.queued',
+        { character: ch.id },
+        `${ch.name} is still ${ch.state} — the change to ${to} was refused and queued`,
+      ),
+    )
     return false
   }
   ch.state = to
@@ -354,7 +387,12 @@ export function initSim(connectors: ConnectorDef[]): void {
 
   let plotIdx = 0
   for (const c of connectorsByDomain(connectors)) {
-    if (plotIdx >= world.plots.length) break
+    if (plotIdx >= world.plots.length) {
+      // The district is full: the overflow is a visible queued event, never
+      // a silent drop (R002 amendment).
+      world.overflow.push(c)
+      continue
+    }
     const plot = world.plots[plotIdx++]
     if (c.packStatus === 'served') {
       placeConnector(c, plot, true)
@@ -362,6 +400,15 @@ export function initSim(connectors: ConnectorDef[]): void {
       plot.reservedId = c.id
       plot.reservedName = c.name
     }
+  }
+  if (world.overflow.length > 0) {
+    bus.emit(
+      makeEvent(
+        'task.queued',
+        {},
+        `${world.overflow.length} connectors outgrew the ${world.plots.length}-plot district — queued for the next expansion`,
+      ),
+    )
   }
 
   ROSTER.forEach((r, i) => {
@@ -385,7 +432,7 @@ export function onboardConnector(connectorId: string): boolean {
   }
   const def = world.connectors.find((c) => c.id === connectorId)
   if (!def) return false
-  world.actions.push({ kind: 'onboard', ts: world.absGameS, target: connectorId })
+  recordAction('onboard', connectorId)
   plot.reservedId = null
   plot.reservedName = null
   placeConnector(def, plot, false)
@@ -440,13 +487,22 @@ function makeTask(agent: Character, building: Building): Task {
 }
 
 export function dispatchTask(agentId?: string): boolean {
+  // A named target that is busy (or the night) is a visible queued event —
+  // never a silent swap onto another agent (R007 amendment).
+  if (agentId) {
+    const named = world.characters.find((c) => c.id === agentId)
+    if (named?.state !== 'idle' || isNight(world.clock)) {
+      const who = named ? `${named.name} is ${named.state}` : 'the requested agent is not in the city'
+      bus.emit(makeEvent('task.queued', {}, `${who} — the dispatch is queued until they are free`))
+      return false
+    }
+  }
   const idle = world.characters.filter((c) => c.kind === 'ai' && c.state === 'idle' && !isNight(world.clock))
-  let agent = agentId ? world.characters.find((c) => c.id === agentId) : null
-  if (agent && agent.state !== 'idle') agent = null
-  // The index may be undefined when the idle pool is empty; keep the check
-  // honest by widening through an explicit null.
-  const fallback = idle.length ? idle[Math.floor(simRandom() * idle.length)] : null
-  agent ??= fallback
+  const agent = agentId
+    ? world.characters.find((c) => c.id === agentId)!
+    : idle.length
+      ? idle[Math.floor(simRandom() * idle.length)]
+      : null
   if (!agent) {
     bus.emit(makeEvent('task.queued', {}, 'No idle agent — task will start when one is free'))
     return false
@@ -455,7 +511,7 @@ export function dispatchTask(agentId?: string): boolean {
   if (!building) return false
   const task = makeTask(agent, building)
   world.stats.dispatches++
-  world.actions.push({ kind: 'dispatch', ts: world.absGameS, target: agent.id })
+  recordAction('dispatch', agent.id)
   startWork(agent, task)
   bus.emit(
     makeEvent(
@@ -475,46 +531,54 @@ export function dispatchTask(agentId?: string): boolean {
 function startWork(agent: Character, task: Task): void {
   const building = world.buildings[task.buildingId]
   const refs = { character: agent.id, task: task.id, building: building.id }
-  transition(agent, 'tasked')
+  // Honoured refusals (R006 amendment): a refused change stops the walk,
+  // the mood and the success events — state and behaviour never diverge.
+  if (!transition(agent, 'tasked')) return
   if (task.approvalRequired) {
     task.state = 'pending_approval'
     const gate = doorOf(world.buildings.arbora)
-    agent.go(
-      gate.x,
-      gate.z,
-      () => {
-        transition(agent, 'awaiting')
-        agent.mood = 'awaiting approval'
-        bus.emit(
-          makeEvent(
-            'task.pending_approval',
-            { character: agent.id, task: task.id, building: building.id },
-            `${task.tool} at ${building.name} needs operator approval`,
-          ),
-        )
-      },
-      'seeking approval',
-    )
-    const assigned = makeEvent('task.assigned', refs, `Assigned ${task.tool} at ${building.name} (approval required)`)
-    bus.emit(assigned)
-    bus.emit(makeEvent('character.traveling', refs, `${agent.name} heads to the gate for approval`))
-    agent.logEvent(assigned)
-    transition(agent, 'traveling')
+    if (transition(agent, 'traveling')) {
+      agent.go(
+        gate.x,
+        gate.z,
+        () => {
+          if (!transition(agent, 'awaiting')) return
+          agent.mood = 'awaiting approval'
+          bus.emit(
+            makeEvent(
+              'task.pending_approval',
+              { character: agent.id, task: task.id, building: building.id },
+              `${task.tool} at ${building.name} needs operator approval`,
+            ),
+          )
+        },
+        'seeking approval',
+      )
+      const assigned = makeEvent(
+        'task.assigned',
+        refs,
+        `Assigned ${task.tool} at ${building.name} (approval required)`,
+      )
+      bus.emit(assigned)
+      bus.emit(makeEvent('character.traveling', refs, `${agent.name} heads to the gate for approval`))
+      agent.logEvent(assigned)
+    }
   } else {
     const door = doorOf(building)
-    agent.go(
-      door.x,
-      door.z,
-      () => {
-        beginToolCall(agent)
-      },
-      'en route',
-    )
-    const assigned = makeEvent('task.assigned', refs, `Assigned ${task.tool} at ${building.name}`)
-    bus.emit(assigned)
-    bus.emit(makeEvent('character.traveling', refs, `${agent.name} heads to ${building.name}`))
-    agent.logEvent(assigned)
-    transition(agent, 'traveling')
+    if (transition(agent, 'traveling')) {
+      agent.go(
+        door.x,
+        door.z,
+        () => {
+          beginToolCall(agent)
+        },
+        'en route',
+      )
+      const assigned = makeEvent('task.assigned', refs, `Assigned ${task.tool} at ${building.name}`)
+      bus.emit(assigned)
+      bus.emit(makeEvent('character.traveling', refs, `${agent.name} heads to ${building.name}`))
+      agent.logEvent(assigned)
+    }
   }
 }
 
@@ -523,15 +587,13 @@ function beginToolCall(agent: Character): void {
   if (!task) return
   const building = world.buildings[task.buildingId]
   if (world.firstVisit?.buildingId === task.buildingId) world.firstVisit = null
+  if (!transition(agent, 'working')) return
+  agent.mood = agent.retryWait > 0 ? 'retrying after incident' : 'focused'
   if (agent.retryWait > 0) {
-    transition(agent, 'working')
-    agent.mood = 'retrying after incident'
     agent.callDuration = 3 + simRandom() * 2
     agent.retryWait = 0
     return
   }
-  transition(agent, 'working')
-  agent.mood = 'focused'
   agent.callsLeft = task.calls
   agent.workTimer = 0
   agent.callDuration = 2.5 + simRandom() * 2.5 // real seconds
@@ -588,24 +650,26 @@ function finishToolCall(agent: Character): void {
         `${agent.name}'s context reached ${Math.round(agent.context)}% — compacting at the vault`,
       ),
     )
-    transition(agent, 'traveling')
-    agent.mood = 'compacting memory'
-    agent.go(
-      door.x,
-      door.z,
-      () => {
-        agent.workTimer = 6 // real seconds of compaction
-        transition(agent, 'committing')
-      },
-      'compacting memory',
-    )
-    bus.emit(
-      makeEvent(
-        'character.traveling',
-        { character: agent.id, building: 'medulla', task: task.id },
-        `${agent.name} detours to the vault`,
-      ),
-    )
+    if (transition(agent, 'traveling')) {
+      agent.mood = 'compacting memory'
+      agent.go(
+        door.x,
+        door.z,
+        () => {
+          // Six real seconds of compaction once the change is accepted.
+          if (!transition(agent, 'committing')) return
+          agent.workTimer = 6
+        },
+        'compacting memory',
+      )
+      bus.emit(
+        makeEvent(
+          'character.traveling',
+          { character: agent.id, building: 'medulla', task: task.id },
+          `${agent.name} detours to the vault`,
+        ),
+      )
+    }
     return
   }
 
@@ -629,14 +693,14 @@ function commitKnowledge(agent: Character): void {
   const vault = world.buildings.medulla
   const door = doorOf(vault)
   agent.commitPhase = 'committing'
-  transition(agent, 'traveling')
+  if (!transition(agent, 'traveling')) return
   agent.mood = 'committing knowledge'
   agent.go(
     door.x,
     door.z,
     () => {
+      if (!transition(agent, 'committing')) return
       agent.workTimer = 4
-      transition(agent, 'committing')
     },
     'committing knowledge',
   )
@@ -654,24 +718,27 @@ function finishCommitting(agent: Character): void {
     agent.context = 25 + simRandom() * 15
     const b = world.buildings[agent.task ? agent.task.buildingId : 'arbora']
     const door = doorOf(b)
-    transition(agent, 'traveling')
-    agent.go(
-      door.x,
-      door.z,
-      () => {
-        beginToolCall(agent)
-      },
-      'back to work',
-    )
-    bus.emit(
-      makeEvent('character.traveling', { character: agent.id, building: b.id }, `${agent.name} returns to work`),
-    )
+    if (transition(agent, 'traveling')) {
+      agent.go(
+        door.x,
+        door.z,
+        () => {
+          beginToolCall(agent)
+        },
+        'back to work',
+      )
+      bus.emit(
+        makeEvent('character.traveling', { character: agent.id, building: b.id }, `${agent.name} returns to work`),
+      )
+    }
     return
   }
+  const task = agent.task
+  if (!transition(agent, 'idle')) return
   world.stats.knowledge++
   world.stats.tasksDone++
-  const task = agent.task
   if (task) task.state = 'done'
+  agent.task = null
   bus.emit(
     makeEvent(
       'knowledge.committed',
@@ -679,8 +746,6 @@ function finishCommitting(agent: Character): void {
       `${agent.name} committed evidence and provenance to the vault`,
     ),
   )
-  agent.task = null
-  transition(agent, 'idle')
   agent.mood = 'wandering'
   const evt = makeEvent('character.idle', { character: agent.id }, `${agent.name} is back to idle`)
   bus.emit(evt)
@@ -705,13 +770,15 @@ function tickHumans(ch: Character, _dtReal: number): void {
     // in every activity mode (R007).
     const pending = world.tasks.find((t) => t.state === 'pending_approval')
     if (pending && ch.state !== 'awaiting') {
+      // The stroll to the gate is ambient operator behaviour; the lifecycle
+      // change (idle → awaiting) happens at the gate and is guarded.
       const gate = doorOf(world.buildings.arbora)
       if (ch.moving() && ch.mood === 'approving') return
       ch.go(
         gate.x,
         gate.z,
         () => {
-          transition(ch, 'awaiting')
+          if (!transition(ch, 'awaiting')) return
           ch.waitTimer = 2
         },
         'approving',
@@ -720,13 +787,13 @@ function tickHumans(ch: Character, _dtReal: number): void {
     }
     if (ch.state === 'awaiting') {
       if (ch.waitTimer <= 0) {
-        transition(ch, 'idle')
+        if (!transition(ch, 'idle')) return
         ch.mood = 'supervising'
         const pending2 = world.tasks.find((t) => t.state === 'pending_approval')
         if (pending2) {
           world.stats.approvals++
           pending2.state = 'active'
-          world.actions.push({ kind: 'approve', ts: world.absGameS })
+          recordAction('approve')
           const agent = world.characters.find((c) => c.id === pending2.agentId)
           const building = world.buildings[pending2.buildingId]
           bus.emit(
@@ -736,7 +803,7 @@ function tickHumans(ch: Character, _dtReal: number): void {
               `Operator approved ${pending2.tool} at ${building.name}`,
             ),
           )
-          if (agent?.state === 'awaiting') {
+          if (agent?.state === 'awaiting' && transition(agent, 'traveling')) {
             const door = doorOf(building)
             agent.go(
               door.x,
@@ -746,7 +813,6 @@ function tickHumans(ch: Character, _dtReal: number): void {
               },
               'en route',
             )
-            transition(agent, 'traveling')
             bus.emit(
               makeEvent(
                 'character.traveling',
@@ -823,7 +889,7 @@ function tickHumans(ch: Character, _dtReal: number): void {
 
 function goSleep(ch: Character): void {
   if (ch.state === 'sleeping' || ch.moving()) return
-  transition(ch, 'sleeping')
+  if (!transition(ch, 'sleeping')) return
   ch.mood = 'recharging'
   ch.go(
     ch.homeDoor.x,
@@ -838,9 +904,9 @@ function goSleep(ch: Character): void {
 
 function wakeUp(ch: Character): void {
   if (ch.state !== 'sleeping') return
+  if (!transition(ch, 'idle')) return
   ch.visible = true
   ch.pos = { ...ch.homeDoor }
-  transition(ch, 'idle')
   ch.mood = ch.kind === 'npc' ? 'supervising' : 'wandering'
   ch.wanderTimer = 2 + simRandom() * 6
   bus.emit(makeEvent('character.waking', { character: ch.id }, `${ch.name} is up and about`))
@@ -1028,6 +1094,7 @@ export function resetSim(): void {
   world.stats = { knowledge: 0, toolCalls: 0, tasksDone: 0, incidents: 0, approvals: 0, dispatches: 0 }
   world.firstVisit = null
   world.connectors = []
+  world.overflow = []
   world.initialized = false
   autoTaskTimer = 5
   taskSeq = 0

@@ -13,7 +13,7 @@
  */
 // spec: OVERSTORY-CITY-R002, OVERSTORY-CITY-R005, OVERSTORY-CITY-R006, OVERSTORY-CITY-R007, OVERSTORY-CITY-R008, OVERSTORY-CITY-R009, OVERSTORY-CITY-R011, OVERSTORY-CITY-R012, OVERSTORY-CITY-R014, OVERSTORY-CITY-R026, OVERSTORY-CITY-R029
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { FLEET_SNAPSHOT, connectorsByDomain, fleetToConnectors } from '../core/ecosystem'
+import { FLEET_SNAPSHOT, connectorsByDomain, fleetToConnectors, type ConnectorDef } from '../core/ecosystem'
 import { EVENT_TYPES, bus, setTimeSource } from '../core/events'
 import { inWater } from '../core/layout'
 import { DEFAULT_SEED, mulberry32 } from '../core/prng'
@@ -21,6 +21,7 @@ import { REPLAY_DEFAULT_DURATION_GAME_S, replayRun } from '../core/replay'
 import {
   AGENT_STATES,
   AGENT_TRANSITIONS,
+  ACTION_WINDOW_GAME_S,
   TUNING,
   canTransition,
   dispatchTask,
@@ -130,6 +131,32 @@ describe('boot state (R005/R002/R004)', () => {
       prev = i!
     }
   })
+
+  it('connectors past the district capacity are queued for expansion, never dropped (R002)', () => {
+    const base = fleetToConnectors(FLEET_SNAPSHOT) // 74 connectors, 78 plots
+    const extra: ConnectorDef[] = Array.from({ length: 8 }, (_, i) => ({
+      id: `overflow-${i}`,
+      name: `Overflow ${i}`,
+      blurb: '',
+      archetype: 'office',
+      color: 0x336699,
+      tools: [],
+      packStatus: 'registered_unpublished',
+      simTools: false,
+    }))
+    const queued: string[] = []
+    bus.subscribe((e) => {
+      if (e.type === 'task.queued') queued.push(e.detail ?? '')
+    })
+    initSim([...base, ...extra]) // 82 connectors
+    // The district is exactly full; the surplus is world state, not a drop.
+    expect(world.plots.filter((p) => p.buildingId ?? p.reservedId)).toHaveLength(78)
+    expect(world.overflow).toHaveLength(4)
+    expect(queued.some((d) => d.includes('4 connectors outgrew the 78-plot district'))).toBe(true)
+    // A reset clears the overflow queue with the rest of the world.
+    resetSim()
+    expect(world.overflow).toHaveLength(0)
+  })
 })
 
 describe('state machine (R006)', () => {
@@ -169,6 +196,38 @@ describe('state machine (R006)', () => {
     const ch = getCharacter('chad-speedwell')
     expect(transition(ch!, 'tasked')).toBe(true)
     expect(ch?.state).toBe('tasked')
+  })
+
+  it('a refused transition is honoured: no walk, no mood change, no success events', () => {
+    boot()
+    const ch = getCharacter('chad-speedwell')!
+    const mood = ch.mood
+    const pos = { ...ch.pos }
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+    const success: string[] = []
+    bus.subscribe((e) => {
+      if (e.type !== 'task.queued') success.push(e.type)
+    })
+    expect(transition(ch, 'working')).toBe(false) // idle → working is not declared
+    expect(ch.state).toBe('idle')
+    expect(ch.mood).toBe(mood) // the refused change did not rewrite behaviour
+    expect(ch.pos).toEqual(pos) // and did not start a walk
+    expect(success).toHaveLength(0)
+    expect(warn).toHaveBeenCalled() // the raw invariant is logged, not shown
+  })
+
+  it('a refused event carries operator-facing wording, not the raw invariant string', () => {
+    boot()
+    const ch = getCharacter('chad-speedwell')!
+    const queued: string[] = []
+    bus.subscribe((e) => {
+      if (e.type === 'task.queued') queued.push(e.detail ?? '')
+    })
+    transition(ch, 'working')
+    expect(queued).toHaveLength(1)
+    expect(queued[0]).not.toContain('Illegal state change')
+    expect(queued[0]).toContain('refused')
+    expect(queued[0]).toContain(ch.name)
   })
 })
 
@@ -254,6 +313,29 @@ describe('SC-002: dispatched task runs the full chain within 60 real s (R006/R00
     }
     expect(dispatchTask()).toBe(false)
     expect(seen.some((d) => d.includes('No idle agent'))).toBe(true)
+  })
+
+  it('a dispatch on a busy target is a visible queued event, never a silent swap', () => {
+    boot()
+    expect(dispatchTask()).toBe(true) // one agent is now busy
+    const busy = world.characters.find((c) => c.state === 'tasked' || c.state === 'traveling')!
+    expect(busy).toBeDefined()
+    const dispatched: string[] = []
+    const queued: string[] = []
+    bus.subscribe((e) => {
+      if (e.type === 'operator.dispatched') dispatched.push(e.character ?? '')
+      if (e.type === 'task.queued') queued.push(e.detail ?? '')
+    })
+    expect(dispatchTask(busy.id)).toBe(false)
+    // The refusal names the busy agent and queues the work.
+    expect(queued.some((d) => d.includes(busy.name) && d.includes('queued'))).toBe(true)
+    // No silent swap: no other agent received the task.
+    expect(dispatched).toHaveLength(0)
+    expect(world.characters.filter((c) => c.task).length).toBe(1)
+    // The named target is still busy — the dispatch was refused, not
+    // swapped onto a different agent.
+    expect(busy.state).not.toBe('idle')
+    expect(busy.task).toBeDefined()
   })
 })
 
@@ -461,6 +543,23 @@ describe('replay (R029)', () => {
     const s1 = snapshot()
     replayRun(actions, { durationGameS: until, dtGame: 5 })
     expect(snapshot()).toEqual(s1)
+  })
+
+  it('the action record is bounded to the replay window: old entries age out (R029)', () => {
+    boot()
+    const firstTs = 9 * 3600
+    expect(dispatchTask()).toBe(true)
+    expect(world.actions.map((a) => a.ts)).toEqual([firstTs])
+    // 70 ticks at 1x advance the in-game clock past the 300 s window
+    // (70 x (1/30) x 144 = 336 in-game seconds).
+    tick(70)
+    expect(world.absGameS - firstTs).toBeGreaterThan(ACTION_WINDOW_GAME_S)
+    // Recording the next action trims the aged entry; the record stays
+    // bounded to the window it replays.
+    expect(dispatchTask()).toBe(true)
+    expect(world.actions).toHaveLength(1)
+    expect(world.actions[0].ts).toBeCloseTo(firstTs + 70 * (1 / 30) * world.timeScale, 6)
+    expect(world.actions[0].ts - world.absGameS).toBeCloseTo(0, 6)
   })
 })
 
