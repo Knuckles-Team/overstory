@@ -104,6 +104,25 @@ describe('provenance (R010)', () => {
     expect(bus.recent()[bus.recent().length - 1].provenance).toBe('live')
   })
 
+  it('makeEvent refuses a caller-supplied live provenance: the bus stamps, not the caller', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+    // A simulation module (or a test) that tries to forge a live event is
+    // stripped back to simulated and warned — the feed's live badge can
+    // never be faked from inside the simulation (R010).
+    const evt = bus.emit(makeEvent('tool.call', { provenance: 'live' as const }, 'spoofed'))
+    expect(evt.provenance).toBe('simulated')
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining("caller-supplied provenance 'live' stripped from 'tool.call'"),
+    )
+    // The feed badge condition stays simulated — the spoof did not land.
+    expect(feedFullySimulated()).toBe(true)
+    // An explicit simulated stamp is the bus's own value: accepted, unwarned.
+    warn.mockClear()
+    const ok = bus.emit(makeEvent('task.queued', { provenance: 'simulated' }, 'fine'))
+    expect(ok.provenance).toBe('simulated')
+    expect(warn).not.toHaveBeenCalled()
+  })
+
   it('the feed badge condition: fully simulated until the first live event lands', () => {
     expect(feedFullySimulated()).toBe(true) // empty ring: nothing live has landed
     bus.emit(makeEvent('task.assigned', {}, 'x'))
@@ -137,8 +156,15 @@ describe('clock stamping and mode', () => {
     setMode('live')
     setMode('simulated')
     expect(getMode()).toBe('simulated')
+    // The live-mode detail states what is actually streaming: the platform
+    // stream is not connected in this build, so the simulation continues —
+    // never "streaming live platform events" (R010).
     expect(seen).toEqual([
-      { mode: 'live', detail: 'Streaming live platform events' },
+      {
+        mode: 'live',
+        detail:
+          'Live mode selected — no live event stream is connected in this build; the city continues on its deterministic simulation until the platform stream lands',
+      },
       { mode: 'simulated', detail: 'Running on the deterministic simulation' },
     ])
   })

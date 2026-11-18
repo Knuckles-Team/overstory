@@ -102,9 +102,16 @@ export function makeEvent(type: string, refs: Partial<CityEvent> = {}, detail = 
     console.warn('[events] unknown type', type)
   }
   // ts is assigned by emit() from the active time source (in-game clock);
-  // callers may override it explicitly. Provenance defaults to the seeded
-  // simulation; the live bridge stamps its own (R010).
-  return { type, ...refs, detail, provenance: refs.provenance ?? 'simulated' }
+  // callers may override it explicitly. Provenance is stamped by the bus,
+  // never by the caller: `makeEvent` is the simulation's voice, so it can
+  // only stamp `simulated`. Only the live bridge (injectLive) may stamp
+  // `live` — a caller-supplied `live` is a spoof and is stripped (R010).
+  if (refs.provenance !== undefined && refs.provenance !== 'simulated') {
+    console.warn(
+      `[events] caller-supplied provenance '${refs.provenance}' stripped from '${type}': provenance is stamped by the bus, not the caller`,
+    )
+  }
+  return { type, ...refs, detail, provenance: 'simulated' }
 }
 
 // ---- Mode + live bridge hook -----------------------------------------------
@@ -120,7 +127,9 @@ export function setMode(mode: 'simulated' | 'live'): void {
     makeEvent(
       'mode.selected',
       { mode },
-      mode === 'simulated' ? 'Running on the deterministic simulation' : 'Streaming live platform events',
+      mode === 'simulated'
+        ? 'Running on the deterministic simulation'
+        : 'Live mode selected — no live event stream is connected in this build; the city continues on its deterministic simulation until the platform stream lands',
     ),
   )
 }
