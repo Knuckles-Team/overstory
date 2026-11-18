@@ -268,3 +268,4 @@ Metadata guard tests preserve this distinction; they are not feature-acceptance 
 - [ ] T072 OVERSTORY-DESIGN-R012.7 implement and prove: Legible at every zoom
 - [ ] T073 OVERSTORY-DESIGN-R012.8 implement and prove: One art direction
 - [ ] T074 OVERSTORY-DESIGN-R012.9 implement and prove: Fidelity is measured, not asserted
+- [ ] T075 OVERSTORY-DESIGN-R012.10 implement and prove: An agent-driven asset pipeline contributors can run
