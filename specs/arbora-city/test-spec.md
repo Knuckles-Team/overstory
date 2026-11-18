@@ -204,6 +204,16 @@ Governing spec: [spec.md](spec.md).
   new lockfile entries with per-asset provenance pass the startup
   verification (R013).
 
+- OVERSTORY-CITY-R031: `e2e/city-fidelity.browser.ts::city_golden_viewpoints` (planned) —
+  the golden viewpoints, captured against the local no-auth stack, match the
+  approved images; the material, density and label audits pass on the live scene.
+- OVERSTORY-CITY-R032: `src/apps/city/__tests__/layout-edit.test.ts::override_round_trip` (planned) —
+  building moves and road edits persist through the gateway and re-render for
+  a second viewer; a disconnecting road edit is refused.
+- OVERSTORY-CITY-R033: `src/apps/city/__tests__/ecosystem.test.ts::cast_encodes_role` (planned) —
+  every character uses the shared rig and full clip set; silhouette and colour
+  come from the encoding table.
+
 ## Quality and release proof
 
 - `pnpm build` — record the chunk report (capture 2026-11-17): the shell

@@ -42,3 +42,6 @@ Producer first: the fleet seam (R003) and the world producers (R002, R004, R005)
 - [ ] T036 OVERSTORY-CITY-R013 Amendment: license allowlist gate and automated asset QA budgets. Touches `public/city-assets/assets.lock.json`, `src/apps/city/schemas.ts`, `src/apps/city/components/CityPage.tsx`, `src/apps/city/__tests__/`.
 - [ ] T037 OVERSTORY-CITY-R014 Amendment: the seeded PRNG and the `LIVE` = connector-district-only split. Touches `src/apps/city/core/prng.ts`, `src/apps/city/core/sim.ts`, `src/apps/city/core/ui.ts`.
 - [ ] T038 OVERSTORY-CITY-R015 Amendment: the WebGL context-loss fallback to the 2D schematic. Touches `src/apps/city/core/render3d/scene.ts`, `src/apps/city/components/CityPage.tsx`.
+- [ ] T039 OVERSTORY-CITY-R031 Rebuild the 3D view on the shared scene pipeline to meet the fidelity bar. Touches `src/apps/city/core/render3d/`, `src/lib/scene3d/`, `public/city-assets/`.
+- [ ] T040 OVERSTORY-CITY-R032 Operator layout editing stored as served layout overrides. Touches `src/apps/city/core/ui.ts`, `agent/overstory/apps/city/gateway.py`.
+- [ ] T041 OVERSTORY-CITY-R033 Replace the borrowed roster with one rig and role-encoded agent characters. Touches `src/apps/city/core/ecosystem.ts`, `src/apps/city/core/render3d/characters.ts`, `public/city-assets/characters/`.
