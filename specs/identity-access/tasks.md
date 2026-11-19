@@ -22,6 +22,8 @@
 
 - [ ] T012 OVERSTORY-IDENTITY-R003.1.1 Explicit anonymous source refusal boundary. Source mode tests cover anonymous provenance, policy refusal and ambient-authority cleanup. This does not deliver full no-auth journeys.
 - [ ] T013 OVERSTORY-IDENTITY-R003.1.2 Complete installed anonymous journeys. Installed positive and adversarial anonymous-policy journeys and native effect qualification remain required.
+- [ ] T022 OVERSTORY-IDENTITY-R003.1.3 Exported exact anonymous read-route set. One generated set of GET read routes for a host composing explicit no-auth on loopback; writes stay refused.
+- [ ] T023 OVERSTORY-IDENTITY-R003.1.3.1 No-auth session read answers a fixed mode descriptor. `/auth/session` returns `mode: none` with no principal; other modes are unchanged.
 - [ ] T014 OVERSTORY-IDENTITY-R003.2.1 EG boundary configuration source refusal. Source factory tests reject missing and untyped EG callbacks without provisioning credentials.
 - [ ] T015 OVERSTORY-IDENTITY-R003.2.2 Installed EG identity journeys. Installed real producer/browser qualification remains required; source configuration refusal is not login support.
 - [ ] T016 OVERSTORY-IDENTITY-R003.3.1 OIDC configuration source refusal. Source factory tests reject incompatible owners and incomplete browser OIDC configuration.
