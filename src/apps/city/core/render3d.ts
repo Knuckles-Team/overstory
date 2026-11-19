@@ -10,11 +10,13 @@
  */
 import * as THREE from 'three'
 import { GLTFLoader, type GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js'
+import { zoomBandFor } from '@/lib/scene3d/labels'
 import { pinnedBytes } from './assets'
 import type { world as simWorld } from './sim'
 import { createCityScene } from './render3d/scene'
 import { createBuildings } from './render3d/buildings'
 import { initCharacters } from './render3d/characters'
+import { collectLabelCandidates, createLabelLayer } from './render3d/labelLayer'
 import { createPicking } from './render3d/picking'
 import type { CityRenderer, SelectionHit } from './types'
 
@@ -60,15 +62,20 @@ export async function init3D(
     })
   }
 
-  // The scene core owns the renderer, camera, controls, static city geometry
-  // and the day/night cycle; on WebGL context loss it notifies the page so
+  // The scene core owns the shared pipeline (renderer state, environment,
+  // sun, tiers, composer), the camera, controls, static city geometry and
+  // the day/night ambience; on WebGL context loss it notifies the page so
   // the 2D schematic of the same city graph takes over, and on context
   // restore the page resumes this renderer (R015).
   const sceneCore = createCityScene(container, world, {
     onContextLost: onContextLost ?? noopContextLost,
     onContextRestored,
   })
-  const { scene, renderer, camera, controls } = sceneCore
+  const { scene, renderer, camera, controls, pipeline } = sceneCore
+  // The screen-space label layer (R012.7): a pointer-transparent canvas
+  // overlay inside the container, driven per frame.
+  const labelLayer = createLabelLayer(container)
+  let viewport = { width: container.clientWidth || 800, height: container.clientHeight || 600 }
 
   // Marker cube first (used by placeholders + construction).
   let markerRoot: THREE.Object3D | null = null
@@ -113,6 +120,7 @@ export async function init3D(
   function render(dtReal: number): void {
     if (disposed || sceneCore.isLost()) return
     timeAcc += dtReal
+    const frameStart = performance.now()
     controls.update()
     picking.tick(dtReal)
     sceneCore.updateEnvironment(timeAcc)
@@ -120,7 +128,15 @@ export async function init3D(
     characters.update(dtReal, timeAcc)
     buildings.syncBuildings()
     picking.update(timeAcc)
-    renderer.render(scene, camera)
+    labelLayer.update(
+      collectLabelCandidates(world, camera, viewport),
+      viewport,
+      zoomBandFor(camera.position.distanceTo(controls.target)),
+    )
+    // The shared pipeline owns the frame: the composer renders, and the
+    // measured frame time drives the tier (p95 drop, R012.1).
+    pipeline.renderFrame()
+    pipeline.endFrame(performance.now() - frameStart)
   }
 
   function dispose(): void {
@@ -128,10 +144,12 @@ export async function init3D(
     characters.dispose()
     buildings.dispose()
     picking.dispose()
+    labelLayer.dispose()
     sceneCore.dispose()
   }
 
   function onResize(w: number, h: number): void {
+    viewport = { width: w, height: h }
     sceneCore.onResize(w, h)
   }
 

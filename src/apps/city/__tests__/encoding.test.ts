@@ -62,12 +62,18 @@ describe('encoding table (R025)', () => {
   })
 
   it('the scene modules read the table, not a private copy', () => {
-    // The 3D facade labels build the emissive window map from the one table,
-    // and the 2D schematic colours its scaffolding from the same table — so
-    // both views and the legend can never drift apart.
-    const labels = readFileSync(join(__dirname, '..', 'core', 'render3d', 'labels.ts'), 'utf8')
-    expect(labels).toContain("from '../encoding'")
-    expect(labels).toContain("encodingColor('lit-windows')")
+    // The 3D scene paints its emissive window/roof sheets and its
+    // scaffolding/door-queue channels from the one table, the label layer
+    // reads the state colours, and the 2D schematic colours its scaffolding
+    // from the same table — so both views and the legend can never drift
+    // apart.
+    const trimSheet = readFileSync(join(__dirname, '..', 'core', 'render3d', 'trimSheet.ts'), 'utf8')
+    expect(trimSheet).toContain("from '../encoding'")
+    expect(trimSheet).toContain("encodingColor('lit-windows')")
+    expect(trimSheet).toContain("encodingColor('error-flash')")
+    const buildings = readFileSync(join(__dirname, '..', 'core', 'render3d', 'buildings.ts'), 'utf8')
+    expect(buildings).toContain("encodingColor('scaffolding')")
+    expect(buildings).toContain("encodingColor('door-queue')")
     const render2d = readFileSync(join(__dirname, '..', 'core', 'render2d.ts'), 'utf8')
     expect(render2d).toContain("from './encoding'")
     expect(render2d).toContain("encodingColor('scaffolding')")
@@ -77,13 +83,13 @@ describe('encoding table (R025)', () => {
     expect(ui).toContain("from './encoding'")
     expect(ui).toContain('legendLines()')
     expect(ui).toContain('stateColor(')
-    // The state → colour mapping lives in exactly one module: the 3D
-    // character layer, the 2D schematic and the HUD all read stateColor from
-    // the encoding table — none of them declares its own colour list.
-    const characters = readFileSync(join(__dirname, '..', 'core', 'render3d', 'characters.ts'), 'utf8')
-    expect(characters).toContain("from '../encoding'")
-    expect(characters).toContain('stateColor(')
-    for (const mod of [render2d, ui, characters]) {
+    // The state → colour mapping lives in exactly one module: the screen-
+    // space label layer, the 2D schematic and the HUD all read stateColor
+    // from the encoding table — none of them declares its own colour list.
+    const labelLayer = readFileSync(join(__dirname, '..', 'core', 'render3d', 'labelLayer.ts'), 'utf8')
+    expect(labelLayer).toContain("from '../encoding'")
+    expect(labelLayer).toContain('stateColor(')
+    for (const mod of [render2d, ui, labelLayer]) {
       expect(mod, 'private state-colour copy in a scene module').not.toMatch(/const STATE_COLORS/)
     }
   })

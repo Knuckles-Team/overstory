@@ -96,7 +96,7 @@ export interface DressedPlot {
   /** Stable plot id. */
   id: string
   /** The content the plot carries — 'empty' when it was left undressed. */
-  content: 'building' | 'construction' | 'park' | 'plaza' | 'lot' | 'water' | 'empty'
+  content: 'building' | 'construction' | 'reserved' | 'park' | 'plaza' | 'lot' | 'water' | 'empty'
   /** Street-edge furniture on this plot's block edges (lights, trees, benches, signs, bins). */
   edgeFurniture: number
 }

@@ -1,43 +1,61 @@
 /**
  * @file scene.ts
  * @description The 3D scene core of the Arbora City renderer (part of the
- * render3d/ split, T025): the renderer, camera, controls, lights, the static
- * city geometry (ground, roads, water, pier, houses, parks, streetlamps) and
- * the day/night cycle. The WebGL context-loss listener lives here
- * (OVERSTORY-CITY-R015): on `webglcontextlost` the page is notified and falls
- * back to the 2D schematic of the same city graph — never a dead canvas. The
- * facade (render3d.ts) composes this with the buildings, characters and
- * picking layers.
+ * render3d/ split, T025), rebuilt on the shared scene pipeline
+ * (OVERSTORY-CITY-R031 / OVERSTORY-DESIGN-R012): the pipeline owns the
+ * renderer state (linear lighting, sRGB, ACES tone mapping, PCF shadows),
+ * the image-based environment, the one clock-following sun and the quality
+ * tiers; this module supplies the real post pipeline (SSAO, bloom, FXAA),
+ * the two sky domes, the controls and the static kit-built city geometry
+ * (ground, roads, crosswalks, water, shore, pier, ships, houses, parks,
+ * streetlamps) plus the day/night ambience. The WebGL context-loss
+ * listener lives here (OVERSTORY-CITY-R015): on `webglcontextlost` the page
+ * is notified and falls back to the 2D schematic of the same city graph —
+ * never a dead canvas. The facade (render3d.ts) composes this with the
+ * buildings, characters, labels and picking layers.
  */
+// spec: OVERSTORY-CITY-R031, OVERSTORY-DESIGN-R012.1
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
+import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js'
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js'
+import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js'
+import { SSAOPass } from 'three/examples/jsm/postprocessing/SSAOPass.js'
+import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js'
+import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js'
+import { FXAAPass } from 'three/examples/jsm/postprocessing/FXAAPass.js'
+import {
+  createScenePipeline,
+  type PipelineComposer,
+  type PipelineRenderer,
+  type ScenePipeline,
+} from '@/lib/scene3d/pipeline'
+import { buildingAsset, mulberry32, propAsset } from '@/lib/scene3d/generators'
+import { SCENE_COLORS } from '@/lib/scene3d/palette'
 import { GROUND_SIZE, HOUSES, PARKS, PIER, ROAD_W, SHIPS, WATER_Z, X_ROADS, Z_ROADS } from '../layout'
-import { mulberry32 } from '../prng'
 import type { world as SimWorld } from '../sim'
+import {
+  litWindowSheet,
+  metalTexture,
+  parkTexture,
+  roadRunUVs,
+  skyDayTexture,
+  skyNightTexture,
+  trimSheetTexture,
+  waterTexture,
+  woodTexture,
+  zebraTexture,
+} from './trimSheet'
 
 export type World = typeof SimWorld
-
-/**
- * Deterministic per-park seed (R014): the static props are seeded from the
- * park's coordinates, so the scene is identical on every boot — the scene
- * core never calls Math.random.
- */
-function parkSeed(x: number, z: number): number {
-  let h = 2166136261 >>> 0
-  for (const v of [Math.round(x * 1000), Math.round(z * 1000)]) {
-    h ^= v
-    h = Math.imul(h, 16777619) >>> 0
-  }
-  return h >>> 0
-}
 
 /** Mesh test as a type predicate (strict rules refuse the bare instanceof). */
 export function isMesh(o: THREE.Object3D): o is THREE.Mesh {
   return o instanceof THREE.Mesh
 }
 
-const DAY_SKY = new THREE.Color(0x9fd8ff)
-const NIGHT_SKY = new THREE.Color(0x0b1226)
+const DAY_SKY = new THREE.Color(SCENE_COLORS['sky-day'].hex)
+const NIGHT_SKY = new THREE.Color(SCENE_COLORS['sky-night'].hex)
 const tmpColor = new THREE.Color()
 
 /** Overview framing for the 200-unit city (district west, waterfront south). */
@@ -57,6 +75,8 @@ export interface CityScene {
   renderer: THREE.WebGLRenderer
   camera: THREE.PerspectiveCamera
   controls: OrbitControls
+  /** The shared pipeline the render loop drives (tiers, sun, composer). */
+  pipeline: ScenePipeline
   /** Day/night + ambient animation for one frame. */
   updateEnvironment(timeAcc: number): void
   /** True once the WebGL context was lost — the page has fallen back to 2D. */
@@ -77,28 +97,52 @@ export interface CityCore {
   shipPhases: number[]
 }
 
+/** Deterministic per-park seed (R014): the scene core never calls Math.random. */
+function parkSeed(x: number, z: number): number {
+  let h = 2166136261 >>> 0
+  for (const v of [Math.round(x * 1000), Math.round(z * 1000)]) {
+    h ^= v
+    h = Math.imul(h, 16777619) >>> 0
+  }
+  return h >>> 0
+}
+
 /**
- * The static city geometry (R014/R028): ground, roads, lane dashes, water,
- * shore, pier, ships, houses, parks and streetlamps, added to the scene
- * they are handed. `createCityScene` composes it with the lights and the
- * day/night cycle; the performance test (R028) measures its real
- * triangles, draw calls and texture memory with a bare `THREE.Scene` —
- * no WebGL renderer required.
+ * The static city geometry (R014/R028/R031): ground, roads, crosswalks,
+ * water, shore, pier, ships, houses, parks and streetlamps, all kit-built
+ * with the shared trim sheet as their authored base-colour map (R012.2),
+ * added to the scene they are handed. `createCityScene` composes it with
+ * the pipeline, the sky domes and the day/night cycle; the performance
+ * test (R028) measures its real triangles, draw calls and texture memory
+ * with a bare `THREE.Scene` — no WebGL renderer required.
  */
 export function buildCityCore(scene: THREE.Scene): CityCore {
-  // ---- Ground, roads, water ------------------------------------------------
+  // The city's authored maps (R012.2): every non-marker surface in the
+  // scene carries one of these — the material audit enforces it.
+  const trimTex = trimSheetTexture()
+  const parkTex = parkTexture()
+  const waterTex = waterTexture()
+  const woodTex = woodTexture()
+  const metalTex = metalTexture()
+  const zebraTex = zebraTexture()
+  const litSheet = litWindowSheet()
+
+  // ---- Ground ----------------------------------------------------------------
   const ground = new THREE.Mesh(
     new THREE.PlaneGeometry(GROUND_SIZE, GROUND_SIZE),
-    new THREE.MeshStandardMaterial({ color: 0x79a96b, roughness: 1 }),
+    new THREE.MeshStandardMaterial({ map: parkTex, roughness: 1 }),
   )
   ground.rotation.x = -Math.PI / 2
   ground.receiveShadow = true
   scene.add(ground)
 
-  const roadMat = new THREE.MeshStandardMaterial({ color: 0x3a3f47, roughness: 1 })
+  // ---- Roads (one shared trim-sheet road material) ---------------------------
+  const roadMat = new THREE.MeshStandardMaterial({ map: trimTex, roughness: 0.95 })
   const xSpan = Z_ROADS[Z_ROADS.length - 1] - Z_ROADS[0]
   for (const x of X_ROADS) {
-    const m = new THREE.Mesh(new THREE.PlaneGeometry(ROAD_W, xSpan), roadMat)
+    const geo = new THREE.PlaneGeometry(ROAD_W, xSpan)
+    roadRunUVs(geo, xSpan, false) // u across the width, v along the run
+    const m = new THREE.Mesh(geo, roadMat)
     m.rotation.x = -Math.PI / 2
     m.position.set(x, 0.02, (Z_ROADS[0] + Z_ROADS[Z_ROADS.length - 1]) / 2)
     m.receiveShadow = true
@@ -106,40 +150,51 @@ export function buildCityCore(scene: THREE.Scene): CityCore {
   }
   const zSpan = X_ROADS[X_ROADS.length - 1] - X_ROADS[0]
   for (const z of Z_ROADS) {
-    const m = new THREE.Mesh(new THREE.PlaneGeometry(zSpan, ROAD_W), roadMat)
+    const geo = new THREE.PlaneGeometry(zSpan, ROAD_W)
+    roadRunUVs(geo, zSpan, true) // u along the run, v across the width
+    const m = new THREE.Mesh(geo, roadMat)
     m.rotation.x = -Math.PI / 2
     m.position.set((X_ROADS[0] + X_ROADS[X_ROADS.length - 1]) / 2, 0.02, z)
     m.receiveShadow = true
     scene.add(m)
   }
 
-  // Lane dashes (instanced).
-  const dashMat = new THREE.MeshBasicMaterial({ color: 0xd8d8c8 })
-  const dashCount: number[][] = []
-  for (const x of X_ROADS)
-    for (let z = Z_ROADS[0] + 3; z < Z_ROADS[Z_ROADS.length - 1]; z += 3) dashCount.push([x, z, 0])
-  for (const z of Z_ROADS)
-    for (let x = X_ROADS[0] + 3; x < X_ROADS[X_ROADS.length - 1]; x += 3) dashCount.push([x, z, 1])
-  const dashes = new THREE.InstancedMesh(new THREE.BoxGeometry(0.22, 0.03, 1.1), dashMat, dashCount.length)
+  // ---- Crosswalks (one zebra band per non-edge arm, instanced) ---------------
+  const crosswalkGeo = new THREE.PlaneGeometry(ROAD_W, 3.2)
+  crosswalkGeo.rotateX(-Math.PI / 2)
+  const crosswalkMat = new THREE.MeshStandardMaterial({ map: zebraTex, roughness: 0.95 })
+  const arms: { x: number; z: number; rotY: number }[] = []
+  const OFF = 2.2 // the band's offset from the intersection centre
+  for (let xi = 0; xi < X_ROADS.length; xi++) {
+    for (let zi = 0; zi < Z_ROADS.length; zi++) {
+      const x = X_ROADS[xi]
+      const z = Z_ROADS[zi]
+      if (zi < Z_ROADS.length - 1) arms.push({ x, z: z + OFF, rotY: 0 }) // across the Z road
+      if (zi > 0) arms.push({ x, z: z - OFF, rotY: 0 })
+      if (xi < X_ROADS.length - 1) arms.push({ x: x + OFF, z, rotY: Math.PI / 2 }) // across the X road
+      if (xi > 0) arms.push({ x: x - OFF, z, rotY: Math.PI / 2 })
+    }
+  }
+  const crosswalks = new THREE.InstancedMesh(crosswalkGeo, crosswalkMat, arms.length)
   {
     const M = new THREE.Matrix4()
     const q = new THREE.Quaternion()
     const p = new THREE.Vector3()
     const s = new THREE.Vector3(1, 1, 1)
-    dashCount.forEach(([x, z, axis], i) => {
-      q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), axis ? Math.PI / 2 : 0)
-      p.set(x, 0.03, z)
+    arms.forEach((a, i) => {
+      q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), a.rotY)
+      p.set(a.x, 0.03, a.z)
       M.compose(p, q, s)
-      dashes.setMatrixAt(i, M)
+      crosswalks.setMatrixAt(i, M)
     })
-    dashes.instanceMatrix.needsUpdate = true
+    crosswalks.instanceMatrix.needsUpdate = true
   }
-  scene.add(dashes)
+  scene.add(crosswalks)
 
-  // Water + shore + pier + ships.
+  // ---- Water + shore + pier + ships -------------------------------------------
   const water = new THREE.Mesh(
     new THREE.PlaneGeometry(GROUND_SIZE, 22),
-    new THREE.MeshStandardMaterial({ color: 0x3d7fb5, roughness: 0.4, metalness: 0.15 }),
+    new THREE.MeshStandardMaterial({ map: waterTex, roughness: 0.35, metalness: 0.1 }),
   )
   water.rotation.x = -Math.PI / 2
   water.position.set(0, 0.06, WATER_Z + 11)
@@ -147,7 +202,7 @@ export function buildCityCore(scene: THREE.Scene): CityCore {
 
   const shore = new THREE.Mesh(
     new THREE.PlaneGeometry(GROUND_SIZE, 2.6),
-    new THREE.MeshStandardMaterial({ color: 0xc9b47f, roughness: 1 }),
+    new THREE.MeshStandardMaterial({ map: parkTex, roughness: 1 }),
   )
   shore.rotation.x = -Math.PI / 2
   shore.position.set(0, 0.04, WATER_Z - 0.4)
@@ -155,28 +210,22 @@ export function buildCityCore(scene: THREE.Scene): CityCore {
 
   const pier = new THREE.Mesh(
     new THREE.BoxGeometry(PIER.w, 0.4, PIER.z1 - PIER.z0 + 1),
-    new THREE.MeshStandardMaterial({ color: 0x8a6f4d, roughness: 1 }),
+    new THREE.MeshStandardMaterial({ map: woodTex, roughness: 1 }),
   )
   pier.position.set(PIER.x, 0.2, (PIER.z0 + PIER.z1) / 2)
   pier.castShadow = true
   scene.add(pier)
 
-  const ships = SHIPS.map((s, _i) => {
+  const hullMat = new THREE.MeshStandardMaterial({ map: metalTex, roughness: 0.5, metalness: 0.3 })
+  const cabinMat = new THREE.MeshStandardMaterial({ map: woodTex, roughness: 0.9 })
+  const flagMat = new THREE.MeshStandardMaterial({ map: parkTex, roughness: 0.9 })
+  const ships = SHIPS.map((s) => {
     const g = new THREE.Group()
-    const hull = new THREE.Mesh(
-      new THREE.BoxGeometry(3.2, 0.7, 1.5),
-      new THREE.MeshStandardMaterial({ color: 0x5a6b7d }),
-    )
+    const hull = new THREE.Mesh(new THREE.BoxGeometry(3.2, 0.7, 1.5), hullMat)
     hull.position.y = 0.35
-    const cabin = new THREE.Mesh(
-      new THREE.BoxGeometry(1.1, 0.6, 1.1),
-      new THREE.MeshStandardMaterial({ color: 0xd8dce4 }),
-    )
+    const cabin = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.6, 1.1), cabinMat)
     cabin.position.set(-0.7, 0.95, 0)
-    const flag = new THREE.Mesh(
-      new THREE.BoxGeometry(0.05, 0.5, 0.3),
-      new THREE.MeshStandardMaterial({ color: 0x7fd06f }),
-    )
+    const flag = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.5, 0.3), flagMat)
     flag.position.set(1.2, 1.2, 0)
     g.add(hull, cabin, flag)
     g.position.set(s.x, 0.35, s.z)
@@ -187,45 +236,40 @@ export function buildCityCore(scene: THREE.Scene): CityCore {
   // an untyped bag the strict lint rules refuse to trust).
   const shipPhases = SHIPS.map((_, i) => i * 1.7)
 
-  // Houses (residential quarter).
+  // ---- Houses (residential quarter, kit-built) --------------------------------
+  // One shared trim-sheet wall map; each house carries its own emissive
+  // clone so the 'lit windows' ambience is per house (R031 ambient life).
+  const houseTemplate = new THREE.MeshStandardMaterial({
+    map: trimTex,
+    roughness: 0.9,
+    emissive: 0xffffff,
+    emissiveMap: litSheet,
+    emissiveIntensity: 0,
+  })
   const houseWindows: THREE.MeshStandardMaterial[] = []
   HOUSES.forEach((h, i) => {
-    const g = new THREE.Group()
-    const body = new THREE.Mesh(
-      new THREE.BoxGeometry(4, 2.4, 4),
-      new THREE.MeshStandardMaterial({ color: i % 2 ? 0xc2a184 : 0xb8987c, roughness: 1 }),
-    )
-    body.position.y = 1.2
-    body.castShadow = true
-    const roof = new THREE.Mesh(
-      new THREE.ConeGeometry(3.1, 1.7, 4),
-      new THREE.MeshStandardMaterial({ color: i % 2 ? 0x8a4b3c : 0x7a4438, roughness: 1 }),
-    )
-    roof.position.y = 3.25
-    roof.rotation.y = Math.PI / 4
-    roof.castShadow = true
-    const winMat = new THREE.MeshStandardMaterial({ color: 0x2a3346, emissive: 0xffd98a, emissiveIntensity: 0 })
-    const win = new THREE.Mesh(new THREE.PlaneGeometry(0.7, 0.7), winMat)
-    win.position.set(0.9, 1.5, 2.01)
-    const win2 = win.clone()
-    win2.position.x = -0.9
-    const door = new THREE.Mesh(new THREE.PlaneGeometry(0.8, 1.4), new THREE.MeshStandardMaterial({ color: 0x4a3a2c }))
-    door.position.set(0, 0.7, 2.01)
-    g.add(body, roof, win, win2, door)
-    g.position.set(h.x, 0, h.z)
-    scene.add(g)
-    houseWindows.push(winMat)
+    const house = buildingAsset({
+      seed: 1000 + i,
+      archetype: i % 2 ? 'workshop' : 'studio',
+      footprint: [4, 4],
+      floors: 1,
+    })
+    const mat = houseTemplate.clone()
+    const mesh = new THREE.Mesh(house.geometry, mat)
+    mesh.position.set(h.x, 0, h.z)
+    mesh.castShadow = true
+    mesh.receiveShadow = true
+    scene.add(mesh)
+    houseWindows.push(mat)
   })
 
-  // Parks.
-  const treeGeo = {
-    trunk: new THREE.CylinderGeometry(0.12, 0.18, 0.9, 5),
-    crown: new THREE.ConeGeometry(0.75, 1.8, 6),
-  }
+  // ---- Parks (kit street-furniture trees, seeded per park) --------------------
+  const propMat = new THREE.MeshStandardMaterial({ map: trimTex, roughness: 0.95 })
+  const treeGeo = propAsset({ seed: 1, kind: 'tree' }).geometry
   for (const pk of PARKS) {
     const patch = new THREE.Mesh(
       new THREE.PlaneGeometry(9, 9),
-      new THREE.MeshStandardMaterial({ color: 0x85b874, roughness: 1 }),
+      new THREE.MeshStandardMaterial({ map: parkTex, roughness: 1 }),
     )
     patch.rotation.x = -Math.PI / 2
     patch.position.set(pk.x, 0.03, pk.z)
@@ -234,26 +278,18 @@ export function buildCityCore(scene: THREE.Scene): CityCore {
     const rand = mulberry32(parkSeed(pk.x, pk.z))
     for (let i = 0; i < pk.trees; i++) {
       const t = 0.9 + rand() * 0.3
-      const trunk = new THREE.Mesh(treeGeo.trunk, new THREE.MeshStandardMaterial({ color: 0x6f5336 }))
-      const crown = new THREE.Mesh(
-        treeGeo.crown,
-        new THREE.MeshStandardMaterial({ color: i % 2 ? 0x4f8a4f : 0x5d9a54 }),
-      )
+      const tree = new THREE.Mesh(treeGeo, propMat)
       const a = rand() * Math.PI * 2
       const r = rand() * 3.4
-      trunk.position.set(pk.x + Math.cos(a) * r, 0.45 * t, pk.z + Math.sin(a) * r)
-      crown.position.set(trunk.position.x, 1.5 * t, trunk.position.z)
-      trunk.scale.setScalar(t)
-      crown.scale.setScalar(t)
-      trunk.castShadow = crown.castShadow = true
-      scene.add(trunk, crown)
+      tree.position.set(pk.x + Math.cos(a) * r, 0, pk.z + Math.sin(a) * r)
+      tree.scale.setScalar(t)
+      tree.castShadow = true
+      scene.add(tree)
     }
   }
 
-  // Streetlamps (every other intersection).
-  const lampGlows: THREE.Sprite[] = []
-  const lampMat = new THREE.MeshStandardMaterial({ color: 0xffd98a, emissive: 0xffd98a, emissiveIntensity: 0.2 })
-  const poleMat = new THREE.MeshStandardMaterial({ color: 0x4a5568 })
+  // ---- Streetlamps (every other intersection) ---------------------------------
+  const lampGeo = propAsset({ seed: 2, kind: 'streetlamp' }).geometry
   const glowTex = (() => {
     const c = document.createElement('canvas')
     c.width = c.height = 64
@@ -266,24 +302,64 @@ export function buildCityCore(scene: THREE.Scene): CityCore {
     g.fillRect(0, 0, 64, 64)
     return new THREE.CanvasTexture(c)
   })()
+  const lampGlows: THREE.Sprite[] = []
   for (let xi = 1; xi < X_ROADS.length - 1; xi += 2)
     for (let zi = 1; zi < Z_ROADS.length - 1; zi += 2) {
       const x = X_ROADS[xi] + 1.7
       const z = Z_ROADS[zi] + 1.7
-      const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.08, 3.2, 5), poleMat)
-      pole.position.set(x, 1.6, z)
-      const head = new THREE.Mesh(new THREE.SphereGeometry(0.16, 8, 8), lampMat)
-      head.position.set(x, 3.25, z)
+      const pole = new THREE.Mesh(lampGeo, propMat)
+      pole.position.set(x, 0, z)
+      pole.castShadow = true
       const glow = new THREE.Sprite(
         new THREE.SpriteMaterial({ map: glowTex, blending: THREE.AdditiveBlending, depthWrite: false, opacity: 0 }),
       )
       glow.position.set(x, 3.2, z)
       glow.scale.setScalar(2.2)
-      scene.add(pole, head, glow)
+      scene.add(pole, glow)
       lampGlows.push(glow)
     }
 
   return { houseWindows, lampGlows, ships, shipPhases }
+}
+
+/** The real post pipeline: render, SSAO, bloom, FXAA, output (R012.1). */
+function composerFor(
+  renderer: PipelineRenderer,
+  scene: THREE.Scene,
+  camera: THREE.Camera,
+  width: number,
+  height: number,
+): PipelineComposer {
+  const gl = renderer as unknown as THREE.WebGLRenderer
+  const composer = new EffectComposer(gl)
+  composer.addPass(new RenderPass(scene, camera))
+  const aoPass = new SSAOPass(scene, camera, width, height)
+  aoPass.kernelRadius = 8
+  composer.addPass(aoPass)
+  const bloomPass = new UnrealBloomPass(new THREE.Vector2(width, height), 0.35, 0.6, 0.8)
+  composer.addPass(bloomPass)
+  composer.addPass(new OutputPass())
+  const fxaaPass = new FXAAPass()
+  // The FXAA pass keeps its resolution uniform as a Vector2 value; capture
+  // it once so the typed set below replaces both resizes.
+  const fxaaResolution = fxaaPass.material.uniforms.resolution.value as unknown as THREE.Vector2
+  fxaaResolution.set(1 / width, 1 / height)
+  composer.addPass(fxaaPass)
+  return {
+    aoPass,
+    bloomPass,
+    fxaaPass,
+    setSize: (w: number, h: number): void => {
+      composer.setSize(w, h)
+      fxaaResolution.set(1 / w, 1 / h)
+    },
+    render: (): void => {
+      composer.render()
+    },
+    dispose: (): void => {
+      composer.dispose()
+    },
+  }
 }
 
 export interface CitySceneOptions {
@@ -299,19 +375,62 @@ export interface CitySceneOptions {
 
 export function createCityScene(container: HTMLElement, world: World, opts: CitySceneOptions): CityScene {
   const { onContextLost, onContextRestored } = opts
-  // ---- Core three setup ---------------------------------------------------
-  const scene = new THREE.Scene()
-  scene.fog = new THREE.Fog(DAY_SKY.clone(), 90, 320)
 
-  const renderer = new THREE.WebGLRenderer({ antialias: true })
+  // ---- The shared pipeline (R012.1) --------------------------------------------
+  // The renderer is created here so the image-based environment can be
+  // PMREM-processed from it before the pipeline binds it.
+  const renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: 'high-performance' })
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
-  renderer.setSize(container.clientWidth, container.clientHeight)
-  renderer.shadowMap.enabled = true
-  renderer.shadowMap.type = THREE.PCFShadowMap
+  renderer.domElement.style.display = 'block'
   container.appendChild(renderer.domElement)
+  const pmrem = new THREE.PMREMGenerator(renderer)
+  const environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture
+  pmrem.dispose()
 
-  const camera = new THREE.PerspectiveCamera(50, container.clientWidth / container.clientHeight, 0.5, 600)
+  const pipeline = createScenePipeline(container, {
+    createRenderer: () => renderer,
+    createComposer: composerFor,
+    environment,
+    fog: new THREE.Fog(DAY_SKY.clone(), 90, 320),
+    initialTier: 'high',
+  })
+  const { scene, camera } = pipeline
+
+  // ---- Sky domes (day/night crossfade, unlit) ----------------------------------
+  const dayDome = new THREE.Mesh(
+    new THREE.SphereGeometry(450, 24, 16),
+    new THREE.MeshStandardMaterial({
+      map: skyDayTexture(),
+      emissive: 0xffffff,
+      emissiveMap: skyDayTexture(),
+      color: 0x000000,
+      emissiveIntensity: 1,
+      side: THREE.BackSide,
+      fog: false,
+      transparent: true,
+      roughness: 1,
+    }),
+  )
+  const nightDome = new THREE.Mesh(
+    new THREE.SphereGeometry(450, 24, 16),
+    new THREE.MeshStandardMaterial({
+      map: skyNightTexture(),
+      emissive: 0xffffff,
+      emissiveMap: skyNightTexture(),
+      color: 0x000000,
+      emissiveIntensity: 1,
+      side: THREE.BackSide,
+      fog: false,
+      transparent: true,
+      roughness: 1,
+    }),
+  )
+  scene.add(dayDome, nightDome)
+
   camera.position.copy(OVERVIEW_CAM)
+  const cw = container.clientWidth || 800
+  const ch = container.clientHeight || 600
+  renderer.setSize(cw, ch)
 
   const controls = new OrbitControls(camera, renderer.domElement)
   controls.target.copy(OVERVIEW_TARGET)
@@ -343,50 +462,38 @@ export function createCityScene(container: HTMLElement, world: World, opts: City
   renderer.domElement.addEventListener('webglcontextlost', onLost)
   renderer.domElement.addEventListener('webglcontextrestored', onRestored)
 
-  // ---- Lights ---------------------------------------------------------------
-  const hemi = new THREE.HemisphereLight(0xbfe3ff, 0x4a5a3a, 0.9)
-  scene.add(hemi)
-  const sun = new THREE.DirectionalLight(0xfff2d8, 1.2)
-  sun.castShadow = true
-  sun.shadow.mapSize.set(2048, 2048)
-  sun.shadow.camera.left = -100
-  sun.shadow.camera.right = 100
-  sun.shadow.camera.top = 100
-  sun.shadow.camera.bottom = -100
-  sun.shadow.camera.near = 10
-  sun.shadow.camera.far = 420
-  scene.add(sun)
-  scene.add(sun.target)
-
   // ---- Static city geometry (ground, roads, water, houses, parks, lamps) ----
   const core = buildCityCore(scene)
 
   // ---- Per-frame environment (day/night, houses, lamps, ships) --------------
   function updateEnvironment(timeAcc: number): void {
-    const clock = world.clock
-    const night = nightFactor(clock)
-    const dayK = 1 - night
+    // The sun follows the in-game clock through the shared pipeline (R012.1).
+    pipeline.updateEnvironment(world.clock)
+    const night = nightFactor(world.clock)
 
+    // Sky and fog crossfade with the mood.
+    dayDome.material.opacity = 1 - night
+    nightDome.material.opacity = night
     tmpColor.copy(DAY_SKY).lerp(NIGHT_SKY, night)
-    scene.background = tmpColor
     scene.fog?.color.copy(tmpColor)
-    const t = clock / 86400
-    const ang = (t - 0.25) * Math.PI * 2
-    const elev = Math.sin(ang)
-    const sr = Math.cos(ang)
-    if (elev > -0.12) {
-      sun.position.set(sr * 110, Math.max(8, elev * 110), 30)
-      sun.intensity = 1.25 * dayK + 0.05
-      sun.color.setHex(elev < 0.25 ? 0xffb37a : 0xfff2d8)
-    } else {
-      sun.position.set(-sr * 110, 70, 30)
-      sun.intensity = 0.35
-      sun.color.setHex(0x8fa8d8)
-    }
-    hemi.intensity = 0.85 * dayK + 0.22
 
-    // House windows at night.
-    for (const m of core.houseWindows) m.emissiveIntensity = 1.4 * night
+    // House windows: lit while a character is at home — the ambient life of
+    // R031. No night floor: an empty house stays dark at any hour.
+    const home = new Map<string, number>()
+    for (const c of world.characters) {
+      const dx = c.pos.x - c.home.x
+      const dz = c.pos.z - c.home.z
+      if (dx * dx + dz * dz < 25) {
+        const key = `${c.home.x}|${c.home.z}`
+        home.set(key, (home.get(key) ?? 0) + 1)
+      }
+    }
+    core.houseWindows.forEach((m, i) => {
+      const h = HOUSES[i]
+      m.emissiveIntensity = (home.get(`${h.x}|${h.z}`) ?? 0) > 0 ? 1.4 : 0
+    })
+
+    // Lamps with the night (R031 ambient life).
     for (const g of core.lampGlows) g.material.opacity = 0.55 * night
 
     // Ships bobbing.
@@ -432,14 +539,14 @@ export function createCityScene(container: HTMLElement, world: World, opts: City
     for (const g of geos) g.dispose()
     for (const t of texs) t.dispose()
     controls.dispose()
+    pipeline.dispose()
     renderer.dispose()
     renderer.forceContextLoss()
     container.removeChild(renderer.domElement)
   }
 
   function onResize(w: number, h: number): void {
-    camera.aspect = w / h
-    camera.updateProjectionMatrix()
+    pipeline.onResize(w, h)
     renderer.setSize(w, h)
   }
 
@@ -448,6 +555,7 @@ export function createCityScene(container: HTMLElement, world: World, opts: City
     renderer,
     camera,
     controls,
+    pipeline,
     updateEnvironment,
     isLost: () => lost,
     onResize,

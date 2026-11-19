@@ -122,6 +122,9 @@ export function createPicking(
   selRing.rotation.x = -Math.PI / 2
   selRing.position.y = 0.15
   selRing.visible = false
+  // Declared marker: the material audit walks the live scene and exempts it
+  // (a MeshBasicMaterial without a map is audit-legit as a selection ring).
+  selRing.userData.marker = 'selection-ring'
   scene.add(selRing)
 
   let selectedHit: SelectionHit | null = null

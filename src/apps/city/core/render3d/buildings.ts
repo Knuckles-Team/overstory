@@ -1,22 +1,33 @@
 /**
  * @file buildings.ts
  * @description Building and construction visuals for the 3D city (part of
- * the render3d/ split, T025). Connector buildings, core landmarks, reserved
- * plots and construction rigs are all built from the shared world state; the
- * per-frame updates (lit windows, error flash, landmark animation, commit
- * pulses, reserved-plot labels, construction progress and reveal pops) run
- * here. Colours that encode a fact come from the one encoding table (R025).
+ * the render3d/ split, T025), rebuilt on the shared scene pipeline
+ * (OVERSTORY-CITY-R031): connector buildings are kit-built from the
+ * building generator (per-district archetype, per-storey window bands),
+ * split into a wall geometry and a roof geometry so the two R025 emissive
+ * channels — lit windows and error flash — ride their own cloned materials
+ * over the one shared trim sheet; core landmarks keep their bespoke
+ * silhouettes with trim-sheet PBR; undressed plots get dressed blocks
+ * (parks, plazas, lots); construction sites run the R012.5 sequence with
+ * the scaffold gated by phase. Colours that encode a fact come from the
+ * one encoding table (R025).
  */
+// spec: OVERSTORY-CITY-R031, OVERSTORY-CITY-R025
 import * as THREE from 'three'
+import { SequenceRunner } from '@/lib/scene3d/sequences'
+import { buildingAsset, mulberry32, propAsset, type DistrictArchetype } from '@/lib/scene3d/generators'
+import { SCENE_COLORS, TRIM_SHEET } from '@/lib/scene3d/palette'
 import { PLOT_W } from '../layout'
+import { domainOf } from '../ecosystem'
 import { encodingColor } from '../encoding'
 import { bus } from '../events'
-import { facadeSet, nameplateTexture, reservedLabelTexture } from './labels'
 import { isMesh } from './scene'
+import { litWindowSheet, remapUVs, roofFlashSheet, trimSheetTexture } from './trimSheet'
 import type { world as SimWorld } from '../sim'
 
 export type World = typeof SimWorld
 
+/** One accent of a core landmark (the parts that animate or glow). */
 interface LandmarkBits {
   ring?: THREE.Mesh
   halo?: THREE.Mesh
@@ -29,11 +40,14 @@ interface BuildingEntry {
   group: THREE.Group
   body: THREE.Object3D
   mats: THREE.MeshStandardMaterial[]
-  /** The roof materials — the separate 'error-flash' channel (R025). */
-  roofMats?: THREE.MeshStandardMaterial[]
+  /** The kit's wall material — the 'lit-windows' channel (R025). */
+  wallMat: THREE.MeshStandardMaterial | null
+  /** The kit's roof material — the 'error-flash' channel (R025). */
+  roofMat: THREE.MeshStandardMaterial | null
+  /** Seconds of 'lights-on' boost left after a construction completes. */
+  wallBoost?: number
   /** True while the error-flash channel has touched this landmark's materials. */
   flashActive?: boolean
-  sign: THREE.Sprite
   height: number
   landmark?: boolean
   bits?: LandmarkBits
@@ -41,11 +55,106 @@ interface BuildingEntry {
 
 interface ConstructionEntry {
   group: THREE.Group
+  scaffold: THREE.Group
   slabs: THREE.Mesh[]
   armP: THREE.Group
   cable: THREE.Mesh
   hookBlock: THREE.Mesh
   marker?: THREE.Object3D
+  /** The R012.5 construction choreography (scaffold phases). */
+  runner: SequenceRunner
+}
+
+/** The dressing an undressed plot carries (R031: the empty grid becomes dressed blocks). */
+export type PlotDressing = 'park' | 'plaza' | 'lot'
+
+/**
+ * The dressing an undressed plot gets (R031). A pure function of the plot
+ * coordinates — seeded, so the dressed layout is identical on every boot
+ * (R014) and the fidelity test can re-derive it from the layout alone.
+ */
+export function dressingForPlot(x: number, z: number): PlotDressing {
+  let h = 2166136261 >>> 0
+  h = Math.imul(h ^ (Math.round(x * 1000) | 0), 16777619) >>> 0
+  h = Math.imul(h ^ (Math.round(z * 1000) | 0), 19349663) >>> 0
+  h = Math.imul(h ^ (h >>> 13), 0x5bd1e995) >>> 0
+  return (['park', 'plaza', 'lot'] as const)[h % 3]
+}
+
+/** Deterministic per-plot seed (R014): the dressing layout never calls Math.random. */
+function plotSeed(x: number, z: number): number {
+  let h = 2166136261 >>> 0
+  for (const v of [Math.round(x * 1000), Math.round(z * 1000)]) {
+    h ^= v
+    h = Math.imul(h, 16777619) >>> 0
+  }
+  return h >>> 0
+}
+
+/**
+ * The district archetypes the city maps its business domains onto
+ * (R012.8's per-district vocabulary, consumed through the generator):
+ * the core landmark is the gateway; each domain reads its own kit.
+ */
+const DOMAIN_ARCHETYPE: Record<string, DistrictArchetype> = {
+  data: 'datahall',
+  dev: 'workshop',
+  security: 'storehouse',
+  media: 'studio',
+  documents: 'storehouse',
+  comms: 'docks',
+  general: 'workshop',
+}
+
+/**
+ * Split the kit geometry into a wall geometry and a roof geometry by the
+ * trim sheet's roof row (v 0.70–0.75). The building generator pushes
+ * separate vertices per part, so every triangle sits wholly in one region
+ * and the split is exact: the roof gets its own material (the
+ * 'error-flash' channel) and the wall keeps the 'lit-windows' one.
+ */
+function splitWallRoof(geometry: THREE.BufferGeometry): [THREE.BufferGeometry, THREE.BufferGeometry] {
+  const pos = geometry.getAttribute('position')
+  const uv = geometry.getAttribute('uv')
+  const idx = geometry.getIndex()
+  const ROOF_V0 = 0.699
+  const ROOF_V1 = 0.751
+  const wallPos: number[] = []
+  const wallUv: number[] = []
+  const roofPos: number[] = []
+  const roofUv: number[] = []
+  const wallMap = new Int32Array(pos.count).fill(-1)
+  const roofMap = new Int32Array(pos.count).fill(-1)
+  for (let i = 0; i < pos.count; i++) {
+    const v = uv.getY(i)
+    const roof = v >= ROOF_V0 && v <= ROOF_V1
+    const map = roof ? roofMap : wallMap
+    const pArr = roof ? roofPos : wallPos
+    const uvArr = roof ? roofUv : wallUv
+    map[i] = pArr.length / 3
+    pArr.push(pos.getX(i), pos.getY(i), pos.getZ(i))
+    uvArr.push(uv.getX(i), v)
+  }
+  const wallIdx: number[] = []
+  const roofIdx: number[] = []
+  if (idx) {
+    for (let i = 0; i < idx.count; i += 3) {
+      const a = idx.getX(i)
+      const roof = roofMap[a] >= 0
+      const map = roof ? roofMap : wallMap
+      const out = roof ? roofIdx : wallIdx
+      out.push(map[a], map[idx.getX(i + 1)], map[idx.getX(i + 2)])
+    }
+  }
+  const build = (pArr: number[], uvArr: number[], idxArr: number[]): THREE.BufferGeometry => {
+    const g = new THREE.BufferGeometry()
+    g.setAttribute('position', new THREE.Float32BufferAttribute(pArr, 3))
+    g.setAttribute('uv', new THREE.Float32BufferAttribute(uvArr, 2))
+    if (idxArr.length) g.setIndex(idxArr)
+    g.computeVertexNormals()
+    return g
+  }
+  return [build(wallPos, wallUv, wallIdx), build(roofPos, roofUv, roofIdx)]
 }
 
 export interface BuildingsApi {
@@ -60,183 +169,121 @@ export interface BuildingsApi {
 export function createBuildings(scene: THREE.Scene, world: World, markerRoot: THREE.Object3D | null): BuildingsApi {
   const buildingGroups = new Map<string, BuildingEntry>()
   const constructionGroups = new Map<string, ConstructionEntry>()
+  const dressingGroups = new Map<string, THREE.Group>()
 
-  // ---- Building meshes ------------------------------------------------------
-  function archetypeProps(arch: string, g: THREE.Group, w: number, h: number, d: number, colorHex: number): void {
-    const mat = (col: number): THREE.MeshStandardMaterial =>
-      new THREE.MeshStandardMaterial({ color: col, roughness: 0.85 })
-    const add = (mesh: THREE.Mesh): void => {
-      mesh.castShadow = true
-      g.add(mesh)
-    }
-    switch (arch) {
-      case 'containers': {
-        const cm = [0xd86f5e, 0x4d9de0, 0x6faf5e, 0xd8845e]
-        for (let i = 0; i < 4; i++) {
-          const box = new THREE.Mesh(new THREE.BoxGeometry(2.2, 1.2, 1.5), mat(cm[i % 4]))
-          box.position.set(w / 2 + 1.4 + (i % 2) * 0.1, 0.6 + Math.floor(i / 2) * 1.2, (i < 2 ? -1 : 1) * 1.2)
-          add(box)
-        }
-        break
-      }
-      case 'antenna': {
-        const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.1, 3.4, 5), mat(0x8a94a8))
-        mast.position.set(0, h + 1.7, 0)
-        const arm1 = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.08, 0.08), mat(0x8a94a8))
-        arm1.position.set(0, h + 2.6, 0)
-        const arm2 = arm1.clone()
-        arm2.position.y = h + 2.1
-        add(mast)
-        add(arm1)
-        add(arm2)
-        break
-      }
-      case 'books': {
-        const bm = [0xb08968, 0x6fa86f, 0x5b8def]
-        for (let i = 0; i < 3; i++) {
-          const book = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.3, 0.4), mat(bm[i]))
-          book.position.set(-w / 2 - 0.4, 0.15 + i * 0.32, d / 2 + 0.9)
-          add(book)
-        }
-        break
-      }
-      case 'tanks': {
-        for (const s of [-1, 1]) {
-          const tank = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 0.9, 2.4, 10), mat(0x9aa5b5))
-          tank.rotation.z = Math.PI / 2
-          tank.position.set(s * (w / 2 + 1.5), 0.9, -d / 2 - 0.6)
-          add(tank)
-        }
-        break
-      }
-      case 'screen': {
-        const scr = new THREE.Mesh(
-          new THREE.PlaneGeometry(4.4, 2.6),
-          new THREE.MeshStandardMaterial({
-            color: 0x10141f,
-            emissive: colorHex,
-            emissiveIntensity: 0.7,
-            roughness: 0.4,
-          }),
-        )
-        scr.position.set(0, h * 0.55, d / 2 + 0.03)
-        g.add(scr)
-        break
-      }
-      case 'kiosk': {
-        const awn = new THREE.Mesh(new THREE.BoxGeometry(3, 0.12, 1.4), mat(0xe8e2d2))
-        awn.position.set(0, 2.2, d / 2 + 0.7)
-        awn.rotation.x = 0.2
-        add(awn)
-        break
-      }
-      case 'gate': {
-        for (const s of [-1, 1]) {
-          const post = new THREE.Mesh(new THREE.BoxGeometry(0.4, 3, 0.4), mat(colorHex))
-          post.position.set(s * 1.6, 1.5, d / 2 + 1.2)
-          add(post)
-        }
-        break
-      }
-      case 'depot': {
-        const can = new THREE.Mesh(new THREE.BoxGeometry(5.4, 0.16, 2.6), mat(0xd86f5e))
-        can.position.set(0, 3.1, d / 2 + 1.3)
-        add(can)
-        break
-      }
-      case 'booth': {
-        const hut = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 1.1, 1.6, 10), mat(0x8f7bd8))
-        hut.position.set(w / 2 + 1.4, 0.8, d / 2 - 0.8)
-        add(hut)
-        break
-      }
-      case 'house': {
-        const roof = new THREE.Mesh(new THREE.ConeGeometry(2, 1.2, 4), mat(0x7a4438))
-        roof.rotation.y = Math.PI / 4
-        roof.position.set(0, h + 0.6, 0)
-        add(roof)
-        break
-      }
-      case 'diner': {
-        const table = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.7, 0.9, 8), mat(0xe8e2d2))
-        table.position.set(-w / 2 - 1.2, 0.45, d / 2 + 0.8)
-        add(table)
-        break
-      }
-      default: {
-        // tower / works-ish
-        const unit = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.8, 1.0), mat(0x8a94a8))
-        unit.position.set(0, h + 0.4, 0)
-        add(unit)
-      }
-    }
+  // ---- Shared authored maps and materials (R012.2) ------------------------
+  const trimTex = trimSheetTexture()
+  const litSheet = litWindowSheet()
+  const roofSheet = roofFlashSheet()
+  const WALL_PATCH = [0.02, 0.26, 0.98, 0.49] as const // the sheet's wall row
+  const ROAD_PATCH: readonly [number, number, number, number] = [
+    0.02,
+    TRIM_SHEET.bands['road-band'][0],
+    0.98,
+    TRIM_SHEET.bands['road-band'][1],
+  ]
+
+  // One shared wall material per family; each building clones it so its
+  // emissive channels (lit windows, error flash) are per building.
+  const wallTemplate = new THREE.MeshStandardMaterial({
+    map: trimTex,
+    roughness: 0.9,
+    emissive: 0xffffff,
+    emissiveMap: litSheet,
+    emissiveIntensity: 0,
+  })
+  const roofTemplate = new THREE.MeshStandardMaterial({
+    map: trimTex,
+    roughness: 0.9,
+    emissive: 0xffffff,
+    emissiveMap: roofSheet,
+    emissiveIntensity: 0,
+  })
+  const propMat = new THREE.MeshStandardMaterial({ map: trimTex, roughness: 0.95 })
+  const doorMat = new THREE.MeshStandardMaterial({ map: trimTex, roughness: 0.95 })
+  const treeGeo = propAsset({ seed: 1, kind: 'tree' }).geometry
+  const benchGeo = propAsset({ seed: 3, kind: 'bench' }).geometry
+  const signGeo = propAsset({ seed: 4, kind: 'sign' }).geometry
+  const binGeo = propAsset({ seed: 5, kind: 'bin' }).geometry
+
+  /** A trim-sheet standard material tinted to one colour (the tint multiplies the map). */
+  function tintMat(hex: number, roughness = 0.9): THREE.MeshStandardMaterial {
+    const m = new THREE.MeshStandardMaterial({ map: trimTex, roughness })
+    m.color.setHex(hex)
+    return m
   }
 
+  /** One palette role as a hex number (the palette is the colour source of truth). */
+  function paletteHex(role: string): number {
+    return parseInt(SCENE_COLORS[role].hex.slice(1), 16)
+  }
+
+  // ---- Building meshes (kit-built) -----------------------------------------
   function makeBuildingMesh(b: World['buildings'][string]): BuildingEntry {
     const g = new THREE.Group()
-    // Deterministic per-building seed (R014): the facade window pattern is
-    // identical on every boot.
+    // Deterministic per-building seed (R014): the kit variation is identical
+    // on every boot.
     let seed = 0
     for (let i = 0; i < b.id.length; i++) seed = (seed * 31 + b.id.charCodeAt(i)) >>> 0
-    // The 'building-height' channel (R025): height encodes the served tool
-    // count — one visual, one fact.
-    const height = b.category === 'core' ? 6 : 3 + Math.min(b.toolCount, 16) * 0.4
-    const mats = facadeSet(b.color, seed)
-    const body = new THREE.Mesh(new THREE.BoxGeometry(b.w, height, b.d), mats)
-    body.position.y = height / 2
-    body.castShadow = true
+    // The 'building-height' channel (R025): the storey count encodes the
+    // served tool count — one visual, one fact.
+    const floors = 1 + Math.min(b.toolCount, 5)
+    const asset = buildingAsset({
+      seed,
+      archetype: DOMAIN_ARCHETYPE[domainOf(b.id)] ?? 'workshop',
+      footprint: [b.w, b.d],
+      floors,
+    })
+    const [wallGeo, roofGeo] = splitWallRoof(asset.geometry)
+    const wallMat = wallTemplate.clone()
+    const roofMat = roofTemplate.clone()
+    const body = new THREE.Group()
+    const wall = new THREE.Mesh(wallGeo, wallMat)
+    wall.castShadow = true
+    wall.receiveShadow = true
+    const roof = new THREE.Mesh(roofGeo, roofMat)
+    roof.castShadow = true
+    body.add(wall, roof)
     body.userData.entity = { kind: 'building', id: b.id }
     g.add(body)
-    const sign = new THREE.Sprite(
-      new THREE.SpriteMaterial({
-        map: nameplateTexture(b.name, b.color, b.served),
-        depthWrite: false,
-      }),
-    )
-    sign.scale.set(4.6, 0.86, 1)
-    sign.position.y = height + 1.5
-    sign.userData.entity = { kind: 'building', id: b.id }
-    g.add(sign)
-    if (b.category === 'connector') archetypeProps(b.kind, g, b.w, height, b.d, b.color)
+    // Door mat on the road (the shared trim sheet's road band).
+    if (b.door) {
+      const matGeo = new THREE.PlaneGeometry(1.6, 1.2)
+      remapUVs(matGeo, ROAD_PATCH[0], ROAD_PATCH[1], ROAD_PATCH[2], ROAD_PATCH[3])
+      const mat = new THREE.Mesh(matGeo, doorMat)
+      mat.rotation.x = -Math.PI / 2
+      mat.position.set(b.door.x - b.x, 0.035, b.door.z - b.z)
+      g.add(mat)
+    }
     g.position.set(b.x, 0, b.z)
     scene.add(g)
-    // BoxGeometry face order: +x, -x, +y (roof), -y, +z, -z — the two middle
-    // materials are the roof, the 'error-flash' channel's own surface (R025).
     const entry: BuildingEntry = {
       group: g,
       body,
-      mats,
-      roofMats: [mats[2], mats[3]],
-      sign,
-      height,
+      mats: [wallMat, roofMat],
+      wallMat,
+      roofMat,
+      height: floors * 3.2,
     }
     buildingGroups.set(b.id, entry)
-    // Door mat on the road.
-    if (b.door) {
-      const mat = new THREE.Mesh(
-        new THREE.PlaneGeometry(1.6, 1.2),
-        new THREE.MeshStandardMaterial({ color: 0x2a3038, roughness: 1 }),
-      )
-      mat.rotation.x = -Math.PI / 2
-      mat.position.set(b.door.x, 0.035, b.door.z)
-      scene.add(mat)
-    }
     return entry
   }
 
   // Landmark-specific geometry (core components get bespoke silhouettes).
+  // Every surface is trim-sheet PBR (R012.2); the glow accents are declared
+  // markers (audit-exempt).
   function buildLandmark(b: World['buildings'][string]): void {
     const g = new THREE.Group()
-    const C = b.color
-    const stone = new THREE.MeshStandardMaterial({ color: C, roughness: 0.9 })
-    const stoneDark = new THREE.MeshStandardMaterial({
-      color: new THREE.Color(C).multiplyScalar(0.5),
-      roughness: 0.95,
-    })
+    const stone = tintMat(paletteHex('wall-gateway'))
+    const stoneDark = tintMat(paletteHex('wall-gateway'), 0.95)
+    stoneDark.color.multiplyScalar(0.5)
     const bits: LandmarkBits = {}
-    const add = (m: THREE.Mesh): THREE.Mesh => {
+    const add = (geo: THREE.BufferGeometry, mat: THREE.MeshStandardMaterial, marker?: string): THREE.Mesh => {
+      remapUVs(geo, WALL_PATCH[0], WALL_PATCH[1], WALL_PATCH[2], WALL_PATCH[3])
+      const m = new THREE.Mesh(geo, mat)
       m.castShadow = true
       m.userData.entity = { kind: 'building', id: b.id }
+      if (marker) m.userData.marker = marker
       g.add(m)
       return m
     }
@@ -244,58 +291,70 @@ export function createBuildings(scene: THREE.Scene, world: World, markerRoot: TH
     if (b.kind === 'gate') {
       const plaza = new THREE.Mesh(
         new THREE.BoxGeometry(14, 0.18, 14),
-        new THREE.MeshStandardMaterial({ color: 0xd8d2c4, roughness: 1 }),
+        new THREE.MeshStandardMaterial({ map: trimTex, roughness: 1 }),
       )
+      remapUVs(plaza.geometry, ROAD_PATCH[0], ROAD_PATCH[1], ROAD_PATCH[2], ROAD_PATCH[3])
       plaza.position.y = 0.09
       plaza.receiveShadow = true
       plaza.userData.entity = { kind: 'building', id: b.id }
       g.add(plaza)
       for (const s of [-1, 1]) {
-        add(new THREE.Mesh(new THREE.BoxGeometry(3.4, 11, 3.4), stone)).position.set(s * 6.2, 5.5, 0)
-        add(new THREE.Mesh(new THREE.BoxGeometry(3.7, 1, 3.7), stoneDark)).position.set(s * 6.2, 9.4, 0)
+        add(new THREE.BoxGeometry(3.4, 11, 3.4), stone).position.set(s * 6.2, 5.5, 0)
+        add(new THREE.BoxGeometry(3.7, 1, 3.7), stoneDark).position.set(s * 6.2, 9.4, 0)
       }
-      const arch = add(new THREE.Mesh(new THREE.BoxGeometry(15.8, 2, 3), stone))
+      const arch = add(new THREE.BoxGeometry(15.8, 2, 3), stone)
       arch.position.y = 11.4
       const ring = new THREE.Mesh(
         new THREE.TorusGeometry(4.6, 0.14, 10, 40),
-        new THREE.MeshBasicMaterial({ color: C, transparent: true, opacity: 0.75, blending: THREE.AdditiveBlending }),
+        new THREE.MeshBasicMaterial({
+          color: 0x3e634f,
+          transparent: true,
+          opacity: 0.75,
+          blending: THREE.AdditiveBlending,
+        }),
       )
       ring.rotation.x = Math.PI / 2
       ring.position.y = 7.6
+      ring.userData.marker = 'landmark-accent'
+      ring.userData.entity = { kind: 'building', id: b.id }
       g.add(ring)
       bits.ring = ring
     } else if (b.kind === 'vault') {
-      add(new THREE.Mesh(new THREE.CylinderGeometry(5.2, 5.4, 1.2, 6), stoneDark)).position.y = 0.6
-      add(new THREE.Mesh(new THREE.CylinderGeometry(4.5, 4.8, 6.4, 6), stone)).position.y = 4.4
+      add(new THREE.CylinderGeometry(5.2, 5.4, 1.2, 6), stoneDark).position.y = 0.6
+      add(new THREE.CylinderGeometry(4.5, 4.8, 6.4, 6), stone).position.y = 4.4
       const core = new THREE.Mesh(
         new THREE.SphereGeometry(1.5, 20, 20),
         new THREE.MeshStandardMaterial({ color: 0x2a2344, emissive: 0xb08cff, emissiveIntensity: 1.4 }),
       )
       core.position.y = 4.8
+      core.userData.marker = 'landmark-accent'
       g.add(core)
       bits.core = core
       const halo = new THREE.Mesh(
         new THREE.TorusGeometry(3.3, 0.1, 8, 44),
-        new THREE.MeshBasicMaterial({ color: C, transparent: true, opacity: 0.8, blending: THREE.AdditiveBlending }),
+        new THREE.MeshBasicMaterial({
+          color: 0x3e634f,
+          transparent: true,
+          opacity: 0.8,
+          blending: THREE.AdditiveBlending,
+        }),
       )
       halo.position.y = 8.8
       halo.rotation.x = 1.15
+      halo.userData.marker = 'landmark-accent'
       g.add(halo)
       bits.halo = halo
     } else if (b.kind === 'works') {
-      const body = add(new THREE.Mesh(new THREE.BoxGeometry(b.w, 5, b.d), stone))
-      body.position.y = 2.5
+      add(new THREE.BoxGeometry(b.w, 5, b.d), stone).position.y = 2.5
       for (let i = -1; i <= 1; i++) {
-        const prism = new THREE.Mesh(new THREE.CylinderGeometry(2.4, 2.4, b.d * 0.94, 3), stoneDark)
+        const prism = add(new THREE.CylinderGeometry(2.4, 2.4, b.d * 0.94, 3), stoneDark)
         prism.rotation.z = Math.PI / 2
         prism.rotation.x = Math.PI / 2
         prism.position.set(0, 6.1, i * 2.6)
-        prism.userData.entity = { kind: 'building', id: b.id }
-        g.add(prism)
       }
-      const mast = add(new THREE.Mesh(new THREE.BoxGeometry(0.35, 9.5, 0.35), stoneDark))
+      const mast = add(new THREE.BoxGeometry(0.35, 9.5, 0.35), stoneDark)
       mast.position.set(b.w / 2 - 1, 4.7, b.d / 2 - 1)
-      const arm = new THREE.Mesh(new THREE.BoxGeometry(6.5, 0.28, 0.28), stoneDark)
+      const arm = add(new THREE.BoxGeometry(6.5, 0.28, 0.28), stoneDark)
       arm.position.y = 9.3
       const armPivot = new THREE.Group()
       armPivot.position.set(b.w / 2 - 1, 9.3, b.d / 2 - 1)
@@ -303,88 +362,89 @@ export function createBuildings(scene: THREE.Scene, world: World, markerRoot: TH
       g.add(armPivot)
       bits.craneArm = armPivot
     } else if (b.kind === 'tower') {
+      // The glass tower samples the sheet's window band — the facade is glass.
       const glass = new THREE.MeshStandardMaterial({
-        color: 0x22303a,
+        map: trimTex,
+        color: 0x87aaba,
         roughness: 0.25,
         metalness: 0.3,
-        emissive: C,
+        emissive: 0x3e634f,
         emissiveIntensity: 0.35,
       })
-      const body = add(new THREE.Mesh(new THREE.BoxGeometry(b.w, 20, b.d), glass))
-      body.position.y = 10
-      const crown = add(new THREE.Mesh(new THREE.BoxGeometry(b.w + 0.6, 1.2, b.d + 0.6), stoneDark))
-      crown.position.y = 20.6
-      const antenna = add(new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.12, 3.4, 6), stoneDark))
-      antenna.position.y = 22.6
+      const bodyGeo = new THREE.BoxGeometry(b.w, 20, b.d)
+      remapUVs(bodyGeo, 0.02, 0.5, 0.98, 0.7)
+      const body = new THREE.Mesh(bodyGeo, glass)
+      body.castShadow = true
+      body.userData.entity = { kind: 'building', id: b.id }
+      g.add(body)
+      add(new THREE.BoxGeometry(b.w + 0.6, 1.2, b.d + 0.6), stoneDark).position.y = 20.6
+      add(new THREE.CylinderGeometry(0.07, 0.12, 3.4, 6), stoneDark).position.y = 22.6
       const tip = new THREE.Mesh(
         new THREE.SphereGeometry(0.18, 8, 8),
         new THREE.MeshStandardMaterial({ color: 0x552222, emissive: 0xff4444, emissiveIntensity: 2 }),
       )
       tip.position.y = 24.4
+      tip.userData.marker = 'landmark-accent'
       g.add(tip)
       bits.tip = tip
     } else if (b.kind === 'kiosk') {
-      add(new THREE.Mesh(new THREE.BoxGeometry(b.w, 0.9, b.d), stoneDark)).position.y = 0.45
-      add(new THREE.Mesh(new THREE.BoxGeometry(3.4, 2.6, 3.4), stone)).position.y = 2.2
+      add(new THREE.BoxGeometry(b.w, 0.9, b.d), stoneDark).position.y = 0.45
+      add(new THREE.BoxGeometry(3.4, 2.6, 3.4), stone).position.y = 2.2
       const screen = new THREE.Mesh(
         new THREE.PlaneGeometry(2.5, 1.4),
-        new THREE.MeshStandardMaterial({ color: 0x0d1410, emissive: 0x7dffab, emissiveIntensity: 0.9 }),
+        new THREE.MeshStandardMaterial({ map: trimTex, color: 0x0d1410, emissive: 0x7dffab, emissiveIntensity: 0.9 }),
       )
+      remapUVs(screen.geometry, WALL_PATCH[0], WALL_PATCH[1], WALL_PATCH[2], WALL_PATCH[3])
       screen.position.set(0, 2.3, b.d / 2 + 0.05)
+      screen.userData.marker = 'display'
       screen.userData.entity = { kind: 'building', id: b.id }
       g.add(screen)
     } else if (b.kind === 'pavilion') {
-      add(new THREE.Mesh(new THREE.BoxGeometry(b.w, 0.5, b.d), stoneDark)).position.y = 0.25
-      add(new THREE.Mesh(new THREE.BoxGeometry(b.w, 0.28, b.d), stone)).position.y = 3.2
+      add(new THREE.BoxGeometry(b.w, 0.5, b.d), stoneDark).position.y = 0.25
+      add(new THREE.BoxGeometry(b.w, 0.28, b.d), stone).position.y = 3.2
       for (const sx of [-1, 1])
         for (const sz of [-1, 1]) {
-          const post = add(new THREE.Mesh(new THREE.BoxGeometry(0.22, 3.2, 0.22), stoneDark))
+          const post = add(new THREE.BoxGeometry(0.22, 3.2, 0.22), stoneDark)
           post.position.set(sx * (b.w / 2 - 0.4), 1.6, sz * (b.d / 2 - 0.4))
         }
-      const desk = add(
-        new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.9, 0.9), new THREE.MeshStandardMaterial({ color: 0x3a4150 })),
-      )
-      desk.position.set(0, 0.95, -0.8)
+      add(new THREE.BoxGeometry(2.2, 0.9, 0.9), tintMat(0x3a4150)).position.set(0, 0.95, -0.8)
       const screen = new THREE.Mesh(
         new THREE.PlaneGeometry(2.3, 1.5),
-        new THREE.MeshStandardMaterial({ color: 0x140d14, emissive: 0xff8fb3, emissiveIntensity: 0.9 }),
+        new THREE.MeshStandardMaterial({ map: trimTex, color: 0x140d14, emissive: 0xff8fb3, emissiveIntensity: 0.9 }),
       )
+      remapUVs(screen.geometry, WALL_PATCH[0], WALL_PATCH[1], WALL_PATCH[2], WALL_PATCH[3])
       screen.position.set(0, 2, -0.85)
+      screen.userData.marker = 'display'
       g.add(screen)
     } else if (b.kind === 'dock') {
-      add(new THREE.Mesh(new THREE.BoxGeometry(b.w, 0.7, b.d), stone)).position.y = 0.35
-      add(new THREE.Mesh(new THREE.BoxGeometry(b.w + 1.4, 0.24, b.d + 1), stoneDark)).position.y = 0.8
+      add(new THREE.BoxGeometry(b.w, 0.7, b.d), stone).position.y = 0.35
+      add(new THREE.BoxGeometry(b.w + 1.4, 0.24, b.d + 1), stoneDark).position.y = 0.8
       for (const sx of [-1, 1])
         for (const sz of [-1, 1]) {
-          const post = add(new THREE.Mesh(new THREE.BoxGeometry(0.24, 3, 0.24), stoneDark))
+          const post = add(new THREE.BoxGeometry(0.24, 3, 0.24), stoneDark)
           post.position.set(sx * (b.w / 2 - 0.5), 2.3, sz * (b.d / 2 - 0.5))
         }
-      add(new THREE.Mesh(new THREE.BoxGeometry(b.w - 0.6, 0.3, b.d - 0.6), stone)).position.y = 3.9
+      add(new THREE.BoxGeometry(b.w - 0.6, 0.3, b.d - 0.6), stone).position.y = 3.9
+      const crateTints = [
+        SCENE_COLORS['role-operations'].hex,
+        SCENE_COLORS['role-maintenance'].hex,
+        SCENE_COLORS['role-security'].hex,
+      ]
       for (let i = 0; i < 3; i++) {
-        const crate = new THREE.Mesh(
-          new THREE.BoxGeometry(1, 1, 1),
-          new THREE.MeshStandardMaterial({ color: [0x7fd06f, 0xd8c24a, 0x5ea0ff][i] }),
-        )
+        const crate = add(new THREE.BoxGeometry(1, 1, 1), tintMat(parseInt(crateTints[i].slice(1), 16)))
         crate.position.set(-1.6 + i * 1.5, 1.3, 0)
         crate.rotation.y = i * 0.5
-        g.add(crate)
       }
     }
 
-    const sign = new THREE.Sprite(
-      new THREE.SpriteMaterial({ map: nameplateTexture(b.name, b.color, false), depthWrite: false }),
-    )
-    sign.scale.set(5.2, 0.98, 1)
-    sign.position.y = b.kind === 'tower' ? 26 : 13.5
-    sign.userData.entity = { kind: 'building', id: b.id }
-    g.add(sign)
     g.position.set(b.x, 0, b.z)
     scene.add(g)
     buildingGroups.set(b.id, {
       group: g,
       body: g,
       mats: [],
-      sign,
+      wallMat: null,
+      roofMat: null,
       height: 12,
       landmark: true,
       bits,
@@ -396,48 +456,63 @@ export function createBuildings(scene: THREE.Scene, world: World, markerRoot: TH
     const g = new THREE.Group()
     g.position.set(plot.x, 0, plot.z)
     const h = 5.5
-    const wm = new THREE.MeshStandardMaterial({ color: 0xc7a24a, roughness: 0.8 })
+    const scaffoldMat = new THREE.MeshStandardMaterial({ map: trimTex, roughness: 0.85 })
+    scaffoldMat.color.setHex(encodingColor('scaffolding')) // the 'scaffolding' channel (R025)
+    const concreteMat = new THREE.MeshStandardMaterial({ map: trimTex, roughness: 0.95 })
+    concreteMat.color.setHex(0xc5cfc1)
+    const scaffold = new THREE.Group()
     for (const sx of [-1, 1])
       for (const sz of [-1, 1]) {
-        const post = new THREE.Mesh(new THREE.BoxGeometry(0.12, h, 0.12), wm)
+        const postGeo = new THREE.BoxGeometry(0.12, h, 0.12)
+        remapUVs(postGeo, WALL_PATCH[0], WALL_PATCH[1], WALL_PATCH[2], WALL_PATCH[3])
+        const post = new THREE.Mesh(postGeo, scaffoldMat)
         post.position.set(sx * (PLOT_W / 2 - 0.3), h / 2, sz * (PLOT_W / 2 - 0.3))
-        g.add(post)
+        post.castShadow = true
+        scaffold.add(post)
       }
-    const beam = new THREE.Mesh(new THREE.BoxGeometry(PLOT_W, 0.1, 0.12), wm)
+    const beamGeo = new THREE.BoxGeometry(PLOT_W, 0.1, 0.12)
+    remapUVs(beamGeo, WALL_PATCH[0], WALL_PATCH[1], WALL_PATCH[2], WALL_PATCH[3])
+    const beam = new THREE.Mesh(beamGeo, scaffoldMat)
     beam.position.y = h
-    g.add(beam)
-    const beam2 = beam.clone()
+    scaffold.add(beam)
+    const beam2 = new THREE.Mesh(beamGeo.clone(), scaffoldMat)
+    remapUVs(beam2.geometry, WALL_PATCH[0], WALL_PATCH[1], WALL_PATCH[2], WALL_PATCH[3])
     beam2.rotation.y = Math.PI / 2
     beam2.position.y = h * 0.66
-    g.add(beam2)
+    scaffold.add(beam2)
     // Crane.
     const crane = new THREE.Group()
     crane.position.set(PLOT_W / 2 + 1.2, 0, PLOT_W / 2 + 1.2)
-    const mast = new THREE.Mesh(
-      new THREE.BoxGeometry(0.4, 13, 0.4),
-      new THREE.MeshStandardMaterial({ color: 0xd8d2c4, roughness: 0.9 }),
-    )
+    const mastGeo = new THREE.BoxGeometry(0.4, 13, 0.4)
+    remapUVs(mastGeo, WALL_PATCH[0], WALL_PATCH[1], WALL_PATCH[2], WALL_PATCH[3])
+    const mast = new THREE.Mesh(mastGeo, concreteMat)
     mast.position.y = 6.5
+    mast.castShadow = true
     const armP = new THREE.Group()
     armP.position.y = 12.6
-    const arm = new THREE.Mesh(new THREE.BoxGeometry(8, 0.3, 0.3), wm)
+    const armGeo = new THREE.BoxGeometry(8, 0.3, 0.3)
+    remapUVs(armGeo, WALL_PATCH[0], WALL_PATCH[1], WALL_PATCH[2], WALL_PATCH[3])
+    const arm = new THREE.Mesh(armGeo, scaffoldMat)
     arm.position.x = -3.5
     armP.add(arm)
-    const cable = new THREE.Mesh(new THREE.BoxGeometry(0.05, 4, 0.05), wm)
+    const cableGeo = new THREE.BoxGeometry(0.05, 4, 0.05)
+    remapUVs(cableGeo, WALL_PATCH[0], WALL_PATCH[1], WALL_PATCH[2], WALL_PATCH[3])
+    const cable = new THREE.Mesh(cableGeo, scaffoldMat)
     cable.position.set(-6.5, -2, 0)
     armP.add(cable)
-    const hookBlock = new THREE.Mesh(
-      new THREE.BoxGeometry(1.8, 1.2, 1.8),
-      new THREE.MeshStandardMaterial({ color: 0xb8b0a0, roughness: 0.9 }),
-    )
+    const hookGeo = new THREE.BoxGeometry(1.8, 1.2, 1.8)
+    remapUVs(hookGeo, WALL_PATCH[0], WALL_PATCH[1], WALL_PATCH[2], WALL_PATCH[3])
+    const hookBlock = new THREE.Mesh(hookGeo, concreteMat)
     hookBlock.position.set(-6.5, -4.4, 0)
     armP.add(hookBlock)
     crane.add(mast, armP)
-    g.add(crane)
-    // Marker cube (the pinned placeholder asset).
+    // Marker cube (the pinned placeholder asset — a declared marker).
     let marker: THREE.Object3D | undefined
     if (markerRoot) {
       const cube = markerRoot.clone(true)
+      cube.traverse((o) => {
+        o.userData.marker = 'construction-marker'
+      })
       cube.scale.setScalar(2.4)
       cube.position.y = 0.4
       g.add(cube)
@@ -446,30 +521,84 @@ export function createBuildings(scene: THREE.Scene, world: World, markerRoot: TH
     // Rising slabs.
     const slabs: THREE.Mesh[] = []
     const n = 6
+    const slabGeo = new THREE.BoxGeometry(PLOT_W - 0.6, (h - 0.4) / n, PLOT_W - 0.6)
+    remapUVs(slabGeo, WALL_PATCH[0], WALL_PATCH[1], WALL_PATCH[2], WALL_PATCH[3])
     for (let i = 0; i < n; i++) {
-      const slab = new THREE.Mesh(
-        new THREE.BoxGeometry(PLOT_W - 0.6, (h - 0.4) / n, PLOT_W - 0.6),
-        new THREE.MeshStandardMaterial({ color: 0x9a948a, roughness: 0.95 }),
-      )
+      const slab = new THREE.Mesh(slabGeo, concreteMat)
       slab.position.y = 0.2 + (i + 0.5) * ((h - 0.4) / n)
       slab.scale.y = 0.001
       g.add(slab)
       slabs.push(slab)
     }
+    g.add(scaffold, crane)
     scene.add(g)
-    return { group: g, slabs, armP, cable, hookBlock, marker }
+    // The construction choreography (R012.5): the scaffold raises with the
+    // sequence's phases; the sim's progress drives the slabs in parallel
+    // (game time), and completion removes the rig and lights the windows.
+    const runner = new SequenceRunner()
+    runner.play('construction', {
+      onStep(progress) {
+        scaffold.visible = progress >= 0.24 && progress < 0.82
+      },
+      onDone() {
+        scaffold.visible = true // the scaffolding channel surface persists
+      },
+    })
+    return { group: g, scaffold, slabs, armP, cable, hookBlock, marker, runner }
   }
 
-  // ---- Planned-plot markers + labels (every registered pack is named) -------
+  // ---- Dressed blocks (undressed plots: parks, plazas, lots) -----------------
+  const dressingPatchGeo = new THREE.PlaneGeometry(8, 8)
+  const parkMat = new THREE.MeshStandardMaterial({ map: trimTex, roughness: 1 })
+  parkMat.color.setHex(0xb5c5ab) // the palette's park green
+  const plazaPatchGeo = new THREE.PlaneGeometry(8, 8)
+  remapUVs(plazaPatchGeo, ROAD_PATCH[0], ROAD_PATCH[1], ROAD_PATCH[2], ROAD_PATCH[3])
+  const plazaMat = new THREE.MeshStandardMaterial({ map: trimTex, roughness: 0.95 })
+
+  function makeDressing(plot: World['plots'][number]): THREE.Group {
+    const g = new THREE.Group()
+    g.position.set(plot.x, 0, plot.z)
+    const kind = dressingForPlot(plot.x, plot.z)
+    const patch = new THREE.Mesh(
+      kind === 'plaza' ? plazaPatchGeo : dressingPatchGeo,
+      kind === 'plaza' ? plazaMat : parkMat,
+    )
+    patch.rotation.x = -Math.PI / 2
+    patch.position.y = 0.03
+    patch.receiveShadow = true
+    g.add(patch)
+    const rand = mulberry32(plotSeed(plot.x, plot.z))
+    const addProp = (geo: THREE.BufferGeometry, px: number, pz: number, s: number): void => {
+      const m = new THREE.Mesh(geo, propMat)
+      m.position.set(px, 0, pz)
+      m.scale.setScalar(s)
+      m.castShadow = true
+      g.add(m)
+    }
+    if (kind === 'park') {
+      addProp(treeGeo, -1.8 + rand() * 1.2, -1.2 + rand() * 1.2, 0.9 + rand() * 0.25)
+      addProp(treeGeo, 1.6, 1.3, 0.9 + rand() * 0.25)
+    } else if (kind === 'plaza') {
+      addProp(benchGeo, -1.2, -1.5, 1)
+      addProp(signGeo, 1.6, 1.4, 1)
+    } else {
+      addProp(binGeo, -1.4, 1.2, 1)
+      addProp(signGeo, 1.5, -1.5, 0.9)
+    }
+    g.userData.dressing = `${plot.x}:${plot.z}`
+    scene.add(g)
+    return g
+  }
+
+  // ---- Planned-plot markers (every registered pack keeps a visible marker) ---
   const plotMarkerGeo = new THREE.PlaneGeometry(PLOT_W - 0.4, PLOT_W - 0.4)
   const plotMarkerMat = new THREE.MeshBasicMaterial({
-    color: 0xffffff,
+    color: encodingColor('scaffolding'),
     transparent: true,
     opacity: 0.07,
     depthWrite: false,
   })
   const reservedMarkers = new Map<string, THREE.Mesh>()
-  const reservedLabels = new Map<string, THREE.Sprite>()
 
   // ---- Commit pulses at the vault ---------------------------------------------
   const pulses: { mesh: THREE.Mesh; t: number }[] = []
@@ -486,6 +615,7 @@ export function createBuildings(scene: THREE.Scene, world: World, markerRoot: TH
       const ring = new THREE.Mesh(pulseGeo, mat)
       ring.rotation.x = -Math.PI / 2
       ring.position.set(-15, 0.3, -15)
+      ring.userData.marker = 'commit-pulse'
       scene.add(ring)
       pulses.push({ mesh: ring, t: 0 })
     }
@@ -508,10 +638,9 @@ export function createBuildings(scene: THREE.Scene, world: World, markerRoot: TH
   // One small figure per task in 'pending_approval', coloured from the table;
   // the queue length is the fact, nothing else.
   const queueFigGeo = new THREE.CapsuleGeometry(0.11, 0.3, 2, 6)
-  const queueFigMat = new THREE.MeshStandardMaterial({
-    color: encodingColor('door-queue'),
-    roughness: 0.7,
-  })
+  remapUVs(queueFigGeo, WALL_PATCH[0], WALL_PATCH[1], WALL_PATCH[2], WALL_PATCH[3])
+  const queueFigMat = new THREE.MeshStandardMaterial({ map: trimTex, roughness: 0.7 })
+  queueFigMat.color.setHex(encodingColor('door-queue'))
   const queueFigs: THREE.Mesh[] = []
 
   function updateDoorQueue(): void {
@@ -551,21 +680,15 @@ export function createBuildings(scene: THREE.Scene, world: World, markerRoot: TH
     for (const [id, entry] of buildingGroups) {
       const b = id in world.buildings ? world.buildings[id] : null
       if (!b) continue
-      if (entry.mats.length) {
+      if (entry.wallBoost) entry.wallBoost = Math.max(0, entry.wallBoost - dtReal)
+      if (entry.wallMat) {
         const calls = inFlight[id] ?? 0
-        for (const m of entry.mats) {
-          if (entry.roofMats?.includes(m)) continue
-          m.emissiveIntensity = Math.min(1.5, calls * 0.45)
-        }
+        entry.wallMat.emissiveIntensity = Math.min(1.5, calls * 0.45) + (entry.wallBoost ?? 0) * 0.75
       }
       // 'error-flash' channel (R025): while a recent error is fresh the roof
-      // lights up in the table's red; connector roofs own it, landmarks flash
-      // their whole material set and restore the baseline when it ends.
-      if (entry.roofMats) {
-        for (const m of entry.roofMats) {
-          m.emissive.setHex(b.flash > 0 ? encodingColor('error-flash') : 0x000000)
-          m.emissiveIntensity = b.flash > 0 ? Math.min(2.5, b.flash * 2) : 0
-        }
+      // lights up in the table's red (the roof sheet is painted in it).
+      if (entry.roofMat) {
+        entry.roofMat.emissiveIntensity = b.flash > 0 ? Math.min(2.5, b.flash * 2) : 0
       }
       if (entry.landmark) {
         if (b.flash > 0) {
@@ -624,7 +747,22 @@ export function createBuildings(scene: THREE.Scene, world: World, markerRoot: TH
       ;(p.mesh.material as THREE.MeshBasicMaterial).opacity = 0.9 * (1 - k)
     }
 
-    // Planned plots: every reserved plot keeps a faint marker and its name.
+    // Dressed blocks: an undressed plot keeps its dressing until a building,
+    // a construction or a reservation takes the plot (R031).
+    for (const plot of world.plots) {
+      const key = `${plot.x}:${plot.z}`
+      const undressed = !plot.buildingId && !plot.construction && !plot.reservedName
+      const g = dressingGroups.get(key)
+      if (undressed && !g) {
+        dressingGroups.set(key, makeDressing(plot))
+      } else if (!undressed && g) {
+        scene.remove(g)
+        dressingGroups.delete(key)
+      }
+    }
+
+    // Planned plots: every reserved plot keeps a faint marker; its name is a
+    // screen-space label (the label layer, R012.7).
     for (const plot of world.plots) {
       const key = `${plot.x}:${plot.z}`
       const wants = !plot.buildingId && !plot.construction && plot.reservedName !== null
@@ -634,35 +772,13 @@ export function createBuildings(scene: THREE.Scene, world: World, markerRoot: TH
           marker = new THREE.Mesh(plotMarkerGeo, plotMarkerMat)
           marker.rotation.x = -Math.PI / 2
           marker.position.set(plot.x, 0.04, plot.z)
+          marker.userData.marker = 'reserved-plot'
           scene.add(marker)
           reservedMarkers.set(key, marker)
         }
-        let label = reservedLabels.get(key)
-        if (!label && plot.reservedName) {
-          label = new THREE.Sprite(
-            new THREE.SpriteMaterial({
-              map: reservedLabelTexture(plot.reservedName),
-              depthWrite: false,
-              transparent: true,
-            }),
-          )
-          label.scale.set(5.4, 1, 1)
-          label.position.set(plot.x, 0.5, plot.z + PLOT_W / 2 + 0.8)
-          scene.add(label)
-          reservedLabels.set(key, label)
-        }
-      } else {
-        if (marker) {
-          scene.remove(marker)
-          reservedMarkers.delete(key)
-        }
-        const label = reservedLabels.get(key)
-        if (label) {
-          scene.remove(label)
-          label.material.map?.dispose()
-          label.material.dispose()
-          reservedLabels.delete(key)
-        }
+      } else if (marker) {
+        scene.remove(marker)
+        reservedMarkers.delete(key)
       }
     }
 
@@ -675,6 +791,7 @@ export function createBuildings(scene: THREE.Scene, world: World, markerRoot: TH
           c = makeConstruction(plot)
           constructionGroups.set(key, c)
         }
+        c.runner.update(dtReal * 1000)
         const prog = plot.construction.progress
         // The finished building stays hidden while the rig is up.
         const fEntry = plot.buildingId ? buildingGroups.get(plot.buildingId) : undefined
@@ -693,14 +810,34 @@ export function createBuildings(scene: THREE.Scene, world: World, markerRoot: TH
         if (c.marker) c.marker.rotation.y = timeAcc * 1.2
       } else if (constructionGroups.has(key)) {
         const done = constructionGroups.get(key)
-        if (done) scene.remove(done.group)
+        if (done) {
+          scene.remove(done.group)
+          const geos = new Set<THREE.BufferGeometry>()
+          const mats = new Set<THREE.Material>()
+          done.group.traverse((o) => {
+            if (isMesh(o)) {
+              geos.add(o.geometry)
+              const m = o.material
+              if (Array.isArray(m)) m.forEach((mm) => mats.add(mm))
+              else mats.add(m)
+            }
+          })
+          geos.forEach((g2) => {
+            g2.dispose()
+          })
+          mats.forEach((m2) => {
+            m2.dispose()
+          })
+        }
         constructionGroups.delete(key)
-        // Reveal the finished building with a pop.
+        // Reveal the finished building with a pop and lights on (the
+        // 'lights-on' beat of the construction sequence).
         const bid = plot.buildingId
         const entry = bid ? buildingGroups.get(bid) : undefined
         if (entry) {
           entry.group.visible = true
           entry.group.scale.setScalar(0.7)
+          entry.wallBoost = 2
         }
       }
     }
@@ -722,14 +859,12 @@ export function createBuildings(scene: THREE.Scene, world: World, markerRoot: TH
     queueFigs.length = 0
     queueFigGeo.dispose()
     queueFigMat.dispose()
-    for (const label of reservedLabels.values()) {
-      scene.remove(label)
-      label.material.map?.dispose()
-      label.material.dispose()
-    }
-    reservedLabels.clear()
     for (const marker of reservedMarkers.values()) scene.remove(marker)
     reservedMarkers.clear()
+    for (const g of dressingGroups.values()) scene.remove(g)
+    dressingGroups.clear()
+    for (const c of constructionGroups.values()) scene.remove(c.group)
+    constructionGroups.clear()
     plotMarkerGeo.dispose()
     plotMarkerMat.dispose()
     pulseGeo.dispose()

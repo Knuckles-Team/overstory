@@ -5,15 +5,15 @@
  * (R013), builds the kinematic rig (or the placeholder fallback when a pin
  * is unavailable), tints each character with its role hue (R027: one
  * persistent character per agent — silhouette and colour code the role),
- * and drives the per-frame pose, name tag and speech bubble. Simulated
- * operator characters (kind 'npc') are visually marked, labelled everywhere
- * else (R005/R010).
+ * and drives the per-frame pose and speech bubble. Names are screen-space
+ * labels (labelLayer.ts, R012.7), not in-scene sprites. Simulated operator
+ * characters (kind 'npc') are marked in the label layer and labelled
+ * everywhere else (R005/R010).
  */
 import * as THREE from 'three'
 import type { GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { bus, makeEvent } from '../events'
-import { stateColor } from '../encoding'
-import { bubbleTexture, characterTagTexture } from './labels'
+import { bubbleTexture } from './labels'
 import { isMesh } from './scene'
 import type { world as SimWorld } from '../sim'
 
@@ -45,17 +45,15 @@ interface CharacterEntry {
   ch: Character
   rig: Rig
   group: THREE.Group
-  tag: THREE.Sprite
   bubble: THREE.Sprite
-  lastState: string
   lastBubbleText: string | null
   bubbleTimer: number
 }
 
 /**
- * The one-to-one state → colour encoding for character tags (R025) is read
- * from the shared encoding table — the same source the 2D schematic and the
- * HUD use, so both views agree. Simulated operators ('npc') always read gold.
+ * The one-to-one state → colour encoding for character labels (R025) is
+ * read from the shared encoding table — the same source the 2D schematic,
+ * the HUD and the screen-space label layer use, so all views agree.
  */
 
 export interface CharactersApi {
@@ -168,30 +166,19 @@ export async function initCharacters(
         o.userData.charId = ch.id
       })
       group.add(rig.root)
-      const tag = new THREE.Sprite(
-        new THREE.SpriteMaterial({
-          map: characterTagTexture(ch.name, ch.kind === 'npc', stateColor(ch.state, ch.kind)),
-          depthWrite: false,
-        }),
-      )
-      tag.scale.set(2.3, 0.43, 1)
-      tag.position.y = 2.25
-      tag.userData.charId = ch.id
       const bubble = new THREE.Sprite(
         new THREE.SpriteMaterial({ map: null, depthWrite: false, transparent: true, opacity: 0 }),
       )
       bubble.scale.set(2.2, 0.4, 1)
       bubble.position.y = 2.75
       bubble.visible = false
-      group.add(rig.root, tag, bubble)
+      group.add(rig.root, bubble)
       scene.add(group)
       characters.set(ch.id, {
         ch,
         rig,
         group,
-        tag,
         bubble,
-        lastState: '',
         lastBubbleText: null,
         bubbleTimer: 0,
       })
@@ -270,12 +257,6 @@ export async function initCharacters(
       entry.group.position.set(ch.pos.x, 0, ch.pos.z)
       entry.group.rotation.y = ch.facing
       pose(entry, timeAcc)
-      if (entry.lastState !== ch.state + ch.mood) {
-        entry.lastState = ch.state + ch.mood
-        entry.tag.material.map?.dispose()
-        entry.tag.material.map = characterTagTexture(ch.name, ch.kind === 'npc', stateColor(ch.state, ch.kind))
-        entry.tag.material.needsUpdate = true
-      }
       if (entry.bubbleTimer > 0) {
         entry.bubbleTimer -= dtReal
         if (entry.bubbleTimer <= 0) entry.bubble.visible = false
@@ -291,8 +272,6 @@ export async function initCharacters(
   function dispose(): void {
     for (const entry of characters.values()) {
       scene.remove(entry.group)
-      entry.tag.material.map?.dispose()
-      entry.tag.material.dispose()
       entry.bubble.material.map?.dispose()
       entry.bubble.material.dispose()
     }
