@@ -53,7 +53,7 @@ export function fnv1a(bytes: Uint8Array): number {
 }
 
 /** The per-archetype vocabulary (the art direction's architectural kit). */
-const ARCHITECTURE: Record<DistrictArchetype, { floorH: number; parapet: boolean; windowBand: number }> = {
+export const ARCHITECTURE: Record<DistrictArchetype, { floorH: number; parapet: boolean; windowBand: number }> = {
   gateway: { floorH: 3.4, parapet: true, windowBand: 0.34 },
   datahall: { floorH: 4.2, parapet: true, windowBand: 0.24 },
   workshop: { floorH: 3.0, parapet: false, windowBand: 0.42 },

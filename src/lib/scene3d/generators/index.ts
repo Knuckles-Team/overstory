@@ -7,7 +7,7 @@
  * its declared budget, and every manifest entry's hash regenerates from
  * the recipe — that is the bar `generators.test.ts` verifies.
  */
-export { fnv1a, geometryHash, buildingAsset } from './buildings'
+export { ARCHITECTURE, fnv1a, geometryHash, buildingAsset } from './buildings'
 export type { AtlasRegion, BuildingAsset, BuildingParams, DistrictArchetype } from './buildings'
 export { roadTileAsset } from './roads'
 export type { RoadTileAsset, RoadTileParams } from './roads'
