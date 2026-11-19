@@ -12,9 +12,24 @@
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { GROUND_SIZE, HOUSES, PARKS, PIER, ROAD_W, SHIPS, WATER_Z, X_ROADS, Z_ROADS } from '../layout'
+import { mulberry32 } from '../prng'
 import type { world as SimWorld } from '../sim'
 
 export type World = typeof SimWorld
+
+/**
+ * Deterministic per-park seed (R014): the static props are seeded from the
+ * park's coordinates, so the scene is identical on every boot — the scene
+ * core never calls Math.random.
+ */
+function parkSeed(x: number, z: number): number {
+  let h = 2166136261 >>> 0
+  for (const v of [Math.round(x * 1000), Math.round(z * 1000)]) {
+    h ^= v
+    h = Math.imul(h, 16777619) >>> 0
+  }
+  return h >>> 0
+}
 
 /** Mesh test as a type predicate (strict rules refuse the bare instanceof). */
 export function isMesh(o: THREE.Object3D): o is THREE.Mesh {
@@ -50,7 +65,19 @@ export interface CityScene {
   dispose(): void
 }
 
-export function createCityScene(container: HTMLElement, world: World, onContextLost: () => void): CityScene {
+export interface CitySceneOptions {
+  /** Called once when the WebGL context is lost; the page overlays the 2D schematic. */
+  onContextLost: () => void
+  /**
+   * Called when a lost context is restored by the browser (R015): the page
+   * resumes this renderer and drops the schematic — the fallback is not a
+   * one-way door.
+   */
+  onContextRestored?: () => void
+}
+
+export function createCityScene(container: HTMLElement, world: World, opts: CitySceneOptions): CityScene {
+  const { onContextLost, onContextRestored } = opts
   // ---- Core three setup ---------------------------------------------------
   const scene = new THREE.Scene()
   scene.fog = new THREE.Fog(DAY_SKY.clone(), 90, 320)
@@ -73,19 +100,24 @@ export function createCityScene(container: HTMLElement, world: World, onContextL
   controls.minDistance = 12
   controls.maxDistance = 200
 
-  // ---- WebGL context loss (R015) -------------------------------------------
-  // On `webglcontextlost` the page is notified and falls back to the 2D
-  // schematic of the same city graph — never a dead canvas. The restore
-  // listener keeps the now-abandoned canvas from resurrecting a view the
-  // page has already replaced.
+  // ---- WebGL context loss and restore (R015) -------------------------------
+  // On `webglcontextlost` the page is notified and overlays the 2D schematic
+  // of the same city graph — never a dead canvas. The renderer itself is kept
+  // (paused): the fallback is not a one-way door. When the browser restores
+  // the context (three re-initialises its GL state), `onContextRestored`
+  // resumes this renderer and the page drops the schematic.
   let lost = false
+  let disposed = false
   const onLost = (e: Event): void => {
     e.preventDefault()
     lost = true
     onContextLost()
   }
   const onRestored = (e: Event): void => {
-    e.preventDefault() // the page owns the view choice; it already fell back
+    e.preventDefault()
+    if (disposed || !lost) return
+    lost = false
+    onContextRestored?.()
   }
   renderer.domElement.addEventListener('webglcontextlost', onLost)
   renderer.domElement.addEventListener('webglcontextrestored', onRestored)
@@ -249,15 +281,17 @@ export function createCityScene(container: HTMLElement, world: World, onContextL
     patch.rotation.x = -Math.PI / 2
     patch.position.set(pk.x, 0.03, pk.z)
     scene.add(patch)
+    // Seeded per park: the tree layout is identical on every boot (R014).
+    const rand = mulberry32(parkSeed(pk.x, pk.z))
     for (let i = 0; i < pk.trees; i++) {
-      const t = 0.9 + Math.random() * 0.3
+      const t = 0.9 + rand() * 0.3
       const trunk = new THREE.Mesh(treeGeo.trunk, new THREE.MeshStandardMaterial({ color: 0x6f5336 }))
       const crown = new THREE.Mesh(
         treeGeo.crown,
         new THREE.MeshStandardMaterial({ color: i % 2 ? 0x4f8a4f : 0x5d9a54 }),
       )
-      const a = Math.random() * Math.PI * 2
-      const r = Math.random() * 3.4
+      const a = rand() * Math.PI * 2
+      const r = rand() * 3.4
       trunk.position.set(pk.x + Math.cos(a) * r, 0.45 * t, pk.z + Math.sin(a) * r)
       crown.position.set(trunk.position.x, 1.5 * t, trunk.position.z)
       trunk.scale.setScalar(t)
@@ -336,13 +370,43 @@ export function createCityScene(container: HTMLElement, world: World, onContextL
     }
   }
 
-  let disposed = false
+  // Complete disposal at the GPU level (R018): the scene graph is traversed
+  // and every geometry, material and texture it owns is disposed, the camera
+  // controls are disposed, and the WebGL context is force-lost — a 2D/3D
+  // toggle or a remount never piles up contexts or leaked GPU memory.
   function dispose(): void {
     if (disposed) return
     disposed = true
     renderer.domElement.removeEventListener('webglcontextlost', onLost)
     renderer.domElement.removeEventListener('webglcontextrestored', onRestored)
+    const geos = new Set<THREE.BufferGeometry>()
+    const mats = new Set<THREE.Material>()
+    const texs = new Set<THREE.Texture>()
+    scene.traverse((o) => {
+      if (isMesh(o)) {
+        geos.add(o.geometry)
+        const material = o.material
+        if (Array.isArray(material)) material.forEach((m) => mats.add(m))
+        else mats.add(material)
+      }
+      if (o instanceof THREE.Sprite) {
+        mats.add(o.material)
+        if (o.material.map) texs.add(o.material.map)
+      }
+    })
+    for (const m of mats) {
+      // Dispose every texture the material references (map, emissive, ...).
+      for (const key of Object.keys(m)) {
+        const v = (m as unknown as Record<string, unknown>)[key]
+        if (v instanceof THREE.Texture) texs.add(v as THREE.Texture)
+      }
+      m.dispose()
+    }
+    for (const g of geos) g.dispose()
+    for (const t of texs) t.dispose()
+    controls.dispose()
     renderer.dispose()
+    renderer.forceContextLoss()
     container.removeChild(renderer.domElement)
   }
 

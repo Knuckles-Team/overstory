@@ -28,41 +28,33 @@ export async function init3D(
   world: World,
   opts: {
     onSelect: (hit: SelectionHit | null) => void
-    /** Called once when the WebGL context is lost; the page falls back to 2D. */
+    /** Called once when the WebGL context is lost; the page overlays the 2D schematic. */
     onContextLost?: () => void
+    /** Called when a lost context is restored; the page resumes this renderer (R015). */
+    onContextRestored?: () => void
   },
 ): Promise<CityRenderer> {
-  const { onSelect, onContextLost } = opts
+  const { onSelect, onContextLost, onContextRestored } = opts
   const loader = new GLTFLoader()
 
-  // Pinned GLBs are served from the startup-verified byte cache so each
-  // pinned file is fetched exactly once (OVERSTORY-CITY-R013); unpinned
-  // assets fall back to a plain fetch.
+  // Pinned GLBs are served only from the startup-verified byte cache, so
+  // each pinned file is fetched exactly once and its bytes are the verified
+  // ones (OVERSTORY-CITY-R013). There is no render-time fetch fallback: an
+  // unverified pin is rejected at load and the character layer renders its
+  // labelled placeholder for it — an asset that failed verification never
+  // reaches the scene with unverified bytes.
   function loadPinnedGLB(url: string): Promise<GLTF> {
     const cached = pinnedBytes(url)
-    const buf: Promise<ArrayBuffer> = cached
-      ? Promise.resolve(cached)
-      : (async () => {
-          const r = await fetch(url)
-          if (!r.ok) throw new Error(`HTTP ${r.status} for ${url}`)
-          return r.arrayBuffer()
-        })()
+    if (!cached) return Promise.reject(new Error(`pinned asset not verified at startup: ${url}`))
     return new Promise((resolve, reject) => {
-      buf.then(
-        (data) => {
-          loader.parse(
-            data,
-            '',
-            (gltf) => {
-              resolve(gltf)
-            },
-            (err) => {
-              reject(err instanceof Error ? err : new Error('GLB parse failed'))
-            },
-          )
+      loader.parse(
+        cached,
+        '',
+        (gltf) => {
+          resolve(gltf)
         },
-        (err: unknown) => {
-          reject(err instanceof Error ? err : new Error('pinned GLB unavailable'))
+        (err) => {
+          reject(err instanceof Error ? err : new Error('GLB parse failed'))
         },
       )
     })
@@ -70,8 +62,12 @@ export async function init3D(
 
   // The scene core owns the renderer, camera, controls, static city geometry
   // and the day/night cycle; on WebGL context loss it notifies the page so
-  // the 2D schematic of the same city graph takes over (R015).
-  const sceneCore = createCityScene(container, world, onContextLost ?? noopContextLost)
+  // the 2D schematic of the same city graph takes over, and on context
+  // restore the page resumes this renderer (R015).
+  const sceneCore = createCityScene(container, world, {
+    onContextLost: onContextLost ?? noopContextLost,
+    onContextRestored,
+  })
   const { scene, renderer, camera, controls } = sceneCore
 
   // Marker cube first (used by placeholders + construction).

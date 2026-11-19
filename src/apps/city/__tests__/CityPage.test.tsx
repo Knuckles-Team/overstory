@@ -409,28 +409,86 @@ describe('keyboard accessibility (R027)', () => {
   })
 })
 
-describe('WebGL context-loss fallback (R015)', () => {
-  it('falls back to the 2D schematic when the context is lost mid-session', async () => {
+describe('WebGL context loss and restore (R015)', () => {
+  // The 3D renderer is mocked (jsdom cannot run a WebGL scene), but the mock
+  // emulates three's listener wiring: it mounts a real canvas and attaches the
+  // page's callbacks as real DOM listeners, exactly as WebGLRenderer does on
+  // its canvas. The tests then dispatch real webglcontextlost /
+  // webglcontextrestored events — the listeners are exercised through the
+  // DOM, never by calling the callbacks (R015).
+  function mockInit3DWithRealCanvas(): CityRenderer {
     const renderer = fakeRenderer()
-    ;(init3D as ReturnType<typeof vi.fn>).mockResolvedValue(renderer)
+    vi.mocked(init3D).mockImplementation((container, _w, opts) => {
+      const canvas = document.createElement('canvas')
+      canvas.className = 'city-3d-canvas'
+      container.appendChild(canvas)
+      if (opts.onContextLost) canvas.addEventListener('webglcontextlost', opts.onContextLost)
+      if (opts.onContextRestored) canvas.addEventListener('webglcontextrestored', opts.onContextRestored)
+      return Promise.resolve(renderer)
+    })
+    return renderer
+  }
+
+  it('a lost context keeps the paused 3D renderer under the 2D schematic', async () => {
+    const renderer = mockInit3DWithRealCanvas()
     const view = await bootCity('simulated')
     try {
-      const opts = (init3D as ReturnType<typeof vi.fn>).mock.calls.at(-1)?.[2] as {
-        onContextLost?: () => void
-      }
-      expect(opts?.onContextLost).toBeTypeOf('function')
-      opts?.onContextLost?.()
+      const canvas = document.querySelector('canvas.city-3d-canvas') as HTMLCanvasElement
+      canvas.dispatchEvent(new Event('webglcontextlost'))
       await vi.waitFor(() => {
-        const btn2d = screen.getByRole('button', { name: '2D view' })
-        expect(btn2d.getAttribute('aria-pressed')).toBe('true')
+        expect(screen.getByRole('button', { name: '2D view' }).getAttribute('aria-pressed')).toBe('true')
       })
-      // The dead 3D renderer was disposed; the 2D schematic now owns the holder.
-      expect(renderer.dispose).toHaveBeenCalledTimes(1)
+      // The schematic layers over the kept 3D canvas — it is not replaced,
+      // and the paused renderer was not disposed (the fallback is not a
+      // one-way door).
       const holder = document.querySelector('.city-holder') as HTMLElement
-      expect(holder.querySelector('canvas')).not.toBeNull()
+      expect(holder.querySelectorAll('canvas')).toHaveLength(2)
+      expect(renderer.dispose).not.toHaveBeenCalled()
+      // A manual 3D toggle is ignored while the kept renderer is paused —
+      // the restore callback owns the return path.
+      screen.getByRole('button', { name: '3D view' }).click()
+      expect(holder.querySelectorAll('canvas')).toHaveLength(2)
+      expect(renderer.dispose).not.toHaveBeenCalled()
     } finally {
       view.unmount()
     }
+  })
+
+  it('a restored context resumes the kept 3D renderer and drops the schematic', async () => {
+    const renderer = mockInit3DWithRealCanvas()
+    const view = await bootCity('simulated')
+    try {
+      const canvas = document.querySelector('canvas.city-3d-canvas') as HTMLCanvasElement
+      canvas.dispatchEvent(new Event('webglcontextlost'))
+      await vi.waitFor(() => {
+        expect(screen.getByRole('button', { name: '2D view' }).getAttribute('aria-pressed')).toBe('true')
+      })
+      canvas.dispatchEvent(new Event('webglcontextrestored'))
+      await vi.waitFor(() => {
+        expect(screen.getByRole('button', { name: '3D view' }).getAttribute('aria-pressed')).toBe('true')
+      })
+      // The kept renderer resumed: it was never disposed and the schematic
+      // canvas is gone — one canvas in the holder, the 3D one.
+      const holder = document.querySelector('.city-holder') as HTMLElement
+      expect(holder.querySelectorAll('canvas')).toHaveLength(1)
+      expect(holder.querySelector('canvas.city-3d-canvas')).not.toBeNull()
+      expect(renderer.dispose).not.toHaveBeenCalled()
+    } finally {
+      view.unmount()
+    }
+  })
+
+  it('unmount disposes both the active renderer and a kept one', async () => {
+    const renderer = mockInit3DWithRealCanvas()
+    const view = await bootCity('simulated')
+    const canvas = document.querySelector('canvas.city-3d-canvas') as HTMLCanvasElement
+    canvas.dispatchEvent(new Event('webglcontextlost'))
+    await vi.waitFor(() => {
+      expect(screen.getByRole('button', { name: '2D view' }).getAttribute('aria-pressed')).toBe('true')
+    })
+    view.unmount()
+    // The kept 3D renderer is disposed with the rest of the page (R018).
+    expect(renderer.dispose).toHaveBeenCalledTimes(1)
   })
 })
 

@@ -196,6 +196,12 @@ export default function CityPage() {
     let speed = parseSpeedParam(window.location.search)
     // The active renderer view; the page owns it (R027).
     let view: '3d' | '2d' = '3d'
+    // The paused 3D renderer kept while a WebGL context is lost (R015): the
+    // fallback to the 2D schematic is not a one-way door — when the browser
+    // restores the context the kept renderer resumes and the schematic is
+    // disposed. While it is kept, manual 3D toggles are ignored: the restore
+    // callback owns the return path.
+    let kept3d: CityRenderer | null = null
     // The canonical recorded-action history for the replay scrubber (R029):
     // live-recorded actions plus everything a replay re-recorded (identical
     // in-game timestamps, so the dedupe is stable).
@@ -223,23 +229,57 @@ export default function CityPage() {
       ui?.select(hit)
     }
 
+    // R015: on WebGL context loss the page overlays the 2D schematic of the
+    // same city graph — and keeps the paused 3D renderer instead of disposing
+    // it, so a restored context resumes the 3D view (the fallback is not a
+    // one-way door). Both transitions go through the real DOM events the
+    // scene wires its listeners to.
+    function fallbackTo2D(): void {
+      if (!holder || view !== '3d' || kept3d || isDisposed()) return
+      kept3d = renderer
+      view = '2d'
+      renderer = init2D(holder, world, { onSelect })
+      ui?.setRenderer(renderer)
+      syncViewButtons()
+    }
+
+    function resume3D(): void {
+      if (!kept3d || isDisposed()) return
+      const keep = kept3d
+      kept3d = null
+      renderer?.dispose()
+      renderer = keep
+      view = '3d'
+      // Rebind to the world state the schematic has been showing (a replay
+      // may have replaced it while the context was lost).
+      renderer.resync?.()
+      ui?.setRenderer(renderer)
+      syncViewButtons()
+    }
+
+    const ctxLostOpts = {
+      onContextLost: fallbackTo2D,
+      onContextRestored: resume3D,
+    }
+
     // The 3D/2D view swap (R027): the 2D schematic is the accessible view and
     // the context-loss fallback (R015). The new renderer mounts before the
-    // old one disposes, so the holder never holds a dead canvas.
+    // old one disposes, so the holder never holds a dead canvas. A manual
+    // swap to 2D disposes the 3D renderer outright (unlike a context loss,
+    // which keeps it for the restore).
     async function swapView(next: '3d' | '2d'): Promise<void> {
       if (!holder || view === next || isDisposed()) return
+      if (kept3d && next === '3d') return // the restore callback owns the path
       const prev = renderer
       let nextR: CityRenderer
       if (next === '2d') {
         nextR = init2D(holder, world, { onSelect })
+        kept3d = null // a deliberate swap supersedes any kept renderer
       } else {
         try {
           nextR = await init3D(holder, world, {
             onSelect,
-            // R015: on context loss the page falls back to the 2D schematic.
-            onContextLost: () => {
-              if (view === '3d') void swapView('2d')
-            },
+            ...ctxLostOpts,
           })
         } catch (err) {
           console.warn('[city] 3D renderer unavailable, falling back to 2D:', err)
@@ -294,10 +334,9 @@ export default function CityPage() {
         try {
           renderer = await init3D(holder, world, {
             onSelect,
-            // R015: on context loss the page falls back to the 2D schematic.
-            onContextLost: () => {
-              if (view === '3d') void swapView('2d')
-            },
+            // R015: context loss keeps the paused 3D renderer under the 2D
+            // schematic; context restore resumes it.
+            ...ctxLostOpts,
           })
         } catch (err) {
           console.warn('[city] 3D renderer unavailable, falling back to 2D:', err)
@@ -338,6 +377,9 @@ export default function CityPage() {
           ui?.refresh()
         },
         setView: (v) => {
+          // While a kept 3D renderer is paused under the schematic, the
+          // restore callback owns the return to 3D (R015).
+          if (kept3d && v === '3d') return
           void swapView(v)
         },
         // R029: seek the recorded history — the deterministic replay driver
@@ -401,12 +443,13 @@ export default function CityPage() {
 
     return () => {
       // Unmount safety (OVERSTORY-CITY-R018): stop the loop, any pending
-      // replay, the renderer, the UI subscription, then the world and the
-      // bus.
+      // replay, the renderer (and any kept one paused under the schematic,
+      // R015), the UI subscription, then the world and the bus.
       disposed = true
       cancelAnimationFrame(raf)
       if (scrubTimer) clearTimeout(scrubTimer)
       observer?.disconnect()
+      if (kept3d) kept3d.dispose()
       if (renderer) renderer.dispose()
       ui?.dispose()
       resetSim()
