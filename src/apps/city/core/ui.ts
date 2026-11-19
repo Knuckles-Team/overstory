@@ -13,7 +13,7 @@
  * skippable first-visit tour (R030).
  */
 import { bus, feedFullySimulated, getMode, type CityEvent } from './events'
-import { legendLines } from './encoding'
+import { legendLines, stateColor } from './encoding'
 import { isNight } from './sim'
 import type { world as simWorld } from './sim'
 import type { CityActions, CityRenderer, CityUiElements, SelectionHit } from './types'
@@ -49,17 +49,6 @@ const TYPE_COLORS: Record<string, string> = {
   'asset.verified': '#3ddc84',
   'asset.failed': '#ff5e5e',
   'mode.selected': '#5ec8d8',
-}
-
-const STATE_COLORS: Record<string, string> = {
-  idle: '#8a94a8',
-  tasked: '#5ea0ff',
-  traveling: '#5ea0ff',
-  working: '#ffd166',
-  committing: '#b08cff',
-  sleeping: '#4a5568',
-  awaiting: '#ff6f9c',
-  patrolling: '#7fd06f',
 }
 
 function escapeHtml(s: unknown): string {
@@ -172,7 +161,7 @@ export function initUI(world: World, renderer: CityRenderer, actions: CityAction
         `${ch.name}, state ${ch.state}, ${ch.kind === 'npc' ? 'simulated operator' : 'AI agent'}`,
       )
       const dot = row.querySelector<HTMLElement>('.dot')
-      if (dot) dot.style.background = STATE_COLORS[ch.state] ?? '#888'
+      if (dot) dot.style.background = stateColor(ch.state, ch.kind)
       const bar = row.querySelector<HTMLElement>('.ctxbar > span')
       if (bar) bar.style.width = `${Math.round(ch.context)}%`
       // Roster order: appendChild moves an existing node to its place.
@@ -213,7 +202,7 @@ export function initUI(world: World, renderer: CityRenderer, actions: CityAction
       if (!ch) return
       const state = els.inspector.querySelector<HTMLElement>('[data-slot="state"]')
       if (state) {
-        state.style.color = STATE_COLORS[ch.state] ?? '#888'
+        state.style.color = stateColor(ch.state, ch.kind)
         state.textContent = ch.state
       }
       const mood = els.inspector.querySelector<HTMLElement>('[data-slot="mood"]')
@@ -270,7 +259,7 @@ export function initUI(world: World, renderer: CityRenderer, actions: CityAction
             const dots = here
               .map(
                 (c) =>
-                  `<span class="room-dot" title="${escapeHtml(c.name)}" style="background:${STATE_COLORS[c.state]}"></span>`,
+                  `<span class="room-dot" title="${escapeHtml(c.name)}" style="background:${stateColor(c.state, c.kind)}"></span>`,
               )
               .join('')
             return `<div class="room">${escapeHtml(r)}${dots}</div>`
@@ -318,7 +307,7 @@ export function initUI(world: World, renderer: CityRenderer, actions: CityAction
           ch.kind === 'npc' ? 'SIMULATED OPERATOR' : 'AI AGENT'
         }</span></h3>
         <p class="role">${escapeHtml(ch.role)}</p>
-        <div class="kv"><span>State</span><b data-slot="state" style="color:${STATE_COLORS[ch.state]}">${escapeHtml(ch.state)}</b></div>
+        <div class="kv"><span>State</span><b data-slot="state" style="color:${stateColor(ch.state, ch.kind)}">${escapeHtml(ch.state)}</b></div>
         <div class="kv"><span>Mood</span><b data-slot="mood">${escapeHtml(ch.mood)}</b></div>
         <div class="kv"><span>Context</span><b data-slot="context">${Math.round(ch.context)}%</b></div>
         <div class="ctxbar big" data-slot="ctxbar"><span style="width:${Math.round(ch.context)}%"></span></div>
@@ -350,7 +339,7 @@ export function initUI(world: World, renderer: CityRenderer, actions: CityAction
         const dots = here
           .map(
             (c) =>
-              `<span class="room-dot" title="${escapeHtml(c.name)}" style="background:${STATE_COLORS[c.state]}"></span>`,
+              `<span class="room-dot" title="${escapeHtml(c.name)}" style="background:${stateColor(c.state, c.kind)}"></span>`,
           )
           .join('')
         return `<div class="room">${escapeHtml(r)}${dots}</div>`

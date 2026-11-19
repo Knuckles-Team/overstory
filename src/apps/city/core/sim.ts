@@ -97,6 +97,8 @@ export interface Building {
   packStatus: string
   blurb: string
   simTools: boolean
+  /** The served tool count (R025 building-height channel), before the SIM_TOOLS fallback. */
+  toolCount: number
   door: Vec2 | null
 }
 
@@ -350,6 +352,9 @@ function makeBuilding(def: CoreDef | ConnectorDef, category: 'core' | 'connector
     served: 'packStatus' in def ? def.packStatus === 'served' : true,
     packStatus: 'packStatus' in def ? def.packStatus : 'core',
     blurb: 'blurb' in def ? def.blurb : '',
+    // The authoritative served tool count: the 'building-height' channel
+    // (R025) encodes this, so the simulated fallback below never inflates it.
+    toolCount: def.tools.length,
     // Core doors project from the landmark footprint; connector doors are
     // set by placeConnector from the plot they sit on.
     door: category === 'core' ? buildingDoor(def.id) : null,

@@ -9,9 +9,10 @@
  */
 import * as THREE from 'three'
 import { PLOT_W } from '../layout'
+import { encodingColor } from '../encoding'
 import { bus } from '../events'
 import { facadeSet, nameplateTexture, reservedLabelTexture } from './labels'
-import { isMesh, nightFactor } from './scene'
+import { isMesh } from './scene'
 import type { world as SimWorld } from '../sim'
 
 export type World = typeof SimWorld
@@ -28,6 +29,10 @@ interface BuildingEntry {
   group: THREE.Group
   body: THREE.Object3D
   mats: THREE.MeshStandardMaterial[]
+  /** The roof materials — the separate 'error-flash' channel (R025). */
+  roofMats?: THREE.MeshStandardMaterial[]
+  /** True while the error-flash channel has touched this landmark's materials. */
+  flashActive?: boolean
   sign: THREE.Sprite
   height: number
   landmark?: boolean
@@ -169,11 +174,14 @@ export function createBuildings(scene: THREE.Scene, world: World, markerRoot: TH
 
   function makeBuildingMesh(b: World['buildings'][string]): BuildingEntry {
     const g = new THREE.Group()
-    // Deterministic per-building height variation from the id.
-    let hsum = 0
-    for (let i = 0; i < b.id.length; i++) hsum = (hsum * 31 + b.id.charCodeAt(i)) % 997
-    const height = b.category === 'core' ? 6 : 4.4 + (hsum % 5) * 0.55
-    const mats = facadeSet(b.color)
+    // Deterministic per-building seed (R014): the facade window pattern is
+    // identical on every boot.
+    let seed = 0
+    for (let i = 0; i < b.id.length; i++) seed = (seed * 31 + b.id.charCodeAt(i)) >>> 0
+    // The 'building-height' channel (R025): height encodes the served tool
+    // count — one visual, one fact.
+    const height = b.category === 'core' ? 6 : 3 + Math.min(b.toolCount, 16) * 0.4
+    const mats = facadeSet(b.color, seed)
     const body = new THREE.Mesh(new THREE.BoxGeometry(b.w, height, b.d), mats)
     body.position.y = height / 2
     body.castShadow = true
@@ -192,7 +200,16 @@ export function createBuildings(scene: THREE.Scene, world: World, markerRoot: TH
     if (b.category === 'connector') archetypeProps(b.kind, g, b.w, height, b.d, b.color)
     g.position.set(b.x, 0, b.z)
     scene.add(g)
-    const entry: BuildingEntry = { group: g, body, mats, sign, height }
+    // BoxGeometry face order: +x, -x, +y (roof), -y, +z, -z — the two middle
+    // materials are the roof, the 'error-flash' channel's own surface (R025).
+    const entry: BuildingEntry = {
+      group: g,
+      body,
+      mats,
+      roofMats: [mats[2], mats[3]],
+      sign,
+      height,
+    }
     buildingGroups.set(b.id, entry)
     // Door mat on the road.
     if (b.door) {
@@ -487,21 +504,95 @@ export function createBuildings(scene: THREE.Scene, world: World, markerRoot: TH
     }
   }
 
+  // ---- 'door-queue' channel (R025): pending approvals at the arbora gate -----
+  // One small figure per task in 'pending_approval', coloured from the table;
+  // the queue length is the fact, nothing else.
+  const queueFigGeo = new THREE.CapsuleGeometry(0.11, 0.3, 2, 6)
+  const queueFigMat = new THREE.MeshStandardMaterial({
+    color: encodingColor('door-queue'),
+    roughness: 0.7,
+  })
+  const queueFigs: THREE.Mesh[] = []
+
+  function updateDoorQueue(): void {
+    const gate = 'arbora' in world.buildings ? world.buildings.arbora : null
+    const door = gate?.door
+    const pending = world.tasks.filter((t) => t.state === 'pending_approval').length
+    while (queueFigs.length < pending) {
+      const fig = new THREE.Mesh(queueFigGeo, queueFigMat)
+      fig.castShadow = true
+      scene.add(fig)
+      queueFigs.push(fig)
+    }
+    while (queueFigs.length > pending) {
+      const fig = queueFigs.pop()
+      if (fig) scene.remove(fig)
+    }
+    if (door) {
+      queueFigs.forEach((fig, i) => {
+        fig.position.set(door.x + 0.55 + i * 0.32, 0.26, door.z + 1.15)
+      })
+    }
+  }
+
   function update(dtReal: number, timeAcc: number): void {
-    const night = nightFactor(world.clock)
+    // 'lit-windows' channel (R025): one working agent per building is one
+    // in-flight tool call; nothing else lights the windows — no night floor,
+    // no flash mixed in (one channel, one fact).
+    const inFlight: Record<string, number> = {}
+    for (const c of world.characters) {
+      if (c.state === 'working' && c.task?.buildingId) {
+        const bid = c.task.buildingId
+        inFlight[bid] = (inFlight[bid] ?? 0) + 1
+      }
+    }
 
     // Buildings: windows, flash, landmark animation.
     for (const [id, entry] of buildingGroups) {
       const b = id in world.buildings ? world.buildings[id] : null
       if (!b) continue
       if (entry.mats.length) {
-        for (const m of entry.mats) m.emissiveIntensity = 1.15 * night + b.flash * 1.6
+        const calls = inFlight[id] ?? 0
+        for (const m of entry.mats) {
+          if (entry.roofMats?.includes(m)) continue
+          m.emissiveIntensity = Math.min(1.5, calls * 0.45)
+        }
       }
-      if (b.flash > 0 && entry.landmark) {
-        entry.group.traverse((o) => {
-          if (!isMesh(o) || !(o.material instanceof THREE.MeshStandardMaterial)) return
-          o.material.emissiveIntensity = Math.min(2.5, 0.5 + b.flash * 2)
-        })
+      // 'error-flash' channel (R025): while a recent error is fresh the roof
+      // lights up in the table's red; connector roofs own it, landmarks flash
+      // their whole material set and restore the baseline when it ends.
+      if (entry.roofMats) {
+        for (const m of entry.roofMats) {
+          m.emissive.setHex(b.flash > 0 ? encodingColor('error-flash') : 0x000000)
+          m.emissiveIntensity = b.flash > 0 ? Math.min(2.5, b.flash * 2) : 0
+        }
+      }
+      if (entry.landmark) {
+        if (b.flash > 0) {
+          entry.flashActive = true
+          entry.group.traverse((o) => {
+            if (!isMesh(o) || !(o.material instanceof THREE.MeshStandardMaterial)) return
+            const m = o.material
+            if (m.userData.baseEmissive === undefined) {
+              m.userData.baseEmissive = m.emissive.getHex()
+              m.userData.baseIntensity = m.emissiveIntensity
+            }
+            m.emissive.setHex(encodingColor('error-flash'))
+            m.emissiveIntensity = Math.min(2.5, 0.5 + b.flash * 2)
+          })
+        } else if (entry.flashActive) {
+          entry.group.traverse((o) => {
+            if (!isMesh(o) || !(o.material instanceof THREE.MeshStandardMaterial)) return
+            const m = o.material
+            const baseEmissive = m.userData.baseEmissive as number | undefined
+            const baseIntensity = m.userData.baseIntensity as number | undefined
+            if (baseEmissive !== undefined) {
+              m.emissive.setHex(baseEmissive)
+              m.emissiveIntensity = baseIntensity ?? 0
+            }
+          })
+          entry.flashActive = false
+        }
       }
       if (entry.bits?.ring) entry.bits.ring.rotation.z = timeAcc * 0.4
       if (entry.bits?.halo) entry.bits.halo.rotation.z = timeAcc * 0.6
@@ -614,6 +705,9 @@ export function createBuildings(scene: THREE.Scene, world: World, markerRoot: TH
       }
     }
 
+    // 'door-queue' channel: pending approvals at the arbora gate (R025).
+    updateDoorQueue()
+
     // Building reveal pop.
     for (const [id, entry] of buildingGroups) {
       const b = id in world.buildings ? world.buildings[id] : null
@@ -624,6 +718,10 @@ export function createBuildings(scene: THREE.Scene, world: World, markerRoot: TH
 
   function dispose(): void {
     unsubPulse()
+    for (const fig of queueFigs) scene.remove(fig)
+    queueFigs.length = 0
+    queueFigGeo.dispose()
+    queueFigMat.dispose()
     for (const label of reservedLabels.values()) {
       scene.remove(label)
       label.material.map?.dispose()

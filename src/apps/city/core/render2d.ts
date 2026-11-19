@@ -5,7 +5,7 @@
  * view over the shared world state, never a second system.
  */
 import { X_ROADS, Z_ROADS, WATER_Z, PLOT_W, HOUSES, PARKS, PIER } from './layout'
-import { encodingColor } from './encoding'
+import { encodingColor, stateColor } from './encoding'
 import { world as simWorld } from './sim'
 import type { CityRenderer, SelectionHit } from './types'
 
@@ -21,17 +21,6 @@ export function supportsWebGL(): boolean {
   } catch {
     return false
   }
-}
-
-const STATE_COLORS: Record<string, string> = {
-  idle: '#8a94a8',
-  tasked: '#5ea0ff',
-  traveling: '#5ea0ff',
-  working: '#ffd166',
-  committing: '#b08cff',
-  sleeping: '#4a5568',
-  awaiting: '#ff6f9c',
-  patrolling: '#7fd06f',
 }
 
 export function init2D(
@@ -183,7 +172,7 @@ export function init2D(
       if (!ch.visible) continue
       const x = px(ch.pos.x)
       const z = pz(ch.pos.z)
-      ctx.fillStyle = ch.kind === 'npc' ? '#ffd166' : (STATE_COLORS[ch.state] ?? '#8a94a8')
+      ctx.fillStyle = stateColor(ch.state, ch.kind)
       ctx.beginPath()
       ctx.arc(x, z, Math.max(3, scale * 0.9), 0, Math.PI * 2)
       ctx.fill()

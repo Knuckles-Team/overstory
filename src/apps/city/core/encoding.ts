@@ -33,6 +33,32 @@ export const ENCODING: readonly EncodingRow[] = [
   { id: 'character-silhouette', visual: 'character silhouette and colour', fact: 'agent type and role' },
 ]
 
+/**
+ * The state → colour mapping, declared once here (R025): the "state colour"
+ * channel of the single source. The 3D scene, the 2D schematic and the HUD
+ * all read it — none of them carries a private copy, so a state can never
+ * mean two different colours in two views. Simulated operators ('npc')
+ * always read gold, whatever their state.
+ */
+export const STATE_FALLBACK_COLOR = '#8a94a8'
+export const NPC_COLOR = '#ffd166'
+export const STATE_COLORS: Record<string, string> = {
+  idle: '#8a94a8',
+  tasked: '#5ea0ff',
+  traveling: '#5ea0ff',
+  working: '#ffd166',
+  committing: '#b08cff',
+  sleeping: '#4a5568',
+  awaiting: '#ff6f9c',
+  patrolling: '#7fd06f',
+}
+
+/** The one state → colour lookup (R025): `npc` characters read gold. */
+export function stateColor(state: string, kind?: string): string {
+  if (kind === 'npc') return NPC_COLOR
+  return state in STATE_COLORS ? STATE_COLORS[state] : STATE_FALLBACK_COLOR
+}
+
 /** Address one encoding row by its stable id. */
 export function encodingById(id: string): EncodingRow | undefined {
   return ENCODING.find((e) => e.id === id)

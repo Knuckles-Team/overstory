@@ -12,6 +12,7 @@
 import * as THREE from 'three'
 import type { GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { bus, makeEvent } from '../events'
+import { stateColor } from '../encoding'
 import { bubbleTexture, characterTagTexture } from './labels'
 import { isMesh } from './scene'
 import type { world as SimWorld } from '../sim'
@@ -52,25 +53,10 @@ interface CharacterEntry {
 }
 
 /**
- * The one-to-one state → colour encoding for character tags (R025): the
- * same table the 2D schematic reads, so both views agree. Simulated
- * operators ('npc') always read gold.
+ * The one-to-one state → colour encoding for character tags (R025) is read
+ * from the shared encoding table — the same source the 2D schematic and the
+ * HUD use, so both views agree. Simulated operators ('npc') always read gold.
  */
-const STATE_COLORS: Record<string, string> = {
-  idle: '#8a94a8',
-  tasked: '#5ea0ff',
-  traveling: '#5ea0ff',
-  working: '#ffd166',
-  committing: '#b08cff',
-  sleeping: '#4a5568',
-  awaiting: '#ff6f9c',
-  patrolling: '#7fd06f',
-}
-
-function stateColor(state: string, kind: string): string {
-  if (kind === 'npc') return '#ffd166'
-  return STATE_COLORS[state] ?? '#8a94a8'
-}
 
 export interface CharactersApi {
   /** One frame of character updates (pose, tag, bubble). */

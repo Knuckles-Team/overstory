@@ -9,7 +9,15 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { ENCODING, encodingById, encodingColor, legendLines, legendText } from '../core/encoding'
+import {
+  ENCODING,
+  encodingById,
+  encodingColor,
+  legendLines,
+  legendText,
+  STATE_COLORS,
+  stateColor,
+} from '../core/encoding'
 
 describe('encoding table (R025)', () => {
   it('declares the six v1 channels, each mapping one visual to one fact', () => {
@@ -63,9 +71,44 @@ describe('encoding table (R025)', () => {
     const render2d = readFileSync(join(__dirname, '..', 'core', 'render2d.ts'), 'utf8')
     expect(render2d).toContain("from './encoding'")
     expect(render2d).toContain("encodingColor('scaffolding')")
+    expect(render2d).toContain('stateColor(')
     // The HUD legend panel is rendered from the table, not a hardcoded list.
     const ui = readFileSync(join(__dirname, '..', 'core', 'ui.ts'), 'utf8')
     expect(ui).toContain("from './encoding'")
     expect(ui).toContain('legendLines()')
+    expect(ui).toContain('stateColor(')
+    // The state → colour mapping lives in exactly one module: the 3D
+    // character layer, the 2D schematic and the HUD all read stateColor from
+    // the encoding table — none of them declares its own colour list.
+    const characters = readFileSync(join(__dirname, '..', 'core', 'render3d', 'characters.ts'), 'utf8')
+    expect(characters).toContain("from '../encoding'")
+    expect(characters).toContain('stateColor(')
+    for (const mod of [render2d, ui, characters]) {
+      expect(mod, 'private state-colour copy in a scene module').not.toMatch(/const STATE_COLORS/)
+    }
+  })
+
+  it('state colour is the one-to-one channel the three views share', () => {
+    // Every declared agent state has exactly one colour in the one table.
+    expect(Object.keys(STATE_COLORS).sort()).toEqual([
+      'awaiting',
+      'committing',
+      'idle',
+      'patrolling',
+      'sleeping',
+      'tasked',
+      'traveling',
+      'working',
+    ])
+    expect(stateColor('idle')).toBe('#8a94a8')
+    expect(stateColor('working')).toBe('#ffd166')
+    expect(stateColor('awaiting')).toBe('#ff6f9c')
+    // An undeclared state falls back to the neutral grey, never to a
+    // module-private default.
+    expect(stateColor('not-a-state')).toBe('#8a94a8')
+    // Simulated operators read gold in every view, whatever their state.
+    expect(stateColor('idle', 'npc')).toBe('#ffd166')
+    expect(stateColor('working', 'npc')).toBe('#ffd166')
+    expect(stateColor('idle', 'ai')).toBe('#8a94a8')
   })
 })

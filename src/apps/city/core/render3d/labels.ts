@@ -8,6 +8,7 @@
  */
 import * as THREE from 'three'
 import { encodingColor } from '../encoding'
+import { mulberry32 } from '../prng'
 
 function ctx2d(c: HTMLCanvasElement): CanvasRenderingContext2D {
   const g = c.getContext('2d')
@@ -119,9 +120,10 @@ export function reservedLabelTexture(name: string): THREE.CanvasTexture {
 /**
  * Building facade materials: base colour, a window map and an emissive window
  * map. The emissive windows light up from the 'lit-windows' encoding (R025)
- * — in-flight tool calls at the building, with a night ambience floor.
+ * — in-flight tool calls at the building; which windows are on is decided
+ * per building from the seed, so the pattern is deterministic (R014).
  */
-export function facadeSet(color: number): THREE.MeshStandardMaterial[] {
+export function facadeSet(color: number, seed: number): THREE.MeshStandardMaterial[] {
   const hex = `#${color.toString(16).padStart(6, '0')}`
   const c = document.createElement('canvas')
   c.width = 128
@@ -143,8 +145,9 @@ export function facadeSet(color: number): THREE.MeshStandardMaterial[] {
   eg.fillStyle = '#000'
   eg.fillRect(0, 0, 128, 192)
   eg.fillStyle = `#${encodingColor('lit-windows').toString(16).padStart(6, '0')}`
+  const rand = mulberry32(seed)
   for (let r = 0; r < 4; r++)
-    for (let col = 0; col < 3; col++) if (Math.random() < 0.45) eg.fillRect(16 + col * 38, 36 + r * 38, 26, 28)
+    for (let col = 0; col < 3; col++) if (rand() < 0.45) eg.fillRect(16 + col * 38, 36 + r * 38, 26, 28)
   const emissiveMap = new THREE.CanvasTexture(ec)
   const side = new THREE.MeshStandardMaterial({
     map,
