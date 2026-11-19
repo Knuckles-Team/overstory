@@ -65,78 +65,27 @@ export interface CityScene {
   dispose(): void
 }
 
-export interface CitySceneOptions {
-  /** Called once when the WebGL context is lost; the page overlays the 2D schematic. */
-  onContextLost: () => void
-  /**
-   * Called when a lost context is restored by the browser (R015): the page
-   * resumes this renderer and drops the schematic — the fallback is not a
-   * one-way door.
-   */
-  onContextRestored?: () => void
+/** The per-frame handles of the static city geometry (ambient animation). */
+export interface CityCore {
+  /** House window materials (the night ambience). */
+  houseWindows: THREE.MeshStandardMaterial[]
+  /** Streetlamp glow sprites (the night ambience). */
+  lampGlows: THREE.Sprite[]
+  /** The ship groups (the bobbing). */
+  ships: THREE.Group[]
+  /** The ship bob phases, one per ship. */
+  shipPhases: number[]
 }
 
-export function createCityScene(container: HTMLElement, world: World, opts: CitySceneOptions): CityScene {
-  const { onContextLost, onContextRestored } = opts
-  // ---- Core three setup ---------------------------------------------------
-  const scene = new THREE.Scene()
-  scene.fog = new THREE.Fog(DAY_SKY.clone(), 90, 320)
-
-  const renderer = new THREE.WebGLRenderer({ antialias: true })
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
-  renderer.setSize(container.clientWidth, container.clientHeight)
-  renderer.shadowMap.enabled = true
-  renderer.shadowMap.type = THREE.PCFShadowMap
-  container.appendChild(renderer.domElement)
-
-  const camera = new THREE.PerspectiveCamera(50, container.clientWidth / container.clientHeight, 0.5, 600)
-  camera.position.copy(OVERVIEW_CAM)
-
-  const controls = new OrbitControls(camera, renderer.domElement)
-  controls.target.copy(OVERVIEW_TARGET)
-  controls.enableDamping = true
-  controls.dampingFactor = 0.08
-  controls.maxPolarAngle = 1.45
-  controls.minDistance = 12
-  controls.maxDistance = 200
-
-  // ---- WebGL context loss and restore (R015) -------------------------------
-  // On `webglcontextlost` the page is notified and overlays the 2D schematic
-  // of the same city graph — never a dead canvas. The renderer itself is kept
-  // (paused): the fallback is not a one-way door. When the browser restores
-  // the context (three re-initialises its GL state), `onContextRestored`
-  // resumes this renderer and the page drops the schematic.
-  let lost = false
-  let disposed = false
-  const onLost = (e: Event): void => {
-    e.preventDefault()
-    lost = true
-    onContextLost()
-  }
-  const onRestored = (e: Event): void => {
-    e.preventDefault()
-    if (disposed || !lost) return
-    lost = false
-    onContextRestored?.()
-  }
-  renderer.domElement.addEventListener('webglcontextlost', onLost)
-  renderer.domElement.addEventListener('webglcontextrestored', onRestored)
-
-  // ---- Lights ---------------------------------------------------------------
-  const hemi = new THREE.HemisphereLight(0xbfe3ff, 0x4a5a3a, 0.9)
-  scene.add(hemi)
-  const sun = new THREE.DirectionalLight(0xfff2d8, 1.2)
-  sun.castShadow = true
-  sun.shadow.mapSize.set(2048, 2048)
-  sun.shadow.camera.left = -100
-  sun.shadow.camera.right = 100
-  sun.shadow.camera.top = 100
-  sun.shadow.camera.bottom = -100
-  sun.shadow.camera.near = 10
-  sun.shadow.camera.far = 420
-  scene.add(sun)
-  scene.add(sun.target)
-
+/**
+ * The static city geometry (R014/R028): ground, roads, lane dashes, water,
+ * shore, pier, ships, houses, parks and streetlamps, added to the scene
+ * they are handed. `createCityScene` composes it with the lights and the
+ * day/night cycle; the performance test (R028) measures its real
+ * triangles, draw calls and texture memory with a bare `THREE.Scene` —
+ * no WebGL renderer required.
+ */
+export function buildCityCore(scene: THREE.Scene): CityCore {
   // ---- Ground, roads, water ------------------------------------------------
   const ground = new THREE.Mesh(
     new THREE.PlaneGeometry(GROUND_SIZE, GROUND_SIZE),
@@ -334,6 +283,84 @@ export function createCityScene(container: HTMLElement, world: World, opts: City
       lampGlows.push(glow)
     }
 
+  return { houseWindows, lampGlows, ships, shipPhases }
+}
+
+export interface CitySceneOptions {
+  /** Called once when the WebGL context is lost; the page overlays the 2D schematic. */
+  onContextLost: () => void
+  /**
+   * Called when a lost context is restored by the browser (R015): the page
+   * resumes this renderer and drops the schematic — the fallback is not a
+   * one-way door.
+   */
+  onContextRestored?: () => void
+}
+
+export function createCityScene(container: HTMLElement, world: World, opts: CitySceneOptions): CityScene {
+  const { onContextLost, onContextRestored } = opts
+  // ---- Core three setup ---------------------------------------------------
+  const scene = new THREE.Scene()
+  scene.fog = new THREE.Fog(DAY_SKY.clone(), 90, 320)
+
+  const renderer = new THREE.WebGLRenderer({ antialias: true })
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+  renderer.setSize(container.clientWidth, container.clientHeight)
+  renderer.shadowMap.enabled = true
+  renderer.shadowMap.type = THREE.PCFShadowMap
+  container.appendChild(renderer.domElement)
+
+  const camera = new THREE.PerspectiveCamera(50, container.clientWidth / container.clientHeight, 0.5, 600)
+  camera.position.copy(OVERVIEW_CAM)
+
+  const controls = new OrbitControls(camera, renderer.domElement)
+  controls.target.copy(OVERVIEW_TARGET)
+  controls.enableDamping = true
+  controls.dampingFactor = 0.08
+  controls.maxPolarAngle = 1.45
+  controls.minDistance = 12
+  controls.maxDistance = 200
+
+  // ---- WebGL context loss and restore (R015) -------------------------------
+  // On `webglcontextlost` the page is notified and overlays the 2D schematic
+  // of the same city graph — never a dead canvas. The renderer itself is kept
+  // (paused): the fallback is not a one-way door. When the browser restores
+  // the context (three re-initialises its GL state), `onContextRestored`
+  // resumes this renderer and the page drops the schematic.
+  let lost = false
+  let disposed = false
+  const onLost = (e: Event): void => {
+    e.preventDefault()
+    lost = true
+    onContextLost()
+  }
+  const onRestored = (e: Event): void => {
+    e.preventDefault()
+    if (disposed || !lost) return
+    lost = false
+    onContextRestored?.()
+  }
+  renderer.domElement.addEventListener('webglcontextlost', onLost)
+  renderer.domElement.addEventListener('webglcontextrestored', onRestored)
+
+  // ---- Lights ---------------------------------------------------------------
+  const hemi = new THREE.HemisphereLight(0xbfe3ff, 0x4a5a3a, 0.9)
+  scene.add(hemi)
+  const sun = new THREE.DirectionalLight(0xfff2d8, 1.2)
+  sun.castShadow = true
+  sun.shadow.mapSize.set(2048, 2048)
+  sun.shadow.camera.left = -100
+  sun.shadow.camera.right = 100
+  sun.shadow.camera.top = 100
+  sun.shadow.camera.bottom = -100
+  sun.shadow.camera.near = 10
+  sun.shadow.camera.far = 420
+  scene.add(sun)
+  scene.add(sun.target)
+
+  // ---- Static city geometry (ground, roads, water, houses, parks, lamps) ----
+  const core = buildCityCore(scene)
+
   // ---- Per-frame environment (day/night, houses, lamps, ships) --------------
   function updateEnvironment(timeAcc: number): void {
     const clock = world.clock
@@ -359,14 +386,14 @@ export function createCityScene(container: HTMLElement, world: World, opts: City
     hemi.intensity = 0.85 * dayK + 0.22
 
     // House windows at night.
-    for (const m of houseWindows) m.emissiveIntensity = 1.4 * night
-    for (const g of lampGlows) g.material.opacity = 0.55 * night
+    for (const m of core.houseWindows) m.emissiveIntensity = 1.4 * night
+    for (const g of core.lampGlows) g.material.opacity = 0.55 * night
 
     // Ships bobbing.
-    for (let i = 0; i < ships.length; i++) {
-      const s = ships[i]
-      s.position.y = 0.35 + Math.sin(timeAcc * 0.8 + shipPhases[i]) * 0.06
-      s.rotation.z = Math.sin(timeAcc * 0.6 + shipPhases[i]) * 0.02
+    for (let i = 0; i < core.ships.length; i++) {
+      const s = core.ships[i]
+      s.position.y = 0.35 + Math.sin(timeAcc * 0.8 + core.shipPhases[i]) * 0.06
+      s.rotation.z = Math.sin(timeAcc * 0.6 + core.shipPhases[i]) * 0.02
     }
   }
 
