@@ -79,7 +79,7 @@ if _LOGFIRE_ENABLED:
     )
     logfire.instrument_pydantic_ai()
 
-__version__ = '3.0.0'
+__version__ = '3.1.0'
 
 print(f'Overstory v{__version__}', file=sys.stderr)
 

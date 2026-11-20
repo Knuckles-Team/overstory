@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.1.0] - 2026-11-20
+
+### Added
+- Arbora City at `/apps/city`: the platform as a living city, a 3D view with a 2D accessible schematic, a WebMCP operator surface, deterministic seeded growth from graph facts, an edit layer that regrowth never overwrites, and zoom-layered synthesized audio.
+- `exported_anonymous_read_routes` in `overstory.auth_policy`: the exact set of read routes a trusted host composes in explicit no-auth mode on loopback.
+
 ## [3.0.0] - 2026-10-30
 
 ### Changed
