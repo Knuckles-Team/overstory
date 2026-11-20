@@ -60,3 +60,26 @@ verification refuses a pin whose license is outside the allowlist
 the stated budgets (triangles ≤ 4000, materials ≤ 16, texture size ≤
 2048 px, bounds) with a rendered turnaround thumbnail on file for human
 review. A failing asset never enters the lock.
+
+## Direction review of 2026-11-20: decisions the review left open
+
+Question: the review names R022 as the row that becomes full customization. In this spec R022 is the NPC dialogue row.
+Resolution: the customization extends R032 (operators shape the city) and the new R040 (the edit layer). R022 keeps the dialogue. The review's intent, "manual overrides only" becoming a full layer over the generator, is carried by R032 and R040.
+
+Question: principle R-G1 says no business, product or connector is named in game code, but the seven core landmarks (R004) and the bundled fleet snapshot (R002, R014) name platform components.
+Resolution: the new modules (mapping, growth, traffic, hall, edit layer) name nothing, and a test enforces it. The landmarks and the snapshot are a labelled simulated fallback. They move into served facts when R021 lands, and the fallback shrinks to the neutral fixture in `graphFacts.ts`.
+
+Question: how is the "ship arrives at the exchange" horn cued when the sim has no such event?
+Resolution: the cue table keys the horn on `ship.arrived`, which the exchange archetype will emit when time-series and market facts are served. The cue is tested, and the event is planned.
+
+Question: which web UI route is the twin of each city work action (R043)?
+Resolution: the parity table records only what exists. Onboarding maps to the fleet view. Dispatch and the layout edit have no web UI twin yet and name the row that closes the gap. The parity test fails if a work action has neither.
+
+Question: where do the first-person, interior and dialogue views stand (R043)?
+Resolution: they stay planned behind R019 and R022. Pure view actions need no web UI twin.
+
+Question: should the audio start on page load?
+Resolution: no. Browsers block it before a user gesture and it surprises an operator. The engine starts muted, the toggle is the gesture, and the WebMCP tool may be ignored by the browser until a gesture has occurred.
+
+Question: R012.9 golden viewpoints.
+Resolution: still blocked on the Arbora no-auth rows (`ARBORA-IDENTITY-R004.7.3`, `ARBORA-FLEET-R085`) and the engine content-pack refusal. The local simulated capture harness is planned in R031 and R012.9 and is not claimed done here.

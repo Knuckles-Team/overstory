@@ -608,3 +608,15 @@ repository (a frozen reference), and no earlier city code existed in-repo.
 states, contract documents); it is a process dependency, not a data seam.
 No other seam: the city adds no store, no second event source, and no
 credentials to the browser.
+
+## 2026-11-20: The city as the knowledge graph (R035 to R046)
+
+Rows: R035 mapping registry, R036 roads, R037 traffic, R038 Hall of Records, R039 deterministic growth, R040 edit layer, R041 generate first, R042 audio, R043 parity, R044 three kinds of people, R045 competency questions, R046 original identity. Extended: R014, R016, R021, R024, R028, R029, R032.
+
+Owners. Medulla owns the mapping registry facts, the derived layout and growth rules, the seed, the edit layer and the chunk read (MEDULLA-WORLD-VIEW-R004 to R007). Arbora serves them (ARBORA-FLEET-R086 to R088) and the activity stream (ARBORA-OPS-R916). Overstory owns the renderer, generators, audio, views and the pure evaluation of the mapping and growth.
+
+Design. `graphFacts.ts` types the facts and carries the labelled bundled neighbourhood. `mapping.ts` is the registry. `growth.ts` derives districts, buildings and roads from facts and a seed, processing nodes in creation order so earlier placements never move. `editLayer.ts` fixes pinned nodes and decor first, so regrowth fills only around them, and resets an area by dropping its edits. `traffic.ts` turns bus events into movers and signals with provenance. `hall.ts` grows the hall by declared constants. `audio.ts` mixes by camera height and synthesizes everything. `terrain.ts` builds the heightmap from about 1 KB of parameters.
+
+Phases by owner. Medulla: R004 to R007. Arbora: R086 to R088. Overstory: this delivery implements the pure evaluation and its tests against the labelled fixture. Wiring the derived layout into the renderers waits for the served reads.
+
+Build contract: the budgets in `budgets.ts` are gates (initial load 5 MB, chunk 200 KB, draw-call and memory caps). Tests read the table.

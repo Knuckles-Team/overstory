@@ -260,17 +260,44 @@ Governing spec: [spec.md](spec.md).
   tier on the reference GPU, ≤ 33 ms low tier on integrated graphics).
   Runs now against the local `SIMULATED` city; the live no-auth capture is
   pending the three Arbora rows.
-- OVERSTORY-CITY-R032: `src/apps/city/__tests__/layout-edit.test.ts::override_round_trip` (planned) —
+- OVERSTORY-CITY-R032: `src/apps/city/__tests__/layout-edit.test.ts::override_round_trip` —
   building moves and road edits persist through the gateway and re-render for
   a second viewer; a disconnecting road edit is refused.
-- OVERSTORY-CITY-R033: `src/apps/city/__tests__/ecosystem.test.ts::cast_encodes_role` (planned) —
+- OVERSTORY-CITY-R033: `src/apps/city/__tests__/ecosystem.test.ts::cast_encodes_role` —
   every character uses the shared rig and full clip set; silhouette and colour
   come from the encoding table.
-- OVERSTORY-CITY-R034: `src/apps/city/__tests__/webmcp.test.ts::city_webmcp_surface` (planned) —
+- OVERSTORY-CITY-R034: `src/apps/city/__tests__/webmcp.test.ts::city_webmcp_surface` —
   the registered `overstory.city.*` set covers navigation, view, simulation
   control, operator actions and the layout edits; every tool carries strict
   input and output schemas; each dispatches through the same action seam as
   the UI; the surface declares the city page in `webmcpPageIds`.
+
+- OVERSTORY-CITY-R035: `src/apps/city/__tests__/mapping.test.ts::registry` — the registry
+  resolves every starting archetype; an unknown class falls back to the generic lot.
+- OVERSTORY-CITY-R036: `src/apps/city/__tests__/growth.test.ts::roads` — the edge kind sets the road class
+  and the weight sets the lane count; the derived graph stays connected.
+- OVERSTORY-CITY-R037: `src/apps/city/__tests__/traffic.test.ts::traffic` — density follows activity;
+  failures and deploys show their signals; every vehicle carries its provenance.
+- OVERSTORY-CITY-R038: `src/apps/city/__tests__/growth.test.ts::hall` — the hall grows monotonically
+  with the record count, one wing per modality.
+- OVERSTORY-CITY-R039: `src/apps/city/__tests__/growth.test.ts::determinism` — the same graph and seed
+  give the same city.
+- OVERSTORY-CITY-R040: `src/apps/city/__tests__/editLayer.test.ts::pins` — pins survive regrowth and an
+  area resets to its derived form.
+- OVERSTORY-CITY-R041: `src/lib/scene3d/__tests__/terrain.test.ts::terrain` — the seeded heightmap is
+  reproducible, small in parameters and eroded.
+- OVERSTORY-CITY-R042: `src/apps/city/__tests__/audio.test.ts::zoom_layers` — the mix follows the camera
+  height; events have cues; the engine starts muted.
+- OVERSTORY-CITY-R043: `src/apps/city/__tests__/parity.test.ts::parity` — every city action has a web UI route
+  or a named gap.
+- OVERSTORY-CITY-R044: `src/apps/city/__tests__/ecosystem.test.ts::three_kinds` — each character has one kind
+  and honest provenance.
+- OVERSTORY-CITY-R045: `src/apps/city/__tests__/competency.test.ts::competency` — each pillar question
+  has an answering assertion or a named playtest.
+- OVERSTORY-CITY-R046: `src/apps/city/__tests__/identity.test.ts::identity` — locked licenses, synthesized
+  audio and no retired roster names.
+- OVERSTORY-CITY-R028 (load gate): `src/apps/city/__tests__/budgets.test.ts::load_budgets` — shipped
+  assets fit the initial-load budget and a chunk fits its caps.
 
 ## Quality and release proof
 
