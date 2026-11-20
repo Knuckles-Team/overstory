@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.1.1] - 2026-11-20
+
+### Fixed
+- JWKS fetching trusts the configured CA bundle (`SSL_CERT_FILE`), so a JWKS URL on a private-CA host verifies. A TLS or reachability failure now raises a distinct refusal reason and is logged at warning level without token contents. This fixes a sign-in loop where every API call answered 401.
+
 ## [3.1.0] - 2026-11-20
 
 ### Added
