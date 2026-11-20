@@ -22,6 +22,8 @@
 
 - [ ] T012 OVERSTORY-IDENTITY-R003.1.1 Explicit anonymous source refusal boundary. Source mode tests cover anonymous provenance, policy refusal and ambient-authority cleanup. This does not deliver full no-auth journeys.
 - [ ] T013 OVERSTORY-IDENTITY-R003.1.2 Complete installed anonymous journeys. Installed positive and adversarial anonymous-policy journeys and native effect qualification remain required.
+- [x] T022 OVERSTORY-IDENTITY-R003.1.3 Exported exact anonymous read-route set. One generated set of GET read routes for a host composing explicit no-auth on loopback; writes stay refused.
+- [ ] T023 OVERSTORY-IDENTITY-R003.1.3.1 No-auth session read answers a fixed mode descriptor. `/auth/session` returns `mode: none` with no principal; other modes are unchanged.
 - [ ] T014 OVERSTORY-IDENTITY-R003.2.1 EG boundary configuration source refusal. Source factory tests reject missing and untyped EG callbacks without provisioning credentials.
 - [ ] T015 OVERSTORY-IDENTITY-R003.2.2 Installed EG identity journeys. Installed real producer/browser qualification remains required; source configuration refusal is not login support.
 - [ ] T016 OVERSTORY-IDENTITY-R003.3.1 OIDC configuration source refusal. Source factory tests reject incompatible owners and incomplete browser OIDC configuration.
@@ -38,4 +40,3 @@ The parent OVERSTORY-IDENTITY-R004 remains incomplete while its installed child 
 
 - [ ] T020 OVERSTORY-IDENTITY-R008 implement and prove: Identity or tenant change invalidates cached protected data
 - [ ] T021 OVERSTORY-IDENTITY-R001 implement and prove: Release-qualification identity test client supports a live sign-in probe
-- [x] T022 OVERSTORY-IDENTITY-R003.1.3 Export the exact anonymous read-route set from the hosted app records. Touches `agent/overstory/apps/__init__.py`, `agent/overstory/apps/city/__init__.py`, `tests/test_anonymous_read_routes.py`.
