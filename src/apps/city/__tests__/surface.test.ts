@@ -18,10 +18,10 @@ describe('city surface (R001)', () => {
     expect(surfaceProblems(citySurface)).toEqual([])
   })
 
-  it('declares its id, capability and empty WebMCP/Atlas sets', () => {
+  it('declares its id, capability, WebMCP page and empty Atlas set', () => {
     expect(citySurface.id).toBe('city')
     expect(citySurface.capability).toBe('app:city')
-    expect(citySurface.webmcpPageIds).toEqual([])
+    expect(citySurface.webmcpPageIds).toEqual(['apps.city'])
     expect(citySurface.atlasRenderers).toEqual([])
     expect(citySurface.client).toBe('src/apps/city/api.ts')
   })

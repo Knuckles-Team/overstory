@@ -13,7 +13,8 @@
  * labelled demo mode with `?demo=` boot (R026), the time scrubber wired to
  * the replay driver (R029) and the first-visit tour trigger (R030).
  */
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { CityWebMcp } from './CityWebMcp'
 import { fetchCityFleet, fetchCityLayout, saveCityLayout } from '../api'
 import { FLEET_SNAPSHOT, fleetToConnectors, type FleetServer } from '../core/ecosystem'
 import { pinBytes } from '../core/assets'
@@ -36,6 +37,7 @@ import {
 import { TOUR_SESSION_KEY, initUI, type CityUi } from '../core/ui'
 import type { CityActions, CityRenderer, CityUiElements, SelectionHit } from '../core/types'
 import { assetsLockSchema } from '../schemas'
+import type { CityToolController } from '../webmcp'
 import '../city.css'
 
 const ASSETS_BASE = '/city-assets'
@@ -156,6 +158,64 @@ export default function CityPage() {
   const speedBarRef = useRef<HTMLDivElement | null>(null)
   const [ready, setReady] = useState(false)
 
+  // The WebMCP tools (R034, constitution R-IV) dispatch through the same
+  // action seam as the UI: the seam is built once inside the effect below
+  // and kept in a ref, and the read context reads the live world plus the
+  // page-owned view state at call time. The controller is stable for the
+  // page's life, so the registered set is built once and retires with it.
+  const actionsRef = useRef<CityActions | null>(null)
+  const webmcpModeRef = useRef<'LIVE' | 'SIMULATED'>('SIMULATED')
+  const webmcpViewRef = useRef<'3d' | '2d'>('3d')
+  const webmcpSpeedRef = useRef(1)
+  const webmcpSelectionRef = useRef<SelectionHit | null>(null)
+  const webmcpController = useMemo<CityToolController>(
+    () => ({
+      actions: {
+        dispatch: () => actionsRef.current?.dispatch(),
+        onboard: (id) => actionsRef.current?.onboard(id),
+        focus: (x, z) => actionsRef.current?.focus(x, z),
+        overview: () => actionsRef.current?.overview(),
+        setSelected: (hit) => actionsRef.current?.setSelected(hit),
+        speed: (v) => actionsRef.current?.speed(v),
+        setActivity: (m) => actionsRef.current?.setActivity(m),
+        setView: (v) => actionsRef.current?.setView(v),
+        scrub: (o) => actionsRef.current?.scrub(o),
+        startTour: () => actionsRef.current?.startTour(),
+        layoutEdit: (edit) =>
+          actionsRef.current?.layoutEdit(edit) ?? Promise.resolve({ ok: false, reason: 'unavailable' }),
+      },
+      readContext: () => ({
+        mode: webmcpModeRef.current,
+        activity: world.activity,
+        speed: webmcpSpeedRef.current,
+        view: webmcpViewRef.current,
+        clock: Math.round(world.clock),
+        day: world.day,
+        selection: webmcpSelectionRef.current,
+        characters: world.characters.map((c) => ({
+          id: c.id,
+          kind: c.kind,
+          role: c.role,
+          state: c.state,
+          context: Math.round(c.context),
+        })),
+        buildings: Object.values(world.buildings).map((b) => ({
+          id: b.id,
+          name: b.name,
+          category: b.category,
+          online: b.online,
+          packStatus: b.packStatus,
+          toolCount: b.toolCount,
+        })),
+        recentEvents: bus
+          .recent()
+          .slice(-20)
+          .map((e) => ({ type: e.type, detail: e.detail ?? '', provenance: e.provenance })),
+      }),
+    }),
+    [],
+  )
+
   useEffect(() => {
     const holder = holderRef.current
     const els: CityUiElements = {
@@ -232,6 +292,7 @@ export default function CityPage() {
     }
 
     const onSelect = (hit: SelectionHit | null): void => {
+      webmcpSelectionRef.current = hit
       ui?.select(hit)
     }
 
@@ -244,6 +305,7 @@ export default function CityPage() {
       if (!holder || view !== '3d' || kept3d || isDisposed()) return
       kept3d = renderer
       view = '2d'
+      webmcpViewRef.current = view
       renderer = init2D(holder, world, { onSelect })
       ui?.setRenderer(renderer)
       syncViewButtons()
@@ -256,6 +318,7 @@ export default function CityPage() {
       renderer?.dispose()
       renderer = keep
       view = '3d'
+      webmcpViewRef.current = view
       // Rebind to the world state the schematic has been showing (a replay
       // may have replaced it while the context was lost).
       renderer.resync?.()
@@ -298,6 +361,7 @@ export default function CityPage() {
       }
       renderer = nextR
       view = next === '2d' ? '2d' : '3d'
+      webmcpViewRef.current = view
       prev?.dispose()
       ui?.setRenderer(nextR)
       syncViewButtons()
@@ -337,6 +401,7 @@ export default function CityPage() {
       //    the in-game clock, then choose the mode and verify the pins.
       setTimeSource(() => world.clock)
       setMode(live ? 'live' : 'simulated')
+      webmcpModeRef.current = live ? 'LIVE' : 'SIMULATED'
       await verifyAssets()
       if (isDisposed()) return
 
@@ -361,6 +426,7 @@ export default function CityPage() {
         } catch (err) {
           console.warn('[city] 3D renderer unavailable, falling back to 2D:', err)
           view = '2d'
+          webmcpViewRef.current = view
           renderer = init2D(holder, world, { onSelect })
         }
       } else {
@@ -390,6 +456,7 @@ export default function CityPage() {
         speed: (v) => {
           if (!SPEEDS.includes(v as (typeof SPEEDS)[number])) return
           speed = v
+          webmcpSpeedRef.current = v
           syncSpeedButtons()
         },
         setActivity: (mode) => {
@@ -463,6 +530,7 @@ export default function CityPage() {
           }
         },
       }
+      actionsRef.current = actions
       ui = initUI(world, renderer, actions, els)
       syncSpeedButtons()
       syncViewButtons()
@@ -512,6 +580,7 @@ export default function CityPage() {
 
   return (
     <div className="city-scope">
+      <CityWebMcp controller={webmcpController} />
       <header className="city-topbar">
         <div className="brand">
           ARBORA CITY
