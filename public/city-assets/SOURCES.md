@@ -1,57 +1,66 @@
 # SOURCES — provenance for Arbora City
 
-Captured 2026-11-14. This file records every external source the project uses,
-per the ecosystem's third-party-attribution convention.
+Captured 2026-11-14; updated 2026-11-19 (shared-rig cast, OVERSTORY-CITY-R033).
+This file records every external source the project uses, per the
+ecosystem's third-party-attribution convention.
 
-## 1. Hugging Face — 3D asset collection
+## 1. Pinned character and marker assets
 
-**Collection browsed:** [cfahlgren1 — "3D datasets in the Dataset Viewer"](https://huggingface.co/collections/cfahlgren1/3d-datasets-in-the-dataset-viewer)
-(300+ datasets with 3D mesh previews and Gaussian-splat previews.)
+The city pins exactly two external binary assets (both tracked in
+[`assets.lock.json`](assets.lock.json) with SHA-256, byte count and license,
+and verified at startup):
 
-### 1.1 Used: `joshuasundance/throttlebrawl-assets`
+### 1.1 Shared rig: `characters/robot-expressive.glb`
 
-- **Repo:** <https://huggingface.co/datasets/joshuasundance/throttlebrawl-assets>
-- **Pinned commit:** `cf7ac1f31de6235d9033ffcece98e055e2a14535`
-- **Licenses:** MIT (game assets) + ODbL 1.0 (OSM-derived terrain inputs, *not copied*)
-- **Why selected:** the only dataset in the collection with (a) a permissive
-  license, (b) web-class file sizes (~27–40 KB per character, ~500 KB total for
-  all 18 files used), (c) articulated, named-node humanoid characters suitable
-  for procedural animation, and (d) an existing asset-pin convention
-  (`assets.lock.json` with SHA-256) that this project follows.
-- **Files used (18):** 17 rider character GLBs + 1 placeholder marker cube.
-  Exact paths, byte sizes, and SHA-256 per file: see [`assets.lock.json`](assets.lock.json).
+- **Source:** [mrdoob/three.js](https://github.com/mrdoob/three.js),
+  `examples/models/gltf/RobotExpressive/RobotExpressive.glb`
+- **Pin:** tag `r186`, commit
+  `9b4a2ac29c63ccb43fd51c5661f2f873ac2c39b8` (the same three major the
+  repository runs)
+- **License:** CC0 1.0 (per the model folder's README)
+- **Attribution:** model by [Tomás Laulhé](https://www.patreon.com/quaternius);
+  modifications by [Don McCurdy](https://donmccurdy.com) (added three facial
+  expression morph targets, converted with FBX2GLTF, removed duplicate
+  materials and reduced material metalness).
+- **Role in the city:** the one shared humanoid rig every character is
+  built on (R033 / R012.4). It ships 14 authored animation clips; six
+  map onto the shared eight-clip set (Idle→idle, Walking→walk,
+  Running→run, Punch→work, Wave→talk, Dance→celebrate, Death→fail) and
+  the remaining clip (`carry`) is completed deterministically by the
+  shared library (`completeClipSet`, `src/lib/scene3d/characters.ts`).
 
-  | Pack | Characters |
-  |------|-----------|
-  | `base/models/riders/` | chad-speedwell, deacon-vane, dial-up, kevin-from-accounting, mother-rust, player, sgt-pruitt, tammy-two-stroke, the-mayor, trooper-dalrymple |
-  | `region-clinton/models/riders/` | mara-vale |
-  | `region-pnw/models/riders/` | deputy-lindqvist, juniper-moss, old-growth |
-  | `region-sf/models/riders/` | gripman-gus, officer-meter, pivot |
-  | `base/models/placeholder/` | marker-cube |
+### 1.2 Marker: `marker-cube.glb`
 
-- **Attribution:** © 2026 the throttlebrawl contributors (MIT). Dataset card:
-  "throttlebrawl assets — The big files for throttlebrawl, an MIT-licensed
-  browser motorcycle brawler (TypeScript, Three.js)."
-- **Not used:** the repo's `region-*/terrain/*.json` files (ODbL 1.0 OSM
-  geometry + public-domain USGS elevation). They are specific road-network
-  build inputs for the source game; this project generates its own road
-  network instead. OSM/USGS sources remain credited in the dataset card.
+- **Source:** Hugging Face dataset
+  [`joshuasundance/throttlebrawl-assets`](https://huggingface.co/datasets/joshuasundance/throttlebrawl-assets),
+  `base/models/placeholder/marker-cube.glb`
+- **Pin:** commit `cf7ac1f31de6235d9033ffcece98e055e2a14535`
+- **License:** MIT
+- **Attribution:** © 2026 the throttlebrawl contributors (MIT).
+- **Role in the city:** the placeholder marker — construction markers and
+  reserved-plot markers. The pack's 17 rider character GLBs (and their
+  comic character names) left the city with the 2026-11-19 shared-rig
+  cast; this cube is the only file kept from the pack.
 
-### 1.2 Surveyed and rejected (recorded so the choice is auditable)
+### 1.3 Surveyed and rejected (recorded so the choice is auditable)
 
-| Dataset | Rejected because |
-|---------|------------------|
-| `aqi94/palworld-models` | 9–23 MB per GLB (up to ~2 GB for 100 models); fan-extracted commercial IP; license not stated |
-| `aqi94/pokemon-za-models` | up to 212 MB per GLB; commercial IP; license not stated |
-| `fatto92/wow_models` | 67–85 MB per character GLB; commercial IP |
-| `1024m/F1-RL-HF-Assets` | 250 MB for 8 cars; no license tag |
-| `gummy-games4/smash_64_remake` | single fan-extracted model; commercial IP |
-| `nopparoot15/thai-street-3d` | license marked `other`; 14 MB pair |
-| `g-ronimo/objects` | tree not enumerable via API at survey time; CC-BY/Apache mix |
-| `cfahlgren1/lowpoly-coder-4b-data` | training corpus (parquet + GLBs for a text-to-GLB model), not a curated asset pack |
-| `Kashu7100/eden_assets`, `HarrisonPENG/SpatialBenchGLBs` | trees not enumerable via API at survey time |
-| `Luis-Fernando/isla`, `Soiler/villa-assets`, `tolysgames/robocop` | single large scenes/characters (44–191 MB); no license tag |
-| Gaussian-splat datasets (`cfahlgren1/3d-splat-samples`, `AlistairWstbrk/splats`, …) | splats are not needed for a low-poly stylized city; viewer weight is high |
+The original survey (2026-11-14, ~300 datasets in the
+[cfahlgren1 3D collection](https://huggingface.co/collections/cfahlgren1/3d-datasets-in-the-dataset-viewer))
+rejected every dataset except throttlebrawl's for the same reasons:
+web-class file sizes, a permissive license, articulated humanoids, and
+the asset-pin convention. Rejected then (representative): `aqi94/palworld-models`
+(9–23 MB/GLB, fan-extracted commercial IP, no stated license),
+`aqi94/pokemon-za-models` (up to 212 MB), `fatto92/wow_models`
+(commercial IP), `1024m/F1-RL-HF-Assets` (250 MB, no license tag),
+`gummy-games4/smash_64_remake` (commercial IP), `nopparoot15/thai-street-3d`
+(license `other`), `g-ronimo/objects` (CC-BY/Apache mix, not enumerable),
+`cfahlgren1/lowpoly-coder-4b-data` (training corpus, not a curated pack).
+For the 2026-11-19 rig choice the bar was stricter still: a permissive
+license, a named articulated skeleton with authored animation clips, and
+pinnability at an exact commit — the three.js repository's own example
+model is the only rig that meets all three without a license grey zone
+(Mixamo-style rigs require an account and redistribution terms; the HF
+humanoid datasets are commercial IP or unlicensed).
 
 ## 2. Live platform data (fetched 2026-11-14 through the Arbora MCP boundary)
 

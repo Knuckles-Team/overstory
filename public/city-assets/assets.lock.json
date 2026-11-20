@@ -1,127 +1,37 @@
 {
-  "source": {
-    "collection": "https://huggingface.co/collections/cfahlgren1/3d-datasets-in-the-dataset-viewer",
-    "repo": "joshuasundance/throttlebrawl-assets",
-    "url": "https://huggingface.co/datasets/joshuasundance/throttlebrawl-assets",
-    "commit": "cf7ac1f31de6235d9033ffcece98e055e2a14535",
-    "note": "Low-poly rider character GLBs plus the placeholder marker cube from the throttlebrawl browser-game asset pack. Pinned per the ecosystem assets.lock convention: one exact commit, SHA-256 per file, verified after download.",
-    "not_copied": "The repo's OSM/USGS terrain JSONs (ODbL 1.0) are intentionally not copied; the city uses a procedurally generated road network instead. The ODbL sources are attributed in SOURCES.md."
+  "sources": {
+    "robot-expressive": {
+      "repo": "mrdoob/three.js",
+      "url": "https://github.com/mrdoob/three.js",
+      "tag": "r186",
+      "commit": "9b4a2ac29c63ccb43fd51c5661f2f873ac2c39b8",
+      "path": "examples/models/gltf/RobotExpressive/RobotExpressive.glb",
+      "license": "CC0-1.0",
+      "note": "The shared humanoid rig every city character is built on (OVERSTORY-CITY-R033, per OVERSTORY-DESIGN-R012.4): model by Tomás Laulhé, modifications by Don McCurdy (facial morph targets, material cleanup), CC0 1.0 per the folder's README. Pinned at the exact commit of tag r186 — the same three major the repository runs. Attribution: public/city-assets/SOURCES.md."
+    },
+    "marker-cube": {
+      "collection": "https://huggingface.co/collections/cfahlgren1/3d-datasets-in-the-dataset-viewer",
+      "repo": "joshuasundance/throttlebrawl-assets",
+      "url": "https://huggingface.co/datasets/joshuasundance/throttlebrawl-assets",
+      "commit": "cf7ac1f31de6235d9033ffcece98e055e2a14535",
+      "license": "MIT",
+      "note": "The placeholder marker cube (construction markers, reserved-plot markers). The rest of this pack's rider characters left the city with the 2026-11-19 shared-rig cast (OVERSTORY-CITY-R033); the cube is the only file kept. The pack's OSM/USGS terrain JSONs (ODbL 1.0) were never copied; the city generates its road network instead. Attribution: public/city-assets/SOURCES.md."
+    }
   },
   "files": {
-    "city-assets/riders/chad-speedwell.glb": {
-      "source_path": "base/models/riders/chad-speedwell.glb",
-      "sha256": "f29655248cf057e0b0f90d1c1f5c237904288a7ae352a093846bb9d0b37998fa",
-      "bytes": 28716,
-      "license": "MIT"
+    "city-assets/characters/robot-expressive.glb": {
+      "source_path": "examples/models/gltf/RobotExpressive/RobotExpressive.glb",
+      "sha256": "047f5e5fb3bb6d378bd1df16ca6137f2a596c99b3a1b5690b4020c05aaf6f319",
+      "bytes": 463988,
+      "license": "CC0-1.0"
     },
-    "city-assets/riders/deacon-vane.glb": {
-      "source_path": "base/models/riders/deacon-vane.glb",
-      "sha256": "020a94dda57a141cdc132f79e712c8f63b308a17118d13b9b0e6302be0b58fd7",
-      "bytes": 31444,
-      "license": "MIT"
-    },
-    "city-assets/riders/deputy-lindqvist.glb": {
-      "source_path": "region-pnw/models/riders/deputy-lindqvist.glb",
-      "sha256": "3fe5d80dd9a7486aaa0e56c183833ccbd5d2c62acd60f5884304ccc21c045189",
-      "bytes": 28004,
-      "license": "MIT"
-    },
-    "city-assets/riders/dial-up.glb": {
-      "source_path": "base/models/riders/dial-up.glb",
-      "sha256": "9e25f2fa86fba0db9ecf048ff2ded09db1e09b416cf6ad08a40df93642590292",
-      "bytes": 27740,
-      "license": "MIT"
-    },
-    "city-assets/riders/gripman-gus.glb": {
-      "source_path": "region-sf/models/riders/gripman-gus.glb",
-      "sha256": "6886b854fe9fbb2fe4113bbf4db2a6acd1ad8e22a992be57019bd4b94e57a0f5",
-      "bytes": 27572,
-      "license": "MIT"
-    },
-    "city-assets/riders/juniper-moss.glb": {
-      "source_path": "region-pnw/models/riders/juniper-moss.glb",
-      "sha256": "68b3ea0226e93a72185e87970c79463f5a78b68856a0b2ae93564157b85dea3e",
-      "bytes": 29428,
-      "license": "MIT"
-    },
-    "city-assets/riders/kevin-from-accounting.glb": {
-      "source_path": "base/models/riders/kevin-from-accounting.glb",
-      "sha256": "ce2d15658c705bb46e0460ec53dc2cd4f794cf8f45fd9dc8e36ab8609caa4a77",
-      "bytes": 27004,
-      "license": "MIT"
-    },
-    "city-assets/riders/mara-vale.glb": {
-      "source_path": "region-clinton/models/riders/mara-vale.glb",
-      "sha256": "a56aa20f2f9a61e9d112a24ba4d0d04a402282d984b07001704a9ce0a4a555fd",
-      "bytes": 28556,
-      "license": "MIT"
-    },
-    "city-assets/riders/marker-cube.glb": {
+    "city-assets/marker-cube.glb": {
       "source_path": "base/models/placeholder/marker-cube.glb",
       "sha256": "27be260e78101a6e4dc3a601aee843b1d9d6a7d12efeee0dc33d970b9d24464e",
       "bytes": 1572,
       "license": "MIT"
-    },
-    "city-assets/riders/mother-rust.glb": {
-      "source_path": "base/models/riders/mother-rust.glb",
-      "sha256": "bf6f2b1656b8e2430705b4e77fb1e5e5e25cb3a47ae921d81214239611aedfc8",
-      "bytes": 31172,
-      "license": "MIT"
-    },
-    "city-assets/riders/officer-meter.glb": {
-      "source_path": "region-sf/models/riders/officer-meter.glb",
-      "sha256": "321edd6980ab90762c4fb222b60f3bfc88655aff81f2f8bc8b3a6c48911e9980",
-      "bytes": 29192,
-      "license": "MIT"
-    },
-    "city-assets/riders/old-growth.glb": {
-      "source_path": "region-pnw/models/riders/old-growth.glb",
-      "sha256": "1cdb920eac94f20a558a7d292ca64db00cd35698c0e07c4f68388ea06e79acad",
-      "bytes": 34368,
-      "license": "MIT"
-    },
-    "city-assets/riders/pivot.glb": {
-      "source_path": "region-sf/models/riders/pivot.glb",
-      "sha256": "f58f2f11b2fb0ce90933df907f87bb8d2ed5d24821e1077e73a83c80eef5f6e4",
-      "bytes": 27864,
-      "license": "MIT"
-    },
-    "city-assets/riders/player.glb": {
-      "source_path": "base/models/riders/player.glb",
-      "sha256": "b60f9774c524a3e01cd29714c4bc9e249eb8697695173b3e493b702f4cb99093",
-      "bytes": 26524,
-      "license": "MIT"
-    },
-    "city-assets/riders/sgt-pruitt.glb": {
-      "source_path": "base/models/riders/sgt-pruitt.glb",
-      "sha256": "d39580c4b651f5b50bc55a115dc9699e7d0182ae049b91efe9196af558be284f",
-      "bytes": 28056,
-      "license": "MIT"
-    },
-    "city-assets/riders/tammy-two-stroke.glb": {
-      "source_path": "base/models/riders/tammy-two-stroke.glb",
-      "sha256": "7ba52277d1aeb178d8f12bb796036792fd61cf333ff48abfb3260e1a163ed328",
-      "bytes": 28788,
-      "license": "MIT"
-    },
-    "city-assets/riders/the-mayor.glb": {
-      "source_path": "base/models/riders/the-mayor.glb",
-      "sha256": "2e48835056b1d076f6ed78cd6bc4f230095d371682ef19d1a98db45a89e2ece8",
-      "bytes": 39960,
-      "license": "MIT"
-    },
-    "city-assets/riders/trooper-dalrymple.glb": {
-      "source_path": "base/models/riders/trooper-dalrymple.glb",
-      "sha256": "90b2889e05321e6dffa7abaa1c7afd6bb0dd53d9c8242869aa54065660dcc7ca",
-      "bytes": 27492,
-      "license": "MIT"
     }
   },
-  "license_allowlist": [
-    "MIT",
-    "CC0-1.0",
-    "CC-BY-4.0",
-    "Apache-2.0"
-  ],
-  "verification": "Each entry is verified by the app at startup: one fetch, byte-count and SHA-256 comparison against this file, one retry, then a typed asset.failed event and placeholder character on second failure. The verified bytes are reused by the renderer (verified-byte cache), so a pinned file is fetched exactly once. Paths are site-absolute; assets live under public/city-assets/ and are copied verbatim into the built app."
+  "license_allowlist": ["MIT", "CC0-1.0", "CC-BY-4.0", "Apache-2.0"],
+  "verification": "Each entry is verified by the app at startup: one fetch, byte-count and SHA-256 comparison against this file, one retry, then a typed asset.failed event and the placeholder fallback on second failure. The verified bytes are reused by the renderer (verified-byte cache), so a pinned file is fetched exactly once. Paths are site-absolute; assets live under public/city-assets/ and are copied verbatim into the built app."
 }

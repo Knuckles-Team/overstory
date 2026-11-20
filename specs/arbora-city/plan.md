@@ -394,6 +394,44 @@ harness runs now against the local `SIMULATED` city (bundled snapshot, no
 auth needed), and the live no-auth capture is recorded as pending in the
 test spec rather than claimed.
 
+#### 2026-11-19: The shared-rig cast (R033) — the borrowed roster leaves
+
+The 2026-11-18 re-review's cast finding (R033) lands with this note. The
+borrowed third-party roster — 17 rider GLBs and their comic character
+names from another game's asset pack — leaves the city. All 17
+characters move to **one shared humanoid rig** with role encoding:
+
+- **The pinned rig:** `RobotExpressive.glb` from the three.js repository
+  (model by Tomás Laulhé, modifications by Don McCurdy), **CC0 1.0**
+  (inside the lock's license allowlist), pinned at the exact commit of
+  tag `r186` — the same major the repository runs three at. It lands at
+  `public/city-assets/characters/robot-expressive.glb` with a lock entry
+  (sha256, byte count, license); the throttlebrawl pack keeps only the
+  placeholder `marker-cube.glb` (moved to the `city-assets/` root, still
+  locked) because the construction markers use it.
+- **The clip set (R012.4 bar):** the rig bundles 14 authored clips. Six
+  map onto the shared eight-clip set directly — `Idle`→idle,
+  `Walking`→walk, `Running`→run, `Punch`→work, `Wave`→talk,
+  `Dance`→celebrate, `Death`→fail — and `carry` (a hold-and-move cycle
+  with no authored equivalent) is completed by the shared library:
+  `completeClipSet` in `src/lib/scene3d/characters.ts` derives it as a
+  deterministic keyframe layer over the rig's own skeleton rest pose.
+  Every character therefore carries the full blended clip set, and a rig
+  missing its locomotion core (idle/walk/run) fails loudly, per
+  R012.4.
+- **The roster:** `ROSTER` entries now carry a **pseudonymous id**
+  (R020 — `agent-01`…`agent-14`, `operator-01`…`operator-03`), the
+  display name *is* the id, and a **role** from the R025 vocabulary
+  (`operations`, `maintenance`, `security`, `core` for the simulated
+  operators). Silhouette, outfit and colour encode type and role through
+  the shared palette's `role-*` tokens — no private colour copies. The
+  three simulated operators keep their fixed behaviour (dispatch,
+  patrol, nightshift) under their new ids.
+- **The bound test:** `ecosystem.test.ts::cast_encodes_role` (R033's
+  named test) proves every roster entry maps to the one rig with the
+  full clip set, and that its colour is the encoding-table colour for
+  its role.
+
 ### Rejected alternatives
 
 - **Server-side rendered frames (WebRTC/WebGPU stream):** server GPU cost

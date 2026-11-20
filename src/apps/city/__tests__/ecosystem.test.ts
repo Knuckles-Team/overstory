@@ -1,17 +1,26 @@
 /**
  * @file ecosystem.test.ts
  * @description Fleet-driven connector district and the core landmarks
- * (OVERSTORY-CITY-R002/R004). The catalog is the Arbora fleet, not a
- * curated list: served packs are built, registered packs are planned
- * plots, and the arbora core is a landmark, never a connector plot.
+ * (OVERSTORY-CITY-R002/R004), and the shared-rig cast (OVERSTORY-CITY-R033):
+ * the catalog is the Arbora fleet, not a curated list: served packs are
+ * built, registered packs are planned plots, and the arbora core is a
+ * landmark, never a connector plot.
  */
-// spec: OVERSTORY-CITY-R002, OVERSTORY-CITY-R004, OVERSTORY-CITY-R005
+// spec: OVERSTORY-CITY-R002, OVERSTORY-CITY-R004, OVERSTORY-CITY-R005, OVERSTORY-CITY-R033
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
+import * as THREE from 'three'
+import { GLTFLoader, type GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js'
+import { clone as cloneRig } from 'three/examples/jsm/utils/SkeletonUtils.js'
 import { describe, expect, it } from 'vitest'
+import { CLIP_SET, completeClipSet, createClipBlender } from '@/lib/scene3d/characters'
+import { SCENE_COLORS } from '@/lib/scene3d/palette'
 import {
   ARBORA_CORE_SERVER,
   CONNECTOR_DISTRICT,
   CORE_LANDMARKS,
   FLEET_SNAPSHOT,
+  RIG_PATH,
   ROSTER,
   SIM_TOOLS,
   connectorsByDomain,
@@ -186,17 +195,76 @@ describe('core landmarks (R004)', () => {
   })
 })
 
-describe('roster (R005)', () => {
-  it('is 17 citizens: 14 AI agents and 3 simulated NPC operators, each a distinct rider', () => {
+describe('roster (R005/R033)', () => {
+  it('is 17 citizens on the shared rig: 14 AI agents and 3 simulated NPC operators, each a distinct pseudonymous id', () => {
     expect(ROSTER).toHaveLength(17)
     const ai = ROSTER.filter((r) => r.kind === 'ai')
     const npc = ROSTER.filter((r) => r.kind === 'npc')
     expect(ai).toHaveLength(14)
     expect(npc).toHaveLength(3)
-    // The operators are fixed characters, not real operators (R005): each
-    // carries the simulated label the badge and inspector surface.
-    for (const r of npc) expect(r.role).toContain('Simulated')
+    // The operators are fixed characters, not real operators (R005): they
+    // wear the core accent and stay kind 'npc' until real presence lands.
+    for (const r of npc) expect(r.role).toBe('core')
     expect(ROSTER.map((r) => r.kind)).not.toContain('human')
-    expect(new Set(ROSTER.map((r) => r.rider)).size).toBe(ROSTER.length)
+    expect(new Set(ROSTER.map((r) => r.id)).size).toBe(ROSTER.length)
+    // The display name is the pseudonymous id (R020): the borrowed comic
+    // roster left the city with R033.
+    for (const r of ROSTER) expect(r.id, `${r.id} is a pseudonymous id`).toMatch(/^(agent|operator)-\d{2}$/)
+  })
+
+  it('cast_encodes_role: every character maps to one rig with the full clip set, and its colour comes from the encoding table for its agent type and role (R033)', async () => {
+    // The one pinned rig, from its real locked bytes.
+    const buf = readFileSync(join(__dirname, '..', '..', '..', '..', 'public', RIG_PATH))
+    const bytes = new ArrayBuffer(buf.byteLength)
+    new Uint8Array(bytes).set(buf)
+    const gltf = await new Promise<GLTF>((resolve, reject) => {
+      new GLTFLoader().parse(
+        bytes,
+        '',
+        (g) => {
+          resolve(g)
+        },
+        (err) => {
+          reject(err instanceof Error ? err : new Error('GLB parse failed'))
+        },
+      )
+    })
+
+    // The shared rig completes to the full eight-clip set (R012.4).
+    const clips = completeClipSet(gltf.scene, gltf.animations)
+    for (const id of CLIP_SET) {
+      expect(clips[id], `clip ${id} present on the shared rig`).toBeDefined()
+      expect(clips[id].duration, `clip ${id} duration`).toBeGreaterThan(0)
+    }
+
+    // Every character is built on that one rig, with a stable id and a
+    // role from the R025 vocabulary.
+    expect(ROSTER).toHaveLength(17)
+    const aiRoles = new Set(ROSTER.filter((r) => r.kind === 'ai').map((r) => r.role))
+    expect(aiRoles).toEqual(new Set(['operations', 'maintenance', 'security']))
+    expect(ROSTER.filter((r) => r.kind === 'npc').every((r) => r.role === 'core')).toBe(true)
+
+    // The colour each character wears is the encoding-table colour for
+    // its role — the shared palette is the single source (R025).
+    for (const r of ROSTER) {
+      const color = SCENE_COLORS[`role-${r.role}`]
+      expect(color, `role-${r.role} in the palette`).toBeDefined()
+      expect(color!.hex, `role-${r.role} carries a hex`).toMatch(/^#[0-9a-f]{6}$/)
+    }
+
+    // Every character binds its own mixer on a clone of the one rig and
+    // plays the full clip set through the shared blender — no character
+    // is frozen in a bind pose, and no clip is missing.
+    for (const _entry of ROSTER) {
+      const clone = cloneRig(gltf.scene)
+      const mixer = new THREE.AnimationMixer(clone)
+      const blender = createClipBlender(mixer, clips, ['fail'])
+      for (const state of ['idle', 'traveling', 'working', 'committing', 'awaiting', 'success', 'failure']) {
+        blender.playState(state)
+      }
+      blender.update(0.1)
+      expect(blender.current()).toBe('fail')
+      blender.dispose()
+    }
   })
 })

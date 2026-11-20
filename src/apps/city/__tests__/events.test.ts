@@ -64,7 +64,7 @@ describe('recent ring (R010)', () => {
   })
 
   it('replays startup events for a UI that mounts late', () => {
-    bus.emit(makeEvent('asset.verified', {}, 'city-assets/riders/player.glb verified'))
+    bus.emit(makeEvent('asset.verified', {}, 'city-assets/characters/robot-expressive.glb verified'))
     bus.emit(makeEvent('mode.selected', { mode: 'simulated' }, 'Running on the deterministic simulation'))
     bus.emit(makeEvent('character.spawned', { character: 'player' }, 'The Rookie joins the city'))
     const seen: string[] = []

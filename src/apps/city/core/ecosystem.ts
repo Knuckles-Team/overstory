@@ -379,55 +379,58 @@ export function connectorsByDomain(connectors: ConnectorDef[]): ConnectorDef[] {
     .map((e) => e.c)
 }
 
-// ---- Roster: every pinned rider becomes one citizen ------------------------
-// kind "npc" marks the simulated operator characters (fixed characters, not
-// real operators — labelled simulated in the badge and inspector until real
-// presence lands, R023); everyone else is an AI agent from the harness.
-// Character names come from the vendored asset pack, never from operator
-// identities (OVERSTORY-CITY-R017).
+// ---- Roster: the shared-rig cast (R033) ------------------------------------
+// Every character is built on the one pinned shared rig (R033 /
+// OVERSTORY-DESIGN-R012.4); the borrowed third-party rider roster and its
+// comic character names left the city with the 2026-11-19 amendment. Names
+// are the stable pseudonymous ids (R020 — never an agent's identity), and
+// silhouette, outfit and colour encode agent type and role through the R025
+// encoding table (role → the shared palette's `role-*` tokens; kind 'npc'
+// marks the simulated operators, labelled simulated until real presence
+// lands, R005/R023).
+
+/** The shared rig every character is built on (R033): one pinned file. */
+export const RIG_PATH = 'city-assets/characters/robot-expressive.glb'
+
+/** The R025 role vocabulary the character colour encodes. */
+export type RoleId = 'operations' | 'maintenance' | 'security' | 'core'
+
+/** The role display labels (the inspector and badge surface these). */
+export const ROLE_LABELS: Record<RoleId, string> = {
+  operations: 'Operations agent',
+  maintenance: 'Maintenance agent',
+  security: 'Security agent',
+  core: 'Simulated operator — the fixed characters, not real operators',
+}
 
 export interface RosterEntry {
   kind: 'ai' | 'npc'
-  rider: string
-  name: string
-  hue: number
-  role?: string
+  /** The stable pseudonymous id (R020) — the character's name is this id. */
+  id: string
+  /** The R025 role the silhouette, outfit and colour encode. */
+  role: RoleId
 }
 
 export const ROSTER: RosterEntry[] = [
-  {
-    kind: 'npc',
-    rider: 'the-mayor',
-    name: 'The Mayor',
-    hue: 0.02,
-    role: 'Simulated chief operator — dispatches and approves',
-  },
-  {
-    kind: 'npc',
-    rider: 'officer-meter',
-    name: 'Officer Meter',
-    hue: 0.07,
-    role: 'Simulated fleet supervisor — patrols the connector district',
-  },
-  {
-    kind: 'npc',
-    rider: 'pivot',
-    name: 'Nightshift',
-    hue: 0.12,
-    role: 'Simulated night operator — works while the city sleeps',
-  },
-  { kind: 'ai', rider: 'chad-speedwell', name: 'Chad Speedwell', hue: 0.05 },
-  { kind: 'ai', rider: 'deacon-vane', name: 'Deacon Vane', hue: 0.11 },
-  { kind: 'ai', rider: 'dial-up', name: 'Dial-Up', hue: 0.17 },
-  { kind: 'ai', rider: 'kevin-from-accounting', name: 'Kevin (Accounting)', hue: 0.23 },
-  { kind: 'ai', rider: 'mother-rust', name: 'Mother Rust', hue: 0.29 },
-  { kind: 'ai', rider: 'sgt-pruitt', name: 'Sgt. Pruitt', hue: 0.35 },
-  { kind: 'ai', rider: 'tammy-two-stroke', name: 'Tammy Two-Stroke', hue: 0.09 },
-  { kind: 'ai', rider: 'trooper-dalrymple', name: 'Trooper Dalrymple', hue: 0.21 },
-  { kind: 'ai', rider: 'player', name: 'The Rookie', hue: 0.31 },
-  { kind: 'ai', rider: 'mara-vale', name: 'Mara Vale', hue: 0.41 },
-  { kind: 'ai', rider: 'deputy-lindqvist', name: 'Deputy Lindqvist', hue: 0.47 },
-  { kind: 'ai', rider: 'juniper-moss', name: 'Juniper Moss', hue: 0.53 },
-  { kind: 'ai', rider: 'old-growth', name: 'Old Growth', hue: 0.15 },
-  { kind: 'ai', rider: 'gripman-gus', name: 'Gripman Gus', hue: 0.38 },
+  // The three simulated operators (kind 'npc', role 'core'): dispatch,
+  // patrol and nightshift under their pseudonymous ids.
+  { kind: 'npc', id: 'operator-01', role: 'core' },
+  { kind: 'npc', id: 'operator-02', role: 'core' },
+  { kind: 'npc', id: 'operator-03', role: 'core' },
+  // The fourteen AI agents, one persistent character each (R027), roles
+  // distributed across the city's functions.
+  { kind: 'ai', id: 'agent-01', role: 'operations' },
+  { kind: 'ai', id: 'agent-02', role: 'operations' },
+  { kind: 'ai', id: 'agent-03', role: 'operations' },
+  { kind: 'ai', id: 'agent-04', role: 'operations' },
+  { kind: 'ai', id: 'agent-05', role: 'operations' },
+  { kind: 'ai', id: 'agent-06', role: 'maintenance' },
+  { kind: 'ai', id: 'agent-07', role: 'maintenance' },
+  { kind: 'ai', id: 'agent-08', role: 'maintenance' },
+  { kind: 'ai', id: 'agent-09', role: 'maintenance' },
+  { kind: 'ai', id: 'agent-10', role: 'maintenance' },
+  { kind: 'ai', id: 'agent-11', role: 'security' },
+  { kind: 'ai', id: 'agent-12', role: 'security' },
+  { kind: 'ai', id: 'agent-13', role: 'security' },
+  { kind: 'ai', id: 'agent-14', role: 'security' },
 ]

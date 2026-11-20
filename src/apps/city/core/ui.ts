@@ -14,6 +14,7 @@
  */
 import { bus, feedFullySimulated, getMode, type CityEvent } from './events'
 import { legendLines, stateColor } from './encoding'
+import { ROLE_LABELS } from './ecosystem'
 import { isNight } from './sim'
 import type { world as simWorld } from './sim'
 import type { CityActions, CityRenderer, CityUiElements, SelectionHit } from './types'
@@ -306,7 +307,7 @@ export function initUI(world: World, renderer: CityRenderer, actions: CityAction
         <h3>${escapeHtml(ch.name)} <span class="chip ${ch.kind === 'npc' ? 'npc' : 'ai'}">${
           ch.kind === 'npc' ? 'SIMULATED OPERATOR' : 'AI AGENT'
         }</span></h3>
-        <p class="role">${escapeHtml(ch.role)}</p>
+        <p class="role">${escapeHtml(ROLE_LABELS[ch.role])}</p>
         <div class="kv"><span>State</span><b data-slot="state" style="color:${stateColor(ch.state, ch.kind)}">${escapeHtml(ch.state)}</b></div>
         <div class="kv"><span>Mood</span><b data-slot="mood">${escapeHtml(ch.mood)}</b></div>
         <div class="kv"><span>Context</span><b data-slot="context">${Math.round(ch.context)}%</b></div>

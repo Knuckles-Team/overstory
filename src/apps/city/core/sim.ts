@@ -14,7 +14,15 @@
 // patrol); `demo` restores the continuous behaviour. Operator actions are
 // recorded with in-game timestamps for the replay driver (R029).
 
-import { CORE_LANDMARKS, ROSTER, SIM_TOOLS, connectorsByDomain, type ConnectorDef, type CoreDef } from './ecosystem'
+import {
+  CORE_LANDMARKS,
+  ROSTER,
+  SIM_TOOLS,
+  connectorsByDomain,
+  type ConnectorDef,
+  type CoreDef,
+  type RoleId,
+} from './ecosystem'
 import { BUILDING_POS, PLOTS, HOUSES, buildingDoor, plotDoor, findPath, type Vec2 } from './layout'
 import { bus, makeEvent, type CityEvent } from './events'
 import { defaultPrng, type Prng } from './prng'
@@ -106,9 +114,7 @@ class Character {
   id: string
   kind: 'ai' | 'npc'
   name: string
-  rider: string
-  hue: number
-  role: string
+  role: RoleId
   state: AgentState = 'idle'
   mood = ''
   context: number
@@ -135,13 +141,12 @@ class Character {
   events: { type: string; detail: string }[] = []
   pos: Vec2 = { x: 0, z: 0 }
 
-  constructor(entry: { kind: 'ai' | 'npc'; rider: string; name: string; hue: number; role?: string }, index: number) {
-    this.id = entry.rider
+  constructor(entry: { kind: 'ai' | 'npc'; id: string; role: RoleId }, index: number) {
+    this.id = entry.id
     this.kind = entry.kind
-    this.name = entry.name
-    this.rider = entry.rider
-    this.hue = entry.hue
-    this.role = entry.role ?? 'Autonomous agent from the Meristem harness'
+    // The display name is the pseudonymous id (R020) — never an identity.
+    this.name = entry.id
+    this.role = entry.role
     this.mood = this.kind === 'npc' ? 'supervising' : 'wandering'
     this.context = 10 + simRandom() * 15
     this.walkPhase = simRandom() * Math.PI * 2
@@ -526,7 +531,7 @@ export function dispatchTask(agentId?: string): boolean {
     ),
   )
   // The chief operator walks over for the hand-off (purely visual).
-  const chief = world.characters.find((c) => c.rider === 'the-mayor')
+  const chief = world.characters.find((c) => c.id === 'operator-01')
   if (chief && chief.state !== 'sleeping') {
     chief.go(agent.pos.x + 1, agent.pos.z + 1, null, 'delivering a task')
   }
@@ -762,7 +767,7 @@ function finishCommitting(agent: Character): void {
 
 function tickHumans(ch: Character, _dtReal: number): void {
   const night = isNight(world.clock)
-  if (ch.rider === 'the-mayor') {
+  if (ch.id === 'operator-01') {
     if (ch.state === 'sleeping') {
       if (!night) wakeUp(ch)
       return
@@ -836,7 +841,7 @@ function tickHumans(ch: Character, _dtReal: number): void {
       ch.go(Math.cos(a) * 5, Math.sin(a) * 5, null, 'supervising')
       ch.wanderTimer = 8 + simRandom() * 10
     }
-  } else if (ch.rider === 'officer-meter') {
+  } else if (ch.id === 'operator-02') {
     // Patrols the connector district by day — labelled demo behaviour (R026).
     if (night) {
       if (ch.state === 'sleeping') return
@@ -865,7 +870,7 @@ function tickHumans(ch: Character, _dtReal: number): void {
         ch.waitTimer = 5
       }
     }
-  } else if (ch.rider === 'pivot') {
+  } else if (ch.id === 'operator-03') {
     // Nightshift: sleeps by day, patrols by night (demo behaviour, R026).
     if (!night) {
       if (ch.state === 'sleeping') return

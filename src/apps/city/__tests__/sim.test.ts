@@ -68,7 +68,7 @@ function positions(): [number, number][] {
 }
 
 describe('boot state (R005/R002/R004)', () => {
-  it('spawns the pinned roster: 17 characters, 14 AI + 3 simulated NPC operators', () => {
+  it('spawns the pinned roster: 17 characters, 14 AI + 3 simulated NPC operators, all on the shared rig', () => {
     boot()
     const ai = world.characters.filter((c) => c.kind === 'ai').length
     const npc = world.characters.filter((c) => c.kind === 'npc').length
@@ -77,8 +77,15 @@ describe('boot state (R005/R002/R004)', () => {
     expect(npc).toBe(3)
     // Every v1 character is labelled simulated until real presence lands (R010).
     expect(world.characters.every((c) => c.provenance === 'simulated')).toBe(true)
+    // The display name is the pseudonymous id (R020/R033): no comic roster.
+    for (const c of world.characters) {
+      expect(c.name).toBe(c.id)
+      expect(c.id, `${c.id} is a pseudonymous id`).toMatch(/^(agent|operator)-\d{2}$/)
+    }
+    // The simulated operators wear the core accent (R025 via R033).
     for (const c of world.characters.filter((x) => x.kind === 'npc')) {
-      expect(c.role).toContain('Simulated')
+      expect(c.role).toBe('core')
+      expect(c.id).toMatch(/^operator-\d{2}$/)
     }
   })
 
@@ -180,7 +187,7 @@ describe('state machine (R006)', () => {
 
   it('refuses an illegal transition with a visible queued event, never a silent write', () => {
     boot()
-    const ch = getCharacter('chad-speedwell')
+    const ch = getCharacter('agent-01')
     expect(ch?.state).toBe('idle')
     const queued: string[] = []
     bus.subscribe((e) => {
@@ -193,14 +200,14 @@ describe('state machine (R006)', () => {
 
   it('allows a declared transition', () => {
     boot()
-    const ch = getCharacter('chad-speedwell')
+    const ch = getCharacter('agent-01')
     expect(transition(ch!, 'tasked')).toBe(true)
     expect(ch?.state).toBe('tasked')
   })
 
   it('a refused transition is honoured: no walk, no mood change, no success events', () => {
     boot()
-    const ch = getCharacter('chad-speedwell')!
+    const ch = getCharacter('agent-01')!
     const mood = ch.mood
     const pos = { ...ch.pos }
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
@@ -218,7 +225,7 @@ describe('state machine (R006)', () => {
 
   it('a refused event carries operator-facing wording, not the raw invariant string', () => {
     boot()
-    const ch = getCharacter('chad-speedwell')!
+    const ch = getCharacter('agent-01')!
     const queued: string[] = []
     bus.subscribe((e) => {
       if (e.type === 'task.queued') queued.push(e.detail ?? '')
@@ -603,11 +610,12 @@ describe('speed and clock semantics (R012)', () => {
 describe('selection API (R011)', () => {
   it('returns the character and building records for the selected ids', () => {
     boot()
-    const ch = getCharacter('chad-speedwell')
-    expect(ch?.name).toBe('Chad Speedwell')
+    const ch = getCharacter('agent-01')
+    // The display name is the pseudonymous id itself (R020/R033).
+    expect(ch?.name).toBe('agent-01')
     expect(ch?.kind).toBe('ai')
     expect(ch?.state).toBe('idle')
-    const mayor = getCharacter('the-mayor')
+    const mayor = getCharacter('operator-01')
     expect(mayor?.kind).toBe('npc')
     const building = getBuilding('sql-mcp')
     expect(building?.name).toBe('Sql')

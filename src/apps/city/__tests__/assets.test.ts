@@ -38,10 +38,11 @@ afterAll(() => {
 })
 
 describe('lockfile (R013)', () => {
-  it('pins exactly 18 files (17 riders + 1 marker)', () => {
+  it('pins exactly 2 files (the shared rig + the marker)', () => {
     const paths = Object.keys(lock.files)
-    expect(paths).toHaveLength(18)
-    expect(paths).toContain('city-assets/riders/player.glb')
+    expect(paths).toHaveLength(2)
+    expect(paths).toContain('city-assets/characters/robot-expressive.glb')
+    expect(paths).toContain('city-assets/marker-cube.glb')
     for (const p of paths) expect(p.startsWith('city-assets/')).toBe(true)
   })
 
@@ -76,7 +77,7 @@ describe('lockfile (R013)', () => {
     expect(assetsLockSchema.safeParse(ok).success).toBe(true)
   })
 
-  it('verifies every pinned file: byte count and SHA-256 (18/18)', () => {
+  it('verifies every pinned file: byte count and SHA-256 (2/2)', () => {
     const bad: string[] = []
     let ok = 0
     for (const [path, spec] of Object.entries(lock.files)) {
@@ -90,7 +91,7 @@ describe('lockfile (R013)', () => {
       else ok++
     }
     expect(bad, bad.join('; ')).toHaveLength(0)
-    expect(ok).toBe(18)
+    expect(ok).toBe(2)
   })
 
   it('stays under the 5 MB budget (R016: pinned assets total under 5 MB)', () => {
@@ -101,12 +102,12 @@ describe('lockfile (R013)', () => {
 
 describe('pinned byte cache (R013)', () => {
   it('serves the verified bytes exactly once per pin', () => {
-    const path = 'city-assets/riders/player.glb'
+    const path = 'city-assets/characters/robot-expressive.glb'
     const raw = readFileSync(join(ASSETS_DIR, path))
     const bytes = raw.buffer.slice(raw.byteOffset, raw.byteOffset + raw.byteLength) as ArrayBuffer
     pinBytes(path, bytes)
     expect(pinnedBytes(path)).toBe(bytes)
-    expect(pinnedBytes('city-assets/riders/not-pinned.glb')).toBeNull()
+    expect(pinnedBytes('city-assets/not-pinned.glb')).toBeNull()
     clearPins()
     expect(pinnedBytes(path)).toBeNull()
   })

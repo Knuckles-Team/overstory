@@ -204,12 +204,12 @@ describe('mode decision (R014)', () => {
     }
   })
 
-  it('verifies every pinned asset at startup (R013): 18 verified events, no failures', async () => {
+  it('verifies every pinned asset at startup (R013): the shared rig + marker verified, no failures', async () => {
     const view = await bootCity('live')
     try {
       await vi.waitFor(() => {
         const chips = Array.from(document.querySelectorAll('.feed-item .chip-evt')).map((el) => el.textContent)
-        expect(chips.filter((t) => t === 'asset.verified')).toHaveLength(18)
+        expect(chips.filter((t) => t === 'asset.verified')).toHaveLength(2)
       })
       const chips = Array.from(document.querySelectorAll('.feed-item .chip-evt')).map((el) => el.textContent)
       expect(chips.some((t) => t === 'asset.failed')).toBe(false)
@@ -239,7 +239,7 @@ describe('mode decision (R014)', () => {
       expect(chips.filter((t) => t === 'asset.verified')).toHaveLength(0)
       // The refusal happens before the fetch loop: no GLB was requested.
       const glbFetches = (global.fetch as ReturnType<typeof vi.fn>).mock.calls.filter(([u]) =>
-        String(u).includes('/city-assets/riders/'),
+        String(u).endsWith('.glb'),
       )
       expect(glbFetches).toHaveLength(0)
     } finally {

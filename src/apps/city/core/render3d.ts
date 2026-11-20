@@ -80,7 +80,7 @@ export async function init3D(
   // Marker cube first (used by placeholders + construction).
   let markerRoot: THREE.Object3D | null = null
   try {
-    const mc = await loadPinnedGLB('city-assets/riders/marker-cube.glb')
+    const mc = await loadPinnedGLB('city-assets/marker-cube.glb')
     mc.scene.traverse((o) => {
       if (o instanceof THREE.Mesh) o.castShadow = true
     })

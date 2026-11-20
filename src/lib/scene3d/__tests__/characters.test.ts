@@ -14,7 +14,9 @@ import {
   MAX_CROSSFADE_S,
   bindRig,
   clipWalkSpeed,
+  completeClipSet,
   createClipBlender,
+  findRigBones,
   stateToClip,
   travelSpeedFor,
   type RigClips,
@@ -113,5 +115,85 @@ describe('the shared character rig (R012.4)', () => {
     ])
     expect(clipWalkSpeed(inPlace)).toBeNull()
     expect(travelSpeedFor(inPlace, 0.8)).toBe(0.8)
+  })
+
+  it('clip completion: the pinned rig reaches the full eight-clip set, and a missing locomotion clip fails loudly', () => {
+    // A synthetic rig: a bone chain with non-identity rest poses, so a
+    // derived layer has something to layer over.
+    const rig = new THREE.Group()
+    rig.name = 'rig-root'
+    const hips = new THREE.Bone()
+    hips.name = 'Hips'
+    const spine = new THREE.Bone()
+    spine.name = 'Torso_1'
+    spine.quaternion.setFromEuler(new THREE.Euler(0.1, 0, 0))
+    const head = new THREE.Bone()
+    head.name = 'Head'
+    head.quaternion.setFromEuler(new THREE.Euler(0.2, 0, 0))
+    const armL = new THREE.Bone()
+    armL.name = 'UpperArmL'
+    const armR = new THREE.Bone()
+    armR.name = 'UpperArmR'
+    hips.add(spine, armL, armR)
+    spine.add(head)
+    rig.add(hips)
+
+    // findRigBones resolves the rig's own names onto the semantic roles.
+    const bones = findRigBones(rig)
+    expect(bones.head).toBe(head)
+    expect(bones.spine).toBe(spine)
+    expect(bones.armL).toBe(armL)
+    expect(bones.hips).toBe(hips)
+
+    // The rig ships the locomotion core plus nothing else — the
+    // completion maps the aliases and derives the rest.
+    const set = completeClipSet(rig, [makeClip('Idle', 3), makeClip('Walking', 1), makeClip('Running', 1)])
+    for (const id of CLIP_SET) {
+      expect(set[id], `clip ${id} present`).toBeDefined()
+      expect(set[id].duration, `clip ${id} duration`).toBeGreaterThan(0)
+      expect(set[id].name).toBe(id)
+    }
+    // The derived carry is a keyframe layer over the found bones' rest
+    // pose: its first keyframe is the pure rest pose, and later keyframes
+    // deviate from it (the layer actually moves the bones).
+    const carry = set.carry
+    const headTrack = carry.tracks.find((t) => t.name.endsWith('Head.quaternion'))
+    expect(headTrack, 'carry layers the head bone').toBeDefined()
+    const values = headTrack!.values as Float32Array
+    const rest = head.quaternion
+    const first = new THREE.Quaternion().set(values[0], values[1], values[2], values[3])
+    expect(first.angleTo(rest)).toBeLessThan(1e-4) // first key = rest pose
+    const mid = new THREE.Quaternion().set(values[8], values[9], values[10], values[11])
+    expect(mid.angleTo(rest)).toBeGreaterThan(0.01) // the layer deviates
+    // The fail clip's one-shot behaviour is declared at bind time: the
+    // action loops once and clamps (three r155+ moved loop mode off the
+    // clip onto the action).
+    const failActions = bindRig(new THREE.AnimationMixer(rig), set, ['fail'])
+    const failAction = failActions.find((a) => a.getClip().name === 'fail')
+    expect(failAction, 'fail action bound').toBeDefined()
+    expect(failAction!.loop).toBe(THREE.LoopOnce)
+    // The last keyframe holds the folded pose: a one-shot fail clamps at
+    // its end, so the keyframes must stay collapsed over the tail.
+    const spineTracks = set.fail.tracks.filter((t) => t.name.endsWith('quaternion'))
+    expect(spineTracks.length).toBeGreaterThan(0)
+    for (const t of spineTracks) {
+      const v = t.values as Float32Array
+      const n = Math.floor(v.length / 4)
+      const last = new THREE.Quaternion().set(
+        v[(n - 1) * 4],
+        v[(n - 1) * 4 + 1],
+        v[(n - 1) * 4 + 2],
+        v[(n - 1) * 4 + 3],
+      )
+      const prev = new THREE.Quaternion().set(
+        v[(n - 2) * 4],
+        v[(n - 2) * 4 + 1],
+        v[(n - 2) * 4 + 2],
+        v[(n - 2) * 4 + 3],
+      )
+      expect(last.angleTo(prev)).toBeLessThan(0.02) // the tail holds
+    }
+    // A locomotion clip cannot be derived: missing idle fails loudly.
+    expect(() => completeClipSet(rig, [makeClip('Walking', 1), makeClip('Running', 1)])).toThrow(/idle/)
   })
 })
