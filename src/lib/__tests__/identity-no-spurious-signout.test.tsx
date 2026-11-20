@@ -34,7 +34,9 @@ describe('only_a_real_401_signs_out', () => {
     act(() => {
       window.dispatchEvent(new Event('focus'))
     })
-    await waitFor(() => expect(fetcher).toHaveBeenCalledTimes(2))
+    await waitFor(() => {
+      expect(fetcher).toHaveBeenCalledTimes(2)
+    })
     expect(screen.getByTestId('id')).toHaveTextContent('false:fixture-user')
     expect(fetcher).toHaveBeenCalledTimes(2)
     await act(async () => {
