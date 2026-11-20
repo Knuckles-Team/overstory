@@ -38,9 +38,11 @@ async function sessionCsrfToken(): Promise<string> {
     headers: { Accept: 'application/json' },
   })
   if (!response.ok) {
-    invalidateIdentity()
+    if (response.status === 401) invalidateIdentity()
     throw new Error('Identity session unavailable')
   }
+  // A user-initiated sign-out/sign-in step may still retire a session whose
+  // 200 answer is malformed (R008); only the non-OK verdicts above are narrowed.
   try {
     return sessionTokenFrom(await response.json())
   } catch (error) {

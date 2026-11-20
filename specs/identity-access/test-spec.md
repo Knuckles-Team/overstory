@@ -39,6 +39,7 @@ Exercise real enhanced file/config/editor handlers in no-auth: the interim imple
 | OVERSTORY-IDENTITY-R003.1.3 | `tests/test_explicit_auth_modes.py::test_exported_anonymous_read_routes_are_exact_and_generated` builds the app in explicit no-auth with the exported set. It asserts 200 for each member, 403 for a non-member and for every write, no member under a reserved prefix, and that a newly mounted app route joins the set without a hand edit. |
 | OVERSTORY-IDENTITY-R003.1.3.1 | Planned: `tests/test_explicit_auth_modes.py::test_none_mode_session_read_answers_the_fixed_descriptor` and `::test_other_modes_session_read_is_unchanged` cover the server. `src/lib/__tests__/auth.test.ts::resolves_mode_none_without_sign_in_prompt` covers the shell rendering the labelled demo state. |
 | OVERSTORY-IDENTITY-R003.3.3 | `tests/test_jwks_private_ca.py` covers the private-CA fetch, the distinct TLS refusal reason and the warning log. |
+| OVERSTORY-IDENTITY-R003.3.4 | `src/lib/__tests__/identity-no-spurious-signout.test.tsx` covers a 503 session read, a CSRF-less session and a real 401. |
 | OVERSTORY-IDENTITY-R003.2.1 | `tests/test_explicit_auth_modes.py` refuses missing or untyped EG owners. |
 | OVERSTORY-IDENTITY-R003.2.2 | Installed EG login/session/logout and HTTP/WebSocket qualification remain open. |
 | OVERSTORY-IDENTITY-R003.3.1 | `tests/test_explicit_auth_modes.py` refuses incompatible EG ownership and incomplete browser OIDC setup. |

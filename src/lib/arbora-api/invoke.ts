@@ -43,8 +43,16 @@ export interface InvokeOptions {
 const OP_ID = /^[A-Za-z][A-Za-z0-9_]*(?:\.[A-Za-z][A-Za-z0-9_]*)+$/
 const sessionSchema = z.object({ authenticated: z.literal(true), csrf_token: z.string().min(1) })
 
+function isSignedOutBody(body: unknown): boolean {
+  return typeof body === 'object' && body !== null && (body as { authenticated?: unknown }).authenticated === false
+}
+
 function validatedSessionToken(body: unknown): string {
-  if (!sessionSchema.safeParse(body).success) invalidateIdentity()
+  // Only a body that says the browser is signed out retires the identity. An
+  // authenticated session without a CSRF token (external sign-in mode) is a
+  // refused operation, never a sign-out: invalidating here re-reads the session,
+  // remounts the page and re-issues this call in a tight loop.
+  if (isSignedOutBody(body)) invalidateIdentity()
   return validateShape(sessionSchema, body, '/auth/session').csrf_token
 }
 
@@ -55,7 +63,7 @@ async function csrfToken(signal?: AbortSignal): Promise<string> {
     signal,
   })
   if (!response.ok) {
-    invalidateIdentity()
+    if (response.status === 401) invalidateIdentity()
     throw new Error('Arbora browser session is unavailable')
   }
   const body: unknown = await response.json()
