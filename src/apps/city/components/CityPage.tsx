@@ -14,14 +14,16 @@
  * the replay driver (R029) and the first-visit tour trigger (R030).
  */
 import { useEffect, useRef, useState } from 'react'
-import { fetchCityFleet } from '../api'
+import { fetchCityFleet, fetchCityLayout, saveCityLayout } from '../api'
 import { FLEET_SNAPSHOT, fleetToConnectors, type FleetServer } from '../core/ecosystem'
 import { pinBytes } from '../core/assets'
 import { bus, makeEvent, setMode, setTimeSource } from '../core/events'
+import { derivedRoadGraph, nextDocument, validateEdit, type LayoutOverride } from '../core/layoutEdit'
 import { init2D, supportsWebGL } from '../core/render2d'
 import { init3D } from '../core/render3d'
 import { replayRun } from '../core/replay'
 import {
+  applyLayoutEdit,
   dispatchTask,
   initSim,
   onboardConnector,
@@ -147,6 +149,8 @@ export default function CityPage() {
   const btnView2dRef = useRef<HTMLButtonElement | null>(null)
   const btnView3dRef = useRef<HTMLButtonElement | null>(null)
   const btnTourRef = useRef<HTMLButtonElement | null>(null)
+  const btnEditRef = useRef<HTMLButtonElement | null>(null)
+  const editPanelRef = useRef<HTMLDivElement | null>(null)
   const scrubberRef = useRef<HTMLInputElement | null>(null)
   const scrubberReadoutRef = useRef<HTMLSpanElement | null>(null)
   const speedBarRef = useRef<HTMLDivElement | null>(null)
@@ -180,6 +184,8 @@ export default function CityPage() {
       scrubber: scrubberRef.current!,
       scrubberReadout: scrubberReadoutRef.current as HTMLElement,
       btnTour: btnTourRef.current as HTMLElement,
+      btnEdit: btnEditRef.current as HTMLElement,
+      editPanel: editPanelRef.current as HTMLElement,
       speedButtons: Array.from(speedBarRef.current?.querySelectorAll<HTMLElement>('.speed-btn') ?? []),
     }
     if (!holder) return
@@ -315,6 +321,17 @@ export default function CityPage() {
       // Every replay of this city's history boots from this same source
       // (R029): the scrubber shows the replayed window of the actual city.
       bootFleet = fleet
+      // The stored layout document (R032): a second viewer boots into the
+      // same city the first one edited — an absent or refused read keeps the
+      // derived layout, never a partial one.
+      let layoutDoc: LayoutOverride | null = null
+      try {
+        const res = await fetchCityLayout()
+        layoutDoc = res.doc
+      } catch {
+        // 503 (the served layout read is not live yet) or absent → derived.
+      }
+      if (isDisposed()) return
 
       // 2. Bind the event clock first so every startup event is stamped with
       //    the in-game clock, then choose the mode and verify the pins.
@@ -327,6 +344,9 @@ export default function CityPage() {
       //    activity mode is quiet by default (R026).
       initSim(fleetToConnectors(fleet))
       if (parseDemoParam(window.location.search)) setSimActivity('demo')
+      // The stored layout document lands over the derived placement (R032);
+      // the road layer is redrawn once the renderer exists below.
+      if (layoutDoc) applyLayoutEdit(layoutDoc)
 
       // 4. Renderer: WebGL scene, or the 2D schematic of the same graph.
       view = supportsWebGL() ? '3d' : '2d'
@@ -401,13 +421,46 @@ export default function CityPage() {
               durationGameS: Math.max(0, Math.round(offsetS)),
               dtGame: 5,
               fleet: bootFleet,
+              layout: world.layoutDoc ?? undefined,
             })
             renderer?.resync?.()
+            // The replayed world carries the stored layout's graph — the road
+            // layer redraws to match (R032).
+            if (renderer?.setRoads && world.roadGraph) renderer.setRoads(world.roadGraph)
             ui?.refresh()
           }, 250)
         },
         startTour: () => {
           ui?.startTour()
+        },
+        // R032: one layout edit through the same action seam as the UI —
+        // validated against the live world and road graph, the next document
+        // persisted through the served layout write, applied to the world,
+        // the road layer redrawn, and the edit broadcast as a visible event.
+        // A refused or unavailable edit leaves the city unchanged and reports
+        // the operator-facing reason.
+        layoutEdit: async (edit) => {
+          const verdict = validateEdit(edit, world, world.roadGraph ?? derivedRoadGraph())
+          if (!verdict.ok) return { ok: false, reason: verdict.reason }
+          try {
+            const doc = nextDocument(world.layoutDoc, edit, world)
+            const saved = await saveCityLayout(doc)
+            if (isDisposed()) return { ok: true }
+            applyLayoutEdit(saved.doc)
+            world.layoutDoc = saved.doc
+            if (renderer?.setRoads && world.roadGraph) renderer.setRoads(world.roadGraph)
+            bus.emit(
+              makeEvent(
+                'layout.edited',
+                edit.kind === 'move-building' || edit.kind === 'rotate-building' ? { building: edit.buildingId } : {},
+                `Layout edit saved: ${edit.kind}`,
+              ),
+            )
+            ui?.refresh()
+            return { ok: true }
+          } catch {
+            return { ok: false, reason: 'unavailable' }
+          }
         },
       }
       ui = initUI(world, renderer, actions, els)
@@ -546,6 +599,10 @@ export default function CityPage() {
             <button type="button" className="btn ghost" ref={btnTourRef}>
               Tour
             </button>
+            <button type="button" className="btn ghost" ref={btnEditRef} aria-expanded="false">
+              Edit layout
+            </button>
+            <div ref={editPanelRef} className="edit-panel hidden" aria-label="Layout edit panel" />
             <div className="scrub">
               <label className="scrub-label" htmlFor="city-scrubber">
                 Replay

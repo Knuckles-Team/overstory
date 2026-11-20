@@ -5,6 +5,8 @@
  * {@link CityRenderer} handle so the page and the UI own no view-specific
  * code; the simulation core is the only writer of world state.
  */
+import type { RoadGraph } from '@/lib/scene3d/roads'
+import type { LayoutEdit } from './layoutEdit'
 
 /** What a click on a renderer hit: one character or one building. */
 export interface SelectionHit {
@@ -33,6 +35,12 @@ export interface CityRenderer {
    * R029). Stateless renderers (the 2D schematic) need no rebind.
    */
   resync?(): void
+  /**
+   * Swap the road layer for a new road graph (R032): a saved layout edit
+   * redraws the network; the 2D schematic reads the graph from the world and
+   * needs no call.
+   */
+  setRoads?(graph: RoadGraph): void
 }
 
 /** The activity mode the sim runs in (R026): quiet is the default. */
@@ -57,6 +65,13 @@ export interface CityActions {
   scrub(offsetS: number): void
   /** (Re)start the first-visit tour (R030). */
   startTour(): void
+  /**
+   * Submit one layout edit (R032): validated against the live world and road
+   * graph, saved through the served layout operation, applied, and the road
+   * layer redrawn. A refused or unavailable edit leaves the city unchanged
+   * and reports the operator-facing reason.
+   */
+  layoutEdit(edit: LayoutEdit): Promise<{ ok: boolean; reason?: string }>
 }
 
 /** The static DOM handles the UI layer renders into (the page owns them). */
@@ -82,6 +97,10 @@ export interface CityUiElements {
   statIncidents: HTMLElement
   statConnectors: HTMLElement
   btnDispatch: HTMLElement
+  /** R032: the layout edit-mode toggle in the control bar. */
+  btnEdit: HTMLElement
+  /** R032: the layout edit panel (hidden until edit mode opens). */
+  editPanel: HTMLElement
   btnOverview: HTMLElement
   btnOnboard: HTMLElement
   /** R026: the labelled demo toggle. */

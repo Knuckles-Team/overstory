@@ -38,6 +38,7 @@ const noopActions: CityActions = {
   setView: () => undefined,
   scrub: () => undefined,
   startTour: () => undefined,
+  layoutEdit: async () => ({ ok: true }),
 }
 
 function makeEls(): CityUiElements {
@@ -72,6 +73,8 @@ function makeEls(): CityUiElements {
     scrubber: document.createElement('input'),
     scrubberReadout: el('span'),
     btnTour: el('button'),
+    btnEdit: el('button'),
+    editPanel: el('div'),
     speedButtons: [],
   }
 }

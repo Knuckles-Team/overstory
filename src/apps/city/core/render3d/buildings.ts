@@ -44,6 +44,15 @@ interface BuildingEntry {
   wallMat: THREE.MeshStandardMaterial | null
   /** The kit's roof material — the 'error-flash' channel (R025). */
   roofMat: THREE.MeshStandardMaterial | null
+  /** The archetype the kit was built with (R032: a district style change rebuilds it). */
+  archetype?: DistrictArchetype
+  /** The door mat mesh (R032: it re-anchors to the door while the building moves). */
+  doorMat?: THREE.Mesh | null
+  /** The kit's wall and roof geometries (freed when the entry is disposed). */
+  wallGeo?: THREE.BufferGeometry | null
+  roofGeo?: THREE.BufferGeometry | null
+  /** The move/rotation tween in flight (R032); null when settled. */
+  mv?: { fx: number; fz: number; fr: number; t: number; dur: number } | null
   /** Seconds of 'lights-on' boost left after a construction completes. */
   wallBoost?: number
   /** True while the error-flash channel has touched this landmark's materials. */
@@ -219,6 +228,14 @@ export function createBuildings(scene: THREE.Scene, world: World, markerRoot: TH
   }
 
   // ---- Building meshes (kit-built) -----------------------------------------
+  /** The district's current archetype (R032): the saved style overrides the derived map. */
+  function archetypeFor(b: World['buildings'][string]): DistrictArchetype {
+    const domain = domainOf(b.id)
+    const styled = domain in world.districtStyles ? world.districtStyles[domain] : undefined
+    const derived = domain in DOMAIN_ARCHETYPE ? DOMAIN_ARCHETYPE[domain] : undefined
+    return (styled ?? derived ?? 'workshop') as DistrictArchetype
+  }
+
   function makeBuildingMesh(b: World['buildings'][string]): BuildingEntry {
     const g = new THREE.Group()
     // Deterministic per-building seed (R014): the kit variation is identical
@@ -228,9 +245,10 @@ export function createBuildings(scene: THREE.Scene, world: World, markerRoot: TH
     // The 'building-height' channel (R025): the storey count encodes the
     // served tool count — one visual, one fact.
     const floors = 1 + Math.min(b.toolCount, 5)
+    const archetype = archetypeFor(b)
     const asset = buildingAsset({
       seed,
-      archetype: DOMAIN_ARCHETYPE[domainOf(b.id)] ?? 'workshop',
+      archetype,
       footprint: [b.w, b.d],
       floors,
     })
@@ -247,15 +265,17 @@ export function createBuildings(scene: THREE.Scene, world: World, markerRoot: TH
     body.userData.entity = { kind: 'building', id: b.id }
     g.add(body)
     // Door mat on the road (the shared trim sheet's road band).
+    let doorMatMesh: THREE.Mesh | null = null
     if (b.door) {
       const matGeo = new THREE.PlaneGeometry(1.6, 1.2)
       remapUVs(matGeo, ROAD_PATCH[0], ROAD_PATCH[1], ROAD_PATCH[2], ROAD_PATCH[3])
-      const mat = new THREE.Mesh(matGeo, doorMat)
-      mat.rotation.x = -Math.PI / 2
-      mat.position.set(b.door.x - b.x, 0.035, b.door.z - b.z)
-      g.add(mat)
+      doorMatMesh = new THREE.Mesh(matGeo, doorMat)
+      doorMatMesh.rotation.x = -Math.PI / 2
+      doorMatMesh.position.set(b.door.x - b.x, 0.035, b.door.z - b.z)
+      g.add(doorMatMesh)
     }
     g.position.set(b.x, 0, b.z)
+    g.rotation.y = (b.rot * Math.PI) / 180
     scene.add(g)
     const entry: BuildingEntry = {
       group: g,
@@ -263,10 +283,35 @@ export function createBuildings(scene: THREE.Scene, world: World, markerRoot: TH
       mats: [wallMat, roofMat],
       wallMat,
       roofMat,
+      archetype,
+      doorMat: doorMatMesh,
+      wallGeo,
+      roofGeo,
       height: floors * 3.2,
     }
     buildingGroups.set(b.id, entry)
     return entry
+  }
+
+  /**
+   * Rebuild one connector building's kit (R032): the district style changed
+   * under it, so the old geometry and materials are freed and the building is
+   * recreated from the current archetype at its live position and rotation.
+   */
+  function rebuildBuilding(id: string): void {
+    if (!(id in world.buildings)) return
+    const b = world.buildings[id]
+    if (b.category !== 'connector') return
+    const old = buildingGroups.get(id)
+    if (!old) return
+    scene.remove(old.group)
+    old.wallGeo?.dispose()
+    old.roofGeo?.dispose()
+    old.mats.forEach((m) => {
+      m.dispose()
+    })
+    buildingGroups.delete(id)
+    makeBuildingMesh(b)
   }
 
   // Landmark-specific geometry (core components get bespoke silhouettes).
@@ -725,6 +770,48 @@ export function createBuildings(scene: THREE.Scene, world: World, markerRoot: TH
       if (entry.bits?.craneArm) entry.bits.craneArm.rotation.y = Math.sin(timeAcc * 0.35) * 0.9
       if (entry.bits?.tip)
         (entry.bits.tip.material as THREE.MeshStandardMaterial).emissiveIntensity = 1.2 + Math.sin(timeAcc * 3) * 1.2
+      // District style (R032): a saved style that differs from the archetype
+      // the kit was built with rebuilds the connector's kit (freed, then
+      // recreated from the current style at its live position and rotation).
+      if (!entry.landmark && entry.archetype !== undefined && entry.archetype !== archetypeFor(b)) {
+        rebuildBuilding(id)
+        continue
+      }
+      // The layout edit's move/rotation tween (R032): the group's position or
+      // rotation differs from the live world state — a saved document was
+      // applied — so the building eases to it over 0.9 s (easeInOutCubic) on
+      // the shortest rotation path, and the door mat re-anchors to the door's
+      // world point every frame until the landing is exact.
+      const gpos = entry.group.position
+      const targetRot = (b.rot * Math.PI) / 180
+      if (entry.mv) {
+        const mv = entry.mv
+        mv.t = Math.min(mv.dur, mv.t + dtReal)
+        const k = mv.t / mv.dur
+        const e = k < 0.5 ? 4 * k * k * k : 1 - (-2 * k + 2) ** 3 / 2
+        gpos.x = mv.fx + (b.x - mv.fx) * e
+        gpos.z = mv.fz + (b.z - mv.fz) * e
+        entry.group.rotation.y = mv.fr + (targetRot - mv.fr) * e
+        if (entry.doorMat && b.door) {
+          entry.doorMat.position.set(b.door.x - gpos.x, 0.035, b.door.z - gpos.z)
+        }
+        if (mv.t >= mv.dur) {
+          gpos.x = b.x
+          gpos.z = b.z
+          entry.group.rotation.y = targetRot
+          entry.mv = null
+        }
+      } else if (
+        Math.abs(gpos.x - b.x) > 1e-3 ||
+        Math.abs(gpos.z - b.z) > 1e-3 ||
+        Math.abs(entry.group.rotation.y - targetRot) > 1e-3
+      ) {
+        // Shortest path: normalize the start rotation so the delta is ±π or less.
+        let fr = entry.group.rotation.y
+        while (targetRot - fr > Math.PI) fr += Math.PI * 2
+        while (targetRot - fr < -Math.PI) fr -= Math.PI * 2
+        entry.mv = { fx: gpos.x, fz: gpos.z, fr, t: 0, dur: 0.9 }
+      }
     }
 
     // Commit pulses.

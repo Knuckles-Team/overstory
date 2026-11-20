@@ -4,7 +4,7 @@
  * (OVERSTORY-CITY-R015). Same city graph, same characters, same events — a
  * view over the shared world state, never a second system.
  */
-import { X_ROADS, Z_ROADS, WATER_Z, PLOT_W, HOUSES, PARKS, PIER } from './layout'
+import { WATER_Z, PLOT_W, HOUSES, PARKS, PIER } from './layout'
 import { encodingColor, stateColor } from './encoding'
 import { world as simWorld } from './sim'
 import type { CityRenderer, SelectionHit } from './types'
@@ -72,23 +72,26 @@ export function init2D(
   const pz = (z: number): number => oz + (z - WORLD.z0) * scale + panY
 
   function drawBuilding(b: (typeof world.buildings)[string], selected: boolean): void {
-    const x = px(b.x - b.w / 2)
-    const z = pz(b.z - b.d / 2)
-    const w = b.w * scale
-    const d = b.d * scale
+    // The building's quarter-turn rotation (R032): the rect rotates about the
+    // building's centre in screen space — the canvas y axis points down, so
+    // the sign is the 3D rotY's opposite. The label stays unrotated.
+    ctx.save()
+    ctx.translate(px(b.x), pz(b.z))
+    ctx.rotate((-b.rot * Math.PI) / 180)
     ctx.fillStyle = selected ? '#ffffff' : `#${b.color.toString(16).padStart(6, '0')}`
     ctx.globalAlpha = b.category === 'core' ? 0.95 : 0.85
-    ctx.fillRect(x, z, w, d)
+    ctx.fillRect((-b.w / 2) * scale, (-b.d / 2) * scale, b.w * scale, b.d * scale)
     ctx.globalAlpha = 1
     if (selected) {
       ctx.strokeStyle = '#37d0c3'
       ctx.lineWidth = 2
-      ctx.strokeRect(x, z, w, d)
+      ctx.strokeRect((-b.w / 2) * scale, (-b.d / 2) * scale, b.w * scale, b.d * scale)
     }
+    ctx.restore()
     ctx.fillStyle = '#10141c'
     ctx.font = `${Math.max(9, scale * 1.6)}px system-ui, sans-serif`
     ctx.textAlign = 'center'
-    ctx.fillText(b.name, px(b.x), z - 4)
+    ctx.fillText(b.name, px(b.x), pz(b.z) - 4)
   }
 
   let selectedId: string | null = null
@@ -109,12 +112,24 @@ export function init2D(
     ctx.fillStyle = `rgb(${Math.round(61 - 35 * night)}, ${Math.round(127 - 85 * night)}, ${Math.round(181 - 110 * night)})`
     ctx.fillRect(0, pz(WATER_Z), W, H - pz(WATER_Z))
 
-    // Roads.
-    ctx.fillStyle = '#3a3f47'
-    for (const x of X_ROADS)
-      ctx.fillRect(px(x) - 1.3 * scale, pz(Z_ROADS[0]), 2.6 * scale, pz(Z_ROADS[Z_ROADS.length - 1]) - pz(Z_ROADS[0]))
-    for (const z of Z_ROADS)
-      ctx.fillRect(px(X_ROADS[0]), pz(z) - 1.3 * scale, px(X_ROADS[X_ROADS.length - 1]) - px(X_ROADS[0]), 2.6 * scale)
+    // Roads: drawn from the live road graph (R032) — a saved layout edit
+    // swaps the derived grid for the overrides' segments and this view
+    // follows; the derived city draws the same grid it has always shown.
+    const graph = world.roadGraph
+    if (graph) {
+      ctx.strokeStyle = '#3a3f47'
+      ctx.lineCap = 'round'
+      for (const seg of Object.values(graph.segments)) {
+        const a = seg.from in graph.nodes ? graph.nodes[seg.from] : null
+        const b = seg.to in graph.nodes ? graph.nodes[seg.to] : null
+        if (!a || !b) continue
+        ctx.lineWidth = Math.max(1, seg.width * scale)
+        ctx.beginPath()
+        ctx.moveTo(px(a.x), pz(a.z))
+        ctx.lineTo(px(b.x), pz(b.z))
+        ctx.stroke()
+      }
+    }
 
     // Pier.
     ctx.fillStyle = '#8a6f4d'

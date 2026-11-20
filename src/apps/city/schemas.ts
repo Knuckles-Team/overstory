@@ -35,6 +35,69 @@ export const cityStatusSchema = z.object({
   }),
 })
 
+// ---- The layout override document (R032) --------------------------------------
+/** Quarter-turn rotations the layout edit accepts. */
+export const LAYOUT_ROTATIONS = [0, 90, 180, 270] as const
+/** The district archetypes the layout edit accepts (the generator's vocabulary). */
+export const LAYOUT_ARCHETYPES = ['gateway', 'datahall', 'workshop', 'storehouse', 'studio', 'docks'] as const
+
+/**
+ * The stored layout override document (R032): the final-state delta over the
+ * derived layout — building moves and rotations, road segments added or
+ * removed, district styles. The browser-side twin of the host's strict
+ * whitelist; both refuse anything outside these bounds.
+ */
+export const layoutDocSchema = z.object({
+  version: z.literal(1),
+  moves: z
+    .array(
+      z.object({
+        buildingId: z.string().min(1).max(200),
+        plot: z.number().int().min(0).max(1023),
+        rotation: z.union([z.literal(0), z.literal(90), z.literal(180), z.literal(270)]),
+      }),
+    )
+    .max(200),
+  roads: z
+    .array(
+      z.object({
+        kind: z.enum(['add', 'remove']),
+        segmentId: z.string().min(1).max(200),
+        from: z.string().min(1).max(200).optional(),
+        to: z.string().min(1).max(200).optional(),
+      }),
+    )
+    .max(400),
+  styles: z
+    .array(
+      z.object({
+        domain: z.string().min(1).max(50),
+        archetype: z.enum(LAYOUT_ARCHETYPES),
+      }),
+    )
+    .max(20),
+})
+
+/** The served layout read (GET /layout): the stored doc with its capture stamp. */
+export const cityLayoutSchema = z.object({
+  doc: layoutDocSchema,
+  captured_at: z.string().min(1),
+  cache: z.object({
+    stale: z.boolean(),
+    age_seconds: z.number().nonnegative(),
+  }),
+})
+
+/** The served layout write ack (PUT /layout): the stored doc after the write. */
+export const layoutSavedSchema = z.object({
+  doc: layoutDocSchema,
+  captured_at: z.string().min(1),
+})
+
+export type LayoutDoc = z.infer<typeof layoutDocSchema>
+export type CityLayout = z.infer<typeof cityLayoutSchema>
+export type LayoutSaved = z.infer<typeof layoutSavedSchema>
+
 export const assetsLockPinSchema = z.object({
   source_path: z.string().min(1),
   sha256: z.string().length(64),

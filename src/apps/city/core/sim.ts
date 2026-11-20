@@ -24,6 +24,8 @@ import {
   type RoleId,
 } from './ecosystem'
 import { BUILDING_POS, PLOTS, HOUSES, buildingDoor, plotDoor, findPath, type Vec2 } from './layout'
+import { pathOn, type RoadGraph } from '@/lib/scene3d/roads'
+import { applyDocument, derivedRoadGraph, type LayoutOverride } from './layoutEdit'
 import { bus, makeEvent, type CityEvent } from './events'
 import { defaultPrng, type Prng } from './prng'
 
@@ -108,6 +110,10 @@ export interface Building {
   /** The served tool count (R025 building-height channel), before the SIM_TOOLS fallback. */
   toolCount: number
   door: Vec2 | null
+  /** Quarter-turn rotation in degrees (R032); 0 for the derived layout. */
+  rot: number
+  /** The plot the derived layout places this building on (R032); null for core landmarks. */
+  derivedPlot: number | null
 }
 
 class Character {
@@ -124,6 +130,8 @@ class Character {
   task: Task | null = null
   path: number[][] = []
   pathPos = 0
+  /** The walk's destination point (R032 re-route); null when not walking. */
+  target: Vec2 | null = null
   walkPhase: number
   facing = 0
   home: Vec2
@@ -159,8 +167,24 @@ class Character {
     this.pos = { x, z }
   }
 
+  /**
+   * The walk's waypoints (R032): the live road graph routes the walk when it
+   * exists; a route the graph cannot provide keeps the derived grid, and a
+   * walk without either end stays where it was aimed (a refused layout edit
+   * never strands a character on the old route).
+   */
+  worldPath(toX: number, toZ: number): number[][] {
+    const graph = world.roadGraph
+    if (graph) {
+      const live = pathOn(graph, this.pos.x, this.pos.z, toX, toZ)
+      if (live) return live
+    }
+    return findPath(this.pos.x, this.pos.z, toX, toZ)
+  }
+
   go(toX: number, toZ: number, arriveHook: (() => void) | null, mood?: string): void {
-    this.path = findPath(this.pos.x, this.pos.z, toX, toZ)
+    this.target = { x: toX, z: toZ }
+    this.path = this.worldPath(toX, toZ)
     this.pathPos = 0
     this.arriveHook = arriveHook
     if (mood) this.mood = mood
@@ -234,6 +258,15 @@ export const world = {
    * surfaced as a queued event at init — never silently dropped.
    */
   overflow: [] as ConnectorDef[],
+  /**
+   * The live road graph (R032): the derived grid at boot, the overrides'
+   * graph after a saved layout edit; null before the sim initializes.
+   */
+  roadGraph: null as RoadGraph | null,
+  /** District style overrides: domain → archetype (R032); empty when derived. */
+  districtStyles: {} as Record<string, string>,
+  /** The stored layout override document applied to this world (R032). */
+  layoutDoc: null as LayoutOverride | null,
   initialized: false,
 }
 
@@ -363,6 +396,8 @@ function makeBuilding(def: CoreDef | ConnectorDef, category: 'core' | 'connector
     // Core doors project from the landmark footprint; connector doors are
     // set by placeConnector from the plot they sit on.
     door: category === 'core' ? buildingDoor(def.id) : null,
+    rot: 0,
+    derivedPlot: null,
   }
 }
 
@@ -370,6 +405,9 @@ function makeBuilding(def: CoreDef | ConnectorDef, category: 'core' | 'connector
 function placeConnector(def: ConnectorDef, plot: Plot, prebuilt: boolean): void {
   const b = makeBuilding(def, 'connector', plot)
   b.door = plotDoor(plot)
+  // The derived layout's own placement (R032): restoring the derived city
+  // puts the building back exactly here.
+  b.derivedPlot = world.plots.indexOf(plot)
   world.buildings[def.id] = b
   plot.buildingId = def.id
   if (!prebuilt) {
@@ -431,6 +469,12 @@ export function initSim(connectors: ConnectorDef[]): void {
     bus.emit(makeEvent('character.spawned', { character: ch.id }, `${ch.name} joins the city`))
   })
 
+  // The derived road graph (R032): characters walk it, and a saved layout
+  // edit replaces it with the overrides' graph.
+  world.roadGraph = derivedRoadGraph()
+  world.districtStyles = {}
+  world.layoutDoc = null
+
   world.initialized = true
 }
 
@@ -456,6 +500,48 @@ function completeConstruction(plot: Plot): void {
   world.firstVisit = { buildingId: b.id, age: 0 }
   bus.emit(makeEvent('building.completed', { building: b.id }, `${b.name} is open for business`))
   bus.emit(makeEvent('connector.joined', { building: b.id }, `${b.id} connected through the fleet boundary`))
+}
+
+// ---- Layout edits (R032) -----------------------------------------------------
+
+/**
+ * Re-path every character that is walking toward a point the new road graph
+ * routes differently (R032): the walk resumes from the character's position
+ * on the live graph. A route the graph cannot provide keeps the character's
+ * current path — a refused or partial edit never strands anyone.
+ */
+export function rerouteCharacters(): void {
+  for (const ch of world.characters) {
+    if (ch.state !== 'traveling' || !ch.target) continue
+    const live = world.roadGraph ? pathOn(world.roadGraph, ch.pos.x, ch.pos.z, ch.target.x, ch.target.z) : null
+    if (live) {
+      ch.path = live
+      ch.pathPos = 0
+    }
+  }
+}
+
+/**
+ * Apply a stored layout document to the live city (R032): the world state
+ * moves to the document's final state, the road graph re-derives with the
+ * overrides, and every character bound to a moved building re-joins its new
+ * door — a walker re-paths from where it stands, a character queued at the
+ * old door steps onto the new one. Idempotent for an already-applied doc.
+ */
+export function applyLayoutEdit(doc: LayoutOverride): void {
+  const moved = new Set(doc.moves.map((m) => m.buildingId))
+  applyDocument(world, doc)
+  for (const ch of world.characters) {
+    if (!ch.task || !moved.has(ch.task.buildingId)) continue
+    const b = world.buildings[ch.task.buildingId]
+    if (!b.door) continue
+    if (ch.state === 'traveling') {
+      ch.go(b.door.x, b.door.z, ch.arriveHook)
+    } else {
+      ch.setPos(b.door.x, b.door.z)
+    }
+  }
+  rerouteCharacters()
 }
 
 // ---- Tasks -----------------------------------------------------------------
@@ -1105,6 +1191,9 @@ export function resetSim(): void {
   world.firstVisit = null
   world.connectors = []
   world.overflow = []
+  world.roadGraph = null
+  world.districtStyles = {}
+  world.layoutDoc = null
   world.initialized = false
   autoTaskTimer = 5
   taskSeq = 0

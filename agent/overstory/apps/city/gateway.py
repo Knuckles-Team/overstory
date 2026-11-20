@@ -81,6 +81,35 @@ FAN_OUT_CONCURRENCY = 8
 #: (the pack shows no served tools) instead of holding the whole read.
 TOOL_READ_TIMEOUT_S = 5.0
 
+#: How long a normalized layout read is trusted (the layout is edited by
+#: operators, so a viewer boots on a read up to this old; the age is
+#: reported, never hidden).
+LAYOUT_TTL_S = 30.0
+
+#: The served layout operations (the city-layout row of the arbora
+#: fleet-catalog spec, spec-only in arbora main until its delivery).
+LAYOUT_READ_OP = 'fleet.layout.overrides.read'
+LAYOUT_WRITE_OP = 'fleet.layout.overrides.write'
+
+#: A single layout write is bounded; past this it counts as unavailable
+#: (the edit is not saved and nothing changes locally).
+LAYOUT_WRITE_TIMEOUT_S = 10.0
+
+#: The layout document's bounds (the browser-side Zod twin carries the same
+#: numbers): the operator-facing wording for each refused entry is the
+#: city's, never a coerced value.
+_LAYOUT_VERSION = 1
+_LAYOUT_ROTATIONS = frozenset({0, 90, 180, 270})
+_LAYOUT_ARCHETYPES = frozenset(
+    {'gateway', 'datahall', 'workshop', 'storehouse', 'studio', 'docks'}
+)
+_LAYOUT_MOVES_LIMIT = 200
+_LAYOUT_ROADS_LIMIT = 400
+_LAYOUT_STYLES_LIMIT = 20
+_LAYOUT_ID_LIMIT = 200
+_LAYOUT_DOMAIN_LIMIT = 50
+_LAYOUT_PLOT_LIMIT = 1024
+
 #: Cache keys for calls with no verified actor bound (tests, or a host
 #: without session enforcement). A verified caller can never share a
 #: cache entry with another caller, or with an unverified one.
@@ -145,6 +174,166 @@ def _next_cursor(value: Any) -> str | None:
     return None
 
 
+def normalize_layout_doc(value: Any) -> dict[str, Any] | None:
+    """The strict whitelist shape of one stored layout document (R032).
+
+    The wire document is snake_case; the browser shape is camelCase. The
+    version must be 1 — the only document version the city reads — and an
+    unsound document is ``None`` (the route answers the stated 503), never
+    a partial one. Entries outside the whitelist (a rotation that is not a
+    quarter turn, a plot past the bound, extra fields) are dropped, not
+    coerced: the city would rather lose one override than apply a made-up
+    one.
+    """
+
+    if not isinstance(value, Mapping):
+        return None
+    if value.get('version') != _LAYOUT_VERSION:
+        return None
+    moves: list[dict[str, Any]] = []
+    moves_in = value.get('moves')
+    for entry in moves_in if isinstance(moves_in, list) else []:
+        if not isinstance(entry, Mapping) or set(entry) != {
+            'building_id',
+            'plot',
+            'rotation',
+        }:
+            continue
+        building_id = entry['building_id']
+        plot = entry['plot']
+        rotation = entry['rotation']
+        if (
+            not isinstance(building_id, str)
+            or not building_id
+            or len(building_id) > _LAYOUT_ID_LIMIT
+        ):
+            continue
+        if (
+            isinstance(plot, bool)
+            or not isinstance(plot, int)
+            or not 0 <= plot < _LAYOUT_PLOT_LIMIT
+        ):
+            continue
+        if rotation not in _LAYOUT_ROTATIONS:
+            continue
+        moves.append({'buildingId': building_id, 'plot': plot, 'rotation': rotation})
+        if len(moves) >= _LAYOUT_MOVES_LIMIT:
+            break
+    roads: list[dict[str, Any]] = []
+    roads_in = value.get('roads')
+    for entry in roads_in if isinstance(roads_in, list) else []:
+        if not isinstance(entry, Mapping):
+            continue
+        kind = entry.get('kind')
+        segment_id = entry.get('segment_id')
+        if kind not in ('add', 'remove'):
+            continue
+        if (
+            not isinstance(segment_id, str)
+            or not segment_id
+            or len(segment_id) > _LAYOUT_ID_LIMIT
+        ):
+            continue
+        if kind == 'add':
+            wanted = {'kind', 'segment_id', 'from', 'to'}
+            from_ = entry.get('from')
+            to_ = entry.get('to')
+            if (
+                set(entry) != wanted
+                or not isinstance(from_, str)
+                or not from_
+                or len(from_) > _LAYOUT_ID_LIMIT
+                or not isinstance(to_, str)
+                or not to_
+                or len(to_) > _LAYOUT_ID_LIMIT
+            ):
+                continue
+            roads.append(
+                {'kind': kind, 'segmentId': segment_id, 'from': from_, 'to': to_}
+            )
+        else:
+            if set(entry) != {'kind', 'segment_id'}:
+                continue
+            roads.append({'kind': kind, 'segmentId': segment_id})
+        if len(roads) >= _LAYOUT_ROADS_LIMIT:
+            break
+    styles: list[dict[str, Any]] = []
+    styles_in = value.get('styles')
+    for entry in styles_in if isinstance(styles_in, list) else []:
+        if not isinstance(entry, Mapping) or set(entry) != {'domain', 'archetype'}:
+            continue
+        domain = entry['domain']
+        archetype = entry['archetype']
+        if (
+            not isinstance(domain, str)
+            or not domain
+            or len(domain) > _LAYOUT_DOMAIN_LIMIT
+        ):
+            continue
+        if archetype not in _LAYOUT_ARCHETYPES:
+            continue
+        styles.append({'domain': domain, 'archetype': archetype})
+        if len(styles) >= _LAYOUT_STYLES_LIMIT:
+            break
+    return {
+        'version': _LAYOUT_VERSION,
+        'moves': moves,
+        'roads': roads,
+        'styles': styles,
+    }
+
+
+def _layout_doc_to_wire(doc: Mapping[str, Any]) -> dict[str, Any]:
+    """One browser (camelCase) layout document as its snake_case wire shape —
+    the inverse of :func:`normalize_layout_doc`'s key mapping."""
+
+    wire: dict[str, Any] = {'version': doc.get('version')}
+    moves: list[dict[str, Any]] = []
+    moves_in = doc.get('moves')
+    for m in moves_in if isinstance(moves_in, list) else []:
+        if isinstance(m, Mapping):
+            moves.append(
+                {
+                    'building_id': m.get('buildingId'),
+                    'plot': m.get('plot'),
+                    'rotation': m.get('rotation'),
+                }
+            )
+    wire['moves'] = moves
+    roads: list[dict[str, Any]] = []
+    roads_in = doc.get('roads')
+    for r in roads_in if isinstance(roads_in, list) else []:
+        if not isinstance(r, Mapping):
+            continue
+        entry: dict[str, Any] = {
+            'kind': r.get('kind'),
+            'segment_id': r.get('segmentId'),
+        }
+        if r.get('from') is not None:
+            entry['from'] = r.get('from')
+        if r.get('to') is not None:
+            entry['to'] = r.get('to')
+        roads.append(entry)
+    wire['roads'] = roads
+    styles: list[dict[str, Any]] = []
+    styles_in = doc.get('styles')
+    for s in styles_in if isinstance(styles_in, list) else []:
+        if isinstance(s, Mapping):
+            styles.append({'domain': s.get('domain'), 'archetype': s.get('archetype')})
+    wire['styles'] = styles
+    return wire
+
+
+@dataclass(frozen=True)
+class LayoutRead:
+    """One normalized, whitelisted layout document read (R032): the stored
+    camelCase document with its capture stamp and reported age."""
+
+    doc: dict[str, Any]
+    captured_at: str
+    age_seconds: float = 0.0
+
+
 def _classified(error: Exception) -> Exception:
     """A typed Arbora refusal keeps its own code; anything else is an
     unavailable catalog, whose cause is never echoed to the browser."""
@@ -187,6 +376,8 @@ class CityGateway:
         concurrency: int = FAN_OUT_CONCURRENCY,
         tool_read_timeout_s: float = TOOL_READ_TIMEOUT_S,
         fresh_read_deadline_s: float = FRESH_READ_DEADLINE_S,
+        layout_ttl_s: float = LAYOUT_TTL_S,
+        layout_write_timeout_s: float = LAYOUT_WRITE_TIMEOUT_S,
     ) -> None:
         self._invoke = invoke
         self._cache_ttl_s = cache_ttl_s
@@ -194,8 +385,12 @@ class CityGateway:
         self._concurrency = max(1, concurrency)
         self._tool_read_timeout_s = tool_read_timeout_s
         self._fresh_read_deadline_s = fresh_read_deadline_s
+        self._layout_ttl_s = layout_ttl_s
+        self._layout_write_timeout_s = layout_write_timeout_s
         self._cache: dict[tuple[str, str], tuple[FleetRead, float]] = {}
         self._inflight: dict[tuple[str, str], asyncio.Task[FleetRead]] = {}
+        self._layout_cache: dict[tuple[str, str], tuple[LayoutRead, float]] = {}
+        self._layout_inflight: dict[tuple[str, str], asyncio.Task[LayoutRead]] = {}
         self._fan_out_lock: asyncio.Semaphore | None = None
 
     async def fleet(
@@ -240,6 +435,93 @@ class CityGateway:
                 task.exception()
 
         return done
+
+    async def layout(
+        self, principal: str | None = None, tenant: str | None = None
+    ) -> LayoutRead:
+        """One normalized layout read for the caller, cached for the layout
+        TTL; concurrent cold boots share one in-flight read (the same
+        single-flight pattern as the fleet read). A missing or unsound
+        document is the stated :class:`CityUnavailable` (the route answers
+        503 and the viewer boots the derived layout); a typed Arbora
+        refusal passes through with its own code."""
+
+        key = _cache_key(principal, tenant)
+        cached = self._layout_cache.get(key)
+        if cached is not None and self._clock() - cached[1] < self._layout_ttl_s:
+            read, captured_at = cached
+            return replace(
+                read,
+                age_seconds=max(0.0, self._clock() - captured_at),
+            )
+        task = self._layout_inflight.get(key)
+        if task is None:
+            task = asyncio.create_task(self._fresh_layout_read())
+            self._layout_inflight[key] = task
+
+            def done(t: asyncio.Task[LayoutRead], k: tuple[str, str] = key) -> None:
+                if self._layout_inflight.get(k) is t:
+                    self._layout_inflight.pop(k, None)
+                if not t.cancelled():
+                    t.exception()
+
+            task.add_done_callback(done)
+        read = await asyncio.shield(task)
+        self._layout_cache[key] = (read, self._clock())
+        return read
+
+    async def _fresh_layout_read(self) -> LayoutRead:
+        """One fresh layout read through the served operation; the echo is
+        normalized strictly (an unsound document is unavailable, never
+        partially applied). A typed Arbora refusal passes through with its
+        own code; anything else is the stated layout absence."""
+
+        try:
+            value = await self._value(LAYOUT_READ_OP, {})
+        except CityUnavailable:
+            raise CityUnavailable('The served layout is not available') from None
+        doc = normalize_layout_doc(value)
+        if doc is None:
+            raise CityUnavailable('The served layout is not available')
+        captured_at = datetime.fromtimestamp(self._clock(), tz=UTC).isoformat(
+            timespec='seconds'
+        )
+        return LayoutRead(doc=doc, captured_at=captured_at)
+
+    async def save_layout(self, doc: Mapping[str, Any]) -> LayoutRead:
+        """Persist one layout document through the served write operation.
+
+        The browser's camelCase document goes out as its snake_case wire
+        shape; the echo is normalized strictly — an unacknowledged write is
+        the stated :class:`CityUnavailable` (the edit is not saved and
+        nothing changes), and a typed Arbora refusal passes through with
+        its own code. A successful write clears every layout cache entry:
+        no viewer may keep serving the pre-edit city."""
+
+        try:
+            value = await asyncio.wait_for(
+                self._invoke(LAYOUT_WRITE_OP, {'doc': _layout_doc_to_wire(doc)}),
+                timeout=self._layout_write_timeout_s,
+            )
+        except TimeoutError as error:
+            raise CityUnavailable('The layout write exceeded its deadline') from error
+        except HTTPException as error:
+            # A typed Arbora refusal keeps its own code (the route passes it through).
+            if error.status_code in (501, 503):
+                raise CityUnavailable('The layout write is not available') from error
+            raise error from error
+        except Exception as error:
+            raise CityUnavailable('The layout write is not available') from error
+        stored = normalize_layout_doc(value)
+        if stored is None:
+            raise CityUnavailable(
+                'The layout write did not acknowledge the stored document'
+            )
+        self._layout_cache.clear()
+        captured_at = datetime.fromtimestamp(self._clock(), tz=UTC).isoformat(
+            timespec='seconds'
+        )
+        return LayoutRead(doc=stored, captured_at=captured_at)
 
     async def _fresh_read(self) -> FleetRead:
         """One fresh read: the catalog pages, then the bounded per-pack

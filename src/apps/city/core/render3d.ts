@@ -11,6 +11,7 @@
 import * as THREE from 'three'
 import { GLTFLoader, type GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { zoomBandFor } from '@/lib/scene3d/labels'
+import type { RoadGraph } from '@/lib/scene3d/roads'
 import { pinnedBytes } from './assets'
 import type { world as simWorld } from './sim'
 import { createCityScene } from './render3d/scene'
@@ -170,5 +171,9 @@ export async function init3D(
       picking.setSelected(hit)
     },
     resync,
+    setRoads: (graph: RoadGraph) => {
+      if (disposed) return
+      sceneCore.roads.rebuild(graph)
+    },
   }
 }

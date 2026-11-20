@@ -457,6 +457,62 @@ with an empty WebMCP set.
   city reuses; the global `overstory.navigate`/`get-page-context`
   page tools already cover app-level navigation.
 
+#### 2026-11-20: Layout editing (R032) — the city as an editable document
+
+The re-review bar's layout bar (plan 2026-11-18) lands as a single
+stored document with one validation seam and a round-trip proof, not as
+per-edit imperative state:
+
+- **The document:** the stored layout is the **final-state delta** over
+  the derived layout — `{version: 1, moves: [{buildingId, plot,
+  rotation}], roads: [{kind: add|remove, segmentId, from?, to?}],
+  styles: [{domain, archetype}]}`. An empty document restores the
+  derived city exactly; only connector buildings are movable; rotations
+  are quarter turns. The browser (camelCase Zod) and the host
+  (camelCase Pydantic) carry the same bounds; the wire between host and
+  arbora is snake_case, normalized strictly at the host — entries
+  outside the whitelist are dropped, never coerced, and a document
+  whose version is not 1 is refused whole.
+- **One validator:** `validateEdit` (one edit against the live world and
+  road graph) and `validateDocument` (the whole document, as a second
+  viewer boots it) share the refusal vocabulary: unknown plot or
+  segment, occupied/reserved/under-construction plot, invalid rotation,
+  a road that overlaps an existing segment, and a road removal that
+  would disconnect the graph. Refusals are operator-worded (the edit
+  panel and the WebMCP surface (R034) say the same thing the UI says).
+- **Render:** the 3D road layer is one merged geometry over the one
+  shared trim-sheet road material plus one instanced crosswalk mesh
+  (a zebra band per road arm at every node), created by the shared
+  pipeline the 2D schematic and the 3D scene both read; `setRoads`
+  redraws the layer for the overrides' graph after a saved edit.
+  Buildings ease to a moved plot and quarter-turn over 0.9 s
+  (shortest rotation path, door mat re-anchored per frame); a saved
+  district style rebuilds the district's connector kits from the new
+  archetype (the old geometry is freed, not orphaned).
+- **Re-routing:** characters walk the live road graph (the shared
+  `pathOn` — nearest-node snap, BFS route, collinear collapse, falling
+  back to the derived grid route when the graph cannot provide one); a
+  saved edit re-paths every walking character from where it stands and
+  re-joins a moved building's door, so a refused or partial edit never
+  strands anyone. The replay driver boots from the same stored
+  document, so the scrubber replays the city as it was edited.
+- **The gateway seam:** edits are never browser-local. The host
+  validates, then persists through the served operations
+  `fleet.layout.overrides.read` / `fleet.layout.overrides.write`
+  (single-flight, cached 30 s, write invalidates every viewer's cache);
+  the served ops are spec-only in arbora main until its delivery (the
+  ARBORA-FLEET-R084 follow-on), so until then the routes answer a
+  stated 503 and the city runs its derived layout — the edit UX is
+  honest about that, it does not fake a save.
+- **The bound test:** `layout-edit.test.ts::override_round_trip` boots
+  two fresh worlds on the same fleet snapshot, applies one stored
+  document (a move, a drawn diagonal road, a district style) to each,
+  and asserts the serialized layouts are identical — plus the refusal
+  cases, the exact derived-restore, and the re-route/re-join behaviour.
+  The host side is proven by `test_city_layout.py` (write persists, a
+  second viewer reads the same city, cache semantics, stated 503s,
+  typed-refusal pass-through, strict normalization, 422s).
+
 ### Rejected alternatives
 
 - **Server-side rendered frames (WebRTC/WebGPU stream):** server GPU cost

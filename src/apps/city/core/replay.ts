@@ -19,7 +19,9 @@
 import { FLEET_SNAPSHOT, fleetToConnectors, type FleetServer } from './ecosystem'
 import { bus, setReplaying, setTimeSource, type CityEvent } from './events'
 import { DEFAULT_SEED, mulberry32 } from './prng'
+import type { LayoutOverride } from './layoutEdit'
 import {
+  applyLayoutEdit,
   dispatchTask,
   initSim,
   onboardConnector,
@@ -48,6 +50,12 @@ export interface ReplayOptions {
    * a LIVE city replays its served catalog, never the snapshot (R029).
    */
   fleet?: FleetServer[]
+  /**
+   * The stored layout override document the live city applied (R032): the
+   * replayed world is the same city — moves, roads and styles included — so
+   * the replayed window is laid out exactly as the operator left it.
+   */
+  layout?: LayoutOverride
 }
 
 export interface ReplayResult {
@@ -86,6 +94,9 @@ export function replayRun(actions: RecordedAction[], opts: ReplayOptions = {}): 
   setReplaying(true)
   try {
     initSim(fleetToConnectors(opts.fleet ?? FLEET_SNAPSHOT))
+    // The same city the operator sees (R032): the replayed world applies the
+    // stored layout document over its derived placement before the first tick.
+    if (opts.layout) applyLayoutEdit(opts.layout)
     const due = [...actions].sort((a, b) => a.ts - b.ts)
     let ai = 0
     const target = world.absGameS + duration

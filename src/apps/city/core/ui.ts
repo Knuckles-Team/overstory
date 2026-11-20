@@ -18,6 +18,9 @@ import { ROLE_LABELS } from './ecosystem'
 import { isNight } from './sim'
 import type { world as simWorld } from './sim'
 import type { CityActions, CityRenderer, CityUiElements, SelectionHit } from './types'
+import { DISTRICT_DOMAINS } from './layout'
+import { ARCHETYPES, REFUSAL_TEXT, ROTATIONS, type LayoutEdit, type Rotation } from './layoutEdit'
+import type { DistrictArchetype } from '@/lib/scene3d/generators'
 
 type World = typeof simWorld
 
@@ -42,6 +45,7 @@ const TYPE_COLORS: Record<string, string> = {
   'construction.progress': '#c7a24a',
   'building.completed': '#3ddc84',
   'operator.dispatched': '#ffd166',
+  'layout.edited': '#5ec8d8',
   'character.spawned': '#8a94a8',
   'character.sleeping': '#4a5568',
   'character.waking': '#ffd166',
@@ -434,6 +438,9 @@ export function initUI(world: World, renderer: CityRenderer, actions: CityAction
       els.banner.classList.toggle('hidden', evt.mode !== 'simulated')
       updateTopBar()
     }
+    // R032: a saved layout edit re-renders the open edit panel — the free
+    // plots, the segment list and the rotations all moved with the city.
+    if (evt.type === 'layout.edited' && editOpen) renderEditPanel()
     if (evt.character && evt.type in BUBBLE_EVENTS) {
       const text = BUBBLE_EVENTS[evt.type](evt)
       if (text) rendererRef.say(evt.character, text.slice(0, 24))
@@ -478,6 +485,198 @@ export function initUI(world: World, renderer: CityRenderer, actions: CityAction
   // R030: the tour can be re-opened from the control bar.
   els.btnTour.addEventListener('click', () => {
     actions.startTour()
+  })
+
+  // ---- Layout edit mode (R032) -------------------------------------------------
+  // The panel composes one edit at a time over the live world: a building
+  // move or rotation onto a free plot, a road drawn or removed between two
+  // known intersections, a district style, or the restore of the derived
+  // layout. Every submit rides the same action seam as the rest of the UI;
+  // a refused or unavailable edit leaves the city unchanged and surfaces
+  // the operator-facing reason in place.
+  let editOpen = false
+  let editBusy = false
+  const editSel: Record<string, string> = {
+    building: '',
+    plot: '',
+    rotation: '0',
+    roadFrom: '',
+    roadTo: '',
+    removeSegment: '',
+    domain: DISTRICT_DOMAINS[0] ?? '',
+    archetype: 'workshop',
+  }
+
+  function renderEditPanel(): void {
+    if (!editOpen) return
+    const connectors = Object.values(world.buildings)
+      .filter((b) => b.category === 'connector')
+      .sort((a, b) => a.name.localeCompare(b.name))
+    const freePlots = world.plots
+      .map((p, i) => ({ p, i }))
+      .filter(({ p }) => !p.buildingId && !p.reservedId && !p.construction)
+    const graph = world.roadGraph
+    const nodes = graph ? Object.values(graph.nodes).sort((a, b) => a.id.localeCompare(b.id)) : []
+    const segments = graph ? Object.values(graph.segments).sort((a, b) => a.id.localeCompare(b.id)) : []
+    const plotLabel = (i: number, p: (typeof world.plots)[number]): string => `Plot ${i} — (${p.x}, ${p.z})`
+    els.editPanel.innerHTML = `
+      <div class="edit-head"><h3>Layout edits</h3><button id="city-edit-close" class="ghost" type="button">Close</button></div>
+      <div class="edit-sec">
+        <label class="kv"><span>Building</span></label>
+        <select data-edit="building" aria-label="Building to move">
+          ${connectors.map((b) => `<option value="${escapeHtml(b.id)}" ${b.id === editSel.building ? 'selected' : ''}>${escapeHtml(b.name)}</option>`).join('')}
+        </select>
+        <label class="kv"><span>Free plot</span></label>
+        <select data-edit="plot" aria-label="Target plot">
+          ${freePlots.map(({ p, i }) => `<option value="${i}" ${String(i) === editSel.plot ? 'selected' : ''}>${plotLabel(i, p)}</option>`).join('')}
+        </select>
+        <label class="kv"><span>Rotation</span></label>
+        <select data-edit="rotation" aria-label="Quarter-turn rotation">
+          ${ROTATIONS.map((r) => `<option value="${r}" ${String(r) === editSel.rotation ? 'selected' : ''}>${r}°</option>`).join('')}
+        </select>
+        <div class="edit-actions">
+          <button data-edit-action="move" type="button">Move to plot</button>
+          <button data-edit-action="rotate" type="button">Rotate</button>
+        </div>
+      </div>
+      <div class="edit-sec">
+        <label class="kv"><span>Road from</span></label>
+        <select data-edit="roadFrom" aria-label="Road start intersection">
+          ${nodes.map((n) => `<option value="${escapeHtml(n.id)}" ${n.id === editSel.roadFrom ? 'selected' : ''}>${escapeHtml(n.id)} — (${n.x}, ${n.z})</option>`).join('')}
+        </select>
+        <label class="kv"><span>Road to</span></label>
+        <select data-edit="roadTo" aria-label="Road end intersection">
+          ${nodes.map((n) => `<option value="${escapeHtml(n.id)}" ${n.id === editSel.roadTo ? 'selected' : ''}>${escapeHtml(n.id)} — (${n.x}, ${n.z})</option>`).join('')}
+        </select>
+        <div class="edit-actions">
+          <button data-edit-action="draw-road" type="button">Draw road</button>
+        </div>
+        <label class="kv"><span>Existing segment</span></label>
+        <select data-edit="removeSegment" aria-label="Segment to remove">
+          ${segments.map((s) => `<option value="${escapeHtml(s.id)}" ${s.id === editSel.removeSegment ? 'selected' : ''}>${escapeHtml(s.id)} — ${escapeHtml(s.from)} → ${escapeHtml(s.to)}</option>`).join('')}
+        </select>
+        <div class="edit-actions">
+          <button data-edit-action="remove-road" type="button">Remove segment</button>
+        </div>
+      </div>
+      <div class="edit-sec">
+        <label class="kv"><span>District</span></label>
+        <select data-edit="domain" aria-label="District domain">
+          ${DISTRICT_DOMAINS.map((d) => `<option value="${escapeHtml(d)}" ${d === editSel.domain ? 'selected' : ''}>${escapeHtml(d)}</option>`).join('')}
+        </select>
+        <label class="kv"><span>Style</span></label>
+        <select data-edit="archetype" aria-label="District archetype">
+          ${ARCHETYPES.map((a) => `<option value="${a}" ${a === editSel.archetype ? 'selected' : ''}>${a}</option>`).join('')}
+        </select>
+        <div class="edit-actions">
+          <button data-edit-action="set-style" type="button">Set district style</button>
+        </div>
+      </div>
+      <div class="edit-foot">
+        <button data-edit-action="reset" type="button">Restore derived layout</button>
+        <p class="edit-msg" role="status" aria-live="polite"></p>
+      </div>`
+    const close = els.editPanel.querySelector<HTMLButtonElement>('#city-edit-close')
+    if (close) close.focus()
+  }
+
+  function closeEdit(): void {
+    if (!editOpen) return
+    editOpen = false
+    els.btnEdit.setAttribute('aria-expanded', 'false')
+    els.editPanel.classList.add('hidden')
+    els.editPanel.innerHTML = ''
+    document.removeEventListener('keydown', onEditKey)
+    els.btnEdit.focus()
+  }
+
+  function openEdit(): void {
+    editOpen = true
+    els.btnEdit.setAttribute('aria-expanded', 'true')
+    els.editPanel.classList.remove('hidden')
+    document.addEventListener('keydown', onEditKey)
+    renderEditPanel()
+  }
+
+  function onEditKey(e: KeyboardEvent): void {
+    if (e.key === 'Escape') closeEdit()
+  }
+
+  els.btnEdit.addEventListener('click', () => {
+    if (editOpen) closeEdit()
+    else openEdit()
+  })
+
+  async function submitEdit(edit: LayoutEdit): Promise<void> {
+    if (editBusy) return
+    editBusy = true
+    const msg = els.editPanel.querySelector<HTMLElement>('.edit-msg')
+    if (msg) msg.textContent = 'Saving…'
+    const res = await actions.layoutEdit(edit)
+    editBusy = false
+    if (msg) msg.textContent = res.ok ? 'Saved — the city moved.' : (REFUSAL_TEXT[res.reason ?? ''] ?? 'Refused.')
+    renderEditPanel()
+  }
+
+  // One delegated listener per handle (the panel content is re-rendered on
+  // every submit and on layout.edited, so the listeners live on the stable
+  // container, not the rebuilt options).
+  els.editPanel.addEventListener('change', (e) => {
+    const t = e.target
+    if (t instanceof HTMLSelectElement && t.dataset.edit) editSel[t.dataset.edit] = t.value
+  })
+  els.editPanel.addEventListener('click', (e) => {
+    const t = e.target
+    if (!(t instanceof HTMLElement)) return
+    if (t.id === 'city-edit-close') {
+      closeEdit()
+      return
+    }
+    const action = t.dataset.editAction
+    if (!action || editBusy) return
+    switch (action) {
+      case 'move': {
+        if (!editSel.building || editSel.plot === '') return
+        void submitEdit({
+          kind: 'move-building',
+          buildingId: editSel.building,
+          plot: Number(editSel.plot),
+          rotation: Number(editSel.rotation) as Rotation,
+        })
+        break
+      }
+      case 'rotate': {
+        if (!editSel.building) return
+        void submitEdit({
+          kind: 'rotate-building',
+          buildingId: editSel.building,
+          rotation: Number(editSel.rotation) as Rotation,
+        })
+        break
+      }
+      case 'draw-road': {
+        if (!editSel.roadFrom || !editSel.roadTo || editSel.roadFrom === editSel.roadTo) return
+        void submitEdit({ kind: 'add-road', from: editSel.roadFrom, to: editSel.roadTo })
+        break
+      }
+      case 'remove-road': {
+        if (!editSel.removeSegment) return
+        void submitEdit({ kind: 'remove-road', segmentId: editSel.removeSegment })
+        break
+      }
+      case 'set-style': {
+        if (!editSel.domain) return
+        void submitEdit({
+          kind: 'district-style',
+          domain: editSel.domain,
+          archetype: editSel.archetype as DistrictArchetype,
+        })
+        break
+      }
+      case 'reset':
+        void submitEdit({ kind: 'reset' })
+        break
+    }
   })
 
   // ---- Modal (R027: keyboard reachable) ---------------------------------------------

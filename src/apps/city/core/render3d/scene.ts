@@ -32,19 +32,20 @@ import {
 } from '@/lib/scene3d/pipeline'
 import { buildingAsset, mulberry32, propAsset } from '@/lib/scene3d/generators'
 import { SCENE_COLORS } from '@/lib/scene3d/palette'
-import { GROUND_SIZE, HOUSES, PARKS, PIER, ROAD_W, SHIPS, WATER_Z, X_ROADS, Z_ROADS } from '../layout'
+import { GROUND_SIZE, HOUSES, PARKS, PIER, SHIPS, WATER_Z, X_ROADS, Z_ROADS } from '../layout'
 import type { world as SimWorld } from '../sim'
+import { derivedRoadGraph } from '../layoutEdit'
+import type { RoadGraph } from '@/lib/scene3d/roads'
+import { createRoads, type RoadsApi } from './roads'
 import {
   litWindowSheet,
   metalTexture,
   parkTexture,
-  roadRunUVs,
   skyDayTexture,
   skyNightTexture,
   trimSheetTexture,
   waterTexture,
   woodTexture,
-  zebraTexture,
 } from './trimSheet'
 
 export type World = typeof SimWorld
@@ -77,6 +78,8 @@ export interface CityScene {
   controls: OrbitControls
   /** The shared pipeline the render loop drives (tiers, sun, composer). */
   pipeline: ScenePipeline
+  /** The road layer (R032): rebuilds for the saved layout edit's graph. */
+  roads: RoadsApi
   /** Day/night + ambient animation for one frame. */
   updateEnvironment(timeAcc: number): void
   /** True once the WebGL context was lost — the page has fallen back to 2D. */
@@ -95,6 +98,8 @@ export interface CityCore {
   ships: THREE.Group[]
   /** The ship bob phases, one per ship. */
   shipPhases: number[]
+  /** The road layer (R032): rebuilds for a new road graph, disposes with the scene. */
+  roads: RoadsApi
 }
 
 /** Deterministic per-park seed (R014): the scene core never calls Math.random. */
@@ -116,7 +121,7 @@ function parkSeed(x: number, z: number): number {
  * test (R028) measures its real triangles, draw calls and texture memory
  * with a bare `THREE.Scene` — no WebGL renderer required.
  */
-export function buildCityCore(scene: THREE.Scene): CityCore {
+export function buildCityCore(scene: THREE.Scene, graph?: RoadGraph): CityCore {
   // The city's authored maps (R012.2): every non-marker surface in the
   // scene carries one of these — the material audit enforces it.
   const trimTex = trimSheetTexture()
@@ -124,7 +129,6 @@ export function buildCityCore(scene: THREE.Scene): CityCore {
   const waterTex = waterTexture()
   const woodTex = woodTexture()
   const metalTex = metalTexture()
-  const zebraTex = zebraTexture()
   const litSheet = litWindowSheet()
 
   // ---- Ground ----------------------------------------------------------------
@@ -136,60 +140,13 @@ export function buildCityCore(scene: THREE.Scene): CityCore {
   ground.receiveShadow = true
   scene.add(ground)
 
-  // ---- Roads (one shared trim-sheet road material) ---------------------------
-  const roadMat = new THREE.MeshStandardMaterial({ map: trimTex, roughness: 0.95 })
-  const xSpan = Z_ROADS[Z_ROADS.length - 1] - Z_ROADS[0]
-  for (const x of X_ROADS) {
-    const geo = new THREE.PlaneGeometry(ROAD_W, xSpan)
-    roadRunUVs(geo, xSpan, false) // u across the width, v along the run
-    const m = new THREE.Mesh(geo, roadMat)
-    m.rotation.x = -Math.PI / 2
-    m.position.set(x, 0.02, (Z_ROADS[0] + Z_ROADS[Z_ROADS.length - 1]) / 2)
-    m.receiveShadow = true
-    scene.add(m)
-  }
-  const zSpan = X_ROADS[X_ROADS.length - 1] - X_ROADS[0]
-  for (const z of Z_ROADS) {
-    const geo = new THREE.PlaneGeometry(zSpan, ROAD_W)
-    roadRunUVs(geo, zSpan, true) // u along the run, v across the width
-    const m = new THREE.Mesh(geo, roadMat)
-    m.rotation.x = -Math.PI / 2
-    m.position.set((X_ROADS[0] + X_ROADS[X_ROADS.length - 1]) / 2, 0.02, z)
-    m.receiveShadow = true
-    scene.add(m)
-  }
-
-  // ---- Crosswalks (one zebra band per non-edge arm, instanced) ---------------
-  const crosswalkGeo = new THREE.PlaneGeometry(ROAD_W, 3.2)
-  crosswalkGeo.rotateX(-Math.PI / 2)
-  const crosswalkMat = new THREE.MeshStandardMaterial({ map: zebraTex, roughness: 0.95 })
-  const arms: { x: number; z: number; rotY: number }[] = []
-  const OFF = 2.2 // the band's offset from the intersection centre
-  for (let xi = 0; xi < X_ROADS.length; xi++) {
-    for (let zi = 0; zi < Z_ROADS.length; zi++) {
-      const x = X_ROADS[xi]
-      const z = Z_ROADS[zi]
-      if (zi < Z_ROADS.length - 1) arms.push({ x, z: z + OFF, rotY: 0 }) // across the Z road
-      if (zi > 0) arms.push({ x, z: z - OFF, rotY: 0 })
-      if (xi < X_ROADS.length - 1) arms.push({ x: x + OFF, z, rotY: Math.PI / 2 }) // across the X road
-      if (xi > 0) arms.push({ x: x - OFF, z, rotY: Math.PI / 2 })
-    }
-  }
-  const crosswalks = new THREE.InstancedMesh(crosswalkGeo, crosswalkMat, arms.length)
-  {
-    const M = new THREE.Matrix4()
-    const q = new THREE.Quaternion()
-    const p = new THREE.Vector3()
-    const s = new THREE.Vector3(1, 1, 1)
-    arms.forEach((a, i) => {
-      q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), a.rotY)
-      p.set(a.x, 0.03, a.z)
-      M.compose(p, q, s)
-      crosswalks.setMatrixAt(i, M)
-    })
-    crosswalks.instanceMatrix.needsUpdate = true
-  }
-  scene.add(crosswalks)
+  // ---- Roads (one merged geometry + one instanced crosswalk, R032) ---------
+  // The layer owns its materials and rebuilds for a new road graph when a
+  // saved layout edit swaps the derived grid for the overrides' graph. The
+  // caller may hand in the live graph (the world's, when a stored document
+  // was applied before the renderer booted); absent it the derived grid is
+  // drawn — the tests measure the core against that default.
+  const roads = createRoads(scene, graph ?? derivedRoadGraph())
 
   // ---- Water + shore + pier + ships -------------------------------------------
   const water = new THREE.Mesh(
@@ -319,7 +276,7 @@ export function buildCityCore(scene: THREE.Scene): CityCore {
       lampGlows.push(glow)
     }
 
-  return { houseWindows, lampGlows, ships, shipPhases }
+  return { houseWindows, lampGlows, ships, shipPhases, roads }
 }
 
 /** The real post pipeline: render, SSAO, bloom, FXAA, output (R012.1). */
@@ -463,7 +420,9 @@ export function createCityScene(container: HTMLElement, world: World, opts: City
   renderer.domElement.addEventListener('webglcontextrestored', onRestored)
 
   // ---- Static city geometry (ground, roads, water, houses, parks, lamps) ----
-  const core = buildCityCore(scene)
+  // The world's live road graph (a stored layout document may already be
+  // applied at boot — the second viewer boots into the edited city, R032).
+  const core = buildCityCore(scene, world.roadGraph ?? undefined)
 
   // ---- Per-frame environment (day/night, houses, lamps, ships) --------------
   function updateEnvironment(timeAcc: number): void {
@@ -513,6 +472,9 @@ export function createCityScene(container: HTMLElement, world: World, opts: City
     disposed = true
     renderer.domElement.removeEventListener('webglcontextlost', onLost)
     renderer.domElement.removeEventListener('webglcontextrestored', onRestored)
+    // The road layer owns its meshes and materials (R032); remove it before
+    // the traversal so the traversal never disposes a mid-rebuild geometry.
+    core.roads.dispose()
     const geos = new Set<THREE.BufferGeometry>()
     const mats = new Set<THREE.Material>()
     const texs = new Set<THREE.Texture>()
@@ -556,6 +518,7 @@ export function createCityScene(container: HTMLElement, world: World, opts: City
     camera,
     controls,
     pipeline,
+    roads: core.roads,
     updateEnvironment,
     isLost: () => lost,
     onResize,

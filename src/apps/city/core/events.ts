@@ -28,6 +28,7 @@ export const EVENT_TYPES = [
   'construction.progress',
   'building.completed',
   'operator.dispatched',
+  'layout.edited',
   'asset.verified',
   'asset.failed',
   'mode.selected',

@@ -187,6 +187,47 @@ export function validateRoadEdit(graph: RoadGraph, edit: RoadEdit): EditVerdict 
  * two points snapped to the graph. Returns the node ids along the route, or
  * null when the points are disconnected (the caller keeps the last route).
  */
+/** The nearest node of the live graph to a ground point (R032 re-route). */
+export function snapToNode(graph: RoadGraph, x: number, z: number): RoadNode | null {
+  let best: RoadNode | null = null
+  let bd = Infinity
+  for (const node of Object.values(graph.nodes)) {
+    const d = (node.x - x) ** 2 + (node.z - z) ** 2
+    if (d < bd) {
+      bd = d
+      best = node
+    }
+  }
+  return best
+}
+
+/**
+ * Waypoints along the live graph between two ground points (R032): both ends
+ * snap to the nearest node and the graph's BFS route is walked; collinear
+ * waypoints collapse so a path stays as short as the derived grid's, and the
+ * destination point is appended so the walk ends exactly where it was aimed.
+ * Returns null when the ends are disconnected — the caller keeps the last
+ * route (a refused edit never strands a character).
+ */
+export function pathOn(graph: RoadGraph, fromX: number, fromZ: number, toX: number, toZ: number): number[][] | null {
+  const start = snapToNode(graph, fromX, fromZ)
+  const end = snapToNode(graph, toX, toZ)
+  if (!start || !end) return null
+  if (start.id === end.id) return [[toX, toZ]]
+  const chain = route(graph, start.id, end.id)
+  if (!chain) return null
+  const out: number[][] = []
+  for (const id of chain) {
+    if (!(id in graph.nodes)) continue
+    const node = graph.nodes[id]
+    const last = out.length ? out[out.length - 1] : null
+    if (!last || Math.hypot(last[0] - node.x, last[1] - node.z) > 0.5) out.push([node.x, node.z])
+  }
+  const tail = out.length ? out[out.length - 1] : null
+  if (!tail || Math.hypot(tail[0] - toX, tail[1] - toZ) > 0.5) out.push([toX, toZ])
+  return out
+}
+
 export function route(graph: RoadGraph, fromNodeId: string, toNodeId: string): string[] | null {
   if (!(fromNodeId in graph.nodes) || !(toNodeId in graph.nodes)) return null
   const adj = new Map<string, string[]>()
