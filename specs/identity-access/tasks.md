@@ -40,3 +40,4 @@ The parent OVERSTORY-IDENTITY-R004 remains incomplete while its installed child 
 
 - [ ] T020 OVERSTORY-IDENTITY-R008 implement and prove: Identity or tenant change invalidates cached protected data
 - [ ] T021 OVERSTORY-IDENTITY-R001 implement and prove: Release-qualification identity test client supports a live sign-in probe
+- [x] T024 OVERSTORY-IDENTITY-R003.3.3 JWKS fetching honours the configured CA bundle and reports why it failed. Touches `agent/overstory/host.py`, `agent/overstory/server.py`, `tests/test_jwks_private_ca.py`.
