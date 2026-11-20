@@ -58,16 +58,16 @@ Producer first: the fleet seam (R003) and the world producers (R002, R004, R005)
 - [x] T052 OVERSTORY-CITY-R006 Amendment: `transition()` results always honoured; a refused transition is a queued event with operator-facing wording and no state or behaviour divergence. Touches `src/apps/city/core/sim.ts`.
 - [x] T053 OVERSTORY-CITY-R007 Amendment: a dispatch on a busy target is a visible queued event, never a silent swap. Touches `src/apps/city/core/sim.ts`, `src/apps/city/core/ui.ts`.
 - [x] T054 OVERSTORY-CITY-R034 The city's operator surface is WebMCP: navigation/view, simulation control, operator actions and the layout edits register as `overstory.city.*` tools on the city page, dispatched through the same action seam as the UI; the surface declares the city page. Touches `src/apps/city/webmcp.ts` (new), `src/apps/city/surface.ts`, `src/apps/city/components/CityPage.tsx`, `src/apps/city/__tests__/webmcp.test.ts` (new).
-- [ ] T055 OVERSTORY-CITY-R035 Mapping registry: graph class to city archetype. Touches `src/apps/city/core/mapping.ts`, `src/apps/city/core/graphFacts.ts`.
-- [ ] T056 OVERSTORY-CITY-R036 Edges become roads: the road-class table. Touches `src/apps/city/core/roadClass.ts`, `src/apps/city/core/growth.ts`.
-- [ ] T057 OVERSTORY-CITY-R037 Activity becomes traffic and health signals. Touches `src/apps/city/core/traffic.ts`.
-- [ ] T058 OVERSTORY-CITY-R038 The Hall of Records growth rule. Touches `src/apps/city/core/hall.ts`.
-- [ ] T059 OVERSTORY-CITY-R039 Deterministic seeded growth. Touches `src/apps/city/core/growth.ts`.
-- [ ] T060 OVERSTORY-CITY-R040 The user edit layer: pins, regrowth, area reset. Touches `src/apps/city/core/editLayer.ts`.
-- [ ] T061 OVERSTORY-CITY-R041 Generate first: seeded terrain generator and the generation budgets. Touches `src/lib/scene3d/generators/terrain.ts`.
-- [ ] T062 OVERSTORY-CITY-R042 Zoom-layered synthesized audio. Touches `src/apps/city/core/audio.ts`, `src/apps/city/webmcp.ts`, `src/apps/city/core/ui.ts`.
-- [ ] T063 OVERSTORY-CITY-R043 Parity table: every city action has a web UI route. Touches `src/apps/city/core/parity.ts`.
-- [ ] T064 OVERSTORY-CITY-R044 Three kinds of people with honest provenance. Touches `src/apps/city/core/ecosystem.ts`.
-- [ ] T065 OVERSTORY-CITY-R045 Competency questions for the five fun pillars. Touches `src/apps/city/core/competency.ts`, `src/apps/city/core/sun.ts`.
-- [ ] T066 OVERSTORY-CITY-R046 Original identity audit. Touches `src/apps/city/__tests__/identity.test.ts`.
-- [ ] T067 OVERSTORY-CITY-R028 Load, chunk and audio budgets as a gate. Touches `src/apps/city/core/budgets.ts`, `src/apps/city/__tests__/budgets.test.ts`.
+- [x] T055 OVERSTORY-CITY-R035 Mapping registry: graph class to city archetype. Touches `src/apps/city/core/mapping.ts`, `src/apps/city/core/graphFacts.ts`.
+- [x] T056 OVERSTORY-CITY-R036 Edges become roads: the road-class table. Touches `src/apps/city/core/roadClass.ts`, `src/apps/city/core/growth.ts`.
+- [x] T057 OVERSTORY-CITY-R037 Activity becomes traffic and health signals. Touches `src/apps/city/core/traffic.ts`.
+- [x] T058 OVERSTORY-CITY-R038 The Hall of Records growth rule. Touches `src/apps/city/core/hall.ts`.
+- [x] T059 OVERSTORY-CITY-R039 Deterministic seeded growth. Touches `src/apps/city/core/growth.ts`.
+- [x] T060 OVERSTORY-CITY-R040 The user edit layer: pins, regrowth, area reset. Touches `src/apps/city/core/editLayer.ts`.
+- [x] T061 OVERSTORY-CITY-R041 Generate first: seeded terrain generator and the generation budgets. Touches `src/lib/scene3d/generators/terrain.ts`.
+- [x] T062 OVERSTORY-CITY-R042 Zoom-layered synthesized audio. Touches `src/apps/city/core/audio.ts`, `src/apps/city/webmcp.ts`, `src/apps/city/core/ui.ts`.
+- [x] T063 OVERSTORY-CITY-R043 Parity table: every city action has a web UI route. Touches `src/apps/city/core/parity.ts`.
+- [x] T064 OVERSTORY-CITY-R044 Three kinds of people with honest provenance. Touches `src/apps/city/core/ecosystem.ts`.
+- [x] T065 OVERSTORY-CITY-R045 Competency questions for the five fun pillars. Touches `src/apps/city/core/competency.ts`, `src/apps/city/core/sun.ts`.
+- [x] T066 OVERSTORY-CITY-R046 Original identity audit. Touches `src/apps/city/__tests__/identity.test.ts`.
+- [x] T067 OVERSTORY-CITY-R028 Load, chunk and audio budgets as a gate. Touches `src/apps/city/core/budgets.ts`, `src/apps/city/__tests__/budgets.test.ts`.
