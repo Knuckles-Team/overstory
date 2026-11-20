@@ -2,7 +2,7 @@
 
 This repository inherits the [organization constitution](https://github.com/Knuckles-Team/pipelines/blob/main/.specify/memory/constitution.md) version 1.6.0. Every article of that constitution applies here. This file adds only the rules and limits of this repository.
 
-**Inherits**: organization constitution v1.6.0 | **Version**: 1.0.0 | **Ratified**: 2026-10-31 | **Last amended**: 2026-10-31
+**Inherits**: organization constitution v1.6.0 | **Version**: 1.1.0 | **Ratified**: 2026-10-31 | **Last amended**: 2026-11-19
 
 ## Organization standards
 
@@ -35,6 +35,14 @@ The TypeScript sources pass the type check, lint and build before a change lands
 **Enforced by:** Pre-commit hooks `typecheck`, `lint`, `eslint-staged` and `pnpm-build`; `eslint.config.ts` and `tsconfig.json`.
 
 **Plan check:** Does the change pass the type check, lint and build?
+
+### R-IV. The full operator surface is WebMCP
+
+Every operator-facing capability of an app must be exposed as a WebMCP tool. City building, navigation and view control are no exception. The tools register on the app's own page and retire with it. They dispatch through the same action seam as the UI. A capability reachable only from the UI is incomplete.
+
+**Enforced by:** the app surface's `webmcpPageIds` declaration, the per-app bound tests (tool surface, registration, dispatch parity) and the plan check below.
+
+**Plan check:** For every new operator-facing capability, does a WebMCP tool reach it through the same dispatch as the UI?
 
 ## Repository limits
 

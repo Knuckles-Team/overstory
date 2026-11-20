@@ -432,6 +432,31 @@ characters move to **one shared humanoid rig** with role encoding:
   full clip set, and that its colour is the encoding-table colour for
   its role.
 
+#### 2026-11-19: The operator surface is WebMCP (R034) — constitution R-IV
+
+A new overstory constitution article (R-IV, amendment of
+`.specify/memory/constitution.md` to version 1.1.0) makes the
+WebMCP-parity rule repository-wide: every operator-facing capability
+of an app must be exposed as a WebMCP tool, registered on the app's
+own page, dispatching through the same action seam as the UI. The
+city is the first app that does not yet satisfy it — R001 shipped
+with an empty WebMCP set.
+
+- **The row (R034):** every operator-facing city capability registers
+  as an `overstory.city.*` tool: navigation and view (the 3D/2D
+  toggle, focus, overview, selection, the zoom ladder), simulation
+  control (speed, activity mode, scrubber/replay), operator actions
+  (dispatch, onboard) and the layout edits (R032 — building
+  the city is WebMCP-driven too), plus read context. Tools register
+  with `useWebMcpToolSet` from `CityPage`, over the same
+  `CityActions` seam the UI consumes; the surface declares the city
+  page in `webmcpPageIds`.
+- **Ordering:** R034 lands after R032's edit tools exist, because the
+  layout-edit tools dispatch through that seam. The dashboards spec
+  (OVERSTORY-DASH-R007/R015) already establishes the tool pattern the
+  city reuses; the global `overstory.navigate`/`get-page-context`
+  page tools already cover app-level navigation.
+
 ### Rejected alternatives
 
 - **Server-side rendered frames (WebRTC/WebGPU stream):** server GPU cost

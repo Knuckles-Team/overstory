@@ -266,6 +266,11 @@ Governing spec: [spec.md](spec.md).
 - OVERSTORY-CITY-R033: `src/apps/city/__tests__/ecosystem.test.ts::cast_encodes_role` (planned) —
   every character uses the shared rig and full clip set; silhouette and colour
   come from the encoding table.
+- OVERSTORY-CITY-R034: `src/apps/city/__tests__/webmcp.test.ts::city_webmcp_surface` (planned) —
+  the registered `overstory.city.*` set covers navigation, view, simulation
+  control, operator actions and the layout edits; every tool carries strict
+  input and output schemas; each dispatches through the same action seam as
+  the UI; the surface declares the city page in `webmcpPageIds`.
 
 ## Quality and release proof
 
