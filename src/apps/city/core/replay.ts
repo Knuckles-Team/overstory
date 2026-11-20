@@ -1,0 +1,117 @@
+/**
+ * @file replay.ts
+ * @description The recorded-action replay driver (OVERSTORY-CITY-R029).
+ * Operator actions (dispatch, onboard, approvals) are recorded in the sim
+ * with in-game timestamps; this driver re-runs them on a fixed schedule
+ * (~300 in-game seconds of city life) against a seeded PRNG (R014), so the
+ * replayed history is deterministic per seed: the same seed plus the same
+ * recorded actions always yields the identical event sequence.
+ *
+ * Every run starts from a fresh, fully-reset world over the fleet source it
+ * is handed (default: the bundled snapshot, R014) — a replay of a LIVE city
+ * boots from the served catalog the live city booted from, so the replayed
+ * window is the same city, not a stand-in. The driver owns no state of its
+ * own and never runs two worlds at once. The event bus is left intact: the caller's subscriptions keep
+ * receiving the replayed events, which is what makes the scrubber (R029)
+ * show the replayed history in the live feed. A test that wants a clean
+ * bus calls `bus.reset()` itself before running.
+ */
+import { FLEET_SNAPSHOT, fleetToConnectors, type FleetServer } from './ecosystem'
+import { bus, setReplaying, setTimeSource, type CityEvent } from './events'
+import { DEFAULT_SEED, mulberry32 } from './prng'
+import type { LayoutOverride } from './layoutEdit'
+import {
+  applyLayoutEdit,
+  dispatchTask,
+  initSim,
+  onboardConnector,
+  resetSim,
+  setSimRandom,
+  tickSim,
+  world,
+  type RecordedAction,
+} from './sim'
+
+/** The fixed replay schedule (~300 in-game seconds of city life, R029). */
+export const REPLAY_DEFAULT_DURATION_GAME_S = 300
+
+export interface ReplayOptions {
+  /** The seed the replayed PRNG is initialised with (default: fixed). */
+  seed?: number
+  /** In-game seconds to simulate (default: the ~300 s fixed schedule). */
+  durationGameS?: number
+  /** In-game seconds per fixed tick (default: 5). */
+  dtGame?: number
+  /** Real seconds per tick (default: dtGame / timeScale at 1×). */
+  dtReal?: number
+  /**
+   * The fleet source the replayed world boots from (default: the bundled
+   * snapshot). The page hands in the source its active mode booted from, so
+   * a LIVE city replays its served catalog, never the snapshot (R029).
+   */
+  fleet?: FleetServer[]
+  /**
+   * The stored layout override document the live city applied (R032): the
+   * replayed world is the same city — moves, roads and styles included — so
+   * the replayed window is laid out exactly as the operator left it.
+   */
+  layout?: LayoutOverride
+}
+
+export interface ReplayResult {
+  /** Every event emitted during the replay, in order (with provenance). */
+  events: CityEvent[]
+  finalAbsGameS: number
+  finalClock: number
+  finalDay: number
+}
+
+/**
+ * Replay the recorded operator actions on a fixed schedule, deterministically
+ * per seed. The recorded actions are injected at their recorded in-game
+ * timestamps; approvals are recorded for the scrubber's timeline while the
+ * gate resolution itself is part of the deterministic simulation.
+ */
+export function replayRun(actions: RecordedAction[], opts: ReplayOptions = {}): ReplayResult {
+  const seed = opts.seed ?? DEFAULT_SEED
+  const dtGame = opts.dtGame ?? 5
+  const dtReal = opts.dtReal ?? dtGame / world.timeScale
+  const duration = opts.durationGameS ?? REPLAY_DEFAULT_DURATION_GAME_S
+
+  // A fresh, fully-reset world, seeded PRNG, in-game event clock. The bus
+  // (and its subscribers) is deliberately left in place: the replayed
+  // events stream into the live feed while the world state is replaced.
+  resetSim()
+  setSimRandom(mulberry32(seed))
+  setTimeSource(() => world.clock)
+
+  const events: CityEvent[] = []
+  const unsub = bus.subscribe((e) => events.push(e))
+  // Every event emitted inside the replayed run carries the replay mark, so
+  // the feed can label the replayed window (R029). The mark spans the whole
+  // run — boot, injected actions and every tick — and is always cleared,
+  // even when a boot fails.
+  setReplaying(true)
+  try {
+    initSim(fleetToConnectors(opts.fleet ?? FLEET_SNAPSHOT))
+    // The same city the operator sees (R032): the replayed world applies the
+    // stored layout document over its derived placement before the first tick.
+    if (opts.layout) applyLayoutEdit(opts.layout)
+    const due = [...actions].sort((a, b) => a.ts - b.ts)
+    let ai = 0
+    const target = world.absGameS + duration
+    while (world.absGameS < target) {
+      // Inject every recorded action due at or before the current tick.
+      while (ai < due.length && due[ai].ts <= world.absGameS) {
+        const a = due[ai++]
+        if (a.kind === 'dispatch') dispatchTask(a.target)
+        else if (a.kind === 'onboard') onboardConnector(a.target ?? '')
+      }
+      tickSim(dtGame, dtReal)
+    }
+  } finally {
+    setReplaying(false)
+    unsub()
+  }
+  return { events, finalAbsGameS: world.absGameS, finalClock: world.clock, finalDay: world.day }
+}

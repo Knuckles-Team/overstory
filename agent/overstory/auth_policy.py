@@ -97,3 +97,19 @@ class AnonymousReadPolicy:
                 path == prefix or path.startswith(prefix + '/') for prefix in reserved
             )
         )
+
+
+def exported_anonymous_read_routes() -> frozenset[str]:
+    """The one exported, exact set of GET read routes a trusted host may compose.
+
+    A host in explicit no-auth mode on loopback passes exactly this set as
+    ``anonymous_read_routes`` (OVERSTORY-IDENTITY-R003.1.3). It is generated
+    from the hosted-app records, never hand-copied into a host, and every
+    member is checked against :class:`AnonymousReadPolicy` so a route under a
+    reserved prefix is excluded rather than admitted.
+    """
+    from .apps import anonymous_read_routes
+
+    routes = anonymous_read_routes()
+    policy = AnonymousReadPolicy(routes)
+    return frozenset(path for path in routes if policy.allows('GET', path, admin=False))

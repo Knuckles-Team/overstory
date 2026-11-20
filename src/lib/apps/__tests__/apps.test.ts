@@ -14,7 +14,8 @@ describe('AppSurface contract', () => {
   // spec: OVERSTORY-APPS-R001
   it('places app routes in the one registry under the Apps section', () => {
     expect(SECTIONS.map((section) => section.id)).toContain('apps')
-    expect(routesBySection('apps').map((route) => route.id)).toEqual(['apps.markets'])
+    expect(routesBySection('apps').map((route) => route.id)).toEqual(['apps.markets', 'apps.city'])
+    expect(matchRoute('/apps/city')?.route.id).toBe('apps.city')
     expect(matchRoute('/apps/markets/chart/listing%3Abinance%3ASOLUSDT%3Aspot')?.params).toEqual({
       listing: 'listing:binance:SOLUSDT:spot',
     })

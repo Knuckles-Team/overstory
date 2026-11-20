@@ -1,0 +1,690 @@
+/* Arbora City — operator surface theme (dark glass, teal/green accents).
+   Scoped port of the standalone prototype's css/style.css: every rule lives
+   under .city-scope so the page (a fixed full-viewport operator console,
+   OVERSTORY-CITY-R001) never leaks styles into the Overstory shell. */
+
+.city-scope {
+  --city-bg: #0c1018;
+  --city-panel: rgba(16, 21, 32, 0.92);
+  --city-panel-border: rgba(90, 120, 160, 0.25);
+  --city-text: #dce4f0;
+  --city-text-dim: #8a97ab;
+  --city-accent: #37d0c3;
+  --city-accent-2: #7fd06f;
+  --city-gold: #ffd166;
+  --city-danger: #ff5e5e;
+
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--city-bg);
+  color: var(--city-text);
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font-size: 13px;
+}
+
+.city-scope * {
+  box-sizing: border-box;
+}
+
+/* ---- Top bar ---------------------------------------------------------------- */
+.city-topbar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  height: 54px;
+  padding: 0 14px;
+  background: var(--city-panel);
+  border-bottom: 1px solid var(--city-panel-border);
+  flex: 0 0 auto;
+}
+
+.brand {
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  font-size: 14px;
+  color: var(--city-accent);
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+}
+.brand-sub {
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  font-size: 9.5px;
+  color: var(--city-text-dim);
+}
+
+.city-clock {
+  font-variant-numeric: tabular-nums;
+  color: var(--city-text);
+  white-space: nowrap;
+}
+
+.stats {
+  display: flex;
+  gap: 14px;
+  margin-left: auto;
+}
+.stat {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  line-height: 1.2;
+}
+.stat .stat-label {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--city-text-dim);
+}
+.stat span {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.speed {
+  display: flex;
+  gap: 4px;
+}
+.speed-btn {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--city-text);
+  border: 1px solid var(--city-panel-border);
+  border-radius: 6px;
+  padding: 4px 9px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.speed-btn.active {
+  background: var(--city-accent);
+  color: #06201d;
+  border-color: var(--city-accent);
+  font-weight: 700;
+}
+
+.badge {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  padding: 3px 9px;
+  border-radius: 999px;
+  border: 1px solid;
+}
+.badge.sim {
+  color: var(--city-accent);
+  border-color: var(--city-accent);
+  background: rgba(55, 208, 195, 0.1);
+}
+.badge.live {
+  color: var(--city-accent-2);
+  border-color: var(--city-accent-2);
+  background: rgba(127, 208, 111, 0.12);
+}
+.badge.small {
+  font-size: 8.5px;
+  padding: 1px 6px;
+  vertical-align: middle;
+}
+.badge.quiet {
+  color: var(--city-text-dim);
+  border-color: var(--city-text-dim);
+  background: rgba(138, 151, 171, 0.1);
+}
+.badge.demo {
+  color: var(--city-gold);
+  border-color: var(--city-gold);
+  background: rgba(255, 209, 102, 0.12);
+}
+
+/* ---- Stage ------------------------------------------------------------------- */
+.city-body {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.city-left,
+.city-right {
+  background: var(--city-panel);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.city-left {
+  width: 232px;
+  border-right: 1px solid var(--city-panel-border);
+}
+.city-right {
+  width: 292px;
+  border-left: 1px solid var(--city-panel-border);
+}
+.city-left h2,
+.city-feed h2,
+.city-legend h2 {
+  margin: 0;
+  padding: 10px 14px;
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--city-text-dim);
+  border-bottom: 1px solid var(--city-panel-border);
+}
+
+.city-holder {
+  flex: 1 1 auto;
+  position: relative;
+  min-width: 0;
+}
+.city-holder canvas {
+  display: block;
+  position: absolute;
+  inset: 0;
+}
+
+.city-booting {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--city-text-dim);
+  font-size: 13px;
+  letter-spacing: 0.06em;
+}
+
+/* ---- Population list ----------------------------------------------------------- */
+.pop-list {
+  list-style: none;
+  margin: 0;
+  padding: 6px;
+  overflow-y: auto;
+  flex: 1;
+}
+.pop-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 7px;
+  border-radius: 7px;
+  cursor: pointer;
+}
+.pop-row:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+.pop-row.selected {
+  background: rgba(55, 208, 195, 0.14);
+}
+.pop-row .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+}
+.pop-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+}
+.chip {
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 1.5px 5px;
+  border-radius: 4px;
+  flex: 0 0 auto;
+}
+.chip.ai {
+  color: var(--city-accent);
+  background: rgba(55, 208, 195, 0.12);
+}
+.chip.npc {
+  color: var(--city-gold);
+  background: rgba(255, 209, 102, 0.14);
+}
+.ctxbar {
+  width: 34px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  overflow: hidden;
+  flex: 0 0 auto;
+}
+.ctxbar span {
+  display: block;
+  height: 100%;
+  background: var(--city-accent);
+}
+.ctxbar.big {
+  width: 100%;
+  height: 6px;
+  margin: 6px 0 10px;
+}
+.ctxbar.build span {
+  background: #c7a24a;
+}
+
+/* ---- Inspector ------------------------------------------------------------------- */
+.city-inspector {
+  padding: 14px;
+  overflow-y: auto;
+  flex: 1;
+}
+.city-inspector h3 {
+  margin: 0 0 6px;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.city-inspector h4 {
+  margin: 14px 0 6px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--city-text-dim);
+}
+.city-inspector p {
+  margin: 0 0 8px;
+  color: var(--city-text-dim);
+  line-height: 1.45;
+}
+.city-inspector .role {
+  font-size: 12px !important;
+}
+.kv {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 3px 0;
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.07);
+}
+.kv span {
+  color: var(--city-text-dim);
+}
+.mono {
+  font-family: ui-monospace, monospace;
+}
+.tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.tool {
+  font-family: ui-monospace, monospace;
+  font-size: 10.5px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--city-panel-border);
+  padding: 2px 6px;
+  border-radius: 5px;
+}
+.rooms {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5px;
+}
+.room {
+  background: rgba(255, 255, 255, 0.045);
+  border: 1px solid var(--city-panel-border);
+  border-radius: 6px;
+  padding: 6px 8px;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.room-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.evt-mini {
+  font-size: 11px;
+  padding: 3px 0;
+  color: var(--city-text-dim);
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+.chip-evt {
+  font-family: ui-monospace, monospace;
+  font-size: 10px;
+}
+.empty p {
+  line-height: 1.5;
+}
+.hint {
+  padding-left: 16px;
+  color: var(--city-text-dim);
+  line-height: 1.7;
+}
+
+/* ---- Controls --------------------------------------------------------------------- */
+.city-controls {
+  position: absolute;
+  left: 14px;
+  bottom: 14px;
+  display: flex;
+  gap: 8px;
+  z-index: 5;
+}
+.btn {
+  background: var(--city-accent);
+  color: #06201d;
+  font-weight: 700;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 12.5px;
+  cursor: pointer;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+}
+.btn:hover {
+  filter: brightness(1.1);
+}
+.btn.ghost {
+  background: rgba(16, 21, 32, 0.85);
+  color: var(--city-text);
+  border: 1px solid var(--city-panel-border);
+}
+.city-banner {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(16, 21, 32, 0.88);
+  border: 1px solid var(--city-panel-border);
+  border-radius: 999px;
+  padding: 5px 14px;
+  font-size: 11.5px;
+  color: var(--city-text-dim);
+  z-index: 5;
+  white-space: nowrap;
+}
+.city-banner.hidden {
+  display: none;
+}
+
+/* ---- Feed ---------------------------------------------------------------------------- */
+.city-feed {
+  flex: 0 0 148px;
+  background: var(--city-panel);
+  border-top: 1px solid var(--city-panel-border);
+  overflow-y: auto;
+  padding: 6px 10px;
+}
+.sim-badge {
+  margin: 0 4px 8px;
+  align-self: flex-start;
+}
+.feed-item {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  padding: 2.5px 0;
+  font-size: 11.5px;
+  animation: city-feed-in 0.25s ease;
+}
+@keyframes city-feed-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+  }
+}
+.feed-time {
+  color: var(--city-text-dim);
+  font-variant-numeric: tabular-nums;
+  font-size: 10.5px;
+  flex: 0 0 40px;
+}
+/* Per-row provenance marks (R010/R029): the bus stamps them, the row shows them. */
+.prov-chip {
+  border: 1px solid;
+  border-radius: 4px;
+  padding: 0 4px;
+  font-size: 9px;
+  letter-spacing: 0.4px;
+  flex: 0 0 auto;
+}
+.prov-chip.sim {
+  color: var(--city-text-dim);
+  border-color: var(--city-text-dim);
+  opacity: 0.7;
+}
+.prov-chip.live {
+  color: #3ddc84;
+  border-color: #3ddc84;
+}
+.prov-chip.replay {
+  color: #5ec8d8;
+  border-color: #5ec8d8;
+}
+.feed-item .chip-evt {
+  border: 1px solid;
+  border-radius: 4px;
+  padding: 0 5px;
+  font-size: 10px;
+  flex: 0 0 auto;
+  max-width: 170px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.feed-text {
+  color: var(--city-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---- Modal ------------------------------------------------------------------------------- */
+.city-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(4, 8, 14, 0.7);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+}
+.city-modal-backdrop.open {
+  display: flex;
+}
+.city-modal {
+  width: min(860px, 92vw);
+  max-height: 84vh;
+  background: var(--city-panel);
+  border: 1px solid var(--city-panel-border);
+  border-radius: 14px;
+  padding: 18px;
+  overflow-y: auto;
+  backdrop-filter: blur(8px);
+}
+.modal-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.modal-head h3 {
+  margin: 0;
+  font-size: 16px;
+}
+.modal-sub {
+  color: var(--city-text-dim);
+  margin: 6px 0 14px;
+}
+.ghost {
+  background: none;
+  border: 1px solid var(--city-panel-border);
+  color: var(--city-text);
+  border-radius: 7px;
+  padding: 5px 12px;
+  cursor: pointer;
+  font-size: 12px;
+}
+.catalog {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 10px;
+}
+.catalog-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--city-panel-border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.c-name {
+  font-weight: 700;
+  font-size: 13px;
+  border-left: 3px solid;
+  padding-left: 8px;
+}
+.c-blurb {
+  color: var(--city-text-dim);
+  font-size: 11.5px;
+}
+.c-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+.c-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: auto;
+}
+.c-status {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+.c-status.online {
+  color: var(--city-accent-2);
+}
+.c-status.building {
+  color: #c7a24a;
+}
+.c-status.queued {
+  color: var(--city-text-dim);
+}
+.build-btn {
+  background: var(--city-accent);
+  color: #06201d;
+  border: none;
+  border-radius: 6px;
+  padding: 4px 12px;
+  font-weight: 700;
+  font-size: 11.5px;
+  cursor: pointer;
+}
+.build-btn:disabled {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--city-text-dim);
+  cursor: default;
+}
+
+/* ---- Legend (R025: always available) ------------------------------------------------------ */
+.city-legend {
+  background: var(--city-panel);
+  border-top: 1px solid var(--city-panel-border);
+  padding-bottom: 12px;
+}
+.legend-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 14px 0;
+}
+.legend-line {
+  font-size: 11px;
+  color: var(--city-text-dim);
+  line-height: 1.4;
+}
+.legend-line::before {
+  content: '— ';
+  color: var(--city-accent);
+}
+
+/* ---- Replay scrubber (R029) ------------------------------------------------------------------ */
+.scrub {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(16, 21, 32, 0.85);
+  border: 1px solid var(--city-panel-border);
+  border-radius: 8px;
+  padding: 5px 10px;
+}
+.scrub-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--city-text-dim);
+}
+.scrub-input {
+  width: 140px;
+  accent-color: var(--city-accent);
+}
+.scrub-readout {
+  font-variant-numeric: tabular-nums;
+  font-size: 11px;
+  color: var(--city-text-dim);
+  min-width: 96px;
+}
+
+/* ---- First-visit tour (R030) ----------------------------------------------------------------- */
+.city-tour {
+  position: fixed;
+  bottom: 24px;
+  left: 260px;
+  z-index: 60;
+  pointer-events: none;
+}
+.tour-card {
+  pointer-events: auto;
+  width: 300px;
+  background: var(--city-panel);
+  border: 1px solid var(--city-accent);
+  border-radius: 12px;
+  padding: 14px 16px;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.45);
+}
+.tour-card h3 {
+  margin: 0 0 6px;
+  font-size: 14px;
+  color: var(--city-accent);
+}
+.tour-card p {
+  margin: 0 0 12px;
+  color: var(--city-text-dim);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.tour-nav {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+/* ---- Keyboard access (R027): visible focus on every interactive element ---------- */
+.city-scope :focus-visible {
+  outline: 2px solid var(--city-accent);
+  outline-offset: 1px;
+}
+.pop-row:focus-visible {
+  background: rgba(55, 208, 195, 0.14);
+}

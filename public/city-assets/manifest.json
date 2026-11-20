@@ -1,0 +1,200 @@
+{
+  "version": 1,
+  "atlas": {
+    "id": "city-trim-sheet",
+    "note": "The shared trim sheet's band layout (R012.2/R012.10). The sheet itself is authored through the R012.10 craft-suite route and enters the asset lock when it lands; until then the generators' UVs are pinned to these bands.",
+    "layout": {
+      "prop-band": [
+        0.02,
+        0.2
+      ],
+      "building-band": [
+        0.25,
+        0.75
+      ],
+      "road-band": [
+        0.78,
+        0.98
+      ]
+    }
+  },
+  "entries": [
+    {
+      "id": "kit-building-gateway",
+      "generator": "building",
+      "recipe": {
+        "archetype": "gateway",
+        "footprint": [
+          12,
+          12
+        ],
+        "floors": 5
+      },
+      "seed": 101,
+      "hash": 3868194911,
+      "budget": {
+        "triangles": 4000
+      }
+    },
+    {
+      "id": "kit-building-datahall",
+      "generator": "building",
+      "recipe": {
+        "archetype": "datahall",
+        "footprint": [
+          20,
+          14
+        ],
+        "floors": 3
+      },
+      "seed": 102,
+      "hash": 21302679,
+      "budget": {
+        "triangles": 4000
+      }
+    },
+    {
+      "id": "kit-building-workshop",
+      "generator": "building",
+      "recipe": {
+        "archetype": "workshop",
+        "footprint": [
+          10,
+          8
+        ],
+        "floors": 2
+      },
+      "seed": 103,
+      "hash": 650302775,
+      "budget": {
+        "triangles": 4000
+      }
+    },
+    {
+      "id": "kit-building-storehouse",
+      "generator": "building",
+      "recipe": {
+        "archetype": "storehouse",
+        "footprint": [
+          12,
+          10
+        ],
+        "floors": 2
+      },
+      "seed": 104,
+      "hash": 2683423239,
+      "budget": {
+        "triangles": 4000
+      }
+    },
+    {
+      "id": "kit-building-studio",
+      "generator": "building",
+      "recipe": {
+        "archetype": "studio",
+        "footprint": [
+          8,
+          8
+        ],
+        "floors": 4
+      },
+      "seed": 105,
+      "hash": 492444331,
+      "budget": {
+        "triangles": 4000
+      }
+    },
+    {
+      "id": "kit-building-docks",
+      "generator": "building",
+      "recipe": {
+        "archetype": "docks",
+        "footprint": [
+          14,
+          10
+        ],
+        "floors": 1
+      },
+      "seed": 106,
+      "hash": 3717253815,
+      "budget": {
+        "triangles": 4000
+      }
+    },
+    {
+      "id": "kit-road-tile",
+      "generator": "road-tile",
+      "recipe": {
+        "length": 10,
+        "width": 2.6,
+        "curve": 0.4,
+        "crosswalks": true
+      },
+      "seed": 201,
+      "hash": 949832190,
+      "budget": {
+        "triangles": 500
+      }
+    },
+    {
+      "id": "kit-prop-tree",
+      "generator": "prop",
+      "recipe": {
+        "kind": "tree"
+      },
+      "seed": 301,
+      "hash": 454068104,
+      "budget": {
+        "triangles": 200
+      }
+    },
+    {
+      "id": "kit-prop-streetlamp",
+      "generator": "prop",
+      "recipe": {
+        "kind": "streetlamp"
+      },
+      "seed": 302,
+      "hash": 4000876974,
+      "budget": {
+        "triangles": 200
+      }
+    },
+    {
+      "id": "kit-prop-bench",
+      "generator": "prop",
+      "recipe": {
+        "kind": "bench"
+      },
+      "seed": 303,
+      "hash": 3434836465,
+      "budget": {
+        "triangles": 200
+      }
+    },
+    {
+      "id": "kit-prop-sign",
+      "generator": "prop",
+      "recipe": {
+        "kind": "sign"
+      },
+      "seed": 304,
+      "hash": 1932449300,
+      "budget": {
+        "triangles": 200
+      }
+    },
+    {
+      "id": "kit-prop-bin",
+      "generator": "prop",
+      "recipe": {
+        "kind": "bin"
+      },
+      "seed": 305,
+      "hash": 949642337,
+      "budget": {
+        "triangles": 200
+      }
+    }
+  ]
+}

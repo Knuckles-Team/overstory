@@ -5,9 +5,10 @@
  */
 import type { AppSurface } from '@/lib/apps/contract'
 import { rendererRegistry } from '@/lib/atlas/renderers'
+import { citySurface } from './city/surface'
 import { marketsSurface } from './markets/surface'
 
-export const APP_SURFACES: readonly AppSurface[] = [marketsSurface]
+export const APP_SURFACES: readonly AppSurface[] = [marketsSurface, citySurface]
 
 /** Idempotent: registration is keyed by renderer id. */
 export function registerAppRenderers(): void {

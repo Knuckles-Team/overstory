@@ -1,0 +1,37 @@
+{
+  "sources": {
+    "robot-expressive": {
+      "repo": "mrdoob/three.js",
+      "url": "https://github.com/mrdoob/three.js",
+      "tag": "r186",
+      "commit": "9b4a2ac29c63ccb43fd51c5661f2f873ac2c39b8",
+      "path": "examples/models/gltf/RobotExpressive/RobotExpressive.glb",
+      "license": "CC0-1.0",
+      "note": "The shared humanoid rig every city character is built on (OVERSTORY-CITY-R033, per OVERSTORY-DESIGN-R012.4): model by Tomás Laulhé, modifications by Don McCurdy (facial morph targets, material cleanup), CC0 1.0 per the folder's README. Pinned at the exact commit of tag r186 — the same three major the repository runs. Attribution: public/city-assets/SOURCES.md."
+    },
+    "marker-cube": {
+      "collection": "https://huggingface.co/collections/cfahlgren1/3d-datasets-in-the-dataset-viewer",
+      "repo": "joshuasundance/throttlebrawl-assets",
+      "url": "https://huggingface.co/datasets/joshuasundance/throttlebrawl-assets",
+      "commit": "cf7ac1f31de6235d9033ffcece98e055e2a14535",
+      "license": "MIT",
+      "note": "The placeholder marker cube (construction markers, reserved-plot markers). The rest of this pack's rider characters left the city with the 2026-11-19 shared-rig cast (OVERSTORY-CITY-R033); the cube is the only file kept. The pack's OSM/USGS terrain JSONs (ODbL 1.0) were never copied; the city generates its road network instead. Attribution: public/city-assets/SOURCES.md."
+    }
+  },
+  "files": {
+    "city-assets/characters/robot-expressive.glb": {
+      "source_path": "examples/models/gltf/RobotExpressive/RobotExpressive.glb",
+      "sha256": "047f5e5fb3bb6d378bd1df16ca6137f2a596c99b3a1b5690b4020c05aaf6f319",
+      "bytes": 463988,
+      "license": "CC0-1.0"
+    },
+    "city-assets/marker-cube.glb": {
+      "source_path": "base/models/placeholder/marker-cube.glb",
+      "sha256": "27be260e78101a6e4dc3a601aee843b1d9d6a7d12efeee0dc33d970b9d24464e",
+      "bytes": 1572,
+      "license": "MIT"
+    }
+  },
+  "license_allowlist": ["MIT", "CC0-1.0", "CC-BY-4.0", "Apache-2.0"],
+  "verification": "Each entry is verified by the app at startup: one fetch, byte-count and SHA-256 comparison against this file, one retry, then a typed asset.failed event and the placeholder fallback on second failure. The verified bytes are reused by the renderer (verified-byte cache), so a pinned file is fetched exactly once. Paths are site-absolute; assets live under public/city-assets/ and are copied verbatim into the built app."
+}

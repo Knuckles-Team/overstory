@@ -2,7 +2,12 @@
 
 import pytest
 from fastapi.testclient import TestClient
-from overstory.auth_policy import AuthMode, resolve_auth_mode
+from overstory.auth_policy import (
+    AnonymousReadPolicy,
+    AuthMode,
+    exported_anonymous_read_routes,
+    resolve_auth_mode,
+)
 from test_identity_boundary import _build, _no_verifier
 
 
@@ -188,3 +193,46 @@ def test_explicit_eg_rejects_an_untyped_callback(monkeypatch):
     _no_verifier(monkeypatch)
     with pytest.raises(RuntimeError, match='identified as eg'):
         _build(auth_mode='eg', session_boundary=lambda app: None)
+
+
+@pytest.mark.spec('OVERSTORY-IDENTITY-R003.1.3')
+def test_exported_anonymous_read_routes_are_exact_and_generated(monkeypatch):
+    from fastapi import APIRouter
+    from overstory.apps import AppBackend, anonymous_read_routes
+
+    routes = exported_anonymous_read_routes()
+    assert {
+        '/api/apps',
+        '/api/apps/city/status',
+        '/api/apps/city/fleet',
+        '/api/apps/city/layout',
+    } <= routes
+    # Exact paths only, all accepted by the one policy, none under a reserved prefix.
+    policy = AnonymousReadPolicy(routes)
+    for path in routes:
+        assert '*' not in path and '{' not in path
+        assert policy.allows('GET', path, admin=False), path
+        assert not policy.allows('PUT', path, admin=False), path
+        assert not policy.allows('GET', path, admin=True), path
+    assert not policy.allows('GET', '/api/identity/session', admin=False)
+
+    # A composed no-auth app admits each member and refuses everything else.
+    _no_verifier(monkeypatch)
+    client = TestClient(_build(auth_mode='none', anonymous_read_routes=routes))
+    assert client.get('/api/apps').status_code == 200
+    for path in routes:
+        assert client.get(path).status_code != 403, path
+        assert client.put(path, json={}).status_code == 403, path
+    assert client.get('/api/enhanced/config-files').status_code == 403
+
+    # Generated, not hand-copied: a newly declared app read appears with no edit.
+    demo = AppBackend(
+        app_id='demo',
+        router=APIRouter(),
+        available=lambda: True,
+        unavailable_reason='',
+        anonymous_reads=('summary',),
+    )
+    assert anonymous_read_routes([demo]) == frozenset(
+        {'/api/apps', '/api/apps/demo/summary'}
+    )

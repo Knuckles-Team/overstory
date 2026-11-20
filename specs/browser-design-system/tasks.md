@@ -258,3 +258,14 @@ Metadata guard tests preserve this distinction; they are not feature-acceptance 
 - [ ] T062 OVERSTORY-DESIGN-R001 implement and prove: Design guidance distilled into component system and skills
 - [ ] T063 OVERSTORY-DESIGN-R003 implement and prove: Controls have accessible names and visible focus
 - [ ] T064 OVERSTORY-DESIGN-R006 implement and prove: Status states are distinguishable by text, not only color
+- [ ] T065 OVERSTORY-DESIGN-R012 implement and prove: 3D scene fidelity language
+- [ ] T066 OVERSTORY-DESIGN-R012.1 implement and prove: Lighting and image pipeline
+- [ ] T067 OVERSTORY-DESIGN-R012.2 implement and prove: Surfaces are materials, not colours
+- [ ] T068 OVERSTORY-DESIGN-R012.3 implement and prove: No dead space
+- [ ] T069 OVERSTORY-DESIGN-R012.4 implement and prove: Characters are alive
+- [ ] T070 OVERSTORY-DESIGN-R012.5 implement and prove: The world reacts
+- [ ] T071 OVERSTORY-DESIGN-R012.6 implement and prove: Roads are a network the operator can shape
+- [ ] T072 OVERSTORY-DESIGN-R012.7 implement and prove: Legible at every zoom
+- [ ] T073 OVERSTORY-DESIGN-R012.8 implement and prove: One art direction
+- [ ] T074 OVERSTORY-DESIGN-R012.9 implement and prove: Fidelity is measured, not asserted
+- [ ] T075 OVERSTORY-DESIGN-R012.10 implement and prove: An agent-driven asset pipeline contributors can run
