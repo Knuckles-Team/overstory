@@ -6,6 +6,8 @@ import { IDENTITY_INVALIDATED, IDENTITY_STORAGE_KEY } from './identity-events'
 interface SessionReply {
   session: AuthSession | null
   ssoConfigured: boolean
+  /** The read failed without a verdict (5xx, timeout, network): keep what is shown and retry. */
+  transient?: boolean
 }
 type Snapshot = SessionReply & { loading: boolean }
 const initial: Snapshot = { session: null, ssoConfigured: false, loading: true }
@@ -17,6 +19,7 @@ export function createIdentitySession(read: (signal: AbortSignal) => Promise<Ses
   let pending: Promise<void> | null = null
   let repeat = false
   let timer: ReturnType<typeof setTimeout> | undefined
+  let failures = 0
 
   function publish(value: Snapshot) {
     snapshot = value
@@ -47,12 +50,13 @@ export function createIdentitySession(read: (signal: AbortSignal) => Promise<Ses
         new Promise<SessionReply>((resolve) => {
           deadline = setTimeout(() => {
             controller.abort()
+            // A hung read stays fail-closed (identity-lifecycle contract).
             resolve({ session: null, ssoConfigured: false })
           }, 10_000)
         }),
       ])
     } catch {
-      return { session: null, ssoConfigured: false }
+      return { session: null, ssoConfigured: false, transient: true }
     } finally {
       clearTimeout(deadline)
     }
@@ -64,7 +68,16 @@ export function createIdentitySession(read: (signal: AbortSignal) => Promise<Ses
     pending = boundedRead()
       .then((reply) => {
         if (current !== generation || !listeners.size) return
-        publish({ ...reply, loading: false })
+        if (reply.transient) {
+          // Not a 401: never flip a known session to signed-out, and back off.
+          failures += 1
+          if (snapshot.loading) publish({ session: null, ssoConfigured: false, loading: false })
+          clearTimeout(timer)
+          timer = setTimeout(refresh, Math.min(60_000, 2_000 * 2 ** Math.min(failures, 5)))
+          return
+        }
+        failures = 0
+        publish({ session: reply.session, ssoConfigured: reply.ssoConfigured, loading: false })
         schedule()
       })
       .finally(() => {

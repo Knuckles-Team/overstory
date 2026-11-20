@@ -77,7 +77,7 @@ const DEV_USER_KEY = 'local'
  * without duplicating this same-origin cookie check. */
 export async function fetchAuthSession(
   signal?: AbortSignal,
-): Promise<{ session: AuthSession | null; ssoConfigured: boolean }> {
+): Promise<{ session: AuthSession | null; ssoConfigured: boolean; transient?: true }> {
   try {
     const res = await fetch('/auth/session', {
       credentials: 'same-origin',
@@ -85,10 +85,11 @@ export async function fetchAuthSession(
       signal,
     })
     const contentType = res.headers.get('content-type') ?? ''
+    if (res.status === 401) return { session: null, ssoConfigured: false }
     if (!res.ok || !contentType.includes('application/json')) {
-      // The identity boundary did not answer JSON: the principal is unknown,
-      // which renders as least privilege with a sign-in prompt.
-      return { session: null, ssoConfigured: false }
+      // A refusal other than 401 (5xx, a proxy page) says the boundary is
+      // struggling, not that the user signed out: the caller keeps what it knew.
+      return { session: null, ssoConfigured: false, transient: true }
     }
     const body = (await res.json()) as Partial<AuthSession>
     if (typeof body.authenticated !== 'boolean') {
@@ -99,7 +100,8 @@ export async function fetchAuthSession(
       ssoConfigured: true,
     }
   } catch {
-    return { session: null, ssoConfigured: false }
+    // Network failure or abort: also not evidence of a sign-out.
+    return { session: null, ssoConfigured: false, transient: true }
   }
 }
 
