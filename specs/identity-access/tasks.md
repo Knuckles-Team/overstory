@@ -38,3 +38,4 @@ The parent OVERSTORY-IDENTITY-R004 remains incomplete while its installed child 
 
 - [ ] T020 OVERSTORY-IDENTITY-R008 implement and prove: Identity or tenant change invalidates cached protected data
 - [ ] T021 OVERSTORY-IDENTITY-R001 implement and prove: Release-qualification identity test client supports a live sign-in probe
+- [x] T022 OVERSTORY-IDENTITY-R003.1.3 Export the exact anonymous read-route set from the hosted app records. Touches `agent/overstory/apps/__init__.py`, `agent/overstory/apps/city/__init__.py`, `tests/test_anonymous_read_routes.py`.
