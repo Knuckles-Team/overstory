@@ -24,6 +24,7 @@ import contextvars
 import json
 import logging
 import os
+import ssl
 import time
 from collections.abc import Iterator, Mapping
 from contextlib import contextmanager
@@ -358,6 +359,27 @@ def _check_jwks_uri(jwks_uri: str) -> None:
         raise RuntimeError('JWKS transport requires HTTPS outside loopback')
 
 
+class JwksUnavailableError(TokenValidationError):
+    """The key set could not be fetched; ``reason`` says why (R003.3.3)."""
+
+    def __init__(self, reason: str, message: str) -> None:
+        super().__init__(message)
+        self.reason = reason
+
+
+def _jwks_tls_verify() -> ssl.SSLContext:
+    """TLS trust for the JWKS fetch: the default roots plus the configured CA bundle.
+
+    ``trust_env=False`` keeps proxy variables out, which also ignores
+    ``SSL_CERT_FILE``; the bundle is therefore read here, explicitly.
+    """
+    context = ssl.create_default_context()
+    bundle = os.environ.get('SSL_CERT_FILE')
+    if bundle:
+        context.load_verify_locations(cafile=bundle)
+    return context
+
+
 async def fetch_jwks(jwks_uri: str) -> Any:
     """Fetch and cache one bounded JSON Web Key Set."""
 
@@ -366,22 +388,40 @@ async def fetch_jwks(jwks_uri: str) -> Any:
     if cached is not None and now < cached[1]:
         return cached[0]
     _check_jwks_uri(jwks_uri)
-    async with httpx.AsyncClient(
-        timeout=10.0, trust_env=False, follow_redirects=False
-    ) as client:
-        body = bytearray()
-        async with client.stream('GET', jwks_uri) as response:
-            response.raise_for_status()
-            async for chunk in response.aiter_bytes():
-                body.extend(chunk)
-                if len(body) > _JWKS_MAX_BYTES:
-                    raise RuntimeError('JWKS response exceeds its safety bound')
+    body = bytearray()
+    try:
+        async with httpx.AsyncClient(
+            timeout=10.0,
+            trust_env=False,
+            follow_redirects=False,
+            verify=_jwks_tls_verify(),
+        ) as client:
+            async with client.stream('GET', jwks_uri) as response:
+                response.raise_for_status()
+                async for chunk in response.aiter_bytes():
+                    body.extend(chunk)
+                    if len(body) > _JWKS_MAX_BYTES:
+                        raise RuntimeError('JWKS response exceeds its safety bound')
+    except (httpx.HTTPError, OSError) as exc:
+        reason = 'jwks_tls_failure' if _is_tls_failure(exc) else 'jwks_unreachable'
+        raise JwksUnavailableError(
+            reason, f'JWKS fetch failed ({type(exc).__name__})'
+        ) from None
     document = json.loads(body)
     keys = document.get('keys') if isinstance(document, dict) else None
     if not isinstance(keys, list) or not 1 <= len(keys) <= 100:
         raise RuntimeError('JWKS response has an invalid shape')
     _jwks_cache[jwks_uri] = (document, now + _JWKS_CACHE_TTL)
     return document
+
+
+def _is_tls_failure(exc: BaseException) -> bool:
+    seen: BaseException | None = exc
+    while seen is not None:
+        if isinstance(seen, ssl.SSLError):
+            return True
+        seen = seen.__cause__ or seen.__context__
+    return False
 
 
 def decode_jwt(

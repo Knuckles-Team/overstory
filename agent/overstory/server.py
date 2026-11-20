@@ -1906,11 +1906,17 @@ def _ensure_actor_identity_middleware(
             return None
         try:
             return await actor_from_bearer_token(token)
-        except Exception:
+        except Exception as exc:
             # Any verification failure — malformed token, bad signature,
             # unreachable JWKS — means "not authenticated here". The shared
-            # boundary re-runs the same check and owns the resulting 401, so
-            # nothing is swallowed: the decision is made once, there.
+            # boundary re-runs the same check and owns the resulting 401. The
+            # reason is logged (never the token or its claims, R003.3.3): a
+            # TLS failure must not look like a bad token.
+            logger.warning(
+                'bearer verification failed: reason=%s type=%s',
+                getattr(exc, 'reason', 'token_invalid'),
+                type(exc).__name__,
+            )
             return None
 
     class WebUIActorIdentityMiddleware(ActorIdentityMiddleware):
