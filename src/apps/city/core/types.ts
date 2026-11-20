@@ -5,6 +5,8 @@
  * {@link CityRenderer} handle so the page and the UI own no view-specific
  * code; the simulation core is the only writer of world state.
  */
+import type * as THREE from 'three'
+import type { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import type { RoadGraph } from '@/lib/scene3d/roads'
 import type { LayoutEdit } from './layoutEdit'
 
@@ -41,6 +43,30 @@ export interface CityRenderer {
    * needs no call.
    */
   setRoads?(graph: RoadGraph): void
+  /**
+   * The fidelity harness surface (R012.9), on 3D renderers only: the live
+   * scene graph the audits walk, the camera and controls the golden views
+   * place, and the ambient-time hold that makes a frame identical on every
+   * run. Absent on stateless renderers (the 2D schematic).
+   */
+  fidelity?: CityFidelityCore
+}
+
+/** The deterministic-frame surface the fidelity harness (R012.9) needs. */
+export interface CityFidelityCore {
+  /** The live scene graph the material/density audits walk. */
+  scene: THREE.Scene
+  /** The perspective camera the golden views place. */
+  camera: THREE.PerspectiveCamera
+  /** The orbit controls the views settle on. */
+  controls: OrbitControls
+  /** The renderer's canvas (the frame digest reads it mid-frame). */
+  canvas: HTMLCanvasElement
+  /**
+   * Hold the ambient (real-time-driven) scene time at one value so every
+   * rendered frame is identical (the golden captures); null frees it.
+   */
+  holdAmbient(time: number | null): void
 }
 
 /** The activity mode the sim runs in (R026): quiet is the default. */

@@ -117,10 +117,16 @@ export async function init3D(
 
   let disposed = false
   let timeAcc = 0
+  // The fidelity hold (R012.9): while set, every frame renders at the same
+  // ambient time, so the golden viewpoints are identical on every run.
+  let heldAmbientTime: number | null = null
+  function holdAmbient(time: number | null): void {
+    heldAmbientTime = time
+  }
 
   function render(dtReal: number): void {
     if (disposed || sceneCore.isLost()) return
-    timeAcc += dtReal
+    timeAcc = heldAmbientTime ?? timeAcc + dtReal
     const frameStart = performance.now()
     controls.update()
     picking.tick(dtReal)
@@ -174,6 +180,16 @@ export async function init3D(
     setRoads: (graph: RoadGraph) => {
       if (disposed) return
       sceneCore.roads.rebuild(graph)
+    },
+    // The fidelity harness surface (R012.9): the live scene graph, the
+    // camera and controls, and the ambient-time hold for deterministic
+    // frames. The page installs the documented seam on top (fidelity.ts).
+    fidelity: {
+      scene,
+      camera,
+      controls,
+      canvas: renderer.domElement,
+      holdAmbient,
     },
   }
 }

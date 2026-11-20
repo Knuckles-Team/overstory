@@ -37,6 +37,7 @@ import {
 import { TOUR_SESSION_KEY, initUI, type CityUi } from '../core/ui'
 import type { CityActions, CityRenderer, CityUiElements, SelectionHit } from '../core/types'
 import { assetsLockSchema } from '../schemas'
+import { installCityFidelity, type CityFidelityHandle } from '../core/fidelity'
 import type { CityToolController } from '../webmcp'
 import '../city.css'
 
@@ -259,6 +260,9 @@ export default function CityPage() {
     let renderer: CityRenderer | null = null
     let ui: CityUi | null = null
     let observer: ResizeObserver | null = null
+    // The fidelity seam (R012.9): installed in development builds so the
+    // golden-viewpoint harness can drive the page through its own seams.
+    let fidelityHandle: CityFidelityHandle | null = null
     let speed = parseSpeedParam(window.location.search)
     // The active renderer view; the page owns it (R027).
     let view: '3d' | '2d' = '3d'
@@ -531,6 +535,14 @@ export default function CityPage() {
         },
       }
       actionsRef.current = actions
+      fidelityHandle = installCityFidelity({
+        core: () => renderer?.fidelity ?? null,
+        view: () => view,
+        mode: () => webmcpModeRef.current,
+        actions: () => actions,
+        world,
+        viewport: () => ({ width: holder.clientWidth, height: holder.clientHeight }),
+      })
       ui = initUI(world, renderer, actions, els)
       syncSpeedButtons()
       syncViewButtons()
@@ -572,6 +584,7 @@ export default function CityPage() {
       observer?.disconnect()
       if (kept3d) kept3d.dispose()
       if (renderer) renderer.dispose()
+      fidelityHandle?.dispose()
       ui?.dispose()
       resetSim()
       bus.reset()
