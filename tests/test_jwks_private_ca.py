@@ -169,7 +169,7 @@ def test_a_failed_verification_is_logged_without_the_token(
         ('auth_jwt_audience', 'overstory'),
     ):
         monkeypatch.setattr(host.config, field, value, raising=False)
-    secret_token = 'aGVhZGVy.c2VjcmV0LWNsYWltcw.c2lnbmF0dXJl'
+    secret_token = 'aGVhZGVy.c2VjcmV0LWNsYWltcw.c2lnbmF0dXJl'  # sanitizer:ignore - synthetic bearer, used only to assert it is never logged
     records: list[str] = []
 
     class _Capture(logging.Handler):
