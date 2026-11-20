@@ -7,7 +7,7 @@
  * inputs, a refused layout edit resolves with its operator-facing reason,
  * and the read context is the live page state.
  */
-// spec: OVERSTORY-CITY-R034
+// spec: OVERSTORY-CITY-R034, OVERSTORY-CITY-R042
 import { describe, expect, it, vi } from 'vitest'
 import type { LayoutEdit } from '../core/layoutEdit'
 import type { CityActions } from '../core/types'
@@ -46,6 +46,7 @@ function controller(): CityToolController {
     setSelected: vi.fn(),
     speed: vi.fn(),
     setActivity: vi.fn(),
+    setAudio: vi.fn(),
     setView: vi.fn(),
     scrub: vi.fn(),
     startTour: vi.fn(),
@@ -74,6 +75,7 @@ describe('city_webmcp_surface', () => {
       'overstory.apps.city.set-speed',
       'overstory.apps.city.set-activity-mode',
       'overstory.apps.city.scrub',
+      'overstory.apps.city.audio',
       'overstory.apps.city.dispatch',
       'overstory.apps.city.onboard',
       'overstory.apps.city.layout-edit',
@@ -105,6 +107,10 @@ describe('city_webmcp_surface', () => {
       tool(control, 'overstory.apps.city.set-activity-mode').execute({ mode: 'demo' }, { signal }),
     ).resolves.toEqual({ updated: true })
     expect(control.actions.setActivity).toHaveBeenCalledWith('demo')
+    await expect(tool(control, 'overstory.apps.city.audio').execute({ enabled: true }, { signal })).resolves.toEqual({
+      updated: true,
+    })
+    expect(control.actions.setAudio).toHaveBeenCalledWith(true)
     await expect(tool(control, 'overstory.apps.city.scrub').execute({ offsetS: 120 }, { signal })).resolves.toEqual({
       updated: true,
     })
@@ -180,6 +186,7 @@ describe('city_webmcp_surface', () => {
     expect(classes).toEqual({
       'get-context': 'read',
       'set-view': 'local-ui-mutation',
+      audio: 'local-ui-mutation',
       focus: 'local-ui-mutation',
       overview: 'local-ui-mutation',
       select: 'local-ui-mutation',

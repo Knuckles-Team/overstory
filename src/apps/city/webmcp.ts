@@ -75,6 +75,7 @@ const ViewInput = z.object({ view: z.enum(['3d', '2d']) }).strict()
 const FocusInput = z.object({ x: z.number().min(-500).max(500), z: z.number().min(-500).max(500) }).strict()
 const SelectInput = z.object({ kind: z.enum(['character', 'building']), id: z.string().min(1).max(200) }).strict()
 const SpeedInput = z.object({ speed: Speed }).strict()
+const AudioInput = z.object({ enabled: z.boolean() }).strict()
 const ActivityInput = z.object({ mode: z.enum(['quiet', 'demo']) }).strict()
 const ScrubInput = z.object({ offsetS: z.number().int().min(0).max(100_000) }).strict()
 const OnboardInput = z.object({ connectorId: z.string().min(1).max(200) }).strict()
@@ -259,6 +260,16 @@ export function createCityTools(controller: CityToolController): readonly WebMcp
       Updated,
       ({ offsetS }) => {
         actions.scrub(offsetS)
+        return { updated: true as const }
+      },
+    ),
+    cityTool(
+      'audio',
+      'Turn the synthesized city ambience on or off. It starts off; the browser may keep it silent until a user gesture.',
+      AudioInput,
+      Updated,
+      ({ enabled }) => {
+        actions.setAudio(enabled)
         return { updated: true as const }
       },
     ),

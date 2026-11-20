@@ -18,6 +18,7 @@ import { CityWebMcp } from './CityWebMcp'
 import { fetchCityFleet, fetchCityLayout, saveCityLayout } from '../api'
 import { FLEET_SNAPSHOT, fleetToConnectors, type FleetServer } from '../core/ecosystem'
 import { pinBytes } from '../core/assets'
+import { AUDIO_OVERVIEW_HEIGHT, createAudioEngine } from '../core/audio'
 import { bus, makeEvent, setMode, setTimeSource } from '../core/events'
 import { derivedRoadGraph, nextDocument, validateEdit, type LayoutOverride } from '../core/layoutEdit'
 import { init2D, supportsWebGL } from '../core/render2d'
@@ -149,6 +150,7 @@ export default function CityPage() {
   const btnOverviewRef = useRef<HTMLButtonElement | null>(null)
   const btnOnboardRef = useRef<HTMLButtonElement | null>(null)
   const btnDemoRef = useRef<HTMLButtonElement | null>(null)
+  const btnAudioRef = useRef<HTMLButtonElement | null>(null)
   const btnView2dRef = useRef<HTMLButtonElement | null>(null)
   const btnView3dRef = useRef<HTMLButtonElement | null>(null)
   const btnTourRef = useRef<HTMLButtonElement | null>(null)
@@ -179,6 +181,7 @@ export default function CityPage() {
         setSelected: (hit) => actionsRef.current?.setSelected(hit),
         speed: (v) => actionsRef.current?.speed(v),
         setActivity: (m) => actionsRef.current?.setActivity(m),
+        setAudio: (on) => actionsRef.current?.setAudio(on),
         setView: (v) => actionsRef.current?.setView(v),
         scrub: (o) => actionsRef.current?.scrub(o),
         startTour: () => actionsRef.current?.startTour(),
@@ -240,6 +243,7 @@ export default function CityPage() {
       btnOverview: btnOverviewRef.current as HTMLElement,
       btnOnboard: btnOnboardRef.current as HTMLElement,
       btnDemo: btnDemoRef.current as HTMLElement,
+      btnAudio: btnAudioRef.current as HTMLElement,
       btnView2d: btnView2dRef.current as HTMLElement,
       btnView3d: btnView3dRef.current as HTMLElement,
       scrubber: scrubberRef.current!,
@@ -257,6 +261,11 @@ export default function CityPage() {
     // otherwise narrow the rest of the body to `false`).
     const isDisposed = (): boolean => disposed
     let raf = 0
+    // R042: the ambience engine starts muted; the toggle (a user gesture) enables it.
+    const audio = createAudioEngine(() => (typeof AudioContext === 'undefined' ? null : new AudioContext()))
+    const unsubscribeCues = bus.subscribe((e) => {
+      audio.cue(e.type)
+    })
     let renderer: CityRenderer | null = null
     let ui: CityUi | null = null
     let observer: ResizeObserver | null = null
@@ -501,6 +510,13 @@ export default function CityPage() {
             ui?.refresh()
           }, 250)
         },
+        setAudio: (on) => {
+          if (isDisposed()) return
+          if (on) void audio.enable()
+          else audio.disable()
+          btnAudioRef.current?.setAttribute('aria-pressed', String(on))
+          if (btnAudioRef.current) btnAudioRef.current.textContent = on ? 'Sound: on' : 'Sound: off'
+        },
         startTour: () => {
           ui?.startTour()
         },
@@ -554,9 +570,16 @@ export default function CityPage() {
       observer.observe(holder)
 
       let last = performance.now()
+      let audioClock = 0
       const frame = (now: number): void => {
         const dt = Math.min(0.1, (now - last) / 1000)
         last = now
+        // R042: the ambience follows the camera height, four times a second.
+        audioClock += dt
+        if (audioClock >= 0.25) {
+          audioClock = 0
+          audio.update(renderer?.fidelity?.camera.position.y ?? AUDIO_OVERVIEW_HEIGHT, false)
+        }
         if (speed > 0) tickSim(dt * world.timeScale * speed, dt * speed)
         renderer?.render(dt)
         ui?.tick(dt)
@@ -585,6 +608,8 @@ export default function CityPage() {
       if (kept3d) kept3d.dispose()
       if (renderer) renderer.dispose()
       fidelityHandle?.dispose()
+      unsubscribeCues()
+      audio.dispose()
       ui?.dispose()
       resetSim()
       bus.reset()
@@ -671,6 +696,9 @@ export default function CityPage() {
             </button>
             <button type="button" className="btn ghost" ref={btnDemoRef} aria-pressed="false">
               Demo: off
+            </button>
+            <button type="button" className="btn ghost" ref={btnAudioRef} aria-pressed="false">
+              Sound: off
             </button>
             <button type="button" className="btn ghost" ref={btnView3dRef} aria-pressed="true">
               3D view

@@ -470,6 +470,10 @@ export function initUI(world: World, renderer: CityRenderer, actions: CityAction
     actions.setActivity(world.activity === 'demo' ? 'quiet' : 'demo')
     updateTopBar()
   })
+  // R042: the ambience toggle — muted until this gesture.
+  els.btnAudio.addEventListener('click', () => {
+    actions.setAudio(els.btnAudio.getAttribute('aria-pressed') !== 'true')
+  })
   // R027: the 3D/2D view toggle — the 2D schematic is the accessible view.
   // The page owns the active view and the buttons' pressed state.
   els.btnView2d.addEventListener('click', () => {

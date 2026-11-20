@@ -89,6 +89,8 @@ export interface CityActions {
   setView(view: '3d' | '2d'): void
   /** Seek the recorded history to `offsetS` in-game seconds after boot (R029). */
   scrub(offsetS: number): void
+  /** Turn the synthesized ambience on or off (R042). Starts muted; turning on needs a user gesture. */
+  setAudio(on: boolean): void
   /** (Re)start the first-visit tour (R030). */
   startTour(): void
   /**
@@ -131,6 +133,8 @@ export interface CityUiElements {
   btnOnboard: HTMLElement
   /** R026: the labelled demo toggle. */
   btnDemo: HTMLElement
+  /** R042: the ambience toggle (starts off). */
+  btnAudio: HTMLElement
   /** R027: the 3D/2D view toggle. */
   btnView2d: HTMLElement
   btnView3d: HTMLElement
