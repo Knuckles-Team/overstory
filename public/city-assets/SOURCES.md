@@ -108,3 +108,7 @@ hard-coded guesses:
   `specs/arbora-city/plan.md` (pinned version, CDN-served).
 - Everything else is hand-written ES modules; no build step, no other
   dependencies.
+
+## Interim status (OVERSTORY-CITY-R046)
+
+The shared character rig is an interim third-party asset admitted through the license gate. It is replaced by a generated rig when the generated people rigs land (OVERSTORY-CITY-R041). Until then it stays the only third-party character asset.

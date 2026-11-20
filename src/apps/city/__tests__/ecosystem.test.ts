@@ -6,7 +6,7 @@
  * built, registered packs are planned plots, and the arbora core is a
  * landmark, never a connector plot.
  */
-// spec: OVERSTORY-CITY-R002, OVERSTORY-CITY-R004, OVERSTORY-CITY-R005, OVERSTORY-CITY-R033
+// spec: OVERSTORY-CITY-R002, OVERSTORY-CITY-R004, OVERSTORY-CITY-R005, OVERSTORY-CITY-R033, OVERSTORY-CITY-R044
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import * as THREE from 'three'
@@ -21,6 +21,7 @@ import {
   CORE_LANDMARKS,
   FLEET_SNAPSHOT,
   RIG_PATH,
+  ROLE_LABELS,
   ROSTER,
   SIM_TOOLS,
   connectorsByDomain,
@@ -29,6 +30,7 @@ import {
   type FleetServer,
 } from '../core/ecosystem'
 import { BUILDING_POS, PLOTS } from '../core/layout'
+import { initSim, resetSim, world } from '../core/sim'
 
 describe('fleet snapshot (SIMULATED source, 2026-11-15 capture)', () => {
   it('carries the full registered catalog: 7 served, 67 registered-unpublished', () => {
@@ -265,6 +267,25 @@ describe('roster (R005/R033)', () => {
       blender.update(0.1)
       expect(blender.current()).toBe('fail')
       blender.dispose()
+    }
+  })
+})
+
+describe('three_kinds', () => {
+  it('gives every character exactly one kind and honest provenance (R044)', () => {
+    resetSim()
+    initSim(fleetToConnectors(FLEET_SNAPSHOT))
+    try {
+      expect(world.characters).toHaveLength(ROSTER.length)
+      for (const c of world.characters) {
+        expect(['ai', 'npc'], c.id).toContain(c.kind)
+        // No real-agent or presence feed has landed (R020, R023): nothing is live.
+        expect(c.provenance, c.id).toBe('simulated')
+      }
+      expect(world.characters.filter((c) => c.kind === 'npc').every((c) => c.role === 'core')).toBe(true)
+      expect(ROLE_LABELS.core.toLowerCase()).toContain('simulated')
+    } finally {
+      resetSim()
     }
   })
 })
