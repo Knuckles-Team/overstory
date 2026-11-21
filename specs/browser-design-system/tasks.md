@@ -21,8 +21,8 @@ No task above names a requirement ID individually; together they must close ever
 - [x] T009 OVERSTORY-DESIGN-R009 Add a per-document style nonce to `SecurityHeadersMiddleware` with tests (OVERSTORY-DESIGN-R009).
 - [x] T010 OVERSTORY-DESIGN-R009 Pass the nonce to Radix Select and ScrollArea, and to react-remove-scroll through `__webpack_nonce__` (OVERSTORY-DESIGN-R009).
 - [x] T011 OVERSTORY-DESIGN-R009 Patch out the sonner runtime style injection and import its bundled stylesheet (OVERSTORY-DESIGN-R009).
-- [x] T012 OVERSTORY-DESIGN-R008 Add the browser probe as an e2e test that fails on any `securitypolicyviolation` event (OVERSTORY-DESIGN-R008, OVERSTORY-DESIGN-R009).
-- [ ] T013 OVERSTORY-DESIGN-R008 Open a dialog, a select and a toast under the probe; the shell-only probe covers load-time injectors only.
+- [x] T012 OVERSTORY-DESIGN-R008 Add the browser probe as an e2e test that fails on any `securitypolicyviolation` event (OVERSTORY-DESIGN-R008, OVERSTORY-DESIGN-R009). Bound test: `e2e/strict-style-policy.browser.ts`.
+- [x] T013 OVERSTORY-DESIGN-R008 Open a dialog, a select and a toast under the probe; the shell-only probe covers load-time injectors only.
 - [x] T014 OVERSTORY-DESIGN-R009 Remove the `script-src` `eval` violation in the `api-validation` chunk; this is outside OVERSTORY-DESIGN-R009 scope.
 - [ ] T015 OVERSTORY-DESIGN-R008 Rebuild the served bundle on the deployment host after merge.
 
@@ -30,7 +30,7 @@ No task above names a requirement ID individually; together they must close ever
 
 - [x] T016 OVERSTORY-DESIGN-R002.1 Add container-width panes and bounded reading widths to Work, Explore and Operate under OVERSTORY-DESIGN-R002.1. Add keyboard-operable optional context disclosures. This is partial delivery.
 - [ ] T017 OVERSTORY-DESIGN-R002.1 Complete screenshot/task review and attach merged-revision acceptance evidence.
-- [ ] T018 OVERSTORY-DESIGN-R004.1 Implement full mobile and arbitrary-aspect feature parity. Run the planned acceptance in test-spec.md. Attach the exact merged revision and evidence. No runtime result is claimed by this specification.
+- [ ] T018 OVERSTORY-DESIGN-R004.1 Implement full mobile and arbitrary-aspect feature parity. Run the planned acceptance in test-spec.md. Attach the exact merged revision and evidence. No runtime result is claimed by this specification. Progress: `e2e/responsive-route-matrix.browser.ts` runs every registered route across the six viewport shapes in the `workspace-browser` job; the desktop-only gate is removed from every route that passes it. `workspace.ide` stays gated (its embedded editor raises a page error in the synthetic fixture), so this row stays open. Progress: `e2e/responsive-route-matrix.browser.ts` runs every registered route across the six viewport shapes in the `workspace-browser` job; the desktop-only gate is removed from every route that passes it. `workspace.ide` stays gated (its embedded editor raises a page error in the synthetic fixture), so this row stays open.
 - [x] T019 OVERSTORY-DESIGN-R004.2 Add retained workspace visual-viewport sizing, safe-area padding and deferred focused-control reveal under OVERSTORY-DESIGN-R004.2. This is partial delivery.
 - [ ] T020 OVERSTORY-DESIGN-R004.2 Complete fold, native keyboard, 200-percent browser zoom, stream and graph acceptance. Attach the exact merged revision and evidence.
 - [ ] T021 OVERSTORY-DESIGN-R005.1 Implement accessible interruptible semantic zoom. Run the planned acceptance in test-spec.md. Attach the exact merged revision and evidence. No runtime result is claimed by this specification.
