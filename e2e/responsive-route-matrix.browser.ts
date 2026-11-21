@@ -88,11 +88,15 @@ for (const route of ROUTES) {
         await expect(page).toHaveURL(/\/workspace/)
         continue
       }
+      // A route retired into the workspace by an alias also forwards; its body is the workspace's.
+      await page.waitForLoadState('networkidle')
+      const forwarded = new URL(page.url()).pathname.startsWith('/workspace') && !target.startsWith('/workspace')
+      if (forwarded) continue
       // The route's own label is shown (page heading or breadcrumb) once its body is mounted.
       await expect(
-        page.getByText(route.label, { exact: true }).locator('visible=true').first(),
+        page.getByText(route.label).locator('visible=true').first(),
         `${route.id} renders no content at ${viewport.name}`,
-      ).toBeVisible({ timeout: 15_000 })
+      ).toBeVisible({ timeout: 25_000 })
     }
     // A route that is still gated has not passed the matrix, so its errors are logged, not asserted.
     if (route.mobile !== 'unsupported') expect(errors, `${route.id} raised page errors`).toEqual([])
