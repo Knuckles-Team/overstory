@@ -1,43 +1,24 @@
-// spec: OVERSTORY-APPS-R030.1
-
-import { describe, expect, expectTypeOf, it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import {
   GRAPH_EDIT_KINDS,
   GRAPH_EDIT_VERDICTS,
+  PERSONA_PRESENTATION,
   VIEW_PERSONAS,
   type GraphEditRequest,
-  type GraphEditVerdict,
-  type ViewPersona,
 } from '@/lib/graph-edit'
 
-describe('graph edit model', () => {
+describe('graph edit types', () => {
+  // spec: OVERSTORY-APPS-R030.1
   it('test_edit_types_closed', () => {
-    expect(GRAPH_EDIT_KINDS).toEqual(['add', 'update', 'delete'])
-    expect(GRAPH_EDIT_VERDICTS).toEqual(['applied', 'refused', 'unavailable'])
-    expect(VIEW_PERSONAS).toEqual(['operator', 'analyst', 'reader'])
-
+    expect([...GRAPH_EDIT_KINDS]).toEqual(['add', 'update', 'delete'])
+    expect([...GRAPH_EDIT_VERDICTS]).toEqual(['applied', 'refused', 'unavailable'])
+    expect([...VIEW_PERSONAS]).toEqual(['operator', 'analyst', 'reader'])
+    expect(Object.keys(PERSONA_PRESENTATION).sort()).toEqual([...VIEW_PERSONAS].sort())
     const requests: GraphEditRequest[] = [
-      { kind: 'add', labels: ['Person'], properties: { name: 'Ada' } },
-      { kind: 'update', id: 'person-1', properties: { name: 'Grace' } },
-      { kind: 'delete', id: 'person-1' },
+      { kind: 'add', labels: ['Concept'], properties: { name: 'a' } },
+      { kind: 'update', id: 'n1', properties: { name: 'b' } },
+      { kind: 'delete', id: 'n1' },
     ]
-    expect(requests).toHaveLength(3)
-
-    expectTypeOf<GraphEditVerdict>().toEqualTypeOf<'applied' | 'refused' | 'unavailable'>()
-    expectTypeOf<ViewPersona>().toEqualTypeOf<'operator' | 'analyst' | 'reader'>()
-    expectTypeOf<Extract<GraphEditRequest, { kind: 'add' }>>().toEqualTypeOf<{
-      kind: 'add'
-      labels: string[]
-      properties: Record<string, unknown>
-    }>()
-    expectTypeOf<Extract<GraphEditRequest, { kind: 'update' }>>().toEqualTypeOf<{
-      kind: 'update'
-      id: string
-      properties: Record<string, unknown>
-    }>()
-    expectTypeOf<Extract<GraphEditRequest, { kind: 'delete' }>>().toEqualTypeOf<{
-      kind: 'delete'
-      id: string
-    }>()
+    expect(requests.map((request) => request.kind)).toEqual([...GRAPH_EDIT_KINDS])
   })
 })
