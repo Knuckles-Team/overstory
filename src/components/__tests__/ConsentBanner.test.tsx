@@ -61,6 +61,7 @@ describe('ConsentBanner lifecycle', () => {
     expect(screen.getByRole('link', { name: 'Arbora' })).toHaveFocus()
   })
 
+  // spec: OVERSTORY-APPS-R043
   it('persists dismissal separately from consent across navigation and remount', () => {
     const view = render(<ConsentBanner placement="workspace" />)
     fireEvent.click(screen.getByRole('button', { name: 'Dismiss' }))
