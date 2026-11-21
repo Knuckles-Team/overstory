@@ -2,8 +2,8 @@
 
 No exact-head publication receipt is recorded.
 
-- [ ] T001 [US1] OVERSTORY-APPS-R001 Inventory current brand identifiers, package consumers, generated assets, site links, consent keys and tool IDs on main.
-- [x] T002 [US1] OVERSTORY-APPS-R038 Make browser title, metadata, web manifest, docs site name and README consistently present the Arbora brand, with a `site:brand:check` gate (part of `pnpm run build`) proving it. (OVERSTORY-APPS-R038; index.html/webmanifest already said "Arbora"; this fixes `mkdocs.yml` `site_name`/ecosystem entry and `README.md`'s heading, overview line and license line, and is deliberately scoped to brand copy only — no package, import or environment rename.)
+- [x] T001 [US1] OVERSTORY-APPS-R001 Inventory current brand identifiers, package consumers, generated assets, site links, consent keys and tool IDs on main.
+- [x] T002 [US1] OVERSTORY-APPS-R038 Make browser title, metadata, web manifest, docs site name and README consistently present the Overstory brand (Arbora stays the backend name), with a `site:brand:check` gate (part of `pnpm run build`) and `src/lib/__tests__/brand-identity.test.ts` proving it.
 - [x] T003 [US1] OVERSTORY-APPS-R038 Add `apps` navigation and one typed `AppSurface` contract using existing route, contribution, WebMCP and renderer seams.
 - [x] T004 [US1] OVERSTORY-APPS-R038 Integrate Markets as first native consumer and add valid/invalid contributed-app fixtures.
 - [x] T005 [US1] OVERSTORY-APPS-R039 Perform atomic public-name package and consumer cutover; regenerate assets and digests; document browser migration. (OVERSTORY-APPS-R039, OVERSTORY-APPS-R043, OVERSTORY-APPS-R002's remaining theme-token/asset-regeneration surface, OVERSTORY-APPS-R003: source commit 677a27e0f701eca99cad20887a0b5c4b8ec9734e exists on local branch feat/eh427-retire-review-20260926 but conflicts heavily with main — rename touches package.json, pyproject.toml, uv.lock, pnpm-lock.yaml and deletes files main already restructured; needs a fresh, smaller port, not a direct cherry-pick. The operator has not yet confirmed this package-identity rename; do not attempt it without that confirmation.)
@@ -16,12 +16,12 @@ No exact-head publication receipt is recorded.
 - [x] T012 [US1] OVERSTORY-APPS-R004.4 Current plan is shown read-only.
 - [x] T013 [US1] OVERSTORY-APPS-R004.5 Each termination reason has a distinct state.
 - [x] T014 [US1] OVERSTORY-APPS-R004.6 Absent operation shows an honest state.
-- [ ] T015 [US1] OVERSTORY-APPS-R030.1 Graph edit types.
-- [ ] T016 [US1] OVERSTORY-APPS-R030.2 Send edits to arbora.
-- [ ] T017 [US1] OVERSTORY-APPS-R030.3 Wire graph handlers to the engine.
-- [ ] T018 [US1] OVERSTORY-APPS-R030.4 Show refusals on unauthorized edits.
-- [ ] T019 [US1] OVERSTORY-APPS-R030.5 Semantic filters and persona modes.
-- [ ] T020 [US1] OVERSTORY-APPS-R030.6 Edit log with verdicts.
+- [x] T015 [US1] OVERSTORY-APPS-R030.1 Graph edit types.
+- [x] T016 [US1] OVERSTORY-APPS-R030.2 Send edits to arbora.
+- [x] T017 [US1] OVERSTORY-APPS-R030.3 Wire graph handlers to the engine.
+- [x] T018 [US1] OVERSTORY-APPS-R030.4 Show refusals on unauthorized edits.
+- [x] T019 [US1] OVERSTORY-APPS-R030.5 Semantic filters and persona modes.
+- [x] T020 [US1] OVERSTORY-APPS-R030.6 Edit log with verdicts.
 - [ ] T021 [US1] OVERSTORY-APPS-R030.7 Graph edit hot-path proof.
 - [ ] T022 [US1] OVERSTORY-APPS-R031.1 Memory file types.
 - [ ] T023 [US1] OVERSTORY-APPS-R031.2 Memory file operations.
@@ -34,17 +34,17 @@ No exact-head publication receipt is recorded.
 No task above names a requirement ID individually; together they must close every ID in [requirements.md](requirements.md) — `OVERSTORY-APPS-R038`, `OVERSTORY-APPS-R039`, `OVERSTORY-APPS-R040`, `OVERSTORY-APPS-R041`, `OVERSTORY-APPS-R042`, `OVERSTORY-APPS-R043`, `OVERSTORY-APPS-R044`, `OVERSTORY-APPS-R001`, `OVERSTORY-APPS-R002`, `OVERSTORY-APPS-R003`, `OVERSTORY-APPS-R004`.
 - [ ] T029 [US1] OVERSTORY-APPS-R005 Navigation and dashboards follow the signed-in user's role (rollup).
 - [ ] T030 [US1] OVERSTORY-APPS-R005.1 Nav entry declares a minimum role.
-- [ ] T031 [US1] OVERSTORY-APPS-R005.1.1 Registry role contract.
-- [ ] T032 [US1] OVERSTORY-APPS-R005.1.2 Rendered role filtering.
+- [x] T031 [US1] OVERSTORY-APPS-R005.1.1 Registry role contract.
+- [x] T032 [US1] OVERSTORY-APPS-R005.1.2 Rendered role filtering.
 - [ ] T033 [US1] OVERSTORY-APPS-R005.2 Layout saved per user.
 - [ ] T034 [US1] OVERSTORY-APPS-R005.3 Operate renders tiles for returned fleet children with source regression coverage. Complete connector catalog and connection-state acceptance remain open.
 - [ ] T035 [US1] OVERSTORY-APPS-R005.4 One chat session list.
 - [ ] T036 [US1] OVERSTORY-APPS-R005.5 Every route renders.
-- [ ] T037 [US1] OVERSTORY-APPS-R005.5.1 Census detects a throwing view.
-- [ ] T038 [US1] OVERSTORY-APPS-R005.5.2 Complete route render acceptance.
+- [x] T037 [US1] OVERSTORY-APPS-R005.5.1 Census detects a throwing view.
+- [x] T038 [US1] OVERSTORY-APPS-R005.5.2 Complete route render acceptance.
 - [ ] T039 [US1] OVERSTORY-APPS-R005.6 Each view states its purpose.
-- [ ] T040 [US1] OVERSTORY-APPS-R005.6.1 Registry purpose copy.
-- [ ] T041 [US1] OVERSTORY-APPS-R005.6.2 Rendered purpose visibility.
+- [x] T040 [US1] OVERSTORY-APPS-R005.6.1 Registry purpose copy.
+- [x] T041 [US1] OVERSTORY-APPS-R005.6.2 Rendered purpose visibility.
 - [ ] T042 [US1] OVERSTORY-APPS-R006 One panel relates goals, sessions and fleets (rollup).
 - [ ] T043 [US1] OVERSTORY-APPS-R006.1 Link type.
 - [ ] T044 [US1] OVERSTORY-APPS-R006.2 Panel reads typed operations.

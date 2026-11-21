@@ -67,7 +67,7 @@ export function RunHarnessView({ read }: { read: RunRead }) {
   )
 }
 
-/** Reads the selected run through `runs.get` and `runs.metrics` and renders it. */
+/** Reads the selected run through `runs.get` and renders it. */
 export default function RunHarnessPanel({ runId }: { runId: string }) {
   const [read, setRead] = useState<RunRead | null>(null)
   useEffect(() => {

@@ -1,7 +1,7 @@
 {
   "name": "Overstory",
   "short_name": "Overstory",
-  "description": "A governed web interface for Arbora agents, knowledge, and workflows.",
+  "description": "Overstory is a governed web interface for operating agents, knowledge, and workflows.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

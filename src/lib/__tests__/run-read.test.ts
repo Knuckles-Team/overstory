@@ -24,12 +24,17 @@ describe('run read', () => {
   // spec: OVERSTORY-APPS-R004.1
   it('run read goes through the arbora read operations', async () => {
     const fetcher = stubOps({
-      'runs.get': { terminationReason: 'stuck', harness_config: { plan_scaffold: 'todo' } },
-      'runs.metrics': { peakContextTokens: 900, contextBudgetTokens: 1000, costUsd: 0.5 },
+      'runs.get': {
+        termination_reason: 'stuck',
+        harness_config: { plan_scaffold: 'todo' },
+        peak_context_tokens: 900,
+        context_budget_tokens: 1000,
+        cost_usd: 0.5,
+      },
     })
     const read = await readRun('run-1')
     const paths = fetcher.mock.calls.map((call) => String(call[0])).filter((path) => path !== '/auth/session')
-    expect(paths.sort()).toEqual(['/api/v1/ops/runs.get', '/api/v1/ops/runs.metrics'])
+    expect(paths).toEqual(['/api/v1/ops/runs.get'])
     for (const call of fetcher.mock.calls.filter((c) => String(c[0]) !== '/auth/session'))
       expect(JSON.parse(String((call[1] as RequestInit).body))).toEqual({ run_id: 'run-1' })
     expect(read).toMatchObject({
@@ -64,7 +69,6 @@ describe('run read', () => {
       contextBudgetTokens: null,
       costUsd: null,
       getAvailable: false,
-      metricsAvailable: false,
     })
   })
 })

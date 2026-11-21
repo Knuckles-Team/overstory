@@ -54,11 +54,11 @@ describe('identity operation adapter on shared Arbora invoke', () => {
         meta,
       },
     })
-    expect((await invokeIdentity('identity.scim_clients.list')).kind).toBe('ready')
+    expect((await invokeIdentity('identity.scim.clients.list')).kind).toBe('ready')
     stubReplies({ status: 200, body: { ok: true, result: { epoch: 4, issuer_kid_current: 'kid-2' }, meta } })
     expect((await invokeIdentity('identity.issuer.rotate')).kind).toBe('ready')
     stubReplies({ status: 200, body: { ok: true, result: { items: [{ idp_id: 'scim' }] }, meta } })
-    expect((await invokeIdentity('identity.scim_clients.list')).kind).toBe('error')
+    expect((await invokeIdentity('identity.scim.clients.list')).kind).toBe('error')
   })
 
   it('preserves missing operation and scope refusals', async () => {

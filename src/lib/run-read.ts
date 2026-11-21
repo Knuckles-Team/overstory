@@ -1,10 +1,20 @@
 /**
- * Run harness read: `runs.get` and `runs.metrics` through the one Arbora
- * browser transport. The client never calls the engine and never computes
- * context use or cost; an absent or refused operation reads "not available".
+ * Run harness read: `runs.get` through the one Arbora browser transport. The
+ * client never calls the engine and never computes context use or cost; an
+ * absent or refused operation reads "not available".
+ *
+ * The request is typed from the pinned Arbora operation schema. That schema
+ * types the `runs.get` result only as an object, so the per-run fields are
+ * parsed here to the snake_case projection of ARBORA-OPS-R021.4.5
+ * (`termination_reason`, `peak_context_tokens`, `context_budget_tokens`,
+ * `cost_usd`, `harness_config`). `runs.metrics` is a grouped aggregate and
+ * never carries per-run cost, so it is not read here.
  */
 import { z } from 'zod'
 import { ArboraApiError, invoke } from '@/lib/arbora-api/invoke'
+import type { operations } from '@/lib/arbora-api/generated/schema'
+
+type RunsGetParams = operations['runs.get']['requestBody']['content']['application/json']
 
 /** Shown wherever a value is absent. Never zero. */
 export const NOT_AVAILABLE = 'not available'
@@ -55,16 +65,12 @@ const harnessConfigSchema = z
 
 const runGetSchema = z
   .object({
+    availability: z.string().nullish(),
     harness_config: harnessConfigSchema.nullish(),
-    terminationReason: z.string().nullish(),
-  })
-  .loose()
-
-const runMetricsSchema = z
-  .object({
-    peakContextTokens: optionalNumber,
-    contextBudgetTokens: optionalNumber,
-    costUsd: optionalNumber,
+    termination_reason: z.string().nullish(),
+    peak_context_tokens: optionalNumber,
+    context_budget_tokens: optionalNumber,
+    cost_usd: optionalNumber,
   })
   .loose()
 
@@ -76,15 +82,15 @@ export interface RunRead {
   peakContextTokens: number | null
   contextBudgetTokens: number | null
   costUsd: number | null
-  /** True when the operation answered; false when it was absent or refused. */
+  /** True when `runs.get` answered with an available run; false when absent, refused or unavailable. */
   getAvailable: boolean
-  metricsAvailable: boolean
 }
 
-async function readOp<T>(op: string, runId: string, schema: z.ZodType<T>, signal?: AbortSignal): Promise<T | null> {
+async function readRunGet(runId: string, signal?: AbortSignal): Promise<z.infer<typeof runGetSchema> | null> {
+  const params: RunsGetParams = { run_id: runId }
   try {
-    const result = await invoke(op, { run_id: runId }, z.object({ value: schema }).strict(), { signal })
-    return result.value
+    const result = await invoke('runs.get', params, z.object({ value: runGetSchema }).strict(), { signal })
+    return result.value.availability === 'unavailable' ? null : result.value
   } catch (error) {
     if (signal?.aborted) throw error
     // Absent, refused or malformed: honest "not available", nothing invented.
@@ -93,19 +99,15 @@ async function readOp<T>(op: string, runId: string, schema: z.ZodType<T>, signal
   }
 }
 
-/** Read one run through `runs.get` and `runs.metrics` only. */
+/** Read one run through `runs.get` only. */
 export async function readRun(runId: string, signal?: AbortSignal): Promise<RunRead> {
-  const [run, metrics] = await Promise.all([
-    readOp('runs.get', runId, runGetSchema, signal),
-    readOp('runs.metrics', runId, runMetricsSchema, signal),
-  ])
+  const run = await readRunGet(runId, signal)
   return {
     harnessConfig: run?.harness_config ?? null,
-    terminationReason: run?.terminationReason ?? null,
-    peakContextTokens: metrics?.peakContextTokens ?? null,
-    contextBudgetTokens: metrics?.contextBudgetTokens ?? null,
-    costUsd: metrics?.costUsd ?? null,
+    terminationReason: run?.termination_reason ?? null,
+    peakContextTokens: run?.peak_context_tokens ?? null,
+    contextBudgetTokens: run?.context_budget_tokens ?? null,
+    costUsd: run?.cost_usd ?? null,
     getAvailable: run !== null,
-    metricsAvailable: metrics !== null,
   }
 }

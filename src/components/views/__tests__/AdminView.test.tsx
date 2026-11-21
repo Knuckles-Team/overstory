@@ -107,7 +107,7 @@ describe('AdminView_identity_tabs', () => {
 
   it('requires an explicit acknowledgement and surfaces MFA step-up for mode transitions', async () => {
     const fetcher = withSession((url) =>
-      url.includes('identity.mode.status')
+      url.includes('identity.mode.get')
         ? okReply({ mode: 'none', epoch: 1 })
         : reply(428, {
             ok: false,
@@ -157,7 +157,7 @@ describe('AdminView_identity_tabs', () => {
 
   it('previews a mapping rule through the typed operation and refuses it when denied', async () => {
     const fetcher = withSession((url) =>
-      url.includes('identity.idps.mapping_dry_run')
+      url.includes('identity.providers.mapping_dry_run')
         ? okReply({ roles: ['kg:read'], groups: ['ops'], scopes: [] })
         : reply(404, {}),
     )
@@ -169,7 +169,7 @@ describe('AdminView_identity_tabs', () => {
     expect(await screen.findByText('kg:read')).toBeInTheDocument()
     expect(screen.getByText('ops')).toBeInTheDocument()
     expect(fetcher).toHaveBeenCalledWith(
-      '/api/v1/ops/identity.idps.mapping_dry_run',
+      '/api/v1/ops/identity.providers.mapping_dry_run',
       expect.objectContaining({ body: JSON.stringify({ idp_id: 'corp', claims: { groups: [] } }) }),
     )
 
