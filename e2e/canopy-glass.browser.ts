@@ -395,7 +395,21 @@ test('Canopy dark security warning keeps its paired contrast', async ({ page }, 
   expect(await contrast(send)).toBeGreaterThanOrEqual(4.5)
   await page.screenshot({ path: info.outputPath('canopy-dark-disabled-control.png'), animations: 'disabled' })
 })
+/** Resolve once every CSS transition has finished. Computed colors are mid-interpolation
+ * while a palette, theme, hover or pressed transition runs, which made contrast samples
+ * depend on timing. Infinite wallpaper animations are not transitions and are left alone. */
+async function settleTransitions(target: Locator) {
+  await target.evaluate(async () => {
+    for (let pass = 0; pass < 5; pass += 1) {
+      const running = document.getAnimations().filter((animation) => animation instanceof CSSTransition)
+      if (running.length === 0) return
+      await Promise.all(running.map((animation) => animation.finished.catch(() => undefined)))
+    }
+  })
+}
+
 async function contrast(target: Locator) {
+  await settleTransitions(target)
   return target.evaluate((element) => {
     const canvas = document.createElement('canvas')
     canvas.width = canvas.height = 1
