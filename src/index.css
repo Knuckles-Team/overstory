@@ -67,8 +67,8 @@
   --card-foreground: #111111;
   --popover: #ffffff;
   --popover-foreground: #111111;
-  --primary: #3e634f;
-  --primary-foreground: #ffffff;
+  --primary: #04bd88;
+  --primary-foreground: #16251a;
   --secondary: #e6ebe1;
   --secondary-foreground: #111111;
   --muted: #e6ebe1;
@@ -88,8 +88,8 @@
   --sugar: #f7f8f2;
   --sidebar: #f7f8f2;
   --sidebar-foreground: #111111;
-  --sidebar-primary: #3e634f;
-  --sidebar-primary-foreground: #ffffff;
+  --sidebar-primary: #04bd88;
+  --sidebar-primary-foreground: #16251a;
   --sidebar-accent: #dde9d8;
   --sidebar-accent-foreground: #111111;
   --sidebar-border: #c5cfc1;
@@ -114,8 +114,8 @@
   --button-neutral-hover: rgb(173 201 177 / 78%);
   --button-neutral-active: rgb(159 191 164 / 84%);
   --button-neutral-foreground: #111111;
-  --button-primary: rgb(62 99 79 / 96%);
-  --button-primary-hover: rgb(54 88 68 / 98%);
+  --button-primary: rgb(4 189 136 / 96%);
+  --button-primary-hover: rgb(3 170 122 / 98%);
   --glass-edge: rgb(255 255 255 / 76%);
   --glass-line: rgb(55 82 68 / 24%);
   --glass-muted: #111111;
@@ -145,7 +145,7 @@
   --card-foreground: #f1f5eb;
   --popover: #27372d;
   --popover-foreground: #f1f5eb;
-  --primary: #adc99f;
+  --primary: #04bd88;
   --primary-foreground: #16251a;
   --secondary: #16231c;
   --secondary-foreground: #d0dbcb;
@@ -166,7 +166,7 @@
   --sugar: #1c2a22;
   --sidebar: #1c2a22;
   --sidebar-foreground: #f1f5eb;
-  --sidebar-primary: #adc99f;
+  --sidebar-primary: #04bd88;
   --sidebar-primary-foreground: #16251a;
   --sidebar-accent: #314a35;
   --sidebar-accent-foreground: #e4eedc;
@@ -191,8 +191,8 @@
   --button-neutral-hover: rgb(67 94 72 / 92%);
   --button-neutral-active: rgb(73 101 78 / 96%);
   --button-neutral-foreground: #f1f5eb;
-  --button-primary: rgb(173 201 159 / 96%);
-  --button-primary-hover: rgb(184 210 172 / 98%);
+  --button-primary: rgb(4 189 136 / 96%);
+  --button-primary-hover: rgb(20 205 152 / 98%);
   --glass-edge: rgb(213 234 216 / 30%);
   --glass-line: rgb(189 211 190 / 28%);
   --glass-muted: #e1ebdc;
@@ -492,6 +492,8 @@ textarea::placeholder {
 
 /* Derived hues only: default green retains the exact accepted material tokens. */
 :root[data-palette='custom'] {
+  --primary-foreground: #ffffff;
+  --sidebar-primary-foreground: #ffffff;
   --ring: var(--palette-focus);
   --sidebar-ring: var(--palette-focus);
   --accent: var(--palette-neutral);
@@ -503,6 +505,8 @@ textarea::placeholder {
   --button-primary-hover: color-mix(in oklch, var(--palette-primary-hover) 98%, transparent);
 }
 :root.dark[data-palette='custom'] {
+  --primary-foreground: #16251a;
+  --sidebar-primary-foreground: #16251a;
   --button-neutral: color-mix(in oklch, var(--palette-neutral) 88%, transparent);
   --button-neutral-hover: color-mix(in oklch, var(--palette-neutral-hover) 92%, transparent);
   --button-neutral-active: color-mix(in oklch, var(--palette-neutral-active) 96%, transparent);

@@ -3,7 +3,7 @@ import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { ACTIVE_CONVERSATION_STORAGE_KEY, useConversationIdFromUrl } from '@/hooks/useConversationIdFromUrl'
-import { conversationOwnerKey, saveConversationEntry } from '@/lib/chat-store'
+import { conversationOwnerKey, readLocalConversationEntry, saveConversationEntry } from '@/lib/chat-store'
 import { renderWithProviders } from '@/__tests__/fixtures'
 
 import { AppSidebar } from '../app-sidebar'
@@ -74,6 +74,39 @@ describe('deleting conversations from the sidebar', () => {
     expect(screen.getByLabelText('Active conversation')).toHaveTextContent('/session-2')
     expect(window.localStorage.getItem(ACTIVE_CONVERSATION_STORAGE_KEY)).toBe('/session-2')
     expect(window.location.search).toBe('?conversation=%2Fsession-2')
+  })
+})
+
+describe('delete confirmation for past chats', () => {
+  // spec: OVERSTORY-APPS-R053
+  it('delete_past_chat_confirm_and_cancel', async () => {
+    window.history.replaceState({}, '', '/chat')
+    const ownerKey = conversationOwnerKey({
+      userKey: 'reader',
+      raw: { authenticated: true, roles: [], tenant: caller.tenant },
+    })
+    saveConversationEntry(ownerKey, '/session-1', 'First chat')
+    vi.stubGlobal('fetch', vi.fn().mockImplementation(sidebarFixtureResponse))
+    renderWithProviders(
+      <SidebarProvider>
+        <AppSidebar />
+      </SidebarProvider>,
+    )
+    const trash = screen.getByRole('button', { name: 'Delete First chat' })
+    expect(trash.parentElement?.className).toContain('opacity-0')
+    expect(trash.parentElement?.className).toContain('group-focus-within/sidebar-menu-item:opacity-100')
+    fireEvent.click(trash)
+    expect(screen.getByText(/Are you sure you want to delete this chat\?/)).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    await waitFor(() =>
+      expect(screen.queryByText(/Are you sure you want to delete this chat\?/)).not.toBeInTheDocument(),
+    )
+    expect(screen.getByRole('button', { name: 'Delete First chat' })).toBeInTheDocument()
+    expect(readLocalConversationEntry(ownerKey, '/session-1')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Delete First chat' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Delete First chat' })).not.toBeInTheDocument())
+    expect(readLocalConversationEntry(ownerKey, '/session-1')).toBeFalsy()
   })
 })
 

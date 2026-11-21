@@ -31,7 +31,6 @@ import { XIcon, Settings2Icon, PaperclipIcon, DownloadIcon, Wrench, Square, GitB
 import { Source, Sources, SourcesContent, SourcesTrigger } from '@/components/ai-elements/sources'
 import {
   DropdownMenu,
-  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
@@ -64,7 +63,7 @@ import { useThrottle } from '@uidotdev/usehooks'
 import { nanoid } from 'nanoid'
 import { useConversationIdFromUrl } from './hooks/useConversationIdFromUrl'
 import { Part } from './Part'
-import { getToolIcon } from '@/lib/tool-icons'
+import { ToolsMenu, type BuiltinTool } from '@/components/ToolsMenu'
 import { GraphActivity, type GraphEvent } from '@/components/ai-elements/graph-activity'
 import { AccessibleImage } from '@/components/ai-elements/image'
 import VoiceDictationButton from '@/components/VoiceDictationButton'
@@ -207,14 +206,6 @@ interface ModelConfig {
   id: string
   name: string
   builtinTools: string[]
-}
-
-/**
- * Built-in tool metadata
- */
-interface BuiltinTool {
-  name: string
-  id: string
 }
 
 /**
@@ -806,11 +797,6 @@ function compactChatStatus(status: string, messageCount: number): string {
   return messageCount > 0 ? `${messageCount} messages. Expand to review.` : 'Ready for your message.'
 }
 
-function updateEnabledTools(enabled: string[], toolId: string, checked: boolean): string[] {
-  if (!checked) return enabled.filter((id) => id !== toolId)
-  return enabled.includes(toolId) ? enabled : [...enabled, toolId]
-}
-
 /** The slash-command autocomplete popover above the composer. */
 function renderSuggestionsList(
   suggestions: string[],
@@ -881,45 +867,6 @@ function renderAttachmentPreview(attachments: AttachmentItem[], onRemove: (index
         </div>
       ))}
     </div>
-  )
-}
-
-/** The per-model tools dropdown in the composer toolbar. */
-function renderToolsMenu(
-  availableTools: BuiltinTool[],
-  enabledTools: string[],
-  setEnabledTools: Dispatch<SetStateAction<string[]>>,
-): ReactNode {
-  if (availableTools.length === 0) return null
-  return (
-    <DropdownMenu>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <DropdownMenuTrigger asChild>
-            <PromptInputButton variant="outline" aria-label="Configure tools">
-              <Settings2Icon className="size-4" />
-            </PromptInputButton>
-          </DropdownMenuTrigger>
-        </TooltipTrigger>
-        <TooltipContent>Tools</TooltipContent>
-      </Tooltip>
-      <DropdownMenuContent align="start">
-        {availableTools.map((tool) => (
-          <DropdownMenuCheckboxItem
-            key={tool.id}
-            checked={enabledTools.includes(tool.id)}
-            onCheckedChange={(checked) => {
-              setEnabledTools((prev) => updateEnabledTools(prev, tool.id, checked))
-            }}
-          >
-            <span className="flex items-center gap-2">
-              <span aria-hidden="true">{getToolIcon(tool.id)}</span>
-              <span className="text-sm">{tool.name}</span>
-            </span>
-          </DropdownMenuCheckboxItem>
-        ))}
-      </DropdownMenuContent>
-    </DropdownMenu>
   )
 }
 
@@ -2113,7 +2060,11 @@ Available commands:
                   textareaRef.current?.focus()
                 }}
               />
-              {renderToolsMenu(availableTools, enabledTools, setEnabledTools)}
+              <ToolsMenu
+                availableTools={availableTools}
+                enabledTools={enabledTools}
+                setEnabledTools={setEnabledTools}
+              />
               {renderUsageBadge(hasUsage, sessionUsage, estimatedCost)}
               {renderExportMenu(messages, conversationId)}
               {/* Prefer the backend-configured model registry; fall back
