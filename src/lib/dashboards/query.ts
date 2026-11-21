@@ -9,6 +9,7 @@ import { DEFAULT_ATLAS_CONTEXT } from '@/lib/atlas/types'
 import type { Param, Panel } from './model'
 import { atlasGet } from '@/lib/atlas/transport'
 import { resolveQuery } from './params'
+import { runEgOp, runFleetCall, runNlQuery } from './query-kinds'
 
 export type Cell = string | number | boolean | null
 
@@ -34,7 +35,13 @@ export async function runPanelQuery(
   signal: AbortSignal,
 ): Promise<QueryOutcome> {
   try {
-    const text = resolveQuery(panel.query.text, params)
+    const { query: panelQuery } = panel
+    if (panelQuery.kind === 'nl') {
+      return await runNlQuery({ ...panelQuery, text: resolveQuery(panelQuery.text, params) }, signal)
+    }
+    if (panelQuery.kind === 'fleet-call') return await runFleetCall(panelQuery, signal)
+    if (panelQuery.kind === 'eg-op') return await runEgOp(panelQuery, signal)
+    const text = resolveQuery(panelQuery.text, params)
     const ctx = { ...DEFAULT_ATLAS_CONTEXT, limit: PANEL_ROW_LIMIT }
     const query = parseUql({ text, ctx })
     const result = await uqlAdapter.execute({ query, ctx, signal })

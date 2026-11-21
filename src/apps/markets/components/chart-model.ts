@@ -7,7 +7,10 @@
  * library registers against the same interface without touching a caller.
  */
 import type { ComponentType } from 'react'
+import { decimate } from '../chart-contract'
 import { tickDecimals } from '../format'
+import type { ChartOverlay } from '../overlay-strategy'
+import { alignOverlaysToBars, type AlignedOverlay } from '../overlay-wiring'
 import type { ChartView, FlipMarker, LinePoint, MacroEvent, OhlcBar, TrailPoint } from '../schemas'
 
 export type ChartPalette = 'convention' | 'cvd'
@@ -34,6 +37,8 @@ export interface ChartModel {
   overlays: ChartLine[]
   /** Lines in their own pane and scale (e.g. ATR): never a second y-axis. */
   panes: ChartLine[]
+  /** Versioned, simulation-flagged markers, each pinned to a bar present in `bars`. */
+  markers: AlignedOverlay[]
   flips: FlipMarker[]
   events: EventMarker[]
   showVolume: boolean
@@ -72,17 +77,45 @@ function eventMarkers(events: readonly MacroEvent[]): EventMarker[] {
     .filter((event) => Number.isFinite(event.t))
 }
 
-/** The model for a Markets chart response and the layers the person chose. */
+/** The most bars the renderer draws; a longer series is thinned for display only. */
+export const MAX_DISPLAY_BARS = 2000
+
+/** The engine's finalized flips as versioned overlay markers (never simulated). */
+export function flipOverlays(chart: ChartView): ChartOverlay[] {
+  return chart.flips.map((flip) => ({
+    kind: 'flip',
+    at: flip.at,
+    bar_open_time: flip.bar_open,
+    strategy_version: chart.state.indicator_version,
+    simulated: false,
+  }))
+}
+
+/**
+ * The model for a Markets chart response and the layers the person chose.
+ * Bars are thinned with `decimate` past `maxBars`; trail, flips and signal
+ * state are passed through untouched, so decimation never changes the
+ * finalized output. Overlay markers are aligned onto the surviving bars.
+ */
 export function chartModel(
   title: string,
   chart: ChartView,
   layers: ReadonlySet<string>,
   events: readonly MacroEvent[],
+  options: { maxBars?: number; extraOverlays?: readonly ChartOverlay[] } = {},
 ): ChartModel {
+  const bars = decimate(chart.bars, options.maxBars ?? MAX_DISPLAY_BARS)
+  const overlays = layers.has('flips')
+    ? [...flipOverlays(chart), ...(options.extraOverlays ?? [])]
+    : [...(options.extraOverlays ?? [])]
   return {
     title,
     timeframe: chart.timeframe,
-    bars: chart.bars,
+    bars,
+    markers: alignOverlaysToBars(
+      overlays,
+      bars.map((bar) => bar.t),
+    ),
     trail: layers.has('trail') ? chart.trail : [],
     overlays: layers.has('sma200') ? [{ id: 'sma200', label: 'SMA 200', points: chart.sma200 }] : [],
     panes: layers.has('atr') ? [{ id: 'atr', label: 'ATR 14', points: chart.atr }] : [],

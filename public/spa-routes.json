@@ -43,6 +43,7 @@
     "/memories",
     "/overview",
     "/dashboards",
+    "/decisions",
     "/system-status",
     "/arbora-readiness",
     "/observability",

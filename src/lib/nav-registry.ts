@@ -39,6 +39,7 @@ import {
   ListTodo,
   MessageCircle,
   Network,
+  Scale,
   ScrollText,
   Settings,
   Shapes,
@@ -749,6 +750,18 @@ export const ROUTES: readonly RouteDef[] = [
     minRole: 'user',
     mobile: 'unsupported',
     element: lazy(() => import('@/components/views/dashboards/LiveDashboardsView')),
+  },
+  {
+    id: 'observability.decisions',
+    path: '/decisions',
+    label: 'Decisions',
+    section: 'observability',
+    blurb:
+      'See how each decision was reached and how well past decisions held up, without any claim the evidence cannot support.',
+    icon: Scale,
+    minRole: 'reader',
+    mobile: 'adapted',
+    element: lazy(() => import('@/components/views/DecisionsPage')),
   },
   {
     id: 'observability.system-status',

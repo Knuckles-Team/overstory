@@ -12,6 +12,8 @@ import { Share2, Table2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { navigateInApp, pathParam, replaceSearch, useAppLocation } from '@/lib/apps/location'
 import { fetchChart, fetchMacroEvents } from '../api'
+import { validateSeriesInput } from '../chart-contract'
+import { capabilitiesFromChart } from '../detail-support'
 import { formatPct, formatPrice, formatSince, tickDecimals } from '../format'
 import type { ChartResponse, ChartView } from '../schemas'
 import { chartPath, readChart, writeChart, type ChartSettings } from '../view-state'
@@ -126,10 +128,15 @@ function ChartBody({
     () => chartModel(title, data, layers, macro.data?.events ?? []),
     [title, data, layers, macro.data],
   )
+  const series = validateSeriesInput({ kind: 'candle', bars: data.bars })
   return (
     <div className="space-y-3">
       <SignalSummary chart={data} />
-      <ChartPanel model={model} palette={palette} />
+      {series.valid ? (
+        <ChartPanel model={model} palette={palette} trendDirection={data.state.direction} />
+      ) : (
+        <p role="alert">This chart is not shown: {series.reason}.</p>
+      )}
       <Button
         variant="ghost"
         size="sm"
@@ -193,7 +200,13 @@ function ListingChart({ listingId }: { listingId: string }) {
           <Share2 aria-hidden="true" /> Share analysis
         </Button>
       </div>
-      <ChartToolbar settings={settings} onChange={setSettings} palette={palette} onPalette={setPalette} />
+      <ChartToolbar
+        settings={settings}
+        onChange={setSettings}
+        palette={palette}
+        onPalette={setPalette}
+        capabilities={chart.data ? capabilitiesFromChart(chart.data) : undefined}
+      />
       {chart.isError && <RequestFailed what="The chart" error={chart.error} />}
       {!chart.data && !chart.isError && <p className="text-sm text-muted-foreground">Loading chart…</p>}
       {chart.data && <ChartBody data={chart.data} settings={settings} palette={palette} />}
