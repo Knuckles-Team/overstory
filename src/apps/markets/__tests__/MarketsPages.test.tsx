@@ -6,6 +6,7 @@ import * as api from '../api'
 import ChartPage from '../components/ChartPage'
 import MarketsHome from '../components/MarketsHome'
 import SharePage from '../components/SharePage'
+import { SymbolSearch } from '../components/SymbolSearch'
 import { CHART, LISTING, SCAN, SHARED } from './fixtures'
 
 /**
@@ -159,5 +160,64 @@ describe('Shared analysis', () => {
     vi.spyOn(api, 'fetchShared').mockRejectedValue(new Error('API 404'))
     renderWithProviders(<SharePage />)
     expect(await screen.findByRole('alert')).toHaveTextContent('may have expired, been revoked')
+  })
+})
+
+describe('Markets search and detail controls', () => {
+  // spec: OVERSTORY-R006
+  it('keeps two listings with the same ticker distinct by listing id', async () => {
+    const twin = { ...LISTING, listing_id: 'listing:kraken:SOLUSDT:spot', venue: 'Kraken' }
+    vi.spyOn(api, 'searchListings').mockResolvedValue({ listings: [LISTING, twin], total: 2 })
+    const picked: string[] = []
+    renderWithProviders(
+      <SymbolSearch
+        open
+        onOpenChange={() => undefined}
+        onPick={(listing) => {
+          picked.push(listing.listing_id)
+        }}
+      />,
+    )
+    const options = await screen.findAllByRole('option')
+    expect(options).toHaveLength(2)
+    expect(options[0]).toHaveTextContent('Binance')
+    expect(options[1]).toHaveTextContent('Kraken')
+    fireEvent.click(options[1])
+    fireEvent.click(options[0])
+    expect(picked).toEqual(['listing:kraken:SOLUSDT:spot', 'listing:binance:SOLUSDT:spot'])
+  })
+
+  // spec: OVERSTORY-R008.2
+  it('disables and explains an interval or layer the series cannot support', async () => {
+    const flat = { ...CHART, bars: CHART.bars.map((bar) => ({ ...bar, v: 0 })) }
+    vi.spyOn(api, 'fetchChart').mockResolvedValue(flat)
+    visit('/apps/markets/chart/listing:binance:SOLUSDT:spot')
+    renderWithProviders(<ChartPage />)
+    await screen.findByRole('slider')
+    const timeframes = within(screen.getByRole('group', { name: 'Timeframe' }))
+    expect(timeframes.getByRole('button', { name: '1h' })).toBeDisabled()
+    expect(timeframes.getByRole('button', { name: 'W' })).toBeEnabled()
+    expect(screen.getByRole('list', { name: 'Unavailable options' })).toHaveTextContent(
+      '1h: 1h is not a supported interval for this instrument',
+    )
+    expect(
+      within(screen.getByRole('group', { name: 'Layers' })).getByRole('button', { name: 'Volume' }),
+    ).toBeDisabled()
+    expect(screen.getByRole('list', { name: 'Unavailable options' })).toHaveTextContent(
+      'volume: volume is not available for this instrument',
+    )
+  })
+
+  // spec: OVERSTORY-R002.2, OVERSTORY-R016.2
+  it('refuses to draw an inconsistent series and otherwise mounts the text summary', async () => {
+    const broken = { ...CHART, bars: [{ ...CHART.bars[0], h: CHART.bars[0].l - 1 }, ...CHART.bars.slice(1)] }
+    const fetchChart = vi.spyOn(api, 'fetchChart').mockResolvedValue(broken)
+    visit('/apps/markets/chart/listing:binance:SOLUSDT:spot')
+    renderWithProviders(<ChartPage />)
+    expect(await screen.findByRole('alert')).toHaveTextContent('This chart is not shown: invalid OHLC bar')
+    expect(screen.queryByRole('slider')).not.toBeInTheDocument()
+    fetchChart.mockResolvedValue(CHART)
+    renderWithProviders(<ChartPage />)
+    expect(await screen.findByTestId('chart-a11y-text')).toHaveTextContent('6 bars, trend rising, last close 110')
   })
 })

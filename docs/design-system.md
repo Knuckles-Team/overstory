@@ -30,7 +30,7 @@ Color is never the only signal for a state; see [State tokens](#state-tokens-sta
 | Foreground on Background | `#111111` on `#E9EDE5` | `#F1F5EB` on `#121C17` | 4.5:1 |
 | Card-foreground on Card | `#111111` on `#F7F8F2` | `#F1F5EB` on `#1C2A22` | 4.5:1 |
 | Popover-foreground on Popover | `#111111` on `#FFFFFF` | `#F1F5EB` on `#27372D` | 4.5:1 |
-| Primary-foreground on Primary | `#FFFFFF` on `#3E634F` | `#16251A` on `#ADC99F` | 4.5:1 |
+| Primary-foreground on Primary | `#16251A` on `#04BD88` | `#16251A` on `#04BD88` | 4.5:1 |
 | Secondary-foreground on Secondary | `#111111` on `#E6EBE1` | `#D0DBCB` on `#16231C` | 4.5:1 |
 | Muted-foreground on Background | `#111111` on `#E9EDE5` | `#AABAA5` on `#121C17` | 4.5:1 |
 | Muted-foreground on Card | `#111111` on `#F7F8F2` | `#AABAA5` on `#1C2A22` | 4.5:1 |

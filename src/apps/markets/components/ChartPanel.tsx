@@ -4,7 +4,9 @@
  * its accessible companions: the flip timeline and an optional data table.
  */
 import { formatDate, formatPrice, formatVolume } from '../format'
-import type { FlipMarker } from '../schemas'
+import type { Direction, FlipMarker } from '../schemas'
+import type { MotionPreference } from '../chart-a11y'
+import { ChartA11ySummary } from './ChartA11ySummary'
 import type { ChartModel, ChartPalette } from './chart-model'
 import { resolveChartRenderer } from './renderers'
 
@@ -72,9 +74,27 @@ export function ChartDataTable({ model }: { model: ChartModel }) {
   )
 }
 
-export function ChartPanel({ model, palette }: { model: ChartModel; palette: ChartPalette }) {
+function motionPreference(): MotionPreference {
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return 'no-preference'
+  return window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'reduce' : 'no-preference'
+}
+
+export function ChartPanel({
+  model,
+  palette,
+  trendDirection = null,
+}: {
+  model: ChartModel
+  palette: ChartPalette
+  trendDirection?: Direction | null
+}) {
   const renderer = resolveChartRenderer()
   if (!renderer) return null
   const Renderer = renderer.component
-  return <Renderer model={model} palette={palette} />
+  return (
+    <div className="space-y-1">
+      <ChartA11ySummary bars={model.bars} trendDirection={trendDirection} motionPreference={motionPreference()} />
+      <Renderer model={model} palette={palette} />
+    </div>
+  )
 }

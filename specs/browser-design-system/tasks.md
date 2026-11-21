@@ -269,3 +269,8 @@ Metadata guard tests preserve this distinction; they are not feature-acceptance 
 - [ ] T073 OVERSTORY-DESIGN-R012.8 implement and prove: One art direction
 - [ ] T074 OVERSTORY-DESIGN-R012.9 implement and prove: Fidelity is measured, not asserted
 - [ ] T075 OVERSTORY-DESIGN-R012.10 implement and prove: An agent-driven asset pipeline contributors can run
+
+## Brand color and composer tools menu (OVERSTORY-DESIGN-R013, OVERSTORY-DESIGN-R014)
+
+- [x] T076 OVERSTORY-DESIGN-R013 Set the default primary, sidebar-primary and button-primary tokens to `#04bd88` with the dark foreground in `src/index.css`; keep custom palette foregrounds; update `docs/design-system.md` and the token audit.
+- [x] T077 OVERSTORY-DESIGN-R014 Extract `ToolsMenu` to `src/components/ToolsMenu.tsx`, add `DropdownMenuSwitchItem` to `src/components/ui/dropdown-menu.tsx`, and bind `src/components/__tests__/ToolsMenu.test.tsx`.

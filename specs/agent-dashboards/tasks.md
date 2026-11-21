@@ -4,9 +4,9 @@ Producer first.
 
 - [x] T001 OVERSTORY-DASH-R001 Dashboard document model. Touches `src/lib/dashboards/model.ts`.
 - [x] T002 OVERSTORY-DASH-R002 Table, line, bar and KPI panels. Touches `src/components/dashboards/PanelBody.tsx`.
-- [ ] T003 OVERSTORY-DASH-R003 Pie, map and graph panels (remaining). Touches `src/components/dashboards/PanelBody.tsx`.
+- [x] T003 OVERSTORY-DASH-R003 Pie, map and graph panels. Touches `src/components/dashboards/PanelBody.tsx`.
 - [x] T004 OVERSTORY-DASH-R004 UQL panel queries through arbora. Touches `src/lib/dashboards/query.ts`.
-- [ ] T005 OVERSTORY-DASH-R005 Natural-language, fleet.call and EG panel queries (remaining). Touches `src/lib/dashboards/query.ts`.
+- [x] T005 OVERSTORY-DASH-R005 Natural-language, fleet.call and EG panel queries. Touches `src/lib/dashboards/query.ts`.
 - [x] T006 OVERSTORY-DASH-R006 Hand-built dashboards. Touches `src/components/dashboards/DashboardsView.tsx`.
 - [x] T007 OVERSTORY-DASH-R007 WebMCP dashboard tools. Touches `src/lib/dashboards/tools.ts`.
 - [x] T008 OVERSTORY-DASH-R008 Visible and undoable agent edits. Touches `src/lib/dashboards/history.ts`.

@@ -746,6 +746,12 @@ accepted snapshot. A later source append or independent active run must not
 cancel, retarget or alter that child. Missing legacy ordering stays unavailable;
 mutable parent storage alone is not a reason to require a new EG API.
 
+## Past chat deletion
+
+| Row | Test | Observation |
+|---|---|---|
+| OVERSTORY-APPS-R053 | `src/components/__tests__/AppSidebar.conversations.test.tsx::delete_past_chat_confirm_and_cancel` | Hover-only trash button, confirmation text, Cancel keeps the chat, Delete removes it and its stored messages. |
+
 ## Display identity and identifier stability
 
 - `OVERSTORY-APPS-R043`: browser tests keep the existing consent and storage keys valid across the display rebrand.

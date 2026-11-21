@@ -9,7 +9,7 @@ import { z } from 'zod'
 
 export const GRID_COLUMNS = 12
 export const MAX_PANELS = 24
-export const VIZ_KINDS = ['table', 'line', 'bar', 'kpi'] as const
+export const VIZ_KINDS = ['table', 'line', 'bar', 'kpi', 'pie', 'map', 'graph'] as const
 export type VizKind = (typeof VIZ_KINDS)[number]
 
 const idSchema = z.string().regex(/^[a-z0-9][a-z0-9_-]{0,63}$/)
@@ -27,11 +27,47 @@ export const LayoutSchema = z.strictObject({
 })
 export type Layout = z.infer<typeof LayoutSchema>
 
-export const QuerySchema = z.strictObject({
-  kind: z.literal('uql'),
-  text: z.string().trim().min(1).max(2_000),
-})
+const nameSchema = z.string().regex(/^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$/)
+
+/** One panel query. Every kind runs through an arbora served operation; see `query-kinds.ts`. */
+export const QuerySchema = z.discriminatedUnion('kind', [
+  z.strictObject({ kind: z.literal('uql'), text: z.string().trim().min(1).max(2_000) }),
+  z.strictObject({ kind: z.literal('nl'), text: z.string().trim().min(1).max(2_000) }),
+  z.strictObject({
+    kind: z.literal('fleet-call'),
+    server: nameSchema,
+    tool: nameSchema,
+    arguments: z.record(z.string().max(128), z.unknown()).default({}),
+  }),
+  z.strictObject({
+    kind: z.literal('eg-op'),
+    /** A named engine query operation, e.g. `eg.query.Uql`. */
+    op: z.string().regex(/^eg\.query\.[A-Za-z][A-Za-z0-9]{0,63}$/),
+    params: z.record(z.string().max(128), z.unknown()).default({}),
+  }),
+])
 export type PanelQuery = z.infer<typeof QuerySchema>
+
+/** The editable text of a query: its text for uql and nl, its JSON for the structured kinds. */
+export function queryToText(query: PanelQuery): string {
+  return query.kind === 'uql' || query.kind === 'nl' ? query.text : JSON.stringify(query)
+}
+
+/** Apply edited text to a query, keeping its kind; a structured kind is edited as JSON. */
+export function queryFromText(text: string, current: PanelQuery): PanelQuery {
+  if (current.kind === 'uql' || current.kind === 'nl') return { kind: current.kind, text }
+  let raw: unknown
+  try {
+    raw = JSON.parse(text)
+  } catch {
+    throw new DashboardError('invalid dashboard: query is not valid JSON')
+  }
+  const parsed = QuerySchema.safeParse(raw)
+  if (!parsed.success || parsed.data.kind !== current.kind) {
+    throw new DashboardError(`invalid dashboard: query must stay a ${current.kind} query`)
+  }
+  return parsed.data
+}
 
 export const PanelOptionsSchema = z.strictObject({
   /** Column drawn on the x axis, or used as the label column. */
@@ -171,7 +207,7 @@ export function updatePanel(doc: Dashboard, panelId: string, patch: PanelPatch):
     ...current,
     title: patch.title ?? current.title,
     viz: patch.viz ?? current.viz,
-    query: patch.query === undefined ? current.query : { kind: 'uql', text: patch.query },
+    query: patch.query === undefined ? current.query : queryFromText(patch.query, current.query),
     options: patch.options ?? current.options,
   }
   return commit({ ...doc, panels: doc.panels.map((p) => (p.id === panelId ? next : p)) }, doc)

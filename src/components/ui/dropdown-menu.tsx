@@ -2,6 +2,7 @@ import * as React from 'react'
 import * as DropdownMenuPrimitive from '@radix-ui/react-dropdown-menu'
 import { CheckIcon, ChevronRightIcon, CircleIcon } from 'lucide-react'
 
+import { Switch } from '@/components/ui/switch'
 import { cn } from '@/lib/utils'
 
 function DropdownMenu({ ...props }: React.ComponentProps<typeof DropdownMenuPrimitive.Root>) {
@@ -90,6 +91,33 @@ function DropdownMenuCheckboxItem({
         </DropdownMenuPrimitive.ItemIndicator>
       </span>
       {children}
+    </DropdownMenuPrimitive.CheckboxItem>
+  )
+}
+
+/**
+ * A menu row with the label content on the left and a switch on the right.
+ * It keeps the menu-item-checkbox semantics of the checkbox item, so the state
+ * is announced and keyboard-operable; the visible switch is decorative.
+ */
+function DropdownMenuSwitchItem({
+  className,
+  children,
+  checked,
+  ...props
+}: React.ComponentProps<typeof DropdownMenuPrimitive.CheckboxItem>) {
+  return (
+    <DropdownMenuPrimitive.CheckboxItem
+      data-slot="dropdown-menu-switch-item"
+      className={cn(
+        "focus:bg-accent focus:text-accent-foreground relative flex cursor-default items-center justify-between gap-3 rounded-sm py-1.5 pr-2 pl-2 text-sm outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        className,
+      )}
+      checked={checked}
+      {...props}
+    >
+      <span className="flex items-center gap-2">{children}</span>
+      <Switch checked={checked === true} aria-hidden="true" tabIndex={-1} className="pointer-events-none" />
     </DropdownMenuPrimitive.CheckboxItem>
   )
 }
@@ -212,6 +240,7 @@ export {
   DropdownMenuLabel,
   DropdownMenuItem,
   DropdownMenuCheckboxItem,
+  DropdownMenuSwitchItem,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
   DropdownMenuSeparator,

@@ -82,7 +82,7 @@ describe('dashboard WebMCP tools (OVERSTORY-DASH-R007)', () => {
   it('rejects invalid input and returns typed refusals', async () => {
     const h = harness()
     await h.call('create', { title: 'Ops' })
-    await expect(h.call('add_panel', { title: 'x', viz: 'pie', query: 'q' })).rejects.toThrow()
+    await expect(h.call('add_panel', { title: 'x', viz: 'sankey', query: 'q' })).rejects.toThrow()
     await expect(h.call('create', { title: 'x', extra: 1 })).rejects.toThrow()
     expect(await h.call('update_panel', { panel_id: 'missing', title: 'y' })).toMatchObject({ ok: false })
     expect(await h.call('set_layout', { layouts: [{ panel_id: 'zz', x: 0, y: 0, w: 1, h: 1 }] })).toMatchObject({
