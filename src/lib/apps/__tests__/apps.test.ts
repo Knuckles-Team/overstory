@@ -1,8 +1,10 @@
+import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { APP_SURFACES } from '@/apps/surfaces'
 import { matchRoute, routesBySection, SECTIONS } from '@/lib/nav-registry'
 import { capabilityVisible } from '../catalog'
-import { surfaceProblems } from '../contract'
+import { appCapability, surfaceProblems, type AppSurface } from '../contract'
+import { marketsSurface } from '@/apps/markets/surface'
 import { pathParam } from '../location'
 
 describe('AppSurface contract', () => {
@@ -33,5 +35,43 @@ describe('AppSurface contract', () => {
     expect(pathParam('/apps/markets/share/share-1', '/apps/markets/share')).toBe('share-1')
     expect(pathParam('/apps/markets/share/a/b', '/apps/markets/share')).toBeNull()
     expect(pathParam('/apps/markets/share/%E0%A4%A', '/apps/markets/share')).toBeNull()
+  })
+})
+
+describe('AppSurface descriptors', () => {
+  const valid: AppSurface = marketsSurface
+
+  // spec: OVERSTORY-APPS-R041
+  it('accepts a valid descriptor and rejects invalid contributed ones', () => {
+    expect(surfaceProblems(valid)).toEqual([])
+    const [route] = valid.routes
+    const cases: [string, AppSurface, RegExp][] = [
+      ['outside the app path', { ...valid, routes: [{ ...route, path: '/admin/users' }] }, /outside \/apps\/markets/],
+      [
+        'wrong section',
+        { ...valid, routes: [{ ...route, section: 'control-plane' as never }] },
+        /not in the apps section/,
+      ],
+      [
+        'capability escalation',
+        { ...valid, routes: [{ ...route, capability: appCapability('other') }] },
+        /does not carry app:markets/,
+      ],
+      ['unknown WebMCP page', { ...valid, webmcpPageIds: ['apps.unknown'] }, /WebMCP page apps.unknown/],
+      [
+        'arbitrary URL path',
+        { ...valid, routes: [{ ...route, path: 'https://evil.example/apps/markets' }] },
+        /outside/,
+      ],
+    ]
+    for (const [name, surface, expected] of cases) expect(surfaceProblems(surface).join('\n'), name).toMatch(expected)
+  })
+
+  // spec: OVERSTORY-APPS-R042
+  it('Markets reaches the shell only through the shared contract', () => {
+    expect(APP_SURFACES).toContain(marketsSurface)
+    expect(marketsSurface.capability).toBe(appCapability('markets'))
+    const app = readFileSync('src/App.tsx', 'utf8')
+    expect(app).not.toMatch(/apps\/markets/)
   })
 })
