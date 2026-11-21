@@ -59,13 +59,33 @@ describe('sendGraphEdit', () => {
       verdict: 'unavailable',
       reason: 'not available',
     })
-    const fetcher = stubOps(() => ok({}))
-    expect(await sendGraphEdit({ kind: 'update', id: 'n1', properties: { a: 1 } })).toMatchObject({
-      verdict: 'unavailable',
-    })
-    expect(fetcher.mock.calls.filter((call) => String(call[0]).startsWith('/api/v1/ops/'))).toHaveLength(0)
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('network')))
     expect((await sendGraphEdit({ kind: 'delete', id: 'n1' })).verdict).toBe('unavailable')
+  })
+})
+
+describe('sendGraphEdit update', () => {
+  it('uses the typed compare-and-set of node fields', async () => {
+    const calls: [string, Record<string, unknown>][] = []
+    stubOps((op, body) => {
+      calls.push([op, body])
+      return ok(true)
+    })
+    const result = await sendGraphEdit({ kind: 'update', id: 'n1', properties: { a: 1 }, expected: { a: 0 } })
+    expect(result).toEqual({ verdict: 'applied', reason: '', id: 'n1' })
+    expect(calls).toEqual([
+      [
+        'eg.graph.CompareAndSetNodeFields',
+        { node_id: 'n1', conditions_msgpack: encodeMsgpack({ a: 0 }), updates_msgpack: encodeMsgpack({ a: 1 }) },
+      ],
+    ])
+  })
+
+  it('reports a conflict when the engine finds the expected values changed', async () => {
+    stubOps(() => ok(false))
+    const result = await sendGraphEdit({ kind: 'update', id: 'n1', properties: { a: 1 }, expected: { a: 0 } })
+    expect(result.verdict).toBe('refused')
+    expect(result.reason).toMatch(/^CONFLICT/)
   })
 })
 
