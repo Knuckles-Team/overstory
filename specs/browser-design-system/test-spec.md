@@ -397,6 +397,8 @@ The original glass golden explicitly selects Off and Canopy; new-default capture
 | `src/components/__tests__/ToolsMenu.test.tsx::toggles_a_tool_and_keeps_menu_open` | OVERSTORY-DESIGN-R014 | Component: click one row | Its checked state flips and every row stays visible. |
 | `src/components/__tests__/ToolsMenu.test.tsx::uses_known_icons_and_wrench_fallback` | OVERSTORY-DESIGN-R014 | Unit: `getToolIcon` for the three known ids and unknown ids | Three distinct icons; every unknown id resolves to the wrench. |
 | `src/components/__tests__/ToolsMenu.test.tsx::renders_nothing_without_tools_and_helper_is_pure` | OVERSTORY-DESIGN-R014 | Component: empty tool list | Nothing renders; `updateEnabledTools` adds and removes ids without duplicates. |
+| `e2e/strict-style-policy.browser.ts` | OVERSTORY-DESIGN-R008, OVERSTORY-DESIGN-R009 | Production bundle served by a static host that applies the real default policy read from `server.py` and a fresh nonce per document, in headless Chromium; open a select, a dialog and a toast | No `securitypolicyviolation` event for `font-src` or `style-src`; each document nonce differs; the probe detects an un-nonced inline style. |
+| `e2e/responsive-route-matrix.browser.ts` | OVERSTORY-DESIGN-R004.1, OVERSTORY-DESIGN-R004.1.2 | Cases parsed from `ROUTES` at 320 px, narrow tall, short landscape, 4:3, 16:9 and 32:9 with a synthetic identity and API | Every ungated route mounts its body, has no whole-page horizontal overflow and raises no page error; a still-gated route shows the explicit limitation. |
 
 ## Planned tests
 
@@ -404,9 +406,7 @@ These tests do not exist yet. Each row keeps its cited name until the test lands
 
 | Test | Requirement | Level and setup | Expected observation |
 |---|---|---|---|
-| `e2e/strict-style-policy.spec.ts::strict_style_policy` | OVERSTORY-DESIGN-R008 | Built bundle served by `SecurityHeadersMiddleware` in headless Chromium; open a dialog, a select and a toast | No `securitypolicyviolation` event for `font-src` or `style-src-elem`. |
 | `e2e/workspace-density.spec.ts::remaining_surface_density` | OVERSTORY-DESIGN-R002.1.2 | Graph, editor, run, administration and authentication surfaces at the declared viewport matrix | Useful panes, readable text and no clipped content. |
-| `e2e/responsive-route-matrix.spec.ts::responsive_route_matrix` | OVERSTORY-DESIGN-R004.1.2 | Cases generated from `ROUTES` and the route census at 320 px, narrow, short landscape, 4:3, 16:9 and 32:9 | Every route and action is reachable without whole-page horizontal overflow. |
 | `e2e/workspace-viewport.browser.ts::resize_device_continuity` | OVERSTORY-DESIGN-R004.2.2 | Resize, fold, keyboard and 200-percent zoom during stream and graph journeys | Draft, selection, history, progress and focus survive. |
 | `src/components/workspace/__tests__/WorkspaceWallpaper.test.tsx::wallpaper_evidence` | OVERSTORY-DESIGN-R005.3.2 | Evidence fixtures: missing, unknown, stale, duplicate, unrelated and out of order | Static scenery stays; no work or topology is invented. |
 | `e2e/performance-budget.spec.ts::performance_budget` | OVERSTORY-DESIGN-R010 | Declared reference device, network and fixture cardinality | INP, LCP, CLS and frame times stay inside the declared budgets. |

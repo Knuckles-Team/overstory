@@ -24,7 +24,7 @@ describe('ResponsiveLimitation', () => {
   it('blocks an unsupported route on mobile and links to the registered alternative', async () => {
     Object.defineProperty(window, 'innerWidth', { configurable: true, value: 390, writable: true })
     render(
-      <ResponsiveLimitation route={route('knowledge.sparql')}>
+      <ResponsiveLimitation route={route('workspace.ide')}>
         <div data-testid="desktop-route">desktop route body</div>
       </ResponsiveLimitation>,
     )
@@ -33,14 +33,14 @@ describe('ResponsiveLimitation', () => {
       expect(screen.getByRole('heading', { name: /needs a larger screen/i })).toBeInTheDocument()
     })
     expect(screen.queryByTestId('desktop-route')).not.toBeInTheDocument()
-    const alternative = findMobileAlternative(route('knowledge.sparql'))
+    const alternative = findMobileAlternative(route('workspace.ide'))
     expect(screen.getByRole('link', { name: `Open ${alternative?.label}` })).toHaveAttribute('href', alternative?.path)
   })
 
   it('keeps the route body on a desktop viewport', async () => {
     Object.defineProperty(window, 'innerWidth', { configurable: true, value: 1280, writable: true })
     render(
-      <ResponsiveLimitation route={route('knowledge.sparql')}>
+      <ResponsiveLimitation route={route('workspace.ide')}>
         <div data-testid="desktop-route">desktop route body</div>
       </ResponsiveLimitation>,
     )

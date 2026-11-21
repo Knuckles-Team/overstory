@@ -175,6 +175,12 @@ jobs:
           path: test-results/canopy-glass/
           retention-days: 14
           if-no-files-found: error
+      - name: Strict style policy probe and responsive route matrix
+        id: design_matrix
+        if: ${{ !cancelled() && steps.browser_dependencies.outcome == 'success' && steps.browser_engine.outcome == 'success' }}
+        run: |
+          pnpm exec playwright test --config e2e/strict-style-policy.config.ts
+          pnpm exec playwright test --config e2e/responsive-route-matrix.config.ts
       - name: Install pinned documentation image helper
         if: ${{ !cancelled() && steps.browser_dependencies.outcome == 'success' && steps.browser_engine.outcome == 'success' }}
         run: |

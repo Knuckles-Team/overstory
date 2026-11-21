@@ -341,7 +341,7 @@ export const ROUTES: readonly RouteDef[] = [
     blurb: 'Turn a feature idea into a written spec, an implementation plan, and trackable tasks.',
     icon: ListTodo,
     minRole: 'maintainer',
-    mobile: 'unsupported',
+    mobile: 'adapted',
     element: lazy(() => import('@/components/views/SDDView')),
   },
   {
@@ -365,7 +365,7 @@ export const ROUTES: readonly RouteDef[] = [
       'Browse and configure your chat and embedding models, then optionally pair one with a system prompt as a reusable template.',
     icon: SlidersHorizontal,
     minRole: 'maintainer',
-    mobile: 'unsupported',
+    mobile: 'adapted',
     element: lazy(() => import('@/components/views/LLMTemplatesView')),
   },
   {
@@ -376,7 +376,7 @@ export const ROUTES: readonly RouteDef[] = [
     blurb: 'Launch a rich, sandboxed UI that a fleet MCP tool declares for itself, discovered live from its tools.',
     icon: AppWindow,
     minRole: 'user',
-    mobile: 'unsupported',
+    mobile: 'adapted',
     element: lazy(() => import('@/components/views/McpAppsView')),
   },
   {
@@ -481,7 +481,7 @@ export const ROUTES: readonly RouteDef[] = [
     blurb: 'Fly through the connected core of the graph in 3D — orbit, focus a node, expand its neighbours.',
     icon: Boxes,
     minRole: 'reader',
-    mobile: 'unsupported',
+    mobile: 'adapted',
     element: lazy(() => import('@/components/views/Graph3DView')),
   },
   {
@@ -494,7 +494,7 @@ export const ROUTES: readonly RouteDef[] = [
     blurb: 'Millions of nodes as clusters sized by member count — drill into one to fetch and render its children.',
     icon: Layers,
     minRole: 'reader',
-    mobile: 'unsupported',
+    mobile: 'adapted',
     element: lazy(() => import('@/components/views/Graph3DLodView')),
   },
   {
@@ -507,7 +507,7 @@ export const ROUTES: readonly RouteDef[] = [
     blurb: 'Rewind the knowledge graph to see what it looked like at any point in time.',
     icon: History,
     minRole: 'reader',
-    mobile: 'unsupported',
+    mobile: 'adapted',
     element: lazy(() => import('@/components/views/TemporalGraphView')),
   },
   {
@@ -523,7 +523,7 @@ export const ROUTES: readonly RouteDef[] = [
     // instances`, `/code/nav`) is `kg:admin` on every method
     // (`_ADMIN_ROUTE_PREFIXES`). Nav raised to match backend policy.
     minRole: 'admin',
-    mobile: 'unsupported',
+    mobile: 'adapted',
     element: lazy(() => import('@/components/views/CodeGraphView')),
   },
   {
@@ -549,7 +549,7 @@ export const ROUTES: readonly RouteDef[] = [
     blurb: 'Turn a document or web page into structured knowledge-graph facts.',
     icon: Network,
     minRole: 'user',
-    mobile: 'unsupported',
+    mobile: 'adapted',
     element: lazy(() => import('@/components/views/ExtractionView')),
   },
   {
@@ -591,7 +591,7 @@ export const ROUTES: readonly RouteDef[] = [
     blurb: "Expand outward from an object on a graph canvas and test 'what if' changes.",
     icon: Waypoints,
     minRole: 'user',
-    mobile: 'unsupported',
+    mobile: 'adapted',
     element: lazy(() => import('@/components/views/VertexView')),
   },
   {
@@ -617,7 +617,7 @@ export const ROUTES: readonly RouteDef[] = [
     blurb: 'Write advanced graph queries and check data against validation rules.',
     icon: FileCheck2,
     minRole: 'maintainer',
-    mobile: 'unsupported',
+    mobile: 'adapted',
     element: lazy(() => import('@/components/views/SparqlView')),
   },
   {
@@ -636,7 +636,7 @@ export const ROUTES: readonly RouteDef[] = [
     // one drifted route where the API's admin requirement is unambiguously
     // correct on its own terms, not merely "no row-scoping exists yet".
     minRole: 'admin',
-    mobile: 'unsupported',
+    mobile: 'adapted',
     element: lazy(() => import('@/components/views/CypherReplView')),
   },
   {
@@ -662,7 +662,7 @@ export const ROUTES: readonly RouteDef[] = [
     blurb: 'Look at the same knowledge through different lenses, like cause-and-effect or time.',
     icon: Compass,
     minRole: 'user',
-    mobile: 'unsupported',
+    mobile: 'adapted',
     element: lazy(() => import('@/components/views/MagmaView')),
   },
   {
@@ -693,7 +693,7 @@ export const ROUTES: readonly RouteDef[] = [
     // comparably raw execution surface; not `reader`/`user` per the wave brief
     // ("this is a raw-SQL surface; do not give it to reader").
     minRole: 'admin',
-    mobile: 'unsupported',
+    mobile: 'adapted',
     element: lazy(() => import('@/components/views/TableExplorerView')),
   },
   {
@@ -748,7 +748,7 @@ export const ROUTES: readonly RouteDef[] = [
     blurb: 'Build live charts of metrics, logs, and traces from across the system.',
     icon: LayoutDashboard,
     minRole: 'user',
-    mobile: 'unsupported',
+    mobile: 'adapted',
     element: lazy(() => import('@/components/views/dashboards/LiveDashboardsView')),
   },
   {
@@ -793,7 +793,7 @@ export const ROUTES: readonly RouteDef[] = [
     blurb: "Dig into performance metrics and request traces to find what's slow or broken.",
     icon: Activity,
     minRole: 'maintainer',
-    mobile: 'unsupported',
+    mobile: 'adapted',
     element: lazy(() => import('@/components/views/ObservabilityView')),
   },
   {
@@ -804,7 +804,7 @@ export const ROUTES: readonly RouteDef[] = [
     blurb: 'See what messages are queued between agents and publish a message yourself.',
     icon: Inbox,
     minRole: 'maintainer',
-    mobile: 'unsupported',
+    mobile: 'adapted',
     element: lazy(() => import('@/components/views/BrokerView')),
   },
   {
@@ -829,7 +829,7 @@ export const ROUTES: readonly RouteDef[] = [
     blurb: 'See every host, container, and network tunnel your agents run on, mapped out.',
     icon: Cpu,
     minRole: 'maintainer',
-    mobile: 'unsupported',
+    mobile: 'adapted',
     element: lazy(() => import('@/components/views/EcosystemView')),
   },
   // GOC-25: single additive entry -- the dynamic, discovery-driven catalog
@@ -881,7 +881,7 @@ export const ROUTES: readonly RouteDef[] = [
     blurb: 'Manage identity, security mode, tenants, storage shards, and backups.',
     icon: ShieldCheck,
     minRole: 'admin',
-    mobile: 'unsupported',
+    mobile: 'adapted',
     element: lazy(() => import('@/components/views/AdminView')),
   },
   {
@@ -892,7 +892,7 @@ export const ROUTES: readonly RouteDef[] = [
     blurb: 'Review your session and manage users through Arbora identity.',
     icon: Users,
     minRole: 'admin',
-    mobile: 'unsupported',
+    mobile: 'adapted',
     element: lazy(() => import('@/components/views/UserManagementView')),
   },
   {
@@ -908,7 +908,7 @@ export const ROUTES: readonly RouteDef[] = [
     // Nav raised to match backend policy; it already lived in the `admin`
     // nav section, only the role floor was wrong.
     minRole: 'admin',
-    mobile: 'unsupported',
+    mobile: 'adapted',
     element: lazy(() => import('@/components/views/OpsPanelView')),
   },
   {
