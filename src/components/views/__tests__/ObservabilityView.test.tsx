@@ -193,13 +193,12 @@ describe('ObservabilityView — run harness block (OVERSTORY-APPS-R004)', () => 
   it('harness configuration panel shows context policy, plan scaffold and action space', async () => {
     mockWithOps({
       'runs.get': {
-        terminationReason: 'context_overflow',
+        termination_reason: 'context_overflow',
         harness_config: {
           context_policy: { soft_threshold: 0.7, hard_threshold: 0.9, recent_window_fraction: 0.25 },
           plan_scaffold: 'todo-list',
         },
       },
-      'runs.metrics': {},
     })
     const panel = await openRuns()
     await within(panel).findByText(/soft 0.7, hard 0.9, recent window 0.25/)
@@ -212,8 +211,7 @@ describe('ObservabilityView — run harness block (OVERSTORY-APPS-R004)', () => 
   // spec: OVERSTORY-APPS-R004.3
   it('context use against budget and cost render, an absent field reads not available and never zero', async () => {
     mockWithOps({
-      'runs.get': {},
-      'runs.metrics': { peakContextTokens: 1200, contextBudgetTokens: 4000, costUsd: 0.0123 },
+      'runs.get': { peak_context_tokens: 1200, context_budget_tokens: 4000, cost_usd: 0.0123 },
     })
     const panel = await openRuns()
     expect(await within(panel).findByText('1,200 of 4,000 tokens')).toBeInTheDocument()
@@ -221,7 +219,7 @@ describe('ObservabilityView — run harness block (OVERSTORY-APPS-R004)', () => 
   })
 
   it('absent budget and cost fields read not available, never zero', async () => {
-    mockWithOps({ 'runs.get': {}, 'runs.metrics': { peakContextTokens: 1200 } })
+    mockWithOps({ 'runs.get': { peak_context_tokens: 1200 } })
     const panel = await openRuns()
     await within(panel).findByText(/1,200 tokens peak/)
     expect(within(panel).getByTestId('harness-context-use')).toHaveTextContent('budget not available')
