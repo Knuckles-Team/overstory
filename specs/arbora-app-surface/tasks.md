@@ -17,7 +17,7 @@ No exact-head publication receipt is recorded.
 - [x] T013 [US1] OVERSTORY-APPS-R004.5 Each termination reason has a distinct state.
 - [x] T014 [US1] OVERSTORY-APPS-R004.6 Absent operation shows an honest state.
 - [x] T015 [US1] OVERSTORY-APPS-R030.1 Graph edit types.
-- [ ] T016 [US1] OVERSTORY-APPS-R030.2 Send edits to arbora.
+- [x] T016 [US1] OVERSTORY-APPS-R030.2 Send edits to arbora.
 - [ ] T017 [US1] OVERSTORY-APPS-R030.3 Wire graph handlers to the engine.
 - [ ] T018 [US1] OVERSTORY-APPS-R030.4 Show refusals on unauthorized edits.
 - [ ] T019 [US1] OVERSTORY-APPS-R030.5 Semantic filters and persona modes.
