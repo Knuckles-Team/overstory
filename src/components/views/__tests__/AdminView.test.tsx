@@ -31,6 +31,7 @@ function withSession(opFetcher: (url: string) => Promise<Response>) {
   return vi.fn((url: string) => (url === '/auth/session' ? reply(200, AUTHENTICATED_SESSION) : opFetcher(url)))
 }
 
+// spec: OVERSTORY-IDENTITY-R006, OVERSTORY-IDENTITY-R002
 describe('AdminView_identity_tabs', () => {
   beforeEach(() => {
     vi.restoreAllMocks()
