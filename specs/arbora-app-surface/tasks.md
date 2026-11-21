@@ -38,7 +38,7 @@ No task above names a requirement ID individually; together they must close ever
 - [x] T032 [US1] OVERSTORY-APPS-R005.1.2 Rendered role filtering.
 - [ ] T033 [US1] OVERSTORY-APPS-R005.2 Layout saved per user.
 - [ ] T034 [US1] OVERSTORY-APPS-R005.3 Operate renders tiles for returned fleet children with source regression coverage. Complete connector catalog and connection-state acceptance remain open.
-- [ ] T035 [US1] OVERSTORY-APPS-R005.4 One chat session list.
+- [x] T035 [US1] OVERSTORY-APPS-R005.4 One chat session list.
 - [ ] T036 [US1] OVERSTORY-APPS-R005.5 Every route renders.
 - [x] T037 [US1] OVERSTORY-APPS-R005.5.1 Census detects a throwing view.
 - [x] T038 [US1] OVERSTORY-APPS-R005.5.2 Complete route render acceptance.
