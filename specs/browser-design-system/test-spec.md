@@ -388,6 +388,16 @@ Default animation remains capped at 12 FPS; reductions and constrained resources
 Keep hidden/offscreen cleanup, opaque/forced-color hiding and renderer fallback coverage.
 The original glass golden explicitly selects Off and Canopy; new-default captures receive separate visual review.
 
+## Brand color and composer tools menu
+
+| Test | Requirement | Level and setup | Expected observation |
+|---|---|---|---|
+| `src/__tests__/design-tokens.test.ts::brand_primary_in_both_modes` | OVERSTORY-DESIGN-R013 | Unit: parse `:root` and `.dark` from `src/index.css` | Primary and sidebar-primary equal `#04bd88`; the foreground pair is at least 4.5:1. |
+| `src/components/__tests__/ToolsMenu.test.tsx::renders_icon_left_switch_right` | OVERSTORY-DESIGN-R014 | Component: open the menu with four tools | Each row is a menu-item checkbox with the icon first and a switch last; no plain checkbox role. |
+| `src/components/__tests__/ToolsMenu.test.tsx::toggles_a_tool_and_keeps_menu_open` | OVERSTORY-DESIGN-R014 | Component: click one row | Its checked state flips and every row stays visible. |
+| `src/components/__tests__/ToolsMenu.test.tsx::uses_known_icons_and_wrench_fallback` | OVERSTORY-DESIGN-R014 | Unit: `getToolIcon` for the three known ids and unknown ids | Three distinct icons; every unknown id resolves to the wrench. |
+| `src/components/__tests__/ToolsMenu.test.tsx::renders_nothing_without_tools_and_helper_is_pure` | OVERSTORY-DESIGN-R014 | Component: empty tool list | Nothing renders; `updateEnabledTools` adds and removes ids without duplicates. |
+
 ## Planned tests
 
 These tests do not exist yet. Each row keeps its cited name until the test lands.

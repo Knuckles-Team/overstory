@@ -64,5 +64,4 @@ bootstrap skill, together with the [SDD full lifecycle](https://github.com/Knuck
 - [`OVERSTORY-APPS`](arbora-app-surface/spec.md) — application routes, complete responsive workspace, semantic leaf navigation and native WebMCP action parity. See [coverage and dependency matrix](arbora-app-surface/workspace-coverage.md).
 - [`OVERSTORY-CITY`](arbora-city/spec.md) — Arbora City: the platform as a living city (fleet-driven connector district, deterministic simulation, pinned assets, live/simulated mode).
 - [`OVERSTORY-IDENTITY`](identity-access/spec.md) — explicit no-auth/EG/external OIDC modes, renewal/lifecycle and tenant-safe browser behavior.
-- [`delete-past-chats.md`](delete-past-chats.md), [`update-color-scheme.md`](update-color-scheme.md), and [`update-tools-dropdown.md`](update-tools-dropdown.md) are existing brief feature drafts. Preserve them; expand to the shared feature directory format when resumed.
 - [`OVERSTORY-DASH`](agent-dashboards/spec.md) — user and agent built dashboards with WebMCP tools, arbora queries and arbora saves.

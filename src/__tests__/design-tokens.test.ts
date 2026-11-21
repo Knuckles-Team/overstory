@@ -41,8 +41,8 @@ const DOCUMENTED_COLOR: Record<string, { light: string; dark: string }> = {
   '--background': { light: '#E9EDE5', dark: '#121C17' },
   '--foreground': { light: '#111111', dark: '#F1F5EB' },
   '--card': { light: '#F7F8F2', dark: '#1C2A22' },
-  '--primary': { light: '#3E634F', dark: '#ADC99F' },
-  '--primary-foreground': { light: '#FFFFFF', dark: '#16251A' },
+  '--primary': { light: '#04BD88', dark: '#04BD88' },
+  '--primary-foreground': { light: '#16251A', dark: '#16251A' },
   '--secondary': { light: '#E6EBE1', dark: '#16231C' },
   '--secondary-foreground': { light: '#111111', dark: '#D0DBCB' },
   '--muted-foreground': { light: '#111111', dark: '#AABAA5' },
@@ -61,6 +61,17 @@ describe('design-system token audit (OVERSTORY-DESIGN-R002)', () => {
     expect(DOC_SOURCE).toContain(doc.dark.toLowerCase())
     expect(LIGHT[name].toLowerCase()).toBe(doc.light.toLowerCase())
     expect(DARK[name].toLowerCase()).toBe(doc.dark.toLowerCase())
+  })
+
+  // spec: OVERSTORY-DESIGN-R013
+  it('brand_primary_in_both_modes', () => {
+    expect(LIGHT['--primary'].toLowerCase()).toBe('#04bd88')
+    expect(DARK['--primary'].toLowerCase()).toBe('#04bd88')
+    expect(LIGHT['--sidebar-primary'].toLowerCase()).toBe('#04bd88')
+    expect(DARK['--sidebar-primary'].toLowerCase()).toBe('#04bd88')
+    for (const theme of [LIGHT, DARK]) {
+      expect(contrastRatio(theme['--primary-foreground'], theme['--primary'])).toBeGreaterThanOrEqual(4.5)
+    }
   })
 
   it('defines the shared radius and readable metadata floor', () => {
