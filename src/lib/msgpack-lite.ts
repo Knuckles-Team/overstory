@@ -14,14 +14,21 @@ function pushHeader(out: number[], small: number, base: number, length: number, 
 }
 
 function pushNumber(out: number[], value: number) {
-  if (Number.isInteger(value) && value >= 0 && value < 0x80) return void out.push(value)
-  if (Number.isInteger(value) && value < 0 && value >= -32) return void out.push(0x100 + value)
+  if (Number.isInteger(value) && value >= 0 && value < 0x80) {
+    out.push(value)
+    return
+  }
+  if (Number.isInteger(value) && value < 0 && value >= -32) {
+    out.push(0x100 + value)
+    return
+  }
   if (Number.isInteger(value) && Math.abs(value) <= Number.MAX_SAFE_INTEGER) {
     const view = new DataView(new ArrayBuffer(9))
     view.setUint8(0, value >= 0 ? 0xcf : 0xd3)
     if (value >= 0) view.setBigUint64(1, BigInt(value))
     else view.setBigInt64(1, BigInt(value))
-    return void out.push(...new Uint8Array(view.buffer))
+    out.push(...new Uint8Array(view.buffer))
+    return
   }
   const view = new DataView(new ArrayBuffer(9))
   view.setUint8(0, 0xcb)
@@ -30,11 +37,18 @@ function pushNumber(out: number[], value: number) {
 }
 
 function write(out: number[], value: unknown): void {
-  if (value === null || value === undefined) return void out.push(0xc0)
-  if (typeof value === 'boolean') return void out.push(value ? 0xc3 : 0xc2)
+  if (value === null || value === undefined) {
+    out.push(0xc0)
+    return
+  }
+  if (typeof value === 'boolean') {
+    out.push(value ? 0xc3 : 0xc2)
+    return
+  }
   if (typeof value === 'number') {
     if (!Number.isFinite(value)) throw new TypeError('msgpack: non-finite number')
-    return pushNumber(out, value)
+    pushNumber(out, value)
+    return
   }
   if (typeof value === 'string') {
     const bytes = encoder.encode(value)

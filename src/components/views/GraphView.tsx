@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from 'react'
+import { useState, useEffect, useMemo, useRef, type ReactNode } from 'react'
 import {
   Network,
   Terminal,
@@ -33,6 +33,15 @@ import {
   type GraphStats,
 } from '../knowledge-graph/graph-read'
 import { NodeTypeBreakdown, type NodeTypeBreakdownData } from '../knowledge-graph/NodeTypeBreakdown'
+import { GraphEditLog } from '../knowledge-graph/GraphEditLog'
+import { useGraphEdits } from '@/hooks/useGraphEdits'
+import {
+  PERSONA_PRESENTATION,
+  VIEW_PERSONAS,
+  filterByLabelText,
+  personaDefaultFilter,
+  type ViewPersona,
+} from '@/lib/graph-edit'
 import { usePageContextPublisher, type PageContextContribution } from '@/lib/page-context'
 
 // GOC-60-W05 (E1b layer 3 / E6): `fetchData` used to `.catch(() => null)` each of the
@@ -360,13 +369,18 @@ function VisualizationTab({
   onAddNode,
   selectedNode,
   onSelectNode,
+  toolbar,
+  footer,
 }: VisualizationCanvasAreaProps & {
   onTypeFilterChange: (type: string | null) => void
   breakdownLoading: boolean
   breakdownError: string | null
+  toolbar?: ReactNode
+  footer?: ReactNode
 }) {
   return (
     <TabsContent value="visualization" className="flex-1 overflow-hidden mt-4">
+      {toolbar}
       <Card className="h-full border-border/40 bg-card/60 backdrop-blur-md flex flex-row">
         <div className="hidden w-56 shrink-0 border-r border-border/30 md:block">
           <NodeTypeBreakdown
@@ -394,6 +408,7 @@ function VisualizationTab({
           />
         </CardContent>
       </Card>
+      {footer}
     </TabsContent>
   )
 }
@@ -578,6 +593,53 @@ function MagmaTab({
   )
 }
 
+/** Semantic filters (node type via the breakdown, label text here) and the persona selector. */
+function GraphFilterBar({
+  persona,
+  onPersonaChange,
+  labelQuery,
+  onLabelQueryChange,
+}: {
+  persona: ViewPersona
+  onPersonaChange: (persona: ViewPersona) => void
+  labelQuery: string
+  onLabelQueryChange: (query: string) => void
+}) {
+  return (
+    <div className="mb-2 flex flex-wrap items-center gap-3 text-xs">
+      <div className="flex items-center gap-1.5">
+        <label htmlFor="graph-persona">Persona</label>
+        <select
+          id="graph-persona"
+          aria-label="Persona"
+          className="rounded border bg-background p-1"
+          value={persona}
+          onChange={(event) => {
+            onPersonaChange(event.target.value as ViewPersona)
+          }}
+        >
+          {VIEW_PERSONAS.map((value) => (
+            <option key={value} value={value}>
+              {PERSONA_PRESENTATION[value].label}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div className="flex items-center gap-1.5">
+        <label htmlFor="graph-label-filter">Filter by label text</label>
+        <input
+          id="graph-label-filter"
+          className="rounded border bg-background p-1"
+          value={labelQuery}
+          onChange={(event) => {
+            onLabelQueryChange(event.target.value)
+          }}
+        />
+      </div>
+    </div>
+  )
+}
+
 export default function GraphView() {
   const [stats, setStats] = useState<GraphStats>({ total_nodes: 0, total_relationships: 0 })
   const [breakdown, setBreakdown] = useState<NodeTypeBreakdownData | null>(null)
@@ -591,6 +653,15 @@ export default function GraphView() {
   const [loading, setLoading] = useState(true)
   const [loadStatus, setLoadStatus] = useState<GraphLoadStatus>({ kind: 'loading' })
   const [activeTab, setActiveTab] = useState('visualization')
+  const [persona, setPersona] = useState<ViewPersona>('operator')
+  const [labelQuery, setLabelQuery] = useState('')
+  const edits = useGraphEdits({ setNodes, setRelationships })
+  const visibleNodes = useMemo(() => filterByLabelText(nodes, labelQuery), [nodes, labelQuery])
+  // A persona only chooses a presentation default among the types the engine reported.
+  const changePersona = (next: ViewPersona) => {
+    setPersona(next)
+    setTypeFilter(personaDefaultFilter(next, Object.keys(breakdown?.by_type ?? {})))
+  }
 
   // Cypher states
   const [cypherQuery, setCypherQuery] = useState('MATCH (n) RETURN n LIMIT 15')
@@ -713,24 +784,6 @@ export default function GraphView() {
     }
   }
 
-  const handleUpdateNode = (id: string, properties: Record<string, unknown>) => {
-    setNodes((prev) => prev.map((n) => (n.id === id ? { ...n, properties: { ...n.properties, ...properties } } : n)))
-  }
-
-  const handleDeleteNode = (id: string) => {
-    setNodes((prev) => prev.filter((n) => n.id !== id))
-    setRelationships((prev) => prev.filter((e) => e.source !== id && e.target !== id))
-  }
-
-  const handleAddNode = (labels: string[], properties: Record<string, unknown>) => {
-    const newNode: GraphNode = {
-      id: `node_${Date.now()}`,
-      labels,
-      properties,
-    }
-    setNodes((prev) => [...prev, newNode])
-  }
-
   const runCypherQuery = async () => {
     if (!cypherQuery.trim()) return
     setExecutingCypher(true)
@@ -793,17 +846,37 @@ export default function GraphView() {
           loadStatus={loadStatus}
           typeFilter={typeFilter}
           onTypeFilterChange={setTypeFilter}
-          nodes={nodes}
+          nodes={visibleNodes}
           relationships={relationships}
           stats={stats}
           breakdown={breakdown}
           breakdownLoading={breakdownLoading}
           breakdownError={breakdownError}
-          onUpdateNode={handleUpdateNode}
-          onDeleteNode={handleDeleteNode}
-          onAddNode={handleAddNode}
+          onUpdateNode={edits.onUpdateNode}
+          onDeleteNode={edits.onDeleteNode}
+          onAddNode={edits.onAddNode}
           selectedNode={selectedNode}
           onSelectNode={setSelectedNode}
+          toolbar={
+            <GraphFilterBar
+              persona={persona}
+              onPersonaChange={changePersona}
+              labelQuery={labelQuery}
+              onLabelQueryChange={setLabelQuery}
+            />
+          }
+          footer={
+            <section aria-label="Edit log" className="mt-2 rounded-md border border-border/40 p-2">
+              {edits.lastResult && edits.lastResult.verdict !== 'applied' && (
+                <p role="alert" className="mb-1 text-xs text-amber-500" data-testid="graph-edit-refusal">
+                  {edits.lastResult.verdict === 'refused'
+                    ? `Edit refused: ${edits.lastResult.reason}`
+                    : `Edit ${edits.lastResult.reason}`}
+                </p>
+              )}
+              <GraphEditLog entries={edits.log} limit={PERSONA_PRESENTATION[persona].logRows} />
+            </section>
+          }
         />
 
         <CypherTab
