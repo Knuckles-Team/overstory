@@ -329,7 +329,7 @@ describe('UserManagementView identity operations', () => {
     await user.click(screen.getByRole('button', { name: 'Disable' }))
     expect(fetcher).toHaveBeenCalledWith(
       '/api/v1/ops/identity.users.disable',
-      expect.objectContaining({ body: JSON.stringify({ principal_id: 'u-2' }) }),
+      expect.objectContaining({ body: JSON.stringify({ user_id: 'u-2' }) }),
     )
     expect(screen.queryByText('Identity action completed.')).not.toBeInTheDocument()
   })

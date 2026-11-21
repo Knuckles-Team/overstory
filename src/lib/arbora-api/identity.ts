@@ -5,7 +5,6 @@ import { matchRoute } from '@/lib/nav-registry'
 import { ArboraApiError, invoke } from './invoke'
 export type IdentityOp =
   | 'identity.users.list'
-  | 'identity.users.search'
   | 'identity.users.create'
   | 'identity.users.disable'
   | 'identity.users.enable'
@@ -18,13 +17,14 @@ export type IdentityOp =
   | 'identity.service_accounts.deprovision'
   | 'identity.groups.list'
   | 'identity.groups.upsert'
-  | 'identity.groups.change_membership'
+  | 'identity.groups.set_members'
   | 'identity.roles.list'
   | 'identity.roles.upsert'
-  | 'identity.roles.change_user_role'
-  | 'identity.idps.list'
-  | 'identity.idps.upsert'
-  | 'identity.idps.mapping_dry_run'
+  | 'identity.roles.assign'
+  | 'identity.roles.remove'
+  | 'identity.providers.list'
+  | 'identity.providers.upsert'
+  | 'identity.providers.mapping_dry_run'
   | 'identity.sessions.list'
   | 'identity.sessions.revoke'
   | 'identity.api_keys.list'
@@ -34,13 +34,13 @@ export type IdentityOp =
   | 'identity.audit.verify'
   | 'identity.policy.get'
   | 'identity.policy.set'
-  | 'identity.mode.status'
-  | 'identity.mode.transition'
+  | 'identity.mode.get'
+  | 'identity.mode.transition_step'
   | 'identity.issuer.rotate'
-  | 'identity.scim_clients.list'
-  | 'identity.scim_clients.get'
-  | 'identity.scim_clients.upsert'
-  | 'identity.scim_clients.remove'
+  | 'identity.scim.clients.list'
+  | 'identity.scim.clients.get'
+  | 'identity.scim.clients.upsert'
+  | 'identity.scim.clients.revoke'
 
 export type IdentityReply<T> =
   | { kind: 'ready'; result: T }
@@ -83,38 +83,36 @@ const mappingSchema = z
   .loose()
 const readOps = new Set<IdentityOp>([
   'identity.users.list',
-  'identity.users.search',
   'identity.service_accounts.list',
   'identity.groups.list',
   'identity.roles.list',
-  'identity.idps.list',
+  'identity.providers.list',
   'identity.sessions.list',
   'identity.api_keys.list',
   'identity.audit.list',
   'identity.audit.export',
   'identity.audit.verify',
   'identity.policy.get',
-  'identity.mode.status',
-  'identity.idps.mapping_dry_run',
-  'identity.scim_clients.list',
-  'identity.scim_clients.get',
+  'identity.mode.get',
+  'identity.providers.mapping_dry_run',
+  'identity.scim.clients.list',
+  'identity.scim.clients.get',
 ])
 
 /** Ops whose result shape is not just "the list/record default" -- a dict dispatch
  *  table, not an if/elif chain, so neither metric grows with each new op added. */
 const EXACT_RESULT_SCHEMAS: Partial<Record<IdentityOp, z.ZodType>> = {
-  'identity.scim_clients.list': scimPageSchema,
-  'identity.users.search': pageSchema,
+  'identity.scim.clients.list': scimPageSchema,
   'identity.audit.export': pageSchema,
   'identity.policy.get': policySchema,
   'identity.policy.set': policySchema,
-  'identity.mode.status': z.object({ mode: z.string() }).loose(),
-  'identity.mode.transition': z.object({ mode: z.string() }).loose(),
+  'identity.mode.get': z.object({ mode: z.string() }).loose(),
+  'identity.mode.transition_step': z.object({ mode: z.string() }).loose(),
   'identity.issuer.rotate': z.object({ epoch: z.number(), issuer_kid_current: z.string() }).loose(),
-  'identity.scim_clients.get': scimClientSchema,
-  'identity.idps.mapping_dry_run': mappingSchema,
+  'identity.scim.clients.get': scimClientSchema,
+  'identity.providers.mapping_dry_run': mappingSchema,
   'identity.audit.verify': z.object({ valid: z.boolean() }).loose(),
-  'identity.users.admin_reset': z.object({ reset_token: z.string() }).loose(),
+  'identity.users.admin_reset': z.object({ delivery: z.string(), one_time_secret: z.string().optional() }).loose(),
 }
 
 function resultSchema(op: IdentityOp): z.ZodType {

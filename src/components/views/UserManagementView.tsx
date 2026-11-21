@@ -514,7 +514,7 @@ function useUserRoster() {
     if (!query) return refresh()
     setBusy(true)
     setActiveQuery(query)
-    setUsers(await invokeIdentity<IdentityPage<IdentityUser>>('identity.users.search', { query, limit: 50 }))
+    setUsers(await invokeIdentity<IdentityPage<IdentityUser>>('identity.users.list', { query, limit: 50 }))
     setBusy(false)
   }, [searchQuery, refresh])
 
@@ -526,10 +526,11 @@ function useUserRoster() {
   const loadMore = useCallback(async () => {
     if (users?.kind !== 'ready' || !users.result.next_cursor) return
     setBusy(true)
-    const next = await invokeIdentity<IdentityPage<IdentityUser>>(
-      activeQuery ? 'identity.users.search' : 'identity.users.list',
-      { after: users.result.next_cursor, limit: 50, ...(activeQuery ? { query: activeQuery } : {}) },
-    )
+    const next = await invokeIdentity<IdentityPage<IdentityUser>>('identity.users.list', {
+      after: users.result.next_cursor,
+      limit: 50,
+      ...(activeQuery ? { query: activeQuery } : {}),
+    })
     if (next.kind === 'ready') setUsers(appendPage(users, next.result))
     else toast.error(next.message)
     setBusy(false)
@@ -563,9 +564,12 @@ function useUserRoster() {
     async (op: IdentityOp, id: string) => {
       setBusy(true)
       setResetToken(null)
-      const result = await invokeIdentity<{ reset_token?: string }>(op, { principal_id: id })
+      const result = await invokeIdentity<{ delivery?: string; one_time_secret?: string }>(
+        op,
+        op === 'identity.service_accounts.deprovision' ? { service_account_id: id } : { user_id: id },
+      )
       if (result.kind === 'ready') {
-        if (op === 'identity.users.admin_reset') setResetToken(result.result.reset_token ?? null)
+        if (op === 'identity.users.admin_reset') setResetToken(result.result.one_time_secret ?? null)
         toast.success('Identity action completed.')
         void refresh()
       } else {

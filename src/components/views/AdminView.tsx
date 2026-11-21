@@ -268,12 +268,15 @@ function RoleGroupEditor({ kind }: { kind: 'role' | 'group' }) {
   }
   const membership = async () => {
     setBusy(true)
+    const op: IdentityOp = group
+      ? 'identity.groups.set_members'
+      : change === 'add'
+        ? 'identity.roles.assign'
+        : 'identity.roles.remove'
     const params = group
       ? { principal_id: principalId, group_id: id, change }
-      : { principal_id: principalId, role_id: id, change }
-    setOutcome(
-      await invokeIdentity(group ? 'identity.groups.change_membership' : 'identity.roles.change_user_role', params),
-    )
+      : { principal_id: principalId, role_id: id }
+    setOutcome(await invokeIdentity(op, params))
     setBusy(false)
   }
   return (
@@ -376,7 +379,7 @@ function MappingDryRun() {
       ) {
         throw new Error('Every claim must be a string array')
       }
-      setResult(await invokeIdentity('identity.idps.mapping_dry_run', { idp_id: idpId, claims }))
+      setResult(await invokeIdentity('identity.providers.mapping_dry_run', { idp_id: idpId, claims }))
     } catch {
       setResult({ kind: 'error', message: 'Enter a JSON object whose values are string arrays.' })
     }
@@ -444,7 +447,7 @@ function IdentityProviderEditor() {
       const config = JSON.parse(configJson) as unknown
       if (!config || typeof config !== 'object' || Array.isArray(config)) throw new Error('Invalid configuration')
       setOutcome(
-        await invokeIdentity('identity.idps.upsert', {
+        await invokeIdentity('identity.providers.upsert', {
           idp_id: idpId.trim(),
           kind,
           display_name: displayName.trim(),
@@ -549,7 +552,7 @@ function useModeTransition() {
 
   useEffect(() => {
     let active = true
-    void invokeIdentity<ModeStatus>('identity.mode.status').then((reply) => {
+    void invokeIdentity<ModeStatus>('identity.mode.get').then((reply) => {
       if (active) setState(reply)
     })
     return () => {
@@ -559,9 +562,9 @@ function useModeTransition() {
 
   const submit = async () => {
     const params = target === 'external' ? { to: target, local_fallback: fallback } : { to: target }
-    const reply = await invokeIdentity('identity.mode.transition', params)
+    const reply = await invokeIdentity('identity.mode.transition_step', params)
     setTransition(reply)
-    if (reply.kind === 'ready') setState(await invokeIdentity<ModeStatus>('identity.mode.status'))
+    if (reply.kind === 'ready') setState(await invokeIdentity<ModeStatus>('identity.mode.get'))
   }
 
   return { state, target, setTarget, fallback, setFallback, acknowledged, setAcknowledged, transition, submit }
@@ -711,13 +714,13 @@ function ScimClientPanel() {
   const [clients, setClients] = useState<IdentityReply<IdentityPage<ScimClient>> | null>(null)
   const [outcome, setOutcome] = useState<IdentityReply<unknown> | null>(null)
   const refresh = async () => {
-    setClients(await invokeIdentity<IdentityPage<ScimClient>>('identity.scim_clients.list'))
+    setClients(await invokeIdentity<IdentityPage<ScimClient>>('identity.scim.clients.list'))
   }
   useEffect(() => {
     void refresh()
   }, [])
   const bind = async () => {
-    const reply = await invokeIdentity('identity.scim_clients.upsert', {
+    const reply = await invokeIdentity('identity.scim.clients.upsert', {
       idp_id: idpId.trim(),
       principal_id: principalId.trim(),
     })
@@ -725,7 +728,7 @@ function ScimClientPanel() {
     if (reply.kind === 'ready') void refresh()
   }
   const remove = async (id: string) => {
-    const reply = await invokeIdentity('identity.scim_clients.remove', { idp_id: id })
+    const reply = await invokeIdentity('identity.scim.clients.revoke', { idp_id: id })
     setOutcome(reply)
     if (reply.kind === 'ready') void refresh()
   }
@@ -915,7 +918,7 @@ export default function AdminView() {
         <TabsContent value="idps" className="space-y-4">
           <ListPanel
             title="Identity providers"
-            op="identity.idps.list"
+            op="identity.providers.list"
             description="Configured external authorities."
           />
           <IdentityProviderEditor />
