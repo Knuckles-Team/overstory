@@ -71,3 +71,20 @@ Producer first: the fleet seam (R003) and the world producers (R002, R004, R005)
 - [x] T065 OVERSTORY-CITY-R045 Competency questions for the five fun pillars. Touches `src/apps/city/core/competency.ts`, `src/apps/city/core/sun.ts`.
 - [x] T066 OVERSTORY-CITY-R046 Original identity audit. Touches `src/apps/city/__tests__/identity.test.ts`.
 - [x] T067 OVERSTORY-CITY-R028 Load, chunk and audio budgets as a gate. Touches `src/apps/city/core/budgets.ts`, `src/apps/city/__tests__/budgets.test.ts`.
+
+- [ ] T068 OVERSTORY-CITY-R001.1 Add the explicit anonymous local city sandbox route posture and browser-local WebMCP registration. Touches `src/lib/city-sandbox.ts`, `src/apps/city/routes.ts`, `src/lib/webmcp/provider.tsx`.
+- [ ] T069 OVERSTORY-CITY-R031.1 Restore colour-managed 3D contrast and add rendered regression evidence. Touches `src/apps/city/core/render3d/trimSheet.ts`, `src/apps/city/core/render3d/scene.ts`, `src/lib/scene3d/pipeline.ts`, city tests.
+- [ ] T070 OVERSTORY-CITY-R041.1 Build the production-world visual slice: watertight architecture, terrain, waterfront, sky, navigation, landmarks and approved overview captures. Touches generators, `render3d/`, `docs/art-direction.md`, and browser evidence.
+- [ ] T071 OVERSTORY-CITY-R047 Hydrate and render Arbora's authoritative revisioned city state; add the host adapter and subject-bound human heartbeat. Touches City API, host gateway/router, state reducer, CityPage and bound tests.
+- [ ] T072 OVERSTORY-CITY-R048 Build the procedural regional-world recipe: seeded regional tiles, terrain/hydrology-constrained zoning, generated junction assets, parcel/road/prop collision validation, façade families and streamed LOD/instanced massing.
+- [ ] T073 OVERSTORY-CITY-R048 Add the performance-integrity gate: long-running activity soak, scene-object/texture-growth assertions, city-capacity draw-call budgets and dense-core/suburban/waterfront/skyline browser captures.
+- [ ] T074 [US5] OVERSTORY-CITY-R048.1 Implement the catalog validator and asset build metadata. Qualify original sources and reference module joins.
+- [ ] T075 [US5] OVERSTORY-CITY-R048.2 Deliver original shared modules and all exterior recipes. Review the fuel forecourt and near-street detail.
+- [ ] T076 [US5] OVERSTORY-CITY-R048.3 Build connected 3D profiles, lane movements and validated lots. Exercise curved streets, parking, bus stops, bridges and overpasses.
+- [ ] T077 [US4] OVERSTORY-CITY-R048.4 Deliver all six interior recipes with collision, entry/exit and shared UI/WebMCP actions.
+- [ ] T078 [US5] OVERSTORY-CITY-R048.5 Qualify the full island, shoreline families and marine travel. Record any optional effects evaluation separately.
+- [ ] T079 [US5] OVERSTORY-CITY-R048.6 Run reviewed fidelity captures, capacity tests and sustained performance measurements.
+- [ ] T080 [US1] OVERSTORY-CITY-R048.7 Build registry-selected ecosystem exterior and room kits. Qualify frontage, entry, specialty pieces and provenance.
+- [ ] T081 [US5] OVERSTORY-CITY-R048.8 Derive corridors, parcels and roadside sockets with stable placement and edit validation. Qualify the combined reference scene against R048.6 budgets.
+- [ ] T082 [US5] OVERSTORY-CITY-R048.9 Implement deterministic seed generation, revisioned growth, dry-ground checks and replay acceptance.
+- [ ] T083 [US1] OVERSTORY-CITY-R001.2 Qualify the signed-in Apps entry and add the sandbox landing entry through the existing route.

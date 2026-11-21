@@ -136,6 +136,10 @@ Every failure path is visible and typed.
 
 ## Requirements
 
+The [island generation and entry contract](generation-and-entry.md) defines reproducible growth, dry-ground validation and discovery from Overstory.
+
+The [modular asset pack](asset-pack.md) expands R048.1–R048.6. A player must recognize a fuel station, bus stop and mixed-use frontage at street height. They must be able to follow an elevated route across a canal and enter a furnished building. A seeded city must assemble these scenes from reusable modules across irregular road layouts. See [requirements](requirements.md) and the [acceptance matrix](test-spec.md#modular-asset-pack-acceptance).
+
 - **FR-001**: The city is a hosted app at `/apps/city` with an honest mode — live fleet, or a labeled simulated fallback over the bundled snapshot — a 2D fallback when WebGL is absent, and lazy loading that leaves the shell bundle untouched. Rows: OVERSTORY-CITY-R001, OVERSTORY-CITY-R003, OVERSTORY-CITY-R014, OVERSTORY-CITY-R015, OVERSTORY-CITY-R016.
 - **FR-002**: The connector district is the live fleet: one named plot per fleet server, served packs built online, registered packs planned, and a visible construction sequence when a pack is published. Rows: OVERSTORY-CITY-R002, OVERSTORY-CITY-R008.
 - **FR-003**: Seven core landmarks (one per platform component) and a pinned, permissive-licensed character population — 14 AI agents plus 3 simulated operator characters, re-kinded as NPC and labelled simulated. Rows: OVERSTORY-CITY-R004, OVERSTORY-CITY-R005.

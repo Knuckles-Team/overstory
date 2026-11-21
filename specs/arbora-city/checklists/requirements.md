@@ -60,3 +60,11 @@ Success criteria (from spec.md): SC-001 maps to `ecosystem.test.ts` and
 SC-002 to `sim.test.ts` (dispatch chain); SC-003 to `sim.test.ts`
 (construction and first visit); SC-004 to `assets.test.ts` (lockfile
 verification); SC-005 to `sim.test.ts` (full day at 4×).
+
+## Modular asset pack review
+
+- [x] All 16 supplied screenshots map to observations in the [asset pack contract](../asset-pack.md#screenshot-audit).
+- [x] Exterior and interior inventory, geometry ownership, determinism and provenance have explicit requirements.
+- [x] Each of R048.1–R048.6 maps to one delivery task and a distinct [acceptance case](../test-spec.md#modular-asset-pack-acceptance).
+
+Review the proposed module count and art direction before authoring. Bind the planned checks and record captures and GPU measurements during implementation.

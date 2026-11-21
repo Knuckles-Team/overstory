@@ -338,3 +338,25 @@ LANDED: every test above green on the branch with the build and pre-commit
 gates passing. VERIFIED additionally requires the headless browser proof
 against a live host plus the lockfile audit, recorded in
 `checklists/requirements.md`.
+
+## Modular asset pack acceptance
+
+These cases are planned. Bind tests to the full requirement IDs when implemented.
+
+- OVERSTORY-CITY-R001.1: planned `src/lib/__tests__/city-sandbox.test.ts::anonymous_city_route` verifies opt-in and route scope.
+- OVERSTORY-CITY-R031.1: planned `e2e/city-production-world.browser.ts::daylight_contrast` verifies readable day materials and fallback.
+- OVERSTORY-CITY-R041.1: planned `e2e/city-production-world.browser.ts::production_world_slice` qualifies the composed regional views.
+- OVERSTORY-CITY-R047: planned `e2e/city-production-world.browser.ts::shared_city_state` compares admitted snapshots across two viewers and refresh.
+
+| Requirement | Required checks |
+| --- | --- |
+| `OVERSTORY-CITY-R048.1` | Check 66 unique exterior families and independently addressable assemblies. Reject missing provenance, hash mismatch, duplicate ID, invalid dimensions, incompatible sockets and unsafe bounds. Rebuild the same pack twice and compare normalized outputs. |
+| `OVERSTORY-CITY-R048.2` | Capture every recipe in an asset review scene at a common scale. Compare silhouettes, frontage, window rhythm and roofs. Check opaque shells, trim UVs, near props, day/night glass and emissive separation. Verify that part changes do not alter live encoding. |
+| `OVERSTORY-CITY-R048.3` | Exercise straight, curved, skewed, sloped and joined profiles with shared seam coordinates. Verify no visible holes, coplanar paint or flipped crossings. Refuse dry-road water crossings, park overlap, blocked sidewalks and deck clearance violations. Require lanes across valid bridges and no phantom turn at an overpass. Follow bus, compact and truck routes through multiple blocks. Detect visible resets or implausible speeds. |
+| `OVERSTORY-CITY-R048.4` | Reach every declared room from a valid threshold and return to the original building exterior. Refuse stale IDs, absent portals and blocked paths. Test room reuse, keyboard and WebMCP parity, repeated entry, view changes, context loss and resource cleanup. |
+| `OVERSTORY-CITY-R048.5` | View the entire perimeter and sample each coast family. Test terrain continuity across tile seams, dry foundations near the shore and navigable routes through a delta and beneath a bridge. Refuse shallow routes and support/boat intersections. |
+| `OVERSTORY-CITY-R048.6` | Pair fixed-seed before/after views at comparable zoom, exposure and time. Review aerial day/night, storefront and fuel forecourt, park/shelter, suburban/rural, canal crossing, coastline and all interior recipes. Include lowest-quality readability and 2D fallback. Record exact revision and device/GPU/browser/resolution/tier. Run the 10-minute steady-state and 15-minute active/onboarding measurements under R048. Collect frame-time p50/p95, draw calls, geometry, texture bytes and heap trends after warmup. Compare teardown after chunk churn and repeated room entry/exit. Record missed targets explicitly. |
+| `OVERSTORY-CITY-R048.7` | Compare each landmark silhouette and its rooms. Verify connector category override, unknown fallback, unpublished placeholder and stable ID. Enter Medulla and follow a permitted recall to the correct modality. Verify unavailable or unadmitted values remain undisclosed. Compare UI and WebMCP selection and entry. |
+| `OVERSTORY-CITY-R048.8` | Repeat generation with shuffled input and tile order. Exercise reuse of one corridor by several relationships and physical access with zero semantic links. Validate curved polygon lots, dry footprints, doorway reachability, driveway swept space, stop accessibility, overpass separation and bridge limits. Force an impossible route and a conflicting pinned edit. Verify diagnostic output and unchanged accepted revision. |
+| `OVERSTORY-CITY-R048.9` | Verify initial playability, connected drainage and identical generation for the same recipe version. Replay identical growth events through refresh with duplicate and stale events. Reject coastal corner overlap, water crossing a dry-corner footprint, submerged support and a flooded entrance. Preserve pins and unrelated IDs. |
+| `OVERSTORY-CITY-R001.2` | Navigate from signed-in Apps and the anonymous sandbox landing surface. Verify keyboard access, browser back, unavailable fleet fallback and inactive sandbox behavior. Confirm an unauthorized viewer gains no protected access. |

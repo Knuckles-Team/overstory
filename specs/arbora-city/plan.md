@@ -620,3 +620,74 @@ Design. `graphFacts.ts` types the facts and carries the labelled bundled neighbo
 Phases by owner. Medulla: R004 to R007. Arbora: R086 to R088. Overstory: this delivery implements the pure evaluation and its tests against the labelled fixture. Wiring the derived layout into the renderers waits for the served reads.
 
 Build contract: the budgets in `budgets.ts` are gates (initial load 5 MB, chunk 200 KB, draw-call and memory caps). Tests read the table.
+
+#### 2026-11-20: Anonymous city sandbox and daylight contrast repair
+
+The city sandbox is an explicit Vite build posture, not an authentication
+bypass. `VITE_CITY_SANDBOX=1` makes only `/apps/city` public and noindex,
+allows only browser-local City WebMCP registration without a session, and
+retains the labelled simulated fleet fallback. It never enables served
+operations, remote attended control, or an authenticated role.
+
+The daylight review found a white, artifacted 3D image. The repair keeps the
+existing procedural kit. It corrects canvas texture colour spaces, applies
+the output pass after all image-space passes, limits bloom to emissive detail,
+and reduces image-based light and fog washout. A browser capture measures
+highlight coverage so a near-white canvas cannot satisfy the fidelity claim.
+
+### 2026-11-20: Authoritative city state and production-world direction (R041.1, R047)
+
+The browser is no longer the city authority. Arbora admits the City read and
+the subject-bound human heartbeat. Medulla owns the durable, revisioned state.
+Overstory hydrates one snapshot for all viewers and interpolates its positions
+between bounded updates. It never writes an AI or NPC position. The anonymous
+sandbox gets a separate simulated tenant and has no write route.
+
+```text
+Medulla durable city state (revision N)
+  -> Arbora fleet.city.presence
+  -> Overstory /api/apps/city/state
+  -> City state reducer
+  -> 2D and 3D renderers
+```
+
+The production-world vertical slice has a concrete visual bar: a dense core,
+district hierarchy, mountains or hills, an ocean or waterfront, a river or
+canal, bridges, boats, atmospheric sky, ambient flight, streets with curb and
+prop detail, and watertight architecture. This is an original Arbora world,
+not a copy of commercial game assets. The three approved overview cameras and
+the geometry audit are release evidence; the R028 60 fps target is a gate.
+
+Cross-repo seams: the pending Arbora city-state producer must serve the revisioned snapshot and
+the subject-bound heartbeat. Medulla's pending durable city-state contract
+fact contract and must land before R047 implementation. The existing R041
+generators own visual composition; no presentation requirement belongs in the
+repository constitution.
+
+### 2026-11-21 modular asset pack delivery
+
+The [catalog and assembly contract](asset-pack.md) carries the 16-image audit and proposed launch inventory. Start with a versioned catalog and validation fixtures. Build a vertical slice with a curved block, a fuel station, a reused storefront bay, a shelter and moving vehicles. Include one furnished interior in the slice. Expand recipes after reviewing that composition in day and night.
+
+**Build contract.** Reuse the asset lock, original-source records, trim and palette library, scene pipeline, budgets and fidelity harness. Bake reusable pieces where that reduces browser work. Package only validated assets. Record content hashes and normalized recipe digests per release. Keep older pinned IDs resolvable or provide an explicit migration.
+
+**Production caller chain.** The existing City route loads the recipe and catalog. World generation and layout validation resolve terrain, road profiles, lots and module placements. The renderer consumes this output for batches, lanes and selective room loading. UI and WebMCP call the same City actions. A renderer may degrade detail while retaining selection, meaning and the 2D view.
+
+**Cross-repo seams.** Overstory owns visuals, deterministic browser presentation, local demo behavior and view controls. Arbora remains the authority for served city state under R047. Meristem and Medulla remain behind their existing service contracts. This pack needs no new served operation for reference-scene or anonymous sandbox qualification. Authoritative position persistence continues under its existing row.
+
+**Delivery slices.** T074 defines the contract. T075–T076 prove the street and architecture together. T077 adds building entry, then T078 qualifies the regional setting. T079 qualifies the combined pack. Each slice retains the existing simulated and live provenance separation.
+
+**Ecosystem districts.** The [landmark and road-led district design](ecosystem-districts.md) defines the T080 and T081 slices. T080 consumes the mapping registry and existing asset and entry contracts. T081 consumes the 3D road profile and regional terrain. Validate their shared reference scene through the existing City route. Use the anonymous demo for synthetic fixtures and admitted Arbora responses for served-data qualification.
+
+One task per row, producer first (see [tasks.md](tasks.md)): T001–T003
+build the world producers (district, landmarks, population); T004–T005 the
+asset verification and event seams; T006–T012 the simulation behavior
+(lifecycle, operators, construction, day/night, selection, speed, 2D
+fallback); T013–T014 the host read and the mode decision; T015–T018 the
+route wiring, credential whitelist and unmount safety. T019–T024 are the
+follow-on rows: specified, no v1 code, no schedule. T025–T041 are the
+2026-11-17 review amendments and the fidelity rows R031–R033; T042–T053
+are the 2026-11-18 re-review amendments — one task per amended row — and
+land in this delivery with the R031–R033 rebuild: the host read first
+(T042), then the sim and the renderers (T043–T053). Verification evidence
+(tests, build chunk report, lockfile audit) is recorded per row in
+[checklists/requirements.md](checklists/requirements.md).
