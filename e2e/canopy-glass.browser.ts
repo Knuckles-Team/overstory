@@ -396,7 +396,9 @@ test('Canopy dark security warning keeps its paired contrast', async ({ page }, 
   await page.screenshot({ path: info.outputPath('canopy-dark-disabled-control.png'), animations: 'disabled' })
 })
 async function contrast(target: Locator) {
-  return target.evaluate((element) => {
+  return target.evaluate(async (element) => {
+    // Settle colour transitions first; sampling mid-transition reports a blend, not the resting pair.
+    await Promise.allSettled(document.getAnimations().filter((a) => a instanceof CSSTransition).map((a) => a.finished))
     const canvas = document.createElement('canvas')
     canvas.width = canvas.height = 1
     const context = canvas.getContext('2d')!
