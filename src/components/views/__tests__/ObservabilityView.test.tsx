@@ -150,3 +150,98 @@ describe('ObservabilityView — Runs (Phase D: no /api/runs platform)', () => {
     expect(screen.queryByText(/not activated on this backend/i)).not.toBeInTheDocument()
   })
 })
+
+describe('ObservabilityView — run harness block (OVERSTORY-APPS-R004)', () => {
+  const OPS_META = { registry_digest: 'digest', api_version: 'v1' }
+
+  function mockWithOps(ops: Record<string, unknown>) {
+    const base = vi.fn()
+    mockGatewayFetch({
+      searchBody: tracesSearchBody([{ trace_id: 'trace-1', name: 'run one', status: 'ok' }]),
+      waterfallBody: tracesWaterfallBody({ trace: { id: 'trace-1' }, nodes: [] }),
+    })
+    const gateway = globalThis.fetch as unknown as (i: RequestInfo | URL, init?: RequestInit) => Promise<Response>
+    base.mockImplementation((input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input)
+      if (url === '/auth/session')
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: () => Promise.resolve({ authenticated: true, csrf_token: 't' }),
+        })
+      if (url.startsWith('/api/v1/ops/')) {
+        const op = url.replace('/api/v1/ops/', '')
+        if (!(op in ops)) return Promise.resolve({ ok: false, status: 404, json: () => Promise.resolve({}) })
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: () => Promise.resolve({ ok: true, result: { value: ops[op] }, meta: OPS_META }),
+        })
+      }
+      return gateway(input, init)
+    })
+    vi.stubGlobal('fetch', base)
+  }
+
+  async function openRuns() {
+    const { user } = renderWithProviders(<ObservabilityView />)
+    await user.click(await screen.findByRole('tab', { name: /Runs/i }))
+    return screen.findByTestId('run-harness-panel')
+  }
+
+  // spec: OVERSTORY-APPS-R004.2
+  it('harness configuration panel shows context policy, plan scaffold and action space', async () => {
+    mockWithOps({
+      'runs.get': {
+        terminationReason: 'context_overflow',
+        harness_config: {
+          context_policy: { soft_threshold: 0.7, hard_threshold: 0.9, recent_window_fraction: 0.25 },
+          plan_scaffold: 'todo-list',
+        },
+      },
+      'runs.metrics': {},
+    })
+    const panel = await openRuns()
+    await within(panel).findByText(/soft 0.7, hard 0.9, recent window 0.25/)
+    expect(within(panel).getByTestId('harness-plan-scaffold')).toHaveTextContent('todo-list')
+    // An absent field reads not available.
+    expect(within(panel).getByTestId('harness-action-space')).toHaveTextContent('not available')
+    expect(within(panel).getByTestId('harness-termination')).toHaveTextContent('Context overflow')
+  })
+
+  // spec: OVERSTORY-APPS-R004.3
+  it('context use against budget and cost render, an absent field reads not available and never zero', async () => {
+    mockWithOps({
+      'runs.get': {},
+      'runs.metrics': { peakContextTokens: 1200, contextBudgetTokens: 4000, costUsd: 0.0123 },
+    })
+    const panel = await openRuns()
+    expect(await within(panel).findByText('1,200 of 4,000 tokens')).toBeInTheDocument()
+    expect(within(panel).getByTestId('harness-cost')).toHaveTextContent('$0.0123')
+  })
+
+  it('absent budget and cost fields read not available, never zero', async () => {
+    mockWithOps({ 'runs.get': {}, 'runs.metrics': { peakContextTokens: 1200 } })
+    const panel = await openRuns()
+    await within(panel).findByText(/1,200 tokens peak/)
+    expect(within(panel).getByTestId('harness-context-use')).toHaveTextContent('budget not available')
+    expect(within(panel).getByTestId('harness-cost')).toHaveTextContent('not available')
+    expect(within(panel).getByTestId('harness-cost')).not.toHaveTextContent('0')
+  })
+
+  // spec: OVERSTORY-APPS-R004.6
+  it('an absent or refused run operation reads not available with no fabricated value', async () => {
+    mockWithOps({})
+    const panel = await openRuns()
+    await within(panel).findByTestId('harness-cost')
+    for (const id of [
+      'harness-context-policy',
+      'harness-plan-scaffold',
+      'harness-action-space',
+      'harness-termination',
+      'harness-cost',
+    ])
+      expect(within(panel).getByTestId(id)).toHaveTextContent('not available')
+    expect(within(panel).getByTestId('harness-context-use')).not.toHaveTextContent(/\b0\b/)
+  })
+})

@@ -4,18 +4,18 @@ No exact-head publication receipt is recorded.
 
 - [ ] T001 [US1] OVERSTORY-APPS-R001 Inventory current brand identifiers, package consumers, generated assets, site links, consent keys and tool IDs on main.
 - [x] T002 [US1] OVERSTORY-APPS-R038 Make browser title, metadata, web manifest, docs site name and README consistently present the Arbora brand, with a `site:brand:check` gate (part of `pnpm run build`) proving it. (OVERSTORY-APPS-R038; index.html/webmanifest already said "Arbora"; this fixes `mkdocs.yml` `site_name`/ecosystem entry and `README.md`'s heading, overview line and license line, and is deliberately scoped to brand copy only — no package, import or environment rename.)
-- [ ] T003 [US1] OVERSTORY-APPS-R038 Add `apps` navigation and one typed `AppSurface` contract using existing route, contribution, WebMCP and renderer seams.
-- [ ] T004 [US1] OVERSTORY-APPS-R038 Integrate Markets as first native consumer and add valid/invalid contributed-app fixtures.
+- [x] T003 [US1] OVERSTORY-APPS-R038 Add `apps` navigation and one typed `AppSurface` contract using existing route, contribution, WebMCP and renderer seams.
+- [x] T004 [US1] OVERSTORY-APPS-R038 Integrate Markets as first native consumer and add valid/invalid contributed-app fixtures.
 - [x] T005 [US1] OVERSTORY-APPS-R039 Perform atomic public-name package and consumer cutover; regenerate assets and digests; document browser migration. (OVERSTORY-APPS-R039, OVERSTORY-APPS-R043, OVERSTORY-APPS-R002's remaining theme-token/asset-regeneration surface, OVERSTORY-APPS-R003: source commit 677a27e0f701eca99cad20887a0b5c4b8ec9734e exists on local branch feat/eh427-retire-review-20260926 but conflicts heavily with main — rename touches package.json, pyproject.toml, uv.lock, pnpm-lock.yaml and deletes files main already restructured; needs a fresh, smaller port, not a direct cherry-pick. The operator has not yet confirmed this package-identity rename; do not attempt it without that confirmation.)
 - [ ] T006 [US1] OVERSTORY-APPS-R039 Run all test-spec gates, installed wheel and Pages build on exact commit; record consumer and publication evidence.
 - [ ] T007 [US1] OVERSTORY-APPS-R039 Review every requirement after attaching browser, package and public-site evidence.
-- [ ] T008 [US1] OVERSTORY-APPS-R004 Run harness surface (rollup of 1 to 6)
-- [ ] T009 [US1] OVERSTORY-APPS-R004.1 Run read goes through the arbora read operations.
-- [ ] T010 [US1] OVERSTORY-APPS-R004.2 Applied harness configuration is shown.
-- [ ] T011 [US1] OVERSTORY-APPS-R004.3 Context use is shown against the budget.
-- [ ] T012 [US1] OVERSTORY-APPS-R004.4 Current plan is shown read-only.
-- [ ] T013 [US1] OVERSTORY-APPS-R004.5 Each termination reason has a distinct state.
-- [ ] T014 [US1] OVERSTORY-APPS-R004.6 Absent operation shows an honest state.
+- [x] T008 [US1] OVERSTORY-APPS-R004 Run harness surface (rollup of 1 to 6)
+- [x] T009 [US1] OVERSTORY-APPS-R004.1 Run read goes through the arbora read operations.
+- [x] T010 [US1] OVERSTORY-APPS-R004.2 Applied harness configuration is shown.
+- [x] T011 [US1] OVERSTORY-APPS-R004.3 Context use is shown against the budget.
+- [x] T012 [US1] OVERSTORY-APPS-R004.4 Current plan is shown read-only.
+- [x] T013 [US1] OVERSTORY-APPS-R004.5 Each termination reason has a distinct state.
+- [x] T014 [US1] OVERSTORY-APPS-R004.6 Absent operation shows an honest state.
 - [ ] T015 [US1] OVERSTORY-APPS-R030.1 Graph edit types.
 - [ ] T016 [US1] OVERSTORY-APPS-R030.2 Send edits to arbora.
 - [ ] T017 [US1] OVERSTORY-APPS-R030.3 Wire graph handlers to the engine.

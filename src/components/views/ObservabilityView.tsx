@@ -30,6 +30,7 @@ import { Input } from '@/components/ui/input'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { StatusMessage } from '@/components/ui/status-message'
 import { gatewayPost } from '@/lib/gateway'
+import RunHarnessPanel from '@/components/views/RunHarnessPanel'
 
 /** A single metric time-series distilled from the PromQL response. */
 interface MetricSeries {
@@ -552,7 +553,10 @@ function runsTabContent({
             {dag?.trace.name ?? selectedRun ?? 'Run DAG'}
           </CardTitle>
         </CardHeader>
-        <CardContent>{runDagPanelContent({ dagLoading, dagUnavailable, dagError, dag })}</CardContent>
+        <CardContent className="space-y-4">
+          {selectedRun && <RunHarnessPanel runId={selectedRun} />}
+          {runDagPanelContent({ dagLoading, dagUnavailable, dagError, dag })}
+        </CardContent>
       </Card>
     </div>
   )
