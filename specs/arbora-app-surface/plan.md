@@ -58,6 +58,14 @@ No unknowns that block a row. Each missing producer operation is listed under "O
 
 The design keeps arbora and the engine authoritative and the browser a presenter. The sections below hold the design of each consumer surface. Data types are in [data-model.md](data-model.md) and the served proof commands are in [quickstart.md](quickstart.md).
 
+- **Owner.** This repository owns what a person sees in each app surface. Arbora owns every operation the surface calls.
+- **Cohesion.** Each surface keeps its view, hook, typed client and bound test together under one app or one view.
+- **Dependency direction.** Views depend on hooks, hooks on `src/lib/arbora-api`, and the client on the generated schema. Nothing points back up.
+- **Interface depth.** A view calls one typed function per operation. It never builds a request body or reads a raw envelope.
+- **Special cases.** A missing operation shows "not available" through one shared verdict path. No view carries its own fallback.
+- **State.** A request is idle, pending, applied, refused or unavailable. The engine verdict sets each state, never the client.
+- **Environment.** Normal validation needs no private host. Served proof runs only in the qualification job.
+
 ### Reuse and ownership
 
 `src/lib/nav-registry.ts` owns sections/routes; `src/lib/frontend-contributions.ts` validates contributed descriptors; `src/lib/webmcp/` owns attended page tools; `src/lib/atlas/renderers.ts` and `src/components/atlas/renderers/index.ts` own renderer registration. `src/App.tsx` mounts the shell. `public/`, `index.html`, `src/index.css` and the existing asset generator own brand presentation. `agent/overstory/server.py` serves packaged assets. Extend these seams; do not create another router, renderer registry, app permission database or client-side Arbora authority. The first native app lives under `src/apps/markets/`; its finance behavior is specified separately in this repository.
@@ -87,7 +95,7 @@ acceptance criteria.
 
 ### Run harness surface (OVERSTORY-APPS-R004)
 
-Data flow: Observability run view (`ObservabilityView.tsx:602`) → `gatewayPost` (`gateway.ts:129`) → arbora `runs.get` / `runs.metrics` → harness block beside the trace waterfall.
+Data flow: Observability run view (`ObservabilityView.tsx:602`) → `gatewayPost` (`gateway.ts:129`) → arbora `runs.get` → harness block beside the trace waterfall.
 
 Types and fields (names from the design brief): `harness_config` (`context_policy` with `soft_threshold`, `hard_threshold`, `recent_window_fraction`; `plan_scaffold`; `action_space`), `peakContextTokens`, `contextBudgetTokens`, `costUsd`, `terminationReason` (`final_answer` | `context_overflow` | `stuck` | `step_budget` | `error`), and the run's plan state.
 
@@ -97,10 +105,10 @@ Failure behaviour: a refused or absent operation yields "not available". The cli
 
 Reuse and new: the run view above stays; the harness block is new.
 
-Decisions: the client reads `runs.get` and `runs.metrics` only. Rejected alternative: computing context use or cost in the client.
+Decisions: the client reads `runs.get` only, whose per-run fields carry cost and context use. Rejected alternative: computing context use or cost in the client.
 The engine owns the run trace, and a client copy drifts.
 
-Cross-repository: depends on three rows. The `ARBORA-OPS` row for run metrics serves `runs.get` and `runs.metrics`. The `MERISTEM-HARNESS` row for the run trace writes the fields. The `MERISTEM-HARNESS` row for `update_plan` owns the plan state.
+Cross-repository: depends on three rows. The `ARBORA-OPS` row for run metrics serves the per-run fields on `runs.get`. The `MERISTEM-HARNESS` row for the run trace writes the fields. The `MERISTEM-HARNESS` row for `update_plan` owns the plan state.
 
 ### OVERSTORY-APPS-R005 role-aware navigation and per-user dashboards
 
@@ -118,7 +126,7 @@ Decision: relate by returned identifiers. Rejected alternative: infer links by n
 
 ### Graph edits through the engine (OVERSTORY-APPS-R030)
 
-The graph overlay save (`GraphCanvas.tsx:609`) calls `handleUpdateNode` (`GraphView.tsx:715`). It calls the new `sendGraphEdit` export in `src/lib/graph-edit.ts`, then `gatewayPost` (`gateway.ts:129`). The authenticated Arbora invoke pipeline serves `eg.graph.AddNode`, `eg.graph.ApplyMutation` and `eg.graph.RemoveNode`. The fixture engine commits the durable mutation. The client updates local state from the verdict and authoritative readback.
+The graph overlay save (`GraphCanvas.tsx:609`) calls `handleUpdateNode` (`GraphView.tsx:715`). It calls the new `sendGraphEdit` export in `src/lib/graph-edit.ts`, then `gatewayPost` (`gateway.ts:129`). The authenticated Arbora invoke pipeline serves `eg.graph.AddNode`, `eg.graph.CompareAndSetNodeFields` and `eg.graph.RemoveNode`. AddNode carries labels in the engine's `labels` property array, the field the label index reads. The fixture engine commits the durable mutation. The client updates local state from the verdict and authoritative readback.
 
 Types: `GraphEditRequest`, `GraphEditVerdict` (`applied` | `refused` | `unavailable`), `ViewPersona`. Attach point: the three handlers at `GraphView.tsx:715-724`, called by `GraphCanvas.tsx:609-616`.
 
@@ -213,7 +221,7 @@ Use generated proposal identity, prompt revision, agent identity, progress state
 
 Show each optimization proposal beside its exact source runs and recorded progress. Preserve pending review and propose-only state. Never promote a prompt from this view.
 
-Extend src/components/views/ObservabilityView.tsx beside the existing trace waterfall. Resolve proposal and trace references through typed Arbora reads. The existing runs.get and runs.metrics operations alone do not return the missing join.
+Extend src/components/views/ObservabilityView.tsx beside the existing trace waterfall. Resolve proposal and trace references through typed Arbora reads. The existing runs.get operation alone do not return the missing join.
 
 Missing proposal provenance, hidden traces or incompatible producer revisions show unavailable. Never infer progress from trace count or substitute OVERSTORY-DECIDE-R001 coverage.
 

@@ -5,7 +5,7 @@ Governing spec: [spec.md](spec.md). Design: [plan.md](plan.md). Rows: [requireme
 Each task line reads `- [x] T001 [P] [US1] <ID>-R012.4 description`. The task number and the row ID are required.
 `[P]` marks a task that may run in parallel. `[US1]` names the user story. Order tasks producer first.
 
-- [ ] T001 [US2] OVERSTORY-DECIDE-R001 Evaluation dashboard shows calibration and coverage.
+- [x] T001 [US2] OVERSTORY-DECIDE-R001 Evaluation dashboard shows calibration and coverage.
 - [ ] T002 [US1] OVERSTORY-DECIDE-R002 Decision explorer surfaces premises, derivations and violations.
 - [x] T003 [US1] OVERSTORY-DECIDE-R003 Decision explorer cites premises, derivations and certificate.
 - [x] T004 [US1] OVERSTORY-DECIDE-R004 Why-not explanations run on demand within a bounded budget.

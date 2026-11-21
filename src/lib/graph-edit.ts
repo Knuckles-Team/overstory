@@ -21,6 +21,8 @@ export type GraphEditRequest =
       kind: 'update'
       id: string
       properties: Record<string, unknown>
+      /** Current values the engine must still find on the node; a mismatch is a conflict, never an overwrite. */
+      expected?: Record<string, unknown>
     }
   | {
       kind: 'delete'
@@ -88,6 +90,8 @@ export function filterByLabelText<T extends { labels: string[]; properties: Reco
 
 const ADD_NODE = 'eg.graph.AddNode'
 const REMOVE_NODE = 'eg.graph.RemoveNode'
+const COMPARE_AND_SET = 'eg.graph.CompareAndSetNodeFields'
+export const CONFLICT_REASON = 'CONFLICT: the node changed since it was read'
 const UNAVAILABLE_CODES = new Set(['UNKNOWN_OP', 'UNAVAILABLE', 'NOT_IMPLEMENTED', 'HTTP_UNAVAILABLE'])
 
 function refusalReason(error: ArboraApiError): string {
@@ -107,17 +111,28 @@ function toResult(error: unknown): GraphEditResult {
 const anyResult = z.unknown()
 
 /**
+ * The engine's AddNode takes no separate label parameter: it reads a node's
+ * labels from the multi-valued `labels` array inside the property map (with the
+ * scalar `type`, `node_type` and `label` keys), the same fields the label index
+ * and label queries match. `labels` here is that engine field, not a client
+ * invention. An update cannot change labels through any other field.
+ */
+function withEngineLabels(properties: Record<string, unknown>, labels: string[]): Record<string, unknown> {
+  return { ...properties, labels }
+}
+
+/**
  * Send one edit to Arbora and return the engine verdict. Nothing is decided
  * here: a refusal carries the engine's code, and an absent operation reads
- * "not available". An update has no served mutation shape yet, so it is
- * reported unavailable rather than guessed.
+ * "not available". An update is the engine's typed compare-and-set of node
+ * fields; the engine answers false when an expected value no longer holds.
  */
 export async function sendGraphEdit(request: GraphEditRequest, signal?: AbortSignal): Promise<GraphEditResult> {
   const options = { signal, idempotencyKey: crypto.randomUUID() }
   try {
     if (request.kind === 'add') {
       const id = `node_${crypto.randomUUID()}`
-      const properties = { ...request.properties, labels: request.labels }
+      const properties = withEngineLabels(request.properties, request.labels)
       await invoke(ADD_NODE, { node_id: id, properties_msgpack: encodeMsgpack(properties) }, anyResult, options)
       return { verdict: 'applied', reason: '', id }
     }
@@ -125,7 +140,18 @@ export async function sendGraphEdit(request: GraphEditRequest, signal?: AbortSig
       await invoke(REMOVE_NODE, { node_id: request.id }, anyResult, options)
       return { verdict: 'applied', reason: '', id: request.id }
     }
-    return { verdict: 'unavailable', reason: NOT_AVAILABLE_REASON }
+    const applied = await invoke(
+      COMPARE_AND_SET,
+      {
+        node_id: request.id,
+        conditions_msgpack: encodeMsgpack(request.expected ?? {}),
+        updates_msgpack: encodeMsgpack(request.properties),
+      },
+      anyResult,
+      options,
+    )
+    if (applied === false) return { verdict: 'refused', reason: CONFLICT_REASON }
+    return { verdict: 'applied', reason: '', id: request.id }
   } catch (error) {
     return toResult(error)
   }
