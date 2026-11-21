@@ -397,8 +397,14 @@ test('Canopy dark security warning keeps its paired contrast', async ({ page }, 
 })
 async function contrast(target: Locator) {
   return target.evaluate(async (element) => {
-    // Settle colour transitions first; sampling mid-transition reports a blend, not the resting pair.
-    await Promise.allSettled(document.getAnimations().filter((a) => a instanceof CSSTransition).map((a) => a.finished))
+    // Settle colour transitions first (bounded); sampling mid-transition reports a blend, not the resting pair.
+    const settle = Promise.allSettled(
+      document
+        .getAnimations()
+        .filter((a) => a instanceof CSSTransition)
+        .map((a) => a.finished),
+    )
+    await Promise.race([settle, new Promise((done) => setTimeout(done, 600))])
     const canvas = document.createElement('canvas')
     canvas.width = canvas.height = 1
     const context = canvas.getContext('2d')!
