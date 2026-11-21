@@ -355,7 +355,6 @@ function OverlayMarkers({
       {markers.map(({ overlay, barOpenTime }) => {
         const cx = x(barOpenTime)
         if (cx === null) return null
-        if (cx === null) return null
         const label = overlayLabel(overlay)
         return (
           <g key={`${overlay.kind}-${overlay.at}-${overlay.strategy_version}-${overlay.simulated}`}>

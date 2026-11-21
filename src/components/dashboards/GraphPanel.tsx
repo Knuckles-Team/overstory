@@ -27,7 +27,7 @@ export function graphFromRows(data: RowSet): { nodes: GraphNode[]; relationships
   for (const row of data.rows.slice(0, MAX_EDGES)) {
     const from = row[source]
     const to = row[target]
-    if (from === null || from === undefined || to === null || to === undefined) continue
+    if (from === null || to === null) continue
     const a = String(from)
     const b = String(to)
     ids.add(a)

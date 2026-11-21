@@ -756,7 +756,8 @@ export const ROUTES: readonly RouteDef[] = [
     path: '/decisions',
     label: 'Decisions',
     section: 'observability',
-    blurb: 'See how each decision was reached and how well past decisions held up, without any claim the evidence cannot support.',
+    blurb:
+      'See how each decision was reached and how well past decisions held up, without any claim the evidence cannot support.',
     icon: Scale,
     minRole: 'reader',
     mobile: 'adapted',
