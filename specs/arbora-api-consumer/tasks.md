@@ -5,13 +5,13 @@
 - [x] T001 [US1] OVERSTORY-API-R003.2 Inventory all `api_extensions.py` and browser callers; add a checked-in route-family census with UI-local/Arbora/retire classification.
 - [x] T002 [US1] OVERSTORY-API-R006 Pin the Arbora registry schema (`src/lib/arbora-api/generated/openapi.json`, built from `arbora.api.http.openapi.document` over the live registry) and a generator (`pnpm run arbora:client:gen`, openapi-typescript, into `src/lib/arbora-api/generated/schema.ts`) (OVERSTORY-API-R006). **Caveat** (see `generated/README.md`): this snapshot's arbora and medulla checkouts were not digest-pinned to each other, so Medulla-bound operations (`eg.*`) carry a placeholder result/params schema; regenerating from a digest-matched pair is still open. Digest parity and error tests remain open.
 - [x] T003 [US1] OVERSTORY-API-R001 Checked the real registry against `#38`'s `decide.*` op ids (OVERSTORY-API-R001 follow-up): **no `decide.*` namespace exists.** The real decision operations are `eg.query.Decide`, `eg.coordination.DecisionLog`, `eg.coordination.DecisionEval`, `eg.coordination.DecisionFit`, `eg.storage.DecisionCommit`, each multiplexing several named actions (e.g. `DecisionLog` carries `get`/`aggregate`/`commit`/`evaluate`/`compact`/`learn`/`resolve`/`verify` selected by a request field) rather than one operation id per `DecisionsTransport` method. Retargeting `arbora-decisions-transport.ts` needs the real per-action request/result shapes, not a rename; tracked separately, not patched into `#38`'s branch.
-- [ ] T004 [US1] OVERSTORY-API-R001 Migrate decisions, apps/Markets, WebMCP and effect confirmation; prove denied and step-up cases.
+- [ ] T004 [US1] OVERSTORY-API-R001 Migrate decisions, apps/Markets, WebMCP and effect confirmation; prove denied and step-up cases. Depends: ARBORA-OPS-R920, ARBORA-OPS-R921, ARBORA-OPS-R896.2, ARBORA-OPS-R896.5.
 - [x] T005 [US1] OVERSTORY-API-R002 Migrate ontology, graph, Atlas and object sets with tenant and pagination parity. Split into `OVERSTORY-API-R008.1` (ontology), `OVERSTORY-API-R008.2` (graph), `OVERSTORY-API-R008.3` (Atlas), `OVERSTORY-API-R008.4` (object-set); see [requirements.md](requirements.md). `OVERSTORY-API-R008.1` is blocked: the pinned Arbora schema has no concrete ontology-shaped operation yet (its `eg.reasoning.GraphSchema`/`GraphSchemaList`/`OntologyInspect` and `eg.compute.MatchOntologyTerms`/`MineOntologyGap` operations all share one generic placeholder `EgSchemaRef {path: string}` request/response, not the schema-graph/catalogue/object shape the current host route returns).
-- [ ] T006 [US1] OVERSTORY-API-R009 Migrate remaining prompts, SDD, KB, sessions, goals, MCP and model families.
+- [ ] T006 [US1] OVERSTORY-API-R009 Migrate remaining prompts, SDD, KB, sessions, goals, MCP and model families. Depends: ARBORA-OPS-R922, ARBORA-OPS-R906, ARBORA-OPS-R909, ARBORA-OPS-R912, ARBORA-OPS-R922.2.
 - [x] T007 [US1] OVERSTORY-API-R003.1 Add `src/lib/arbora-api/route-census.ts` — `RouteCensusEntry` typed model, strict disposition enum, refusal when a `generated-operation` row omits its owning operation (PR #62).
 - [x] T008 [US1] OVERSTORY-API-R003.2 Add a checked-in route-census data file covering every `api_extensions.py` domain route family, plus an architecture lint rule enforced in CI that rejects any new unclassified domain route.
-- [ ] T009 [US1] OVERSTORY-API-R010 Remove replaced host domain routes and Meristem-internal imports; add static architecture guard.
-- [ ] T010 [US1] OVERSTORY-API-R010 Run all test-spec gates on exact merged commit, attach route census and CI/browser evidence, then assess acceptance.
+- [ ] T009 [US1] OVERSTORY-API-R010 Remove replaced host domain routes and Meristem-internal imports; add static architecture guard. Depends: ARBORA-OPS-R922.
+- [ ] T010 [US1] OVERSTORY-API-R010 Run all test-spec gates on exact merged commit, attach route census and CI/browser evidence, then assess acceptance. Depends: ARBORA-OPS-R922.
 - [x] T011 [US1] OVERSTORY-API-R004 Mint a per-request correlation id in `RequestObservabilityMiddleware`. **State: Building.** Remaining: served log check after rollout.
 - [x] T012 [US1] OVERSTORY-API-R005 Log the sanitized typed error code in `_log_failure` and add tests/test_log_failure_error_code.py (OVERSTORY-API-R005).
 - [x] T013 [US1] OVERSTORY-API-R001 Add `ConsoleConfirmView` + the `console.confirm` route (`src/lib/nav-registry.ts`), built fresh on current main's `invoke.ts`/`identity.ts::confirmedStepUpUrl` plan-ref primitives: fetches the server-held plan by `plan_ref` alone and confirms by reference, never replaying the original request arguments. Test: `src/components/views/__tests__/ConsoleConfirmView.test.tsx` (OVERSTORY-API-R007; partial OVERSTORY-API-R001 — the generated TS client and decisions/Markets/WebMCP migration remain open).
@@ -19,30 +19,30 @@
 
 - [x] T014 [US1] OVERSTORY-API-R011.1 Compose host routes through `application_composer` with no engine in the WebUI; prove served-operation calls and `not_available` answers through the real factory.
 
-- [ ] T015 [US1] OVERSTORY-API-R003.2 Join the domain-route census to the app surface action coverage. Reject unclassified redesign/WebMCP actions. Retain owner boundaries and explicit unavailable results.
+- [ ] T015 [US1] OVERSTORY-API-R003.2 Join the domain-route census to the app surface action coverage. Reject unclassified redesign/WebMCP actions. Retain owner boundaries and explicit unavailable results. Row: OVERSTORY-API-R003.2.1.
 - [ ] T016 [US1] OVERSTORY-API-R011.2 Bind browser conversation identity and preserve validated admitted references in streamed message metadata; qualify the composed browser-to-Arbora path before completion.
 
 - [x] T017 [US1] OVERSTORY-API-R011.2.1 Bind source preservation and refusal fixtures without claiming installed composition.
 - [ ] T018 [US1] OVERSTORY-API-R011.2.2 Qualify the complete parent identity matrix through the installed browser-to-Arbora path.
 
-- [ ] T019 [US1] OVERSTORY-API-R011.3 Consume the released public execution projection through the existing host/browser adapter. Qualify identity, redaction, replay and installed-producer behavior without client-owned orchestration.
-
+- [ ] T019 [US1] OVERSTORY-API-R011.3 Consume the released public execution projection through the existing host/browser adapter. Qualify identity, redaction, replay and installed-producer behavior without client-owned orchestration. Depends: ARBORA-OPS-R021.4.8, ARBORA-OPS-R021.4.9.
 - [x] T020 [US1] OVERSTORY-API-R011.4 Qualify the flat execution read adapter with exact identity and adversarial producer fixtures.
-- [ ] T021 [US1] OVERSTORY-API-R011.3 Retain nested projections, public transcripts and installed-producer acceptance after this source-only slice.
-- [ ] T022 [US1] OVERSTORY-API-R007 Migrate decisions, Markets, WebMCP and the console to typed operations and keep preview, confirm and step-up.
-- [ ] T023 [US1] OVERSTORY-API-R008.1 Migrate ontology reads and writes to typed operations with tenant parity.
-- [ ] T024 [US1] OVERSTORY-API-R008.2 Migrate graph reads and writes to typed operations with tenant parity.
-- [ ] T025 [US1] OVERSTORY-API-R008.3 Migrate Atlas reads and writes to typed operations with tenant parity.
-- [ ] T026 [US1] OVERSTORY-API-R008.4 Migrate object-set reads and writes to typed operations with tenant parity.
-- [ ] T027 [US1] OVERSTORY-API-R012 The host serves presentation and session only.
-- [ ] T028 [US1] OVERSTORY-API-R012.1 Migrate graph reads to engine-bound operations. Size: M, 3 PRs, 6 hours.
+- [ ] T021 [US1] OVERSTORY-API-R011.3 Retain nested projections, public transcripts and installed-producer acceptance after this source-only slice. Depends: ARBORA-OPS-R021.4.8, ARBORA-OPS-R021.4.9.
+- [ ] T022 [US1] OVERSTORY-API-R007 Migrate decisions, Markets, WebMCP and the console to typed operations and keep preview, confirm and step-up. Depends: ARBORA-OPS-R920, ARBORA-OPS-R921, ARBORA-OPS-R896.2, ARBORA-OPS-R896.5.
+- [ ] T023 [US1] OVERSTORY-API-R008.1 Migrate ontology reads and writes to typed operations with tenant parity. Depends: ARBORA-OPS-R908, ARBORA-OPS-R922.1.
+- [ ] T024 [US1] OVERSTORY-API-R008.2 Migrate graph reads and writes to typed operations with tenant parity. Depends: ARBORA-OPS-R904.1, ARBORA-OPS-R904.2.
+- [ ] T025 [US1] OVERSTORY-API-R008.3 Migrate Atlas reads and writes to typed operations with tenant parity. Depends: ARBORA-OPS-R911, ARBORA-OPS-R922.3.
+- [ ] T026 [US1] OVERSTORY-API-R008.4 Migrate object-set reads and writes to typed operations with tenant parity. Depends: ARBORA-OPS-R908.
+- [ ] T027 [US1] OVERSTORY-API-R012 The host serves presentation and session only. Depends: ARBORA-OPS-R922.
+- [ ] T028 [US1] OVERSTORY-API-R012.1 Migrate graph reads to engine-bound operations. Size: M, 3 PRs, 6 hours. Depends: ARBORA-OPS-R904.1.
 - [x] T029 [US1] OVERSTORY-API-R012.2 Migrate memory and link writes. Size: S, 1 PR, 3 hours.
 - [x] T030 [US1] OVERSTORY-API-R012.3 Replace the Cypher REPL with a UQL REPL. Size: M, 1 PR, 4 hours.
-- [ ] T031 [US1] OVERSTORY-API-R012.4 Migrate ontology routes. Size: L, 4 PRs, 1 day.
-- [ ] T032 [US1] OVERSTORY-API-R012.5 Migrate Atlas routes. Size: M, 2 PRs, 6 hours.
-- [ ] T033 [US1] OVERSTORY-API-R012.6 Migrate ecosystem and operator-widget routes. Size: M, 2 PRs, 5 hours.
-- [ ] T034 [US1] OVERSTORY-API-R012.7 Migrate agent library, prompts, goals, tools and skills routes. Size: M, 3 PRs, 6 hours.
-- [ ] T035 [US1] OVERSTORY-API-R012.8 Migrate documents, settings and model routes. Size: M, 2 PRs, 5 hours.
-- [ ] T036 [US1] OVERSTORY-API-R012.9 Migrate files, upload, voice and chat history routes. Size: M, 2 PRs, 5 hours.
-- [ ] T037 [US1] OVERSTORY-API-R012.10 Migrate fleet administration, schedule, workflow, code, command and resource routes. Size: M, 3 PRs, 6 hours.
-- [ ] T038 [US1] OVERSTORY-API-R012.11 Close: the end-condition test passes and no module exceeds the bound. Size: M, 3 PRs, 1 day.
+- [ ] T031 [US1] OVERSTORY-API-R012.4 Migrate ontology routes. Size: L, 4 PRs, 1 day. Depends: ARBORA-OPS-R908, ARBORA-OPS-R922.1.
+- [ ] T032 [US1] OVERSTORY-API-R012.5 Migrate Atlas routes. Size: M, 2 PRs, 6 hours. Depends: ARBORA-OPS-R911, ARBORA-OPS-R922.3.
+- [ ] T033 [US1] OVERSTORY-API-R012.6 Migrate ecosystem and operator-widget routes. Size: M, 2 PRs, 5 hours. Depends: ARBORA-OPS-R914, ARBORA-OPS-R922.
+- [ ] T034 [US1] OVERSTORY-API-R012.7 Migrate agent library, prompts, goals, tools and skills routes. Size: M, 3 PRs, 6 hours. Depends: ARBORA-OPS-R912, ARBORA-OPS-R913, ARBORA-OPS-R922.4.
+- [ ] T035 [US1] OVERSTORY-API-R012.8 Migrate documents, settings and model routes. Size: M, 2 PRs, 5 hours. Depends: ARBORA-OPS-R906, ARBORA-OPS-R907, ARBORA-OPS-R922.2.
+- [ ] T036 [US1] OVERSTORY-API-R012.9 Migrate files, upload, voice and chat history routes. Size: M, 2 PRs, 5 hours. Depends: ARBORA-OPS-R909, ARBORA-OPS-R910, ARBORA-OPS-R914.
+- [ ] T037 [US1] OVERSTORY-API-R012.10 Migrate fleet administration, schedule, workflow, code, command and resource routes. Size: M, 3 PRs, 6 hours. Depends: ARBORA-OPS-R913.
+- [ ] T038 [US1] OVERSTORY-API-R012.11 Close: the end-condition test passes and no module exceeds the bound. Size: M, 3 PRs, 1 day. Depends: ARBORA-OPS-R922.
+- [ ] T039 [US1] OVERSTORY-API-R003.2.1 Add the action inventory and the join test that rejects an unlisted action. Size: S, 1 PR, 3 hours.
