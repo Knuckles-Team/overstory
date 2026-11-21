@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { PageHead } from '@/components/PageHead'
 import { NOT_FOUND_ROUTE, routeById } from '@/lib/nav-registry'
 
+// spec: OVERSTORY-APPS-R002
 describe('PageHead', () => {
   it('updates title, description, robots, canonical, and removes private share image data', async () => {
     const route = routeById('public.privacy')

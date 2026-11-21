@@ -11,6 +11,7 @@ describe('consent and analytics boundaries', () => {
     vi.restoreAllMocks()
   })
 
+  // spec: OVERSTORY-APPS-R003
   it('stores versioned choices and rejects stale or malformed records', () => {
     expect(readConsent()).toBeNull()
     writeConsent('granted', '2026-09-14T00:00:00.000Z')
