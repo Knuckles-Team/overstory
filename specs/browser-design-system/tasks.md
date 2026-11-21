@@ -2,7 +2,7 @@
 
 **States:** SPECIFIED → BUILDING → BUILT → ACCEPTED. Current: **SPECIFIED**; no full three-journey acceptance evidence is recorded.
 
-- [ ] T001 OVERSTORY-DESIGN-R002 Inventory tokens and primitives on current main; publish the local token/interaction contract with light/dark values.
+- [x] T001 OVERSTORY-DESIGN-R002 Inventory tokens and primitives on current main; publish the local token/interaction contract with light/dark values.
 - [ ] T002 OVERSTORY-DESIGN-R002 Build synthetic chat, Atlas and operational-form fixtures and capture baseline viewport matrix.
 - [ ] T003 OVERSTORY-DESIGN-R002 Audit WCAG 2.2 AA, keyboard, screen reader, responsive and reduced-motion behavior; rank defects by user impact.
 - [ ] T004 OVERSTORY-DESIGN-R002 Repair defects by reusing existing components, including distinct repeated-filter labels and mobile wrapping.
@@ -255,9 +255,9 @@ Metadata guard tests preserve this distinction; they are not feature-acceptance 
 
 ## Row coverage
 
-- [ ] T062 OVERSTORY-DESIGN-R001 implement and prove: Design guidance distilled into component system and skills
-- [ ] T063 OVERSTORY-DESIGN-R003 implement and prove: Controls have accessible names and visible focus
-- [ ] T064 OVERSTORY-DESIGN-R006 implement and prove: Status states are distinguishable by text, not only color
+- [x] T062 OVERSTORY-DESIGN-R001 implement and prove: Design guidance distilled into component system and skills
+- [x] T063 OVERSTORY-DESIGN-R003 implement and prove: Controls have accessible names and visible focus
+- [x] T064 OVERSTORY-DESIGN-R006 implement and prove: Status states are distinguishable by text, not only color
 - [ ] T065 OVERSTORY-DESIGN-R012 implement and prove: 3D scene fidelity language
 - [ ] T066 OVERSTORY-DESIGN-R012.1 implement and prove: Lighting and image pipeline
 - [ ] T067 OVERSTORY-DESIGN-R012.2 implement and prove: Surfaces are materials, not colours

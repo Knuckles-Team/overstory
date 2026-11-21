@@ -6,7 +6,7 @@
  * using the same OKLCH-to-sRGB and contrast math the knowledge-graph canvas
  * already relies on (`theme-colors.ts`) rather than a second implementation.
  */
-import { readFileSync } from 'node:fs'
+import { readFileSync, readdirSync } from 'node:fs'
 import { createHash } from 'node:crypto'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
@@ -353,4 +353,48 @@ it('keeps decorative stacking out of the default glass backdrop ancestry', () =>
   expect(wallpaper).not.toContain('isolation:')
   expect(wallpaper).toContain(".workspace-frame:has(.workspace-wallpaper[data-active='true'])")
   expect(wallpaper).toContain(".workspace-wallpaper[data-active='false']")
+})
+
+describe('token and primitive inventory (OVERSTORY-DESIGN-R002)', () => {
+  const contract = readFileSync(
+    resolve(import.meta.dirname, '../../specs/browser-design-system/interaction-contract.md'),
+    'utf-8',
+  )
+  const rawDoc = readFileSync(resolve(import.meta.dirname, '../../docs/design-system.md'), 'utf-8')
+
+  // spec: OVERSTORY-DESIGN-R002
+  it('publishes contract light and dark values that match src/index.css', () => {
+    const rows = contract.split('\n').filter((line) => /^\| .*`--[\w-]+`/.test(line))
+    expect(rows.length).toBeGreaterThan(10)
+    for (const row of rows) {
+      const cells = row.split('|').map((cell) => cell.trim())
+      const names = [...cells[1].matchAll(/`(--[\w-]+)`/g)].map((m) => m[1])
+      const light = cells[2].replace(/`/g, '')
+      const dark = cells[3].replace(/`/g, '')
+      for (const name of names) {
+        expect(LIGHT[name]?.toLowerCase(), `${name} light`).toBe(light.toLowerCase())
+        expect(DARK[name]?.toLowerCase(), `${name} dark`).toBe(dark.toLowerCase())
+      }
+    }
+  })
+
+  // spec: OVERSTORY-DESIGN-R002
+  it('lists every ui primitive in the documented inventory', () => {
+    const dir = resolve(import.meta.dirname, '../components/ui')
+    const files = readdirSync(dir)
+      .filter((name) => name.endsWith('.tsx'))
+      .map((name) => name.replace(/\.tsx$/, ''))
+    const section = rawDoc.slice(rawDoc.indexOf('## Primitive inventory'), rawDoc.indexOf('## Reuse'))
+    const documented = [...section.matchAll(/^\| `([\w-]+)` \|/gm)].map((m) => m[1])
+    for (const file of files) expect(documented, `${file} is documented`).toContain(file)
+    for (const name of documented) expect(files, `${name} exists`).toContain(name)
+  })
+
+  // spec: OVERSTORY-DESIGN-R002
+  it('gives every documented pairing a light and dark value in both blocks', () => {
+    for (const name of Object.keys(DOCUMENTED_COLOR)) {
+      expect(LIGHT[name]).toBeTruthy()
+      expect(DARK[name]).toBeTruthy()
+    }
+  })
 })

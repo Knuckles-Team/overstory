@@ -2,6 +2,7 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { StatusMessage, type StatusKind } from '@/components/ui/status-message'
+import { UnavailableNotice } from '@/components/ui/unavailable-notice'
 
 /** OVERSTORY-DESIGN-R006 fixture: the seven named states with a representative detail. */
 const STATES: { status: StatusKind; detail?: string }[] = [
@@ -108,5 +109,16 @@ describe('StatusMessage (OVERSTORY-DESIGN-R006 state-fixture rendered tests)', (
     expect(node).not.toHaveTextContent('Nothing here yet')
     expect(node).toHaveAttribute('data-status', 'empty')
     expect(screen.getByRole('status')).toBeInTheDocument()
+  })
+})
+
+describe('UnavailableNotice (OVERSTORY-DESIGN-R006)', () => {
+  // spec: OVERSTORY-DESIGN-R006
+  it('says in text that a failed read is not a confirmed empty result', () => {
+    const { container } = render(<UnavailableNotice what="Approvals" />)
+    expect(container.textContent).toContain('Approvals could not be fetched')
+    expect(container.textContent).toContain('not a confirmed empty state')
+    render(<StatusMessage status="empty" />)
+    expect(screen.getByTestId('status-message').textContent).not.toContain('could not be fetched')
   })
 })
