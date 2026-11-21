@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/input'
 import {
   addPanel,
   DashboardError,
+  queryToText,
   removePanel,
   renameDashboard,
   swapPanels,
@@ -59,7 +60,7 @@ function PanelCard({
   onMove: (direction: -1 | 1) => void
 }) {
   const query = useQuery({
-    queryKey: ['dashboard-panel', panel.query.text, JSON.stringify(params), refreshKey],
+    queryKey: ['dashboard-panel', JSON.stringify(panel.query), JSON.stringify(params), refreshKey],
     queryFn: ({ signal }) => runPanelQuery(panel, params, signal),
     refetchInterval: intervalMs > 0 ? intervalMs : false,
     retry: false,
@@ -344,7 +345,7 @@ export default function DashboardsView() {
                       id: panel.id,
                       title: panel.title,
                       viz: panel.viz,
-                      query: panel.query.text,
+                      query: queryToText(panel.query),
                       x: panel.options.x ?? '',
                       y: panel.options.y ?? '',
                     })

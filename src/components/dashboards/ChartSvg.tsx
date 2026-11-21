@@ -9,7 +9,7 @@ const H = 180
 const PAD = { l: 44, r: 12, t: 12, b: 28 }
 
 export interface ChartSvgProps {
-  kind: 'line' | 'bar'
+  kind: 'line' | 'bar' | 'pie'
   labels: readonly string[]
   values: readonly number[]
   summary: string
@@ -26,7 +26,54 @@ function fmt(value: number): string {
     : String(Math.round(value * 100) / 100)
 }
 
+const PIE_R = 70
+const SLICE_CLASSES = [
+  'fill-primary',
+  'fill-primary/80',
+  'fill-primary/60',
+  'fill-primary/45',
+  'fill-primary/30',
+  'fill-primary/20',
+]
+
+/** Pie slices over the positive values, each with its label and share in the legend (no color-only meaning). */
+function PieChart({ labels, values, summary }: Omit<ChartSvgProps, 'kind'>) {
+  const slices = values.flatMap((value, index) => (value > 0 ? [{ value, label: labels[index] ?? '', index }] : []))
+  const total = slices.reduce((sum, slice) => sum + slice.value, 0)
+  let angle = -Math.PI / 2
+  const arcs = slices.map((slice, order) => {
+    const share = slice.value / total
+    const start = angle
+    angle += share * 2 * Math.PI
+    const end = angle
+    const point = (a: number) => `${String(100 + PIE_R * Math.cos(a))},${String(90 + PIE_R * Math.sin(a))}`
+    const large = share > 0.5 ? 1 : 0
+    const d =
+      share >= 1
+        ? `M100,${String(90 - PIE_R)} a${String(PIE_R)},${String(PIE_R)} 0 1,1 -0.01,0 z`
+        : `M100,90 L${point(start)} A${String(PIE_R)},${String(PIE_R)} 0 ${String(large)},1 ${point(end)} z`
+    return { ...slice, share, d, className: SLICE_CLASSES[order % SLICE_CLASSES.length] }
+  })
+  return (
+    <div className="flex flex-wrap items-center gap-3">
+      <svg viewBox="0 0 200 180" role="img" aria-label={summary} className="h-auto w-40 text-primary">
+        {arcs.map((arc) => (
+          <path key={`${String(arc.index)}-${arc.label}`} d={arc.d} className={`${arc.className} stroke-background`} />
+        ))}
+      </svg>
+      <ul aria-label="Pie legend" className="text-xs">
+        {arcs.map((arc) => (
+          <li key={`${String(arc.index)}-${arc.label}`}>
+            {arc.label}: {fmt(arc.value)} ({String(Math.round(arc.share * 1000) / 10)}%)
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
 export function ChartSvg({ kind, labels, values, summary }: ChartSvgProps) {
+  if (kind === 'pie') return <PieChart labels={labels} values={values} summary={summary} />
   const lo = Math.min(0, ...values)
   const hi = Math.max(0, ...values)
   const span = hi - lo === 0 ? 1 : hi - lo

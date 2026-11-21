@@ -47,6 +47,6 @@ describe('dashboard document model (OVERSTORY-DASH-R001)', () => {
     expect(() => removePanel(doc, 'missing')).toThrow(DashboardError)
     expect(() => setLayout(doc, { a: { x: 8, y: 0, w: 6, h: 2 } })).toThrow(/grid width/)
     expect(DashboardSchema.safeParse({ ...doc, extra: 1 }).success).toBe(false)
-    expect(() => updatePanel(doc, 'a', { viz: 'pie' as never })).toThrow(DashboardError)
+    expect(() => updatePanel(doc, 'a', { viz: 'sankey' as never })).toThrow(DashboardError)
   })
 })

@@ -8,8 +8,9 @@ import type { ReactNode } from 'react'
 import type { Panel } from '@/lib/dashboards/model'
 import type { Cell, QueryOutcome, RowSet } from '@/lib/dashboards/query'
 import { ChartSvg } from './ChartSvg'
-
-const TABLE_ROWS = 50
+import { DataTable } from './DataTable'
+import { GraphPanel } from './GraphPanel'
+import { MapPanel } from './MapPanel'
 
 function numeric(value: Cell | undefined): number | null {
   if (typeof value === 'number' && Number.isFinite(value)) return value
@@ -27,42 +28,6 @@ function pickColumns(data: RowSet, panel: Panel): { x: string; y: string | null 
       ? panel.options.x
       : (data.columns.find((c) => c !== y) ?? data.columns[0])
   return { x, y }
-}
-
-export function DataTable({ data, caption }: { data: RowSet; caption: string }) {
-  const rows = data.rows.slice(0, TABLE_ROWS)
-  return (
-    <div className="max-h-64 overflow-auto">
-      <table className="w-full border-collapse text-xs">
-        <caption className="sr-only">{caption}</caption>
-        <thead>
-          <tr>
-            {data.columns.map((c) => (
-              <th key={c} scope="col" className="sticky top-0 border-b bg-card px-2 py-1 text-left font-medium">
-                {c}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row, i) => (
-            <tr key={i} className="odd:bg-muted/40">
-              {data.columns.map((c) => (
-                <td key={c} className="px-2 py-1 align-top">
-                  {String(row[c] ?? '')}
-                </td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      {data.rows.length > TABLE_ROWS && (
-        <p className="p-1 text-xs text-muted-foreground">
-          Showing {TABLE_ROWS} of {data.rows.length} rows.
-        </p>
-      )}
-    </div>
-  )
 }
 
 function KpiBody({ panel, data, y }: { panel: Panel; data: RowSet; y: string }) {
@@ -86,8 +51,8 @@ function ChartBody({ panel, data, x, y }: { panel: Panel; data: RowSet; x: strin
     return v === null ? [] : [{ label: String(row[x] ?? ''), value: v }]
   })
   const values = points.map((p) => p.value)
-  const kind = panel.viz === 'line' ? 'line' : 'bar'
-  const summary = `${kind === 'line' ? 'Line' : 'Bar'} chart of ${y} by ${x}, ${String(points.length)} points, from ${String(Math.min(...values))} to ${String(Math.max(...values))}.`
+  const kind = panel.viz === 'line' ? 'line' : panel.viz === 'pie' ? 'pie' : 'bar'
+  const summary = `${kind === 'line' ? 'Line' : kind === 'pie' ? 'Pie' : 'Bar'} chart of ${y} by ${x}, ${String(points.length)} points, from ${String(Math.min(...values))} to ${String(Math.max(...values))}.`
   return (
     <figure className="space-y-2">
       <ChartSvg kind={kind} labels={points.map((p) => p.label)} values={values} summary={summary} />
@@ -109,6 +74,8 @@ function Message({ role, tone, children }: { role?: 'alert' | 'status'; tone: st
 
 function ResultBody({ panel, data }: { panel: Panel; data: RowSet }) {
   if (panel.viz === 'table') return <DataTable data={data} caption={`${panel.title} results`} />
+  if (panel.viz === 'map') return <MapPanel title={panel.title} data={data} />
+  if (panel.viz === 'graph') return <GraphPanel title={panel.title} data={data} />
   const { x, y } = pickColumns(data, panel)
   if (y === null) {
     return (
