@@ -35,3 +35,28 @@ describe('skill name inventory (OVERSTORY-DESIGN-R001)', () => {
     expect(duplicates, `duplicate skill name(s): ${JSON.stringify(duplicates)}`).toHaveLength(0)
   })
 })
+
+describe('skill assimilation hygiene (OVERSTORY-DESIGN-R001)', () => {
+  // spec: OVERSTORY-DESIGN-R001
+  it('gives every skill a frontmatter name matching its directory and a description', () => {
+    for (const dir of skillDirNames()) {
+      const source = readFileSync(resolve(SKILLS_DIR, dir, 'SKILL.md'), 'utf8')
+      const frontmatter = /^---\n([\s\S]*?)\n---/.exec(source)?.[1] ?? ''
+      expect(frontmatter, `${dir} has frontmatter`).not.toBe('')
+      expect(declaredName(dir), `${dir} name matches directory`).toBe(dir)
+      expect(/^description:\s*\S+/m.test(frontmatter), `${dir} has a description`).toBe(true)
+    }
+  })
+
+  // spec: OVERSTORY-DESIGN-R001
+  it('adds no remote critique service or telemetry client to the package manifest', () => {
+    const manifest = JSON.parse(readFileSync(resolve(SKILLS_DIR, '../../../package.json'), 'utf8')) as {
+      dependencies?: Record<string, string>
+      devDependencies?: Record<string, string>
+    }
+    const names = Object.keys({ ...manifest.dependencies, ...manifest.devDependencies })
+    const banned =
+      /(sentry|segment|mixpanel|posthog|amplitude|datadog|logrocket|hotjar|fullstory|google-analytics|gtag)/i
+    expect(names.filter((name) => banned.test(name))).toEqual([])
+  })
+})

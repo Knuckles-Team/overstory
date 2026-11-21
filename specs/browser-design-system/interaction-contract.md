@@ -15,20 +15,20 @@ input placeholders and overlays, before claiming contrast compliance.
 | Purpose / token | Light and glass | Dark |
 |---|---|---|
 | Canvas `--background` | `#E9EDE5` | `#121C17` |
-| Native text `--foreground` | `#1F2A24` | `#F1F5EB` |
+| Native text `--foreground` | `#111111` | `#F1F5EB` |
 | Reading `--card` | `#F7F8F2` | `#1C2A22` |
 | Raised `--popover`, `--surface-raised` | `#FFFFFF` | `#27372D` |
 | Secondary `--secondary`, `--muted` | `#E6EBE1` | `#16231C` |
-| Secondary text `--secondary-foreground`, `--text-secondary` | `#46544A` | `#D0DBCB` |
-| Muted text `--muted-foreground` | `#59665C` | `#AABAA5` |
-| Action `--primary` | `#3E634F` | `#ADC99F` |
-| On action `--primary-foreground` | `#FFFFFF` | `#16251A` |
+| Secondary text `--secondary-foreground`, `--text-secondary` | `#111111` | `#D0DBCB` |
+| Muted text `--muted-foreground` | `#111111` | `#AABAA5` |
+| Action `--primary` | `#04BD88` | `#04BD88` |
+| On action `--primary-foreground` | `#16251A` | `#16251A` |
 | Selection `--accent` | `#DDE9D8` | `#314A35` |
-| On selection `--accent-foreground` | `#274C36` | `#E4EEDC` |
+| On selection `--accent-foreground` | `#111111` | `#E4EEDC` |
 | Meaningful boundary `--input` | `#738170` | `#829680` |
 | Focus `--ring` | `#245F70` | `#9ACFE1` |
 | Failure `--destructive` | `#963F37` | `#F0B0A6` |
-| Shell fill `--shell-alpha` | `92%` | `90%` |
+| Shell fill `--shell-alpha` | `32%` | `72%` |
 
 These are the default source values, not a rendered acceptance receipt. Card and
 popover text use the native foreground; shell fill composites the card surface,

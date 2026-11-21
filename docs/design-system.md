@@ -232,6 +232,45 @@ documented alongside the components it touches in
 Every gesture-driven action in the reviewed journeys also has a plain click or
 keyboard equivalent — see the same interaction contract.
 
+## Primitive inventory
+
+Every file in `src/components/ui/` is listed here. The inventory test
+(`src/__tests__/design-tokens.test.ts`) fails when a primitive is added or
+removed without updating this table. Build new surfaces from these; do not add a
+parallel primitive.
+
+| Primitive | Role |
+|---|---|
+| `avatar` | Identity image with text fallback |
+| `badge` | Status and metadata label (text, never color alone) |
+| `button` | Every action; neutral, primary and destructive variants |
+| `card` | Reading surface |
+| `carousel` | Paged horizontal content |
+| `checkbox` | Boolean choice with its own accessible label |
+| `collapsible` | Disclosure of optional context |
+| `dialog` | Modal interaction with focus trap |
+| `dropdown-menu` | Action menu, including the switch item |
+| `hover-card` | Supplementary preview |
+| `input` | Single-line text entry |
+| `modular-modal` | Composed dialog layout |
+| `scroll-area` | Styled scroll container |
+| `select` | Choice list with keyboard support |
+| `separator` | Visual and semantic divider |
+| `sheet` | Edge-anchored panel |
+| `sidebar` | Navigation rail |
+| `skeleton` | Loading placeholder |
+| `slider` | Range entry |
+| `sonner` | Toast notifications |
+| `status-message` | Text-bearing status state |
+| `switch` | Binary setting |
+| `tabs` | Peer view switcher |
+| `textarea` | Multi-line text entry |
+| `tooltip` | Short label for an icon control |
+| `unavailable-notice` | Explains a capability that is not available |
+
+The local light and dark values of the shared tokens, and the interaction rules,
+are published in the browser design specification's interaction contract.
+
 ## Reuse
 
 Build new surfaces from `src/components/ui/` and these tokens; do not add a
