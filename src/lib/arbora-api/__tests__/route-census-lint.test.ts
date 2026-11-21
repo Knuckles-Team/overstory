@@ -12,6 +12,7 @@ const source = readFileSync('agent/overstory/api_extensions.py', 'utf8')
 const census = JSON.parse(readFileSync('src/lib/arbora-api/route-census.json', 'utf8')) as RouteCensusEntry[]
 
 describe('route census architecture lint', () => {
+  // spec: OVERSTORY-API-R009
   it('covers every current enhanced host route with a validated row', () => {
     const routes = extractDomainRoutes(source)
     const entries = lintRouteCensus(source, census)
@@ -20,6 +21,7 @@ describe('route census architecture lint', () => {
     expect(entries).toHaveLength(routes.length)
   })
 
+  // spec: OVERSTORY-API-R010
   it('rejects a newly introduced domain route until it is inventoried', () => {
     const syntheticSource = `${source}\n@router.get('/new-unclassified-domain-route')\nasync def synthetic_route():\n    return None\n`
 

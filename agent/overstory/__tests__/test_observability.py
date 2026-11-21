@@ -269,6 +269,42 @@ async def test_inbound_correlation_id_is_reused_not_replaced(
     assert record.correlation_id == 'caller-minted-id'
 
 
+@pytest.mark.spec('OVERSTORY-API-R004')
+@pytest.mark.asyncio
+async def test_ambient_correlation_id_never_enters_requests(
+    overstory_caplog: pytest.LogCaptureFixture,
+) -> None:
+    """An ambient id bound on the serving thread never enters a request.
+
+    Two requests without an inbound ``x-correlation-id`` each get a fresh,
+    distinct id; the ambient id bound outside the middleware is never echoed.
+    """
+    from overstory.host import bind_correlation
+    from overstory.server import RequestObservabilityMiddleware
+
+    async def inner(_scope: dict, _receive: Any, send: Any) -> None:
+        await send({'type': 'http.response.start', 'status': 200, 'headers': []})
+        await send({'type': 'http.response.body', 'body': b'{}'})
+
+    ambient_id = 'ambient-serving-id'
+    response_ids: list[str] = []
+    with bind_correlation(ambient_id):
+        for _ in range(2):
+            send = _Recorder()
+            await RequestObservabilityMiddleware(inner)(_http_scope(), _receive, send)
+            response_ids.append(send.headers[b'x-correlation-id'].decode('ascii'))
+
+    assert len(response_ids) == 2
+    assert len(set(response_ids)) == 2
+    assert ambient_id not in response_ids
+    logged = [
+        r.correlation_id
+        for r in overstory_caplog.records
+        if getattr(r, 'event', None) == 'http_request'
+    ]
+    assert logged == response_ids
+
+
 @pytest.mark.asyncio
 async def test_liveness_paths_log_at_debug_not_info(
     overstory_caplog: pytest.LogCaptureFixture,

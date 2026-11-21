@@ -14,6 +14,7 @@ function stubReplies(...replies: { status: number; body: unknown }[]) {
 afterEach(() => vi.unstubAllGlobals())
 
 describe('ontology operation adapter on shared Arbora invoke', () => {
+  // spec: OVERSTORY-API-R002, OVERSTORY-API-R008.1
   it('validates a well-shaped class page', async () => {
     stubReplies({
       status: 200,
@@ -23,18 +24,21 @@ describe('ontology operation adapter on shared Arbora invoke', () => {
     expect(reply.kind).toBe('ready')
   })
 
+  // spec: OVERSTORY-API-R008.4
   it('rejects a malformed class result before any view can render it', async () => {
     stubReplies({ status: 200, body: { ok: true, result: { items: 'bad' }, meta } })
     const reply = await invokeOntology('ontology.classes.get')
     expect(reply.kind).toBe('error')
   })
 
+  // spec: OVERSTORY-API-R008.3
   it('maps an unmounted registry route to unavailable, not a thrown error', async () => {
     stubReplies({ status: 503, body: {} })
     const reply = await invokeOntology('ontology.classes.list')
     expect(reply.kind).toBe('unavailable')
   })
 
+  // spec: OVERSTORY-API-R008.2
   it('maps a forbidden scope to a forbidden reply without leaking detail', async () => {
     stubReplies({
       status: 403,
