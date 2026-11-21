@@ -116,6 +116,10 @@ function unknownIdentity(session: AuthSession | null, ssoConfigured: boolean): I
  * boundary, a signed-out browser and a session still owing its second factor
  * all render as the least-privilege role with a sign-in prompt. */
 export function resolveIdentity(session: AuthSession | null, ssoConfigured: boolean): Identity {
+  if (ssoConfigured && session?.mode === 'none' && !session.authenticated) {
+    // Explicit no-auth demo: least privilege, no principal, no sign-in prompt.
+    return { userKey: DEV_USER_KEY, role: 'reader', ssoConfigured: true, needsSignIn: false, raw: session }
+  }
   if (!ssoConfigured || !session?.authenticated) return unknownIdentity(session, ssoConfigured)
   const role = isRole(session.webui_role) ? session.webui_role : 'reader'
   const userKey = (session.subject ?? session.username ?? session.email ?? DEV_USER_KEY).trim() || DEV_USER_KEY

@@ -42,6 +42,15 @@ describe('resolveIdentity (the frontend never derives a role)', () => {
   })
 })
 
+describe('resolveIdentity in explicit no-auth mode', () => {
+  it('resolves_mode_none_without_sign_in_prompt', () => {
+    const demo: AuthSession = { authenticated: false, roles: [], mode: 'none', banner: 'Demo' }
+    const identity = resolveIdentity(demo, true)
+    expect(identity).toMatchObject({ role: 'reader', needsSignIn: false })
+    expect(identity.raw?.subject).toBeUndefined()
+  })
+})
+
 describe('titleForMode', () => {
   it('marks every title in the none demo mode', () => {
     expect(titleForMode('Dashboard', 'none')).toBe('[DEMO] Dashboard')

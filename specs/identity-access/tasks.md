@@ -20,25 +20,25 @@
 
 ## Source-only delivery and open integration children
 
-- [ ] T012 OVERSTORY-IDENTITY-R003.1.1 Explicit anonymous source refusal boundary. Source mode tests cover anonymous provenance, policy refusal and ambient-authority cleanup. This does not deliver full no-auth journeys.
+- [x] T012 OVERSTORY-IDENTITY-R003.1.1 Explicit anonymous source refusal boundary. Source mode tests cover anonymous provenance, policy refusal and ambient-authority cleanup. This does not deliver full no-auth journeys.
 - [ ] T013 OVERSTORY-IDENTITY-R003.1.2 Complete installed anonymous journeys. Installed positive and adversarial anonymous-policy journeys and native effect qualification remain required.
 - [x] T022 OVERSTORY-IDENTITY-R003.1.3 Exported exact anonymous read-route set. One generated set of GET read routes for a host composing explicit no-auth on loopback; writes stay refused.
-- [ ] T023 OVERSTORY-IDENTITY-R003.1.3.1 No-auth session read answers a fixed mode descriptor. `/auth/session` returns `mode: none` with no principal; other modes are unchanged.
-- [ ] T014 OVERSTORY-IDENTITY-R003.2.1 EG boundary configuration source refusal. Source factory tests reject missing and untyped EG callbacks without provisioning credentials.
+- [x] T023 OVERSTORY-IDENTITY-R003.1.3.1 No-auth session read answers a fixed mode descriptor. `/auth/session` returns `mode: none` with no principal; other modes are unchanged.
+- [x] T014 OVERSTORY-IDENTITY-R003.2.1 EG boundary configuration source refusal. Source factory tests reject missing and untyped EG callbacks without provisioning credentials.
 - [ ] T015 OVERSTORY-IDENTITY-R003.2.2 Installed EG identity journeys. Installed real producer/browser qualification remains required; source configuration refusal is not login support.
-- [ ] T016 OVERSTORY-IDENTITY-R003.3.1 OIDC configuration source refusal. Source factory tests reject incompatible owners and incomplete browser OIDC configuration.
+- [x] T016 OVERSTORY-IDENTITY-R003.3.1 OIDC configuration source refusal. Source factory tests reject incompatible owners and incomplete browser OIDC configuration.
 - [ ] T017 OVERSTORY-IDENTITY-R003.3.2 External provider interoperability qualification. Protocol fixtures and each claimed live provider remain required; configuration tests do not qualify provider interoperability.
 
 ## Workspace account source and remaining session acceptance
 
-- [ ] T018 OVERSTORY-IDENTITY-R004.1 Deliver the shared workspace account menu and its rendered source regressions. Keep fixture identity and mocked HTTP evidence separate from installed acceptance.
+- [x] T018 OVERSTORY-IDENTITY-R004.1 Deliver the shared workspace account menu and its rendered source regressions. Keep fixture identity and mocked HTTP evidence separate from installed acceptance.
 - [ ] T019 OVERSTORY-IDENTITY-R004.2 Qualify all original local account flows, session fixation, CSRF, logout/replay and credential-storage guarantees on the exact installed stack.
 
 The parent OVERSTORY-IDENTITY-R004 remains incomplete while its installed child is open. Source component checks do not close OVERSTORY-IDENTITY-R009 accessibility acceptance.
 
 ## Row coverage
 
-- [ ] T020 OVERSTORY-IDENTITY-R008 implement and prove: Identity or tenant change invalidates cached protected data
+- [x] T020 OVERSTORY-IDENTITY-R008 implement and prove: Identity or tenant change invalidates cached protected data
 - [ ] T021 OVERSTORY-IDENTITY-R001 implement and prove: Release-qualification identity test client supports a live sign-in probe
 - [x] T024 OVERSTORY-IDENTITY-R003.3.3 JWKS fetching honours the configured CA bundle and reports why it failed. Touches `agent/overstory/host.py`, `agent/overstory/server.py`, `tests/test_jwks_private_ca.py`.
 - [x] T025 OVERSTORY-IDENTITY-R003.3.4 Only a real 401 or a signed-out session body signs the browser out. Touches `src/lib/arbora-api/invoke.ts`, `src/lib/auth-api.ts`, `src/lib/auth.ts`, `src/lib/identity-session.ts`, `src/lib/__tests__/identity-no-spurious-signout.test.tsx`.

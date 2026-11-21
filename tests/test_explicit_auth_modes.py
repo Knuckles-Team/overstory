@@ -236,3 +236,27 @@ def test_exported_anonymous_read_routes_are_exact_and_generated(monkeypatch):
     assert anonymous_read_routes([demo]) == frozenset(
         {'/api/apps', '/api/apps/demo/summary'}
     )
+
+
+@pytest.mark.spec('OVERSTORY-IDENTITY-R003.1.3.1')
+def test_none_mode_session_read_answers_the_fixed_descriptor(monkeypatch):
+    _no_verifier(monkeypatch)
+    client = TestClient(_build(auth_mode='none'))
+    first = client.get('/auth/session')
+    assert first.status_code == 200
+    body = first.json()
+    assert set(body) == {'authenticated', 'mode', 'banner'}
+    assert body['authenticated'] is False and body['mode'] == 'none'
+    assert client.get('/auth/session').json() == body
+
+
+@pytest.mark.spec('OVERSTORY-IDENTITY-R003.1.3.1')
+def test_other_modes_session_read_is_unchanged():
+    from overstory.server import NO_AUTH_SESSION_DESCRIPTOR
+
+    for kwargs in ({}, {'auth_mode': 'required'}):
+        try:
+            response = TestClient(_build(**kwargs)).get('/auth/session')
+        except RuntimeError:
+            continue
+        assert response.json() != NO_AUTH_SESSION_DESCRIPTOR
