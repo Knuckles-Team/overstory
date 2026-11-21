@@ -4,10 +4,10 @@
 
 - [x] T001 OVERSTORY-IDENTITY-R002 Inventory current identity host, Arbora `identity.*` operation names, elevation operation and auth-mode behavior on current main.
 - [x] T002 OVERSTORY-IDENTITY-R003.1.1 Replace local bootstrap bypasses with explicit loopback/ack mode and mode doctor; add refusal tests.
-- [ ] T003 OVERSTORY-IDENTITY-R004.2 Implement server-side session/CSRF/local-auth flow and migration tests without browser token storage.
-- [ ] T004 OVERSTORY-IDENTITY-R005 Add MFA enrollment/challenge/recovery flows and adversarial browser tests.
+- [ ] T003 OVERSTORY-IDENTITY-R004.2 Implement server-side session/CSRF/local-auth flow and migration tests without browser token storage. Depends: ARBORA-IDENTITY-R005.2.
+- [ ] T004 OVERSTORY-IDENTITY-R005 Add MFA enrollment/challenge/recovery flows and adversarial browser tests. Depends: ARBORA-IDENTITY-R006.3, ARBORA-IDENTITY-R006.4.
 - [x] T005 OVERSTORY-IDENTITY-R006 Connect admin tabs and mapping-rule preview to the generated identity client; delete duplicate direct routes after contract parity.
-- [ ] T006 OVERSTORY-IDENTITY-R007 Reuse the same elevation operation from UI, chat and A2A; test step-up, two-person approval, expiry and revocation.
+- [ ] T006 OVERSTORY-IDENTITY-R007 Reuse the same elevation operation from UI, chat and A2A; test step-up, two-person approval, expiry and revocation. Depends: ARBORA-IDENTITY-R001.1.
 - [ ] T007 OVERSTORY-IDENTITY-R009 Run `test-spec.md` including hosted browser and accessibility cases on exact merged source; attach commit and evidence before acceptance.
 
 

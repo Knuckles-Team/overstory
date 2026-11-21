@@ -94,3 +94,4 @@ OVERSTORY-API-R011.1: test_import_preserves_disabled_host_or_routes_enabled_cons
 | OVERSTORY-API-R012.9 | `agent/overstory/__tests__/test_host_is_presentation_only.py::test_file_voice_chat_routes_are_gone` (L2). | Migrate files, upload, voice and chat history routes. |
 | OVERSTORY-API-R012.10 | `agent/overstory/__tests__/test_host_is_presentation_only.py::test_operator_routes_are_gone` (L2). | Migrate fleet administration, schedule, workflow, code, command and resource routes. |
 | OVERSTORY-API-R012.11 | `agent/overstory/__tests__/test_host_is_presentation_only.py::test_no_domain_route_and_no_module_over_the_line_bound` (L2). | Close: the end-condition test passes and no module exceeds the bound. |
+| `OVERSTORY-API-R003.2.1` | `src/lib/arbora-api/__tests__/action-inventory.test.ts::rejects a registered action with no inventory entry` (planned, L2). | Action inventory joins the route census. |
