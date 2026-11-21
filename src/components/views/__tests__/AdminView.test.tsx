@@ -31,7 +31,8 @@ function withSession(opFetcher: (url: string) => Promise<Response>) {
   return vi.fn((url: string) => (url === '/auth/session' ? reply(200, AUTHENTICATED_SESSION) : opFetcher(url)))
 }
 
-describe('AdminView identity tabs', () => {
+// spec: OVERSTORY-IDENTITY-R006, OVERSTORY-IDENTITY-R002
+describe('AdminView_identity_tabs', () => {
   beforeEach(() => {
     vi.restoreAllMocks()
     vi.stubGlobal(
@@ -126,6 +127,67 @@ describe('AdminView identity tabs', () => {
     await user.click(screen.getByRole('button', { name: 'Request transition' }))
     await waitFor(() => {
       expect(screen.getByText('A fresh administrator MFA confirmation is required.')).toBeInTheDocument()
+    })
+  })
+  it('lists users through the typed operation when authorized and shows a refusal when denied', async () => {
+    const denied = withSession(() =>
+      reply(403, {
+        ok: false,
+        error: { code: 'SCOPE_REQUIRED', source: 'arbora', message: 'denied', retryable: false },
+        meta: META,
+      }),
+    )
+    vi.stubGlobal('fetch', denied)
+    const first = renderWithProviders(<AdminView />)
+    await waitFor(() => {
+      expect(screen.getByText('This operation requires an authorized administrator session.')).toBeInTheDocument()
+    })
+    expect(denied.mock.calls.some(([url]) => url.includes('/api/v1/ops/identity.users.list'))).toBe(true)
+    first.unmount()
+
+    const allowed = withSession((url) =>
+      url.includes('identity.users.list')
+        ? okReply({ items: [{ principal_id: 'u-9', username: 'ada' }], next_cursor: null })
+        : reply(404, {}),
+    )
+    vi.stubGlobal('fetch', allowed)
+    renderWithProviders(<AdminView />)
+    expect(await screen.findByText(/ada/)).toBeInTheDocument()
+  })
+
+  it('previews a mapping rule through the typed operation and refuses it when denied', async () => {
+    const fetcher = withSession((url) =>
+      url.includes('identity.idps.mapping_dry_run')
+        ? okReply({ roles: ['kg:read'], groups: ['ops'], scopes: [] })
+        : reply(404, {}),
+    )
+    vi.stubGlobal('fetch', fetcher)
+    const { user } = renderWithProviders(<AdminView />)
+    await user.click(screen.getByRole('tab', { name: 'idps' }))
+    await user.type(screen.getByLabelText('Identity provider id'), 'corp')
+    await user.click(screen.getByRole('button', { name: 'Evaluate mapping' }))
+    expect(await screen.findByText('kg:read')).toBeInTheDocument()
+    expect(screen.getByText('ops')).toBeInTheDocument()
+    expect(fetcher).toHaveBeenCalledWith(
+      '/api/v1/ops/identity.idps.mapping_dry_run',
+      expect.objectContaining({ body: JSON.stringify({ idp_id: 'corp', claims: { groups: [] } }) }),
+    )
+
+    vi.stubGlobal(
+      'fetch',
+      withSession(() =>
+        reply(403, {
+          ok: false,
+          error: { code: 'SCOPE_REQUIRED', source: 'arbora', message: 'denied', retryable: false },
+          meta: META,
+        }),
+      ),
+    )
+    await user.click(screen.getByRole('button', { name: 'Evaluate mapping' }))
+    await waitFor(() => {
+      expect(
+        screen.getAllByText('This operation requires an authorized administrator session.').length,
+      ).toBeGreaterThan(0)
     })
   })
 })

@@ -7,6 +7,7 @@ import {
   verifySecondFactor,
 } from '@/lib/auth-api'
 
+// spec: OVERSTORY-IDENTITY-R004.2
 describe('identity browser mutations', () => {
   afterEach(() => vi.unstubAllGlobals())
 
