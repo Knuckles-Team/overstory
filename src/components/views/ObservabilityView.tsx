@@ -30,7 +30,7 @@ import { Input } from '@/components/ui/input'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { StatusMessage } from '@/components/ui/status-message'
 import { gatewayPost } from '@/lib/gateway'
-import RunHarnessPanel from '@/components/views/RunHarnessPanel'
+import RunHarnessPanel from '@/components/run/RunHarnessPanel'
 
 /** A single metric time-series distilled from the PromQL response. */
 interface MetricSeries {
