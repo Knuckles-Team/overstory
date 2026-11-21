@@ -1,3 +1,4 @@
+// spec: OVERSTORY-APPS-R004
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { readRun, TERMINATION_LABELS, TERMINATION_REASONS, terminationLabel } from '@/lib/run-read'
 
