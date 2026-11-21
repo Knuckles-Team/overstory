@@ -1835,6 +1835,49 @@ class ExplicitAnonymousMiddleware:
             await self.app(scope, receive, send)
 
 
+NO_AUTH_SESSION_DESCRIPTOR: dict[str, Any] = {
+    'authenticated': False,
+    'mode': 'none',
+    'banner': 'Demo mode: this install has no sign-in and no authenticated identity.',
+}
+
+
+class NoAuthSessionMiddleware:
+    """Answer the shell's session read with one fixed no-auth descriptor.
+
+    Installed only in explicit no-auth mode. The body is identical on every
+    request and carries no principal, role, claim, token or CSRF value.
+    """
+
+    def __init__(self, app: Any) -> None:
+        self.app = app
+
+    async def __call__(self, scope: Any, receive: Any, send: Any) -> None:
+        if (
+            scope.get('type') == 'http'
+            and scope.get('method') == 'GET'
+            and scope.get('path') == '/auth/session'
+        ):
+            await send(
+                {
+                    'type': 'http.response.start',
+                    'status': 200,
+                    'headers': [
+                        (b'content-type', b'application/json'),
+                        (b'cache-control', b'no-store'),
+                    ],
+                }
+            )
+            await send(
+                {
+                    'type': 'http.response.body',
+                    'body': json.dumps(NO_AUTH_SESSION_DESCRIPTOR).encode(),
+                }
+            )
+            return
+        await self.app(scope, receive, send)
+
+
 async def _serve_public_shell(app: Any, scope: Any, receive: Any, send: Any) -> None:
     """Serve a static shell request under NO authority.
 
@@ -2817,6 +2860,7 @@ def create_agent_web_app(
         app, anonymous_policy=anonymous_policy if mode is AuthMode.NONE else None
     )
     if mode is AuthMode.NONE:
+        app.add_middleware(NoAuthSessionMiddleware)
         if local_browser_boundary is not None:
             from .local_browser_boundary import LocalBrowserBoundaryMiddleware
 
