@@ -7,16 +7,16 @@ Generated from the active rows of [requirements.md](requirements.md); one line p
 - [x] T001 OVERSTORY-R001.1 implement and prove: Detail-tab support model
 - [ ] T002 OVERSTORY-R001.2 implement and prove: Live Markets app wiring (remaining)
 - [x] T003 OVERSTORY-R002.1 implement and prove: Shared ChartRenderer input contract
-- [ ] T004 OVERSTORY-R002.2 implement and prove: Live ChartRenderer wiring (remaining)
+- [x] T004 OVERSTORY-R002.2 implement and prove: Live ChartRenderer wiring
 - [x] T005 OVERSTORY-R004 implement and prove: Responsive five-destination navigation
 - [x] T006 OVERSTORY-R005 implement and prove: Instrument groups with distinct data states
-- [ ] T007 OVERSTORY-R006 implement and prove: Search resolves by stable identity, not ticker text
+- [x] T007 OVERSTORY-R006 implement and prove: Search resolves by stable identity, not ticker text
 - [x] T008 OVERSTORY-R007 implement and prove: Instrument rows show price, provenance, after-hours value
 - [x] T009 OVERSTORY-R008.1 implement and prove: Pure supportedChartMode gating function
-- [ ] T010 OVERSTORY-R008.2 implement and prove: Live detail-tab/range-control wiring (remaining)
+- [x] T010 OVERSTORY-R008.2 implement and prove: Live detail-tab/range-control wiring
 - [x] T011 OVERSTORY-R009 implement and prove: Shared ChartRenderer preserves gaps and revisions
 - [x] T012 OVERSTORY-R010.1 implement and prove: Overlay marker version/simulation-flag type
-- [ ] T013 OVERSTORY-R010.2 implement and prove: Live chart overlay wiring (remaining)
+- [x] T013 OVERSTORY-R010.2 implement and prove: Live chart overlay wiring
 - [x] T014 OVERSTORY-R011.1 implement and prove: Performance/benchmark card verbatim-value contract
 - [ ] T015 OVERSTORY-R011.2 implement and prove: Live performance/benchmark card wiring (remaining)
 - [x] T016 OVERSTORY-R012.1 implement and prove: Strategy view evidence/abstain contract type
@@ -28,7 +28,7 @@ Generated from the active rows of [requirements.md](requirements.md); one line p
 - [x] T022 OVERSTORY-R015.1 implement and prove: Offline cache staleness contract
 - [ ] T023 OVERSTORY-R015.2 implement and prove: Live offline PWA shell wiring (remaining)
 - [x] T024 OVERSTORY-R016.1 implement and prove: Chart accessibility text-summary contract
-- [ ] T025 OVERSTORY-R016.2 implement and prove: Live chart/control accessibility wiring (remaining)
+- [x] T025 OVERSTORY-R016.2 implement and prove: Live chart/control accessibility wiring
 - [ ] T026 OVERSTORY-R003 implement and prove: Arbora Markets app with scanner, search, and layered chart
 
 ## Earlier task notes

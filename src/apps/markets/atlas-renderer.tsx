@@ -22,6 +22,7 @@ function OhlcAtlasBody({ projection }: RendererProps) {
       trail: [],
       overlays: [],
       panes: [],
+      markers: [],
       flips: [],
       events: [],
       showVolume: bars.some((bar) => bar.v > 0),

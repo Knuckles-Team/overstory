@@ -8,7 +8,7 @@
  * no explanation. Wiring these pure checks into ChartPage/tab components is
  * OVERSTORY-R001.2 / OVERSTORY-R008.2.
  */
-import type { Timeframe } from './schemas'
+import { TIMEFRAMES, type ChartResponse, type Timeframe } from './schemas'
 
 export const DETAIL_TABS = ['chart', 'rates', 'news', 'notes', 'dividends', 'analysis'] as const
 export type DetailTabId = (typeof DETAIL_TABS)[number]
@@ -54,4 +54,24 @@ export function supportedChartMode(
     return { allowed: false, reason: 'volume is not available for this instrument' }
   }
   return { allowed: true }
+}
+
+/**
+ * What the loaded series supports, read from the response itself. The engine
+ * rolls a finer series up to any coarser timeframe, so an interval is
+ * supported when it is the listing's own or coarser than its finest one. A
+ * listing that reports no timeframe supports only the one on screen. Rates
+ * and dividends are not served on this response, so they are reported absent.
+ */
+export function capabilitiesFromChart(chart: ChartResponse): SeriesCapabilities {
+  const finest = TIMEFRAMES.findIndex((timeframe) => chart.listing.timeframes.includes(timeframe))
+  return {
+    dataTypes: ['candle'],
+    supportedTimeframes: TIMEFRAMES.filter(
+      (timeframe, index) => (finest >= 0 && index >= finest) || timeframe === chart.timeframe,
+    ),
+    hasVolume: chart.bars.some((bar) => bar.v > 0),
+    hasRates: false,
+    hasDividends: false,
+  }
 }

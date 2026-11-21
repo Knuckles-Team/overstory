@@ -11,6 +11,7 @@
 import { useMemo, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react'
 import { cn } from '@/lib/utils'
 import { formatDate, formatPrice, formatVolume } from '../format'
+import { overlayLabel } from '../overlay-strategy'
 import type { FlipMarker, OhlcBar } from '../schemas'
 import {
   domainOf,
@@ -340,6 +341,37 @@ function IndicatorPane({
   )
 }
 
+function OverlayMarkers({
+  markers,
+  x,
+  top,
+}: {
+  markers: ChartModel['markers']
+  x: (t: number) => number | null
+  top: number
+}) {
+  return (
+    <g>
+      {markers.map(({ overlay, barOpenTime }) => {
+        const cx = x(barOpenTime)
+        if (cx === null) return null
+        if (cx === null) return null
+        const label = overlayLabel(overlay)
+        return (
+          <g key={`${overlay.kind}-${overlay.at}-${overlay.strategy_version}-${overlay.simulated}`}>
+            <title>{label}</title>
+            <path
+              d={`M${cx} ${top + 2} l4 6 l-4 6 l-4 -6 z`}
+              className={overlay.simulated ? 'fill-none stroke-foreground' : 'fill-foreground/70'}
+              strokeDasharray={overlay.simulated ? '2 2' : undefined}
+            />
+          </g>
+        )
+      })}
+    </g>
+  )
+}
+
 export function OhlcChart({ model, palette }: ChartRendererProps) {
   const [ref, width] = useElementWidth<HTMLDivElement>(900)
   const box = useMemo(() => layout(model, width), [model, width])
@@ -390,6 +422,7 @@ export function OhlcChart({ model, palette }: ChartRendererProps) {
           {model.trail.length > 0 && <Trail model={model} x={x} y={y} />}
           <Lines lines={model.overlays} x={x} y={y} />
 
+          <OverlayMarkers markers={model.markers} x={x} top={box.price.top} />
           {model.showFlips && <FlipTags flips={model.flips} x={x} y={y} decimals={model.priceDecimals} />}
           {box.strip && <EventStrip events={model.events} x={x} band={box.strip} />}
           {box.volume && <VolumePane bars={model.bars} axis={box.axis} band={box.volume} />}
@@ -412,6 +445,15 @@ export function OhlcChart({ model, palette }: ChartRendererProps) {
       <p aria-hidden="true" className="mt-1 min-h-5 text-xs text-muted-foreground">
         {summary}
       </p>
+      {model.markers.length > 0 && (
+        <ul aria-label="Chart overlays" className="sr-only">
+          {model.markers.map(({ overlay, barOpenTime }) => (
+            <li key={`${overlay.kind}-${overlay.at}-${overlay.strategy_version}-${overlay.simulated}`}>
+              {overlayLabel(overlay)} at bar {formatDate(barOpenTime, model.timeframe)}
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   )
 }
