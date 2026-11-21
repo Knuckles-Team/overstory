@@ -2,8 +2,8 @@
 
 No exact-head publication receipt is recorded.
 
-- [ ] T001 [US1] OVERSTORY-APPS-R001 Inventory current brand identifiers, package consumers, generated assets, site links, consent keys and tool IDs on main.
-- [x] T002 [US1] OVERSTORY-APPS-R038 Make browser title, metadata, web manifest, docs site name and README consistently present the Arbora brand, with a `site:brand:check` gate (part of `pnpm run build`) proving it. (OVERSTORY-APPS-R038; index.html/webmanifest already said "Arbora"; this fixes `mkdocs.yml` `site_name`/ecosystem entry and `README.md`'s heading, overview line and license line, and is deliberately scoped to brand copy only — no package, import or environment rename.)
+- [x] T001 [US1] OVERSTORY-APPS-R001 Inventory current brand identifiers, package consumers, generated assets, site links, consent keys and tool IDs on main.
+- [x] T002 [US1] OVERSTORY-APPS-R038 Make browser title, metadata, web manifest, docs site name and README consistently present the Overstory brand (Arbora stays the backend name), with a `site:brand:check` gate (part of `pnpm run build`) and `src/lib/__tests__/brand-identity.test.ts` proving it.
 - [x] T003 [US1] OVERSTORY-APPS-R038 Add `apps` navigation and one typed `AppSurface` contract using existing route, contribution, WebMCP and renderer seams.
 - [x] T004 [US1] OVERSTORY-APPS-R038 Integrate Markets as first native consumer and add valid/invalid contributed-app fixtures.
 - [x] T005 [US1] OVERSTORY-APPS-R039 Perform atomic public-name package and consumer cutover; regenerate assets and digests; document browser migration. (OVERSTORY-APPS-R039, OVERSTORY-APPS-R043, OVERSTORY-APPS-R002's remaining theme-token/asset-regeneration surface, OVERSTORY-APPS-R003: source commit 677a27e0f701eca99cad20887a0b5c4b8ec9734e exists on local branch feat/eh427-retire-review-20260926 but conflicts heavily with main — rename touches package.json, pyproject.toml, uv.lock, pnpm-lock.yaml and deletes files main already restructured; needs a fresh, smaller port, not a direct cherry-pick. The operator has not yet confirmed this package-identity rename; do not attempt it without that confirmation.)
