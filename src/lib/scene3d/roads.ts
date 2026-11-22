@@ -294,30 +294,130 @@ export function snapToNode(graph: RoadGraph, x: number, z: number): RoadNode | n
   return best
 }
 
-/**
- * Waypoints along the live graph between two ground points (R032): both ends
- * snap to the nearest node and the graph's BFS route is walked; collinear
- * waypoints collapse so a path stays as short as the derived grid's, and the
- * destination point is appended so the walk ends exactly where it was aimed.
- * Returns null when the ends are disconnected — the caller keeps the last
- * route (a refused edit never strands a character).
- */
+/** Route along the same sampled centrelines used to render each road. */
 export function pathOn(graph: RoadGraph, fromX: number, fromZ: number, toX: number, toZ: number): number[][] | null {
-  const start = snapToNode(graph, fromX, fromZ)
-  const end = snapToNode(graph, toX, toZ)
-  if (!start || !end) return null
-  if (start.id === end.id) return [[toX, toZ]]
-  const chain = route(graph, start.id, end.id)
-  if (!chain) return null
-  const out: number[][] = []
-  for (const id of chain) {
-    if (!(id in graph.nodes)) continue
-    const node = graph.nodes[id]
-    const last = out.length ? out[out.length - 1] : null
-    if (!last || Math.hypot(last[0] - node.x, last[1] - node.z) > 0.5) out.push([node.x, node.z])
+  interface Point {
+    x: number
+    z: number
   }
-  const tail = out.length ? out[out.length - 1] : null
-  if (!tail || Math.hypot(tail[0] - toX, tail[1] - toZ) > 0.5) out.push([toX, toZ])
+  interface Edge {
+    segment: RoadSegment
+    points: Point[]
+    distances: number[]
+    length: number
+  }
+  interface Snap {
+    edge: Edge
+    distance: number
+    point: Point
+    offset: number
+  }
+  const edges: Edge[] = []
+  for (const segment of Object.values(graph.segments)) {
+    if (!(segment.from in graph.nodes) || !(segment.to in graph.nodes)) continue
+    const a = graph.nodes[segment.from]
+    const b = graph.nodes[segment.to]
+    const points = sampleRoadCurve(a.x, a.z, b.x, b.z, segment.curve, segment.id, 1.8)
+    const distances = [0]
+    for (let i = 1; i < points.length; i++) {
+      distances.push(distances[i - 1] + Math.hypot(points[i].x - points[i - 1].x, points[i].z - points[i - 1].z))
+    }
+    edges.push({ segment, points, distances, length: distances[distances.length - 1] })
+  }
+  const nearest = (x: number, z: number): Snap | null => {
+    let best: Snap | null = null
+    for (const edge of edges)
+      for (let i = 1; i < edge.points.length; i++) {
+        const a = edge.points[i - 1],
+          b = edge.points[i]
+        const dx = b.x - a.x,
+          dz = b.z - a.z
+        const lengthSq = dx * dx + dz * dz
+        const t = lengthSq ? Math.max(0, Math.min(1, ((x - a.x) * dx + (z - a.z) * dz) / lengthSq)) : 0
+        const point = { x: a.x + t * dx, z: a.z + t * dz }
+        const offset = Math.hypot(x - point.x, z - point.z)
+        if (!best || offset < best.offset)
+          best = { edge, point, offset, distance: edge.distances[i - 1] + t * Math.sqrt(lengthSq) }
+      }
+    return best
+  }
+  const start = nearest(fromX, fromZ),
+    end = nearest(toX, toZ)
+  if (!start || !end) return null
+  const slice = (edge: Edge, from: number, to: number, first: Point, last: Point): Point[] => {
+    const middle = edge.points.filter(
+      (_, i) => edge.distances[i] > Math.min(from, to) && edge.distances[i] < Math.max(from, to),
+    )
+    if (from > to) middle.reverse()
+    return [first, ...middle, last]
+  }
+  let bestPoints: Point[] | null =
+    start.edge === end.edge ? slice(start.edge, start.distance, end.distance, start.point, end.point) : null
+  let bestLength = bestPoints ? Math.abs(start.distance - end.distance) : Infinity
+  // Dijkstra from each endpoint accounts for partial edges and real road length.
+  for (const startNode of [start.edge.segment.from, start.edge.segment.to]) {
+    const startDistance = startNode === start.edge.segment.from ? start.distance : start.edge.length - start.distance
+    const distances = new Map<string, number>([[startNode, startDistance]])
+    const previous = new Map<string, { node: string; edge: Edge }>()
+    const visited = new Set<string>()
+    while (visited.size < Object.keys(graph.nodes).length) {
+      let current: string | null = null,
+        cost = Infinity
+      for (const [node, value] of distances)
+        if (!visited.has(node) && value < cost) {
+          current = node
+          cost = value
+        }
+      if (current === null) break
+      visited.add(current)
+      for (const edge of edges) {
+        const next =
+          edge.segment.from === current ? edge.segment.to : edge.segment.to === current ? edge.segment.from : null
+        if (next && cost + edge.length < (distances.get(next) ?? Infinity)) {
+          distances.set(next, cost + edge.length)
+          previous.set(next, { node: current, edge })
+        }
+      }
+    }
+    for (const endNode of [end.edge.segment.from, end.edge.segment.to]) {
+      const finishDistance = endNode === end.edge.segment.from ? end.distance : end.edge.length - end.distance
+      const total = (distances.get(endNode) ?? Infinity) + finishDistance
+      if (total >= bestLength) continue
+      const chain: { from: string; to: string; edge: Edge }[] = []
+      let cursor = endNode
+      while (cursor !== startNode) {
+        const step = previous.get(cursor)
+        if (!step) break
+        chain.unshift({ from: step.node, to: cursor, edge: step.edge })
+        cursor = step.node
+      }
+      if (cursor !== startNode) continue
+      const startAt = startNode === start.edge.segment.from ? 0 : start.edge.length
+      const endAt = endNode === end.edge.segment.from ? 0 : end.edge.length
+      const points = slice(start.edge, start.distance, startAt, start.point, graph.nodes[startNode])
+      for (const step of chain) {
+        const forward = step.from === step.edge.segment.from
+        points.push(
+          ...slice(
+            step.edge,
+            forward ? 0 : step.edge.length,
+            forward ? step.edge.length : 0,
+            graph.nodes[step.from],
+            graph.nodes[step.to],
+          ),
+        )
+      }
+      points.push(...slice(end.edge, endAt, end.distance, graph.nodes[endNode], end.point))
+      bestLength = total
+      bestPoints = points
+    }
+  }
+  if (!bestPoints) return null
+  const out: number[][] = []
+  for (const point of [...bestPoints, { x: toX, z: toZ }]) {
+    const last = out.length ? out[out.length - 1] : null
+    if (!last || Math.hypot(last[0] - point.x, last[1] - point.z) > 0.001) out.push([point.x, point.z])
+  }
   return out
 }
 

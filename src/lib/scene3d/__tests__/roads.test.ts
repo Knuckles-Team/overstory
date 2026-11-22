@@ -9,7 +9,7 @@
  */
 // spec: OVERSTORY-DESIGN-R012.6
 import { describe, expect, it } from 'vitest'
-import { crosswalksFor, deriveRoadGraph, graphConnected, route } from '../roads'
+import { crosswalksFor, deriveRoadGraph, graphConnected, pathOn, route } from '../roads'
 import type { RoadGraph } from '../roads'
 import { validateRoadEdit } from '../roads'
 import { sampleRoadCurve } from '@/apps/city/core/render3d/roads'
@@ -160,5 +160,41 @@ describe('the road network (R012.6)', () => {
     expect(route(next, 'n0:0', 'n2:0')).toBeNull()
     // The remaining connected pair still routes.
     expect(route(next, 'n1:0', 'n2:0')).not.toBeNull()
+  })
+})
+
+describe('road-centreline movement (R032)', () => {
+  const graph: RoadGraph = {
+    nodes: {
+      a: { id: 'a', x: 0, z: 0, kind: 'endpoint' },
+      b: { id: 'b', x: 40, z: 0, kind: 'intersection' },
+      c: { id: 'c', x: 40, z: 30, kind: 'endpoint' },
+      d: { id: 'd', x: 100, z: 0, kind: 'endpoint' },
+      e: { id: 'e', x: 120, z: 0, kind: 'endpoint' },
+    },
+    segments: {
+      ab: { id: 'ab', from: 'a', to: 'b', curve: 1, width: 4 },
+      bc: { id: 'bc', from: 'b', to: 'c', curve: 0, width: 4 },
+      de: { id: 'de', from: 'd', to: 'e', curve: 0, width: 4 },
+    },
+  }
+  it('follows curved road samples instead of jumping between intersections', () => {
+    const points = sampleRoadCurve(0, 0, 40, 0, 1, 'ab', 1.8)
+    const start = points[5]
+    const path = pathOn(graph, start.x, start.z, 40, 20)
+    expect(path).not.toBeNull()
+    expect(path!.some(([x, z]) => x > start.x && x < 39 && Math.abs(z) > 0.2)).toBe(true)
+    expect(path!.some(([x, z]) => Math.abs(x - 40) < 0.001 && Math.abs(z) < 0.001)).toBe(true)
+    expect(path!.at(-1)).toEqual([40, 20])
+  })
+  it('uses the portion of one edge between two points without detouring through a node', () => {
+    const points = sampleRoadCurve(0, 0, 40, 0, 1, 'ab', 1.8)
+    const start = points[5],
+      end = points[12]
+    const path = pathOn(graph, start.x, start.z, end.x, end.z)!
+    expect(path.every(([x]) => x >= start.x - 0.001 && x <= end.x + 0.001)).toBe(true)
+  })
+  it('does not invent a connection between disconnected road components', () => {
+    expect(pathOn(graph, 40, 20, 110, 0)).toBeNull()
   })
 })
