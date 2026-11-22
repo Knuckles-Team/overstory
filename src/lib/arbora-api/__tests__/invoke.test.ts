@@ -32,6 +32,7 @@ describe('Arbora browser invocation', () => {
     expect(fetcher).toHaveBeenCalledTimes(1)
   })
 
+  // spec: OVERSTORY-API-R006
   it('preserves a structured server refusal and rejects malformed success', async () => {
     const fetcher = vi
       .fn()

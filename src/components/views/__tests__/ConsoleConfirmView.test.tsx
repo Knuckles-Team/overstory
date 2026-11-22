@@ -19,6 +19,7 @@ describe('console confirmation route (OVERSTORY-API-R007)', () => {
     expect(matchRoute(`/console/confirm/arbora_plan:${'a'.repeat(48)}`)?.route.id).toBe('console.confirm')
   })
 
+  // spec: OVERSTORY-API-R007
   it('rejects malformed plan refs without a network call', () => {
     const fetcher = vi.fn()
     vi.stubGlobal('fetch', fetcher)

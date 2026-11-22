@@ -24,6 +24,7 @@ describe('route census entry validation', () => {
     expect(entry.disposition).toBe('ui-local')
   })
 
+  // spec: OVERSTORY-API-R003.1
   it('refuses a generated-operation row with no owning operation named', () => {
     expect(() =>
       validateRouteCensusEntry({
