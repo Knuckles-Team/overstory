@@ -20,6 +20,28 @@ const Z_ROADS = [-60, -50, -40, -30, -20, -10, 0, 10, 20, 30, 40, 50, 60, 70]
 
 describe('the road network (R012.6)', () => {
   // spec: OVERSTORY-CITY-R032
+  it('rejects curved roads that meet again beyond their shared junction', () => {
+    const horizontal = sampleRoadCurve(0, 0, 20, 0, 1, 'horizontal', 1)
+    const vertical = sampleRoadCurve(0, 0, 0, 20, 1, 'vertical', 1)
+    const horizontalBend = horizontal[Math.floor(horizontal.length / 2)].z > 0 ? 10 : -10
+    const verticalBend = vertical[Math.floor(vertical.length / 2)].x > 0 ? 10 : -10
+    const graph: RoadGraph = {
+      nodes: {
+        a: { id: 'a', x: 0, z: 0, kind: 'intersection' },
+        b: { id: 'b', x: 20, z: 0, kind: 'endpoint' },
+        c: { id: 'c', x: 0, z: 20, kind: 'endpoint' },
+      },
+      segments: { horizontal: { id: 'horizontal', from: 'a', to: 'b', curve: horizontalBend, width: 0.2 } },
+    }
+    expect(
+      validateRoadEdit(graph, {
+        kind: 'add-segment',
+        segment: { id: 'vertical', from: 'a', to: 'c', curve: verticalBend, width: 0.2 },
+      }),
+    ).toEqual({ ok: false, reason: 'overlaps-existing-segment' })
+  })
+
+  // spec: OVERSTORY-CITY-R032
   it('rejects a crossing on the bowed part of a curved road', () => {
     const curve = sampleRoadCurve(0, 0, 20, 0, 1, 'curved', 1)
     const midpoint = curve[Math.floor(curve.length / 2)]

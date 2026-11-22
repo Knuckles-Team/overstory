@@ -211,11 +211,14 @@ function segmentsOverlap(graph: RoadGraph, a: RoadSegment, b: RoadSegment): bool
     const bx = second.x - junction.x
     const bz = second.z - junction.z
     const product = Math.hypot(ax, az) * Math.hypot(bx, bz)
-    return product === 0 || (ax * bx + az * bz) / product > Math.cos(Math.PI / 4)
+    if (product === 0 || (ax * bx + az * bz) / product > Math.cos(Math.PI / 4)) return true
   }
-  const firstPoints = sampleRoadCurve(a0.x, a0.z, a1.x, a1.z, a.curve, a.id, 1)
-  const secondPoints = sampleRoadCurve(b0.x, b0.z, b1.x, b1.z, b.curve, b.id, 1)
   const clearance = (a.width + b.width) / 2
+  const junction = shared ? graph.nodes[shared] : null
+  const outsideJunction = (point: RoadPathSample): boolean =>
+    !junction || Math.hypot(point.x - junction.x, point.z - junction.z) >= clearance * 2
+  const firstPoints = sampleRoadCurve(a0.x, a0.z, a1.x, a1.z, a.curve, a.id, 1).filter(outsideJunction)
+  const secondPoints = sampleRoadCurve(b0.x, b0.z, b1.x, b1.z, b.curve, b.id, 1).filter(outsideJunction)
   interface Point {
     x: number
     z: number
