@@ -22,6 +22,16 @@ const SESSION_LABEL: Record<PerformanceCard['session'], string> = {
   closed: 'Closed',
 }
 
+/** The explicit unavailable state with its reason, for before the read is served. */
+export function PerformanceCardUnavailable({ reason }: { reason: string }) {
+  return (
+    <div data-testid="performance-card" data-state="unavailable">
+      <p>Performance unavailable</p>
+      <p data-testid="performance-card-unavailable-reason">{reason}</p>
+    </div>
+  )
+}
+
 export function PerformanceCardView({ card }: { card: PerformanceCard }) {
   const view = renderPerformanceCard(card)
 

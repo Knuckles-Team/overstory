@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button'
 import { navigateInApp, pathParam, replaceSearch, useAppLocation } from '@/lib/apps/location'
 import { fetchChart, fetchMacroEvents } from '../api'
 import { validateSeriesInput } from '../chart-contract'
-import { capabilitiesFromChart } from '../detail-support'
+import { capabilitiesFromChart, supportedDetailTabs, DETAIL_TABS, type DetailTabId } from '../detail-support'
 import { formatPct, formatPrice, formatSince, tickDecimals } from '../format'
 import type { ChartResponse, ChartView } from '../schemas'
 import { chartPath, readChart, writeChart, type ChartSettings } from '../view-state'
@@ -22,6 +22,8 @@ import { MarketsGate, RequestFailed } from './Availability'
 import { chartModel, type ChartPalette } from './chart-model'
 import { ChartDataTable, ChartPanel, FlipTimeline } from './ChartPanel'
 import { ChartToolbar } from './ChartToolbar'
+import { DetailTabStrip } from './DetailTabStrip'
+import { PerformanceCardUnavailable } from './PerformanceCardView'
 import { MarketsNotices } from './Notices'
 import { MarketsWebMcp } from './MarketsWebMcp'
 import { ShareDialog } from './ShareDialog'
@@ -90,6 +92,52 @@ function useChartSettings(): [ChartSettings, (next: ChartSettings) => void] {
     replaceSearch(writeChart(next))
   }, [])
   return [settings, set]
+}
+
+/**
+ * The selected detail tab, persisted in the URL (`tab=`). The default tab is
+ * Chart and carries no param, so a plain chart link stays byte-identical.
+ */
+function useDetailTab(): [DetailTabId, (next: DetailTabId) => void] {
+  const location = useAppLocation()
+  const [tab, setTab] = useState<DetailTabId>(() => {
+    const raw = new URLSearchParams(location.search).get('tab')
+    return DETAIL_TABS.find((candidate) => candidate === raw) ?? 'chart'
+  })
+  const change = useCallback(
+    (next: DetailTabId) => {
+      setTab(next)
+      const search = new URLSearchParams(location.search)
+      if (next === 'chart') search.delete('tab')
+      else search.set('tab', next)
+      replaceSearch(search)
+    },
+    [location.search],
+  )
+  return [tab, change]
+}
+
+/** An honest pending state for a detail tab whose data is not served yet. */
+function TabNotServed({ label }: { label: string }) {
+  return <p className="text-sm text-muted-foreground">{label} for this instrument is not available yet.</p>
+}
+
+/** The News tab's honest state, with a way to the app-level feed. */
+function NewsTabNotServed() {
+  return (
+    <div className="space-y-2">
+      <p className="text-sm text-muted-foreground">News for this instrument is not served yet.</p>
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => {
+          navigateInApp('/apps/markets/news')
+        }}
+      >
+        Open the Markets news feed
+      </Button>
+    </div>
+  )
 }
 
 function usePalette(): [ChartPalette, (next: ChartPalette) => void] {
@@ -163,6 +211,7 @@ function ListingChart({ listingId }: { listingId: string }) {
   const [settings, setSettings] = useChartSettings()
   const [palette, setPalette] = usePalette()
   const [sharing, setSharing] = useState(false)
+  const [tab, setTab] = useDetailTab()
   const [ref, measured] = useElementWidth<HTMLDivElement>(900)
   const width = Math.max(WIDTH_STEP, Math.round((measured - AXIS) / WIDTH_STEP) * WIDTH_STEP)
   const chart = useQuery({
@@ -180,6 +229,9 @@ function ListingChart({ listingId }: { listingId: string }) {
     [listingId, settings, setSettings, chart.data],
   )
   const heading = chart.data ? `${chart.data.listing.symbol} / ${chart.data.listing.quote}` : 'Market chart'
+  const capabilities = chart.data ? capabilitiesFromChart(chart.data) : undefined
+  const offeredTabs = capabilities ? supportedDetailTabs(capabilities).tabs : []
+  const activeTab = offeredTabs.includes(tab) ? tab : 'chart'
   return (
     <div ref={ref} className="space-y-4">
       <MarketsWebMcp controller={controller} />
@@ -200,16 +252,26 @@ function ListingChart({ listingId }: { listingId: string }) {
           <Share2 aria-hidden="true" /> Share analysis
         </Button>
       </div>
+      {chart.data && <DetailTabStrip offered={offeredTabs} value={activeTab} onChange={setTab} />}
       <ChartToolbar
         settings={settings}
         onChange={setSettings}
         palette={palette}
         onPalette={setPalette}
-        capabilities={chart.data ? capabilitiesFromChart(chart.data) : undefined}
+        capabilities={capabilities}
       />
       {chart.isError && <RequestFailed what="The chart" error={chart.error} />}
       {!chart.data && !chart.isError && <p className="text-sm text-muted-foreground">Loading chart…</p>}
-      {chart.data && <ChartBody data={chart.data} settings={settings} palette={palette} />}
+      {chart.data && activeTab === 'chart' && (
+        <>
+          <PerformanceCardUnavailable reason="The performance-versus-benchmark read is not served yet (ARBORA-DATA-MARKET-R009.1)." />
+          <ChartBody data={chart.data} settings={settings} palette={palette} />
+        </>
+      )}
+      {chart.data && activeTab === 'news' && <NewsTabNotServed />}
+      {chart.data && (activeTab === 'notes' || activeTab === 'analysis') && (
+        <TabNotServed label={activeTab === 'notes' ? 'Notes' : 'Analysis'} />
+      )}
       <MarketsNotices />
       <ShareDialog open={sharing} onOpenChange={setSharing} listingId={listingId} settings={settings} />
     </div>
