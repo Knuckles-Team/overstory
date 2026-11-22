@@ -332,6 +332,8 @@ export default function CityPage() {
       view = '2d'
       webmcpViewRef.current = view
       renderer = init2D(holder, world, { onSelect })
+      const viewport = kept3d?.getViewport?.()
+      if (viewport) renderer.setViewport?.(viewport)
       ui?.setRenderer(renderer)
       syncViewButtons()
     }
@@ -340,8 +342,10 @@ export default function CityPage() {
       if (!kept3d || isDisposed()) return
       const keep = kept3d
       kept3d = null
+      const viewport = renderer?.getViewport?.()
       renderer?.dispose()
       renderer = keep
+      if (viewport) renderer.setViewport?.(viewport)
       view = '3d'
       webmcpViewRef.current = view
       // Rebind to the world state the schematic has been showing (a replay
@@ -366,6 +370,7 @@ export default function CityPage() {
       if (kept3d && next === '3d') return // the restore callback owns the path
       const prev = renderer
       let nextR: CityRenderer
+      let actualView = next
       if (next === '2d') {
         nextR = init2D(holder, world, { onSelect })
         kept3d = null // a deliberate swap supersedes any kept renderer
@@ -378,14 +383,17 @@ export default function CityPage() {
         } catch (err) {
           console.warn('[city] 3D renderer unavailable, falling back to 2D:', err)
           nextR = init2D(holder, world, { onSelect })
+          actualView = '2d'
         }
       }
       if (isDisposed()) {
         nextR.dispose()
         return
       }
+      const viewport = prev?.getViewport?.()
+      if (viewport) nextR.setViewport?.(viewport)
       renderer = nextR
-      view = next === '2d' ? '2d' : '3d'
+      view = actualView
       webmcpViewRef.current = view
       prev?.dispose()
       ui?.setRenderer(nextR)

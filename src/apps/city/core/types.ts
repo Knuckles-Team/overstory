@@ -16,6 +16,13 @@ export interface SelectionHit {
   id: string
 }
 
+/** World-space center and approximate vertical field of view, in metres. */
+export interface CityViewport {
+  x: number
+  z: number
+  verticalSpan: number
+}
+
 /** One renderer (3D scene or 2D schematic) of the same city. */
 export interface CityRenderer {
   /** Draw one frame; `dtReal` is the real elapsed seconds. */
@@ -32,6 +39,9 @@ export interface CityRenderer {
   onResize(width: number, height: number): void
   /** Reflect the current selection (ring / outline). */
   setSelected(hit: SelectionHit | null): void
+  /** Preserve world-space focus and scale when switching view implementations. */
+  getViewport?(): CityViewport
+  setViewport?(viewport: CityViewport): void
   /**
    * Rebind layer references after the world was replaced (the replay seek,
    * R029). Stateless renderers (the 2D schematic) need no rebind.

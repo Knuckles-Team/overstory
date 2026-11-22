@@ -941,6 +941,7 @@ export function initUI(world: World, renderer: CityRenderer, actions: CityAction
     },
     setRenderer: (r) => {
       rendererRef = r
+      r.setSelected(selected)
     },
     startTour,
     dispose: () => {

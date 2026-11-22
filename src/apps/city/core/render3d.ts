@@ -177,6 +177,23 @@ export async function init3D(
       sceneCore.exitInterior()
       picking.overview()
     },
+    getViewport: () => ({
+      x: controls.target.x,
+      z: controls.target.z,
+      verticalSpan: 2 * camera.position.distanceTo(controls.target) * Math.tan((camera.fov * Math.PI) / 360),
+    }),
+    setViewport: ({ x, z, verticalSpan }) => {
+      if (![x, z, verticalSpan].every(Number.isFinite) || verticalSpan <= 0) return
+      const direction = camera.position.clone().sub(controls.target).normalize()
+      const distance = THREE.MathUtils.clamp(
+        verticalSpan / (2 * Math.tan((camera.fov * Math.PI) / 360)),
+        controls.minDistance,
+        controls.maxDistance,
+      )
+      controls.target.set(x, controls.target.y, z)
+      camera.position.copy(controls.target).addScaledVector(direction, distance)
+      controls.update()
+    },
     say: (charId: string, text: string) => {
       characters.say(charId, text)
     },

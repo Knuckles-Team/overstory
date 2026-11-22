@@ -382,11 +382,16 @@ describe('keyboard accessibility (R027)', () => {
 
   it('the 3D/2D toggle is keyboard operable and swaps the renderer', async () => {
     const renderer = fakeRenderer()
+    renderer.getViewport = vi.fn(() => ({ x: 40, z: -30, verticalSpan: 200 }))
+    renderer.setViewport = vi.fn()
     ;(init3D as ReturnType<typeof vi.fn>).mockResolvedValue(renderer)
     const view = await bootCity('simulated')
     try {
       const btn2d = screen.getByRole('button', { name: '2D view' })
       const btn3d = screen.getByRole('button', { name: '3D view' })
+      const holder = document.querySelector('.city-holder') as HTMLElement
+      Object.defineProperty(holder, 'clientWidth', { value: 800, configurable: true })
+      Object.defineProperty(holder, 'clientHeight', { value: 600, configurable: true })
       expect(btn2d.getAttribute('aria-pressed')).toBe('false')
       expect(btn3d.getAttribute('aria-pressed')).toBe('true')
       // Keyboard activation of the toggle (R027: no mouse-only control).
@@ -401,8 +406,11 @@ describe('keyboard accessibility (R027)', () => {
       })
       // The 3D renderer was torn down; the 2D schematic (a canvas) is up.
       expect(renderer.dispose).toHaveBeenCalledTimes(1)
-      const holder = document.querySelector('.city-holder') as HTMLElement
       expect(holder.querySelector('canvas')).not.toBeNull()
+      btn3d.click()
+      await vi.waitFor(() => {
+        expect(renderer.setViewport).toHaveBeenCalledWith({ x: 40, z: -30, verticalSpan: 200 })
+      })
     } finally {
       view.unmount()
     }
@@ -456,8 +464,13 @@ describe('WebGL context loss and restore (R015)', () => {
 
   it('a restored context resumes the kept 3D renderer and drops the schematic', async () => {
     const renderer = mockInit3DWithRealCanvas()
+    renderer.getViewport = vi.fn(() => ({ x: 18, z: -26, verticalSpan: 150 }))
+    renderer.setViewport = vi.fn()
     const view = await bootCity('simulated')
     try {
+      const holder = document.querySelector('.city-holder') as HTMLElement
+      Object.defineProperty(holder, 'clientWidth', { value: 800, configurable: true })
+      Object.defineProperty(holder, 'clientHeight', { value: 600, configurable: true })
       const canvas = document.querySelector('canvas.city-3d-canvas') as HTMLCanvasElement
       canvas.dispatchEvent(new Event('webglcontextlost'))
       await vi.waitFor(() => {
@@ -469,10 +482,10 @@ describe('WebGL context loss and restore (R015)', () => {
       })
       // The kept renderer resumed: it was never disposed and the schematic
       // canvas is gone — one canvas in the holder, the 3D one.
-      const holder = document.querySelector('.city-holder') as HTMLElement
       expect(holder.querySelectorAll('canvas')).toHaveLength(1)
       expect(holder.querySelector('canvas.city-3d-canvas')).not.toBeNull()
       expect(renderer.dispose).not.toHaveBeenCalled()
+      expect(renderer.setViewport).toHaveBeenCalledWith({ x: 18, z: -26, verticalSpan: 150 })
     } finally {
       view.unmount()
     }

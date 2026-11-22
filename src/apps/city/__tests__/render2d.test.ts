@@ -92,6 +92,10 @@ describe('init2D (R015)', () => {
       const renderer = init2D(container, world, { onSelect: () => undefined })
       renderer.render(0.016)
       expect(images.at(-1)).toEqual([0, 0, 900, 900])
+      renderer.setViewport?.({ x: 120, z: -80, verticalSpan: 180 })
+      expect(renderer.getViewport?.()).toEqual({ x: 120, z: -80, verticalSpan: 180 })
+      renderer.overview()
+      renderer.render(0.016)
       const canvas = container.querySelector('canvas')!
       canvas.dispatchEvent(new WheelEvent('wheel', { deltaY: -500, clientX: 450, clientY: 450, cancelable: true }))
       renderer.render(0.016)

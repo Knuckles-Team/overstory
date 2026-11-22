@@ -9,7 +9,7 @@ import { encodingColor, stateColor } from './encoding'
 import { world as simWorld } from './sim'
 import { isRegionalWater } from './worldgen'
 import { sampleRoadCurve, type RoadGraph } from '@/lib/scene3d/roads'
-import type { CityRenderer, SelectionHit } from './types'
+import type { CityRenderer, CityViewport, SelectionHit } from './types'
 
 /**
  * WebGL probe (OVERSTORY-CITY-R015): the page mounts the 3D scene only when
@@ -314,7 +314,7 @@ export function init2D(
     const y = event.clientY - rect.top
     const worldX = WORLD.x0 + (x - ox - panX) / scale
     const worldZ = WORLD.z0 + (y - oz - panY) / scale
-    zoom = Math.max(1, Math.min(16, zoom * Math.exp(-event.deltaY * 0.001)))
+    zoom = Math.max(1, Math.min(64, zoom * Math.exp(-event.deltaY * 0.001)))
     scale = baseScale * zoom
     ox = cssW / 2 - ((WORLD.x1 - WORLD.x0) / 2) * scale
     oz = cssH / 2 - ((WORLD.z1 - WORLD.z0) / 2) * scale
@@ -338,6 +338,25 @@ export function init2D(
     panTY = 0
   }
 
+  function getViewport(): CityViewport {
+    return {
+      x: WORLD.x0 + (cssW / 2 - ox - panX) / scale,
+      z: WORLD.z0 + (cssH / 2 - oz - panY) / scale,
+      verticalSpan: cssH / scale,
+    }
+  }
+
+  function setViewport(viewport: CityViewport): void {
+    if (![viewport.x, viewport.z, viewport.verticalSpan].every(Number.isFinite) || viewport.verticalSpan <= 0 || !cssH)
+      return
+    zoom = Math.max(1, Math.min(64, cssH / viewport.verticalSpan / baseScale))
+    scale = baseScale * zoom
+    ox = cssW / 2 - ((WORLD.x1 - WORLD.x0) / 2) * scale
+    oz = cssH / 2 - ((WORLD.z1 - WORLD.z0) / 2) * scale
+    panX = panTX = cssW / 2 - ox - (viewport.x - WORLD.x0) * scale
+    panY = panTY = cssH / 2 - oz - (viewport.z - WORLD.z0) * scale
+  }
+
   function dispose(): void {
     canvas.removeEventListener('pointerdown', onDown)
     canvas.removeEventListener('pointermove', onMove)
@@ -352,6 +371,8 @@ export function init2D(
     dispose,
     focus,
     overview,
+    getViewport,
+    setViewport,
     say: () => undefined,
     onResize: resize,
     setSelected: (hit) => {
