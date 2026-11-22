@@ -139,22 +139,49 @@ export interface EditVerdict {
   reason?: 'disconnects-graph' | 'overlaps-existing-segment' | 'unknown-node'
 }
 
-function segmentMidpoint(graph: RoadGraph, segment: RoadSegment): { x: number; z: number } | null {
-  if (!(segment.from in graph.nodes) || !(segment.to in graph.nodes)) return null
-  const a = graph.nodes[segment.from]
-  const b = graph.nodes[segment.to]
-  return { x: (a.x + b.x) / 2, z: (a.z + b.z) / 2 }
-}
-
-function segmentsOverlap(graph: RoadGraph, a: RoadSegment, b: RoadSegment, tolerance = 1.0): boolean {
-  // A segment between the same two nodes, in either direction, duplicates
-  // an existing segment: an overlap the edit validation must refuse.
+function segmentsOverlap(graph: RoadGraph, a: RoadSegment, b: RoadSegment): boolean {
   if (a.from === b.from && a.to === b.to) return true
   if (a.from === b.to && a.to === b.from) return true
-  const midA = segmentMidpoint(graph, a)
-  const midB = segmentMidpoint(graph, b)
-  if (!midA || !midB) return false
-  return Math.hypot(midA.x - midB.x, midA.z - midB.z) <= tolerance
+  if (!(a.from in graph.nodes) || !(a.to in graph.nodes) || !(b.from in graph.nodes) || !(b.to in graph.nodes))
+    return false
+  const a0 = graph.nodes[a.from]
+  const a1 = graph.nodes[a.to]
+  const b0 = graph.nodes[b.from]
+  const b1 = graph.nodes[b.to]
+  const shared = [a.from, a.to].find((id) => id === b.from || id === b.to)
+  if (shared) {
+    const junction = graph.nodes[shared]
+    const first = graph.nodes[a.from === shared ? a.to : a.from]
+    const second = graph.nodes[b.from === shared ? b.to : b.from]
+    const ax = first.x - junction.x
+    const az = first.z - junction.z
+    const bx = second.x - junction.x
+    const bz = second.z - junction.z
+    const product = Math.hypot(ax, az) * Math.hypot(bx, bz)
+    return product === 0 || (ax * bx + az * bz) / product > Math.cos(Math.PI / 4)
+  }
+  const cross = (p: RoadNode, q: RoadNode, r: RoadNode): number =>
+    (q.x - p.x) * (r.z - p.z) - (q.z - p.z) * (r.x - p.x)
+  const c1 = cross(a0, a1, b0)
+  const c2 = cross(a0, a1, b1)
+  const c3 = cross(b0, b1, a0)
+  const c4 = cross(b0, b1, a1)
+  if (c1 * c2 <= 0 && c3 * c4 <= 0) {
+    const overlapX =
+      Math.max(Math.min(a0.x, a1.x), Math.min(b0.x, b1.x)) <= Math.min(Math.max(a0.x, a1.x), Math.max(b0.x, b1.x))
+    const overlapZ =
+      Math.max(Math.min(a0.z, a1.z), Math.min(b0.z, b1.z)) <= Math.min(Math.max(a0.z, a1.z), Math.max(b0.z, b1.z))
+    if (overlapX && overlapZ) return true
+  }
+  const distance = (p: RoadNode, start: RoadNode, end: RoadNode): number => {
+    const dx = end.x - start.x
+    const dz = end.z - start.z
+    const lengthSq = dx * dx + dz * dz
+    const t = lengthSq ? Math.max(0, Math.min(1, ((p.x - start.x) * dx + (p.z - start.z) * dz) / lengthSq)) : 0
+    return Math.hypot(p.x - start.x - t * dx, p.z - start.z - t * dz)
+  }
+  const clearance = (a.width + b.width) / 2
+  return Math.min(distance(a0, b0, b1), distance(a1, b0, b1), distance(b0, a0, a1), distance(b1, a0, a1)) < clearance
 }
 
 /**

@@ -19,6 +19,27 @@ const X_ROADS = [-80, -70, -60, -50, -40, -30, -20, -10, 0, 10, 20, 30]
 const Z_ROADS = [-60, -50, -40, -30, -20, -10, 0, 10, 20, 30, 40, 50, 60, 70]
 
 describe('the road network (R012.6)', () => {
+  // spec: OVERSTORY-DESIGN-R012.6, OVERSTORY-CITY-R032
+  it('rejects crossing and overlapping road corridors but permits shared junctions', () => {
+    const graph: RoadGraph = {
+      nodes: {
+        a: { id: 'a', x: 0, z: 0, kind: 'intersection' },
+        b: { id: 'b', x: 20, z: 0, kind: 'endpoint' },
+        c: { id: 'c', x: 4, z: -8, kind: 'endpoint' },
+        d: { id: 'd', x: 4, z: 12, kind: 'endpoint' },
+        e: { id: 'e', x: 0, z: 1, kind: 'endpoint' },
+        f: { id: 'f', x: 20, z: 1, kind: 'endpoint' },
+        g: { id: 'g', x: 0, z: 10, kind: 'endpoint' },
+      },
+      segments: { main: { id: 'main', from: 'a', to: 'b', curve: 0, width: 2.6 } },
+    }
+    const verdict = (from: string, to: string) =>
+      validateRoadEdit(graph, { kind: 'add-segment', segment: { id: 'new', from, to, width: 2.6, curve: 0 } })
+    expect(verdict('c', 'd')).toEqual({ ok: false, reason: 'overlaps-existing-segment' })
+    expect(verdict('e', 'f')).toEqual({ ok: false, reason: 'overlaps-existing-segment' })
+    expect(verdict('a', 'g')).toEqual({ ok: true })
+  })
+
   it('uses one deterministic curved centreline for asphalt and traffic', () => {
     const samples = sampleRoadCurve(0, 0, 20, 0, 1, 'traffic-proof', 2)
     expect(samples.length).toBeGreaterThan(8)
