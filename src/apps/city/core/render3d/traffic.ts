@@ -1,5 +1,5 @@
 // spec: OVERSTORY-CITY-R032
-import { sampleRoadCurve, type RoadGraph } from '@/lib/scene3d/roads'
+import { route, sampleRoadCurve, type RoadGraph, type RoadPathSample } from '@/lib/scene3d/roads'
 
 export interface JunctionApproach {
   nodeId: string
@@ -29,7 +29,7 @@ export function junctionApproaches(graph: RoadGraph): JunctionApproach[] {
       if (!(arm.from in graph.nodes) || !(arm.to in graph.nodes)) continue
       const a = graph.nodes[arm.from]
       const b = graph.nodes[arm.to]
-      const samples = sampleRoadCurve(a.x, a.z, b.x, b.z, arm.curve, arm.id, 1.8, 1.65)
+      const samples = sampleRoadCurve(a.x, a.z, b.x, b.z, arm.curve, arm.id, 1.8)
       const atStart = arm.from === nodeId
       const tangent = atStart ? samples.at(0) : samples.at(-1)
       if (!tangent) continue
@@ -66,6 +66,60 @@ export interface TrafficMotion {
   waitingAt: number | null
   waited: number
   passed: number | null
+}
+
+export interface TrafficRoute {
+  points: RoadPathSample[]
+  distances: number[]
+  length: number
+  laneOffset: number
+  phase: number
+  speed: number
+  controls: TrafficControl[]
+  motion: TrafficMotion
+}
+
+export interface TrafficFleet {
+  graph: RoadGraph
+  routes: TrafficRoute[]
+  elapsed: number
+  positions: number[]
+}
+
+/** Advance the fleet once in the simulation, independently of the active renderer. */
+export function tickTraffic(fleet: TrafficFleet, dt: number): void {
+  const delta = Math.min(Math.max(dt, 0), 0.1)
+  fleet.elapsed += delta
+  for (let i = 0; i < fleet.routes.length; i++) fleet.positions[i] = fleet.routes[i].motion.distance
+  for (let i = 0; i < fleet.routes.length; i++) {
+    const route = fleet.routes[i]
+    const speed = followingSpeed(fleet.routes, fleet.positions, i, delta)
+    advanceTraffic(route.motion, route.controls, route.length, speed, delta, fleet.elapsed)
+  }
+}
+
+/** Sample a vehicle position with the same lane offset in either renderer. */
+export function sampleTrafficPose(route: TrafficRoute, out: { x: number; z: number; heading: number }): boolean {
+  const distance = route.motion.distance
+  let segmentIndex = 0
+  while (segmentIndex < route.distances.length - 2 && distance > (route.distances[segmentIndex + 1] ?? Infinity))
+    segmentIndex++
+  const start = route.points.at(segmentIndex)
+  const end = route.points.at(segmentIndex + 1) ?? start
+  if (!start || !end) return false
+  const startDistance = route.distances[segmentIndex] ?? 0
+  const endDistance = route.distances[segmentIndex + 1] ?? route.length
+  const t = Math.min(1, Math.max(0, (distance - startDistance) / Math.max(0.001, endDistance - startDistance)))
+  const startLength = Math.hypot(start.tangentX, start.tangentZ) || 1
+  const endLength = Math.hypot(end.tangentX, end.tangentZ) || 1
+  const startX = start.x - (start.tangentZ / startLength) * route.laneOffset
+  const startZ = start.z + (start.tangentX / startLength) * route.laneOffset
+  const endX = end.x - (end.tangentZ / endLength) * route.laneOffset
+  const endZ = end.z + (end.tangentX / endLength) * route.laneOffset
+  out.x = startX + (endX - startX) * t
+  out.z = startZ + (endZ - startZ) * t
+  out.heading = Math.atan2(-(end.z - start.z), end.x - start.x)
+  return true
 }
 
 export interface FollowingRoute {
@@ -144,4 +198,112 @@ export function advanceTraffic(
   }
   state.distance = (state.distance + travel) % length
   if (travel > 0) state.passed = null
+}
+
+export function makeTrafficRoutes(liveGraph: RoadGraph): TrafficRoute[] {
+  const nodes = Object.values(liveGraph.nodes)
+  if (!nodes.length) return []
+  const minX = Math.min(...nodes.map((node) => node.x))
+  const maxX = Math.max(...nodes.map((node) => node.x))
+  const minZ = Math.min(...nodes.map((node) => node.z))
+  const maxZ = Math.max(...nodes.map((node) => node.z))
+  const closestNode = (x: number, z: number): string =>
+    nodes.reduce((best, node) => {
+      const currentDistance = (node.x - x) ** 2 + (node.z - z) ** 2
+      const bestDistance =
+        best in liveGraph.nodes ? (liveGraph.nodes[best].x - x) ** 2 + (liveGraph.nodes[best].z - z) ** 2 : Infinity
+      return currentDistance < bestDistance ? node.id : best
+    }, nodes[0]?.id ?? '')
+  const anchors = [
+    closestNode(minX + (maxX - minX) * 0.18, minZ + (maxZ - minZ) * 0.18),
+    closestNode(minX + (maxX - minX) * 0.82, minZ + (maxZ - minZ) * 0.18),
+    closestNode(minX + (maxX - minX) * 0.82, minZ + (maxZ - minZ) * 0.82),
+    closestNode(minX + (maxX - minX) * 0.18, minZ + (maxZ - minZ) * 0.82),
+  ]
+  const loopNodes: string[] = []
+  for (let i = 0; i < anchors.length; i++) {
+    const from = anchors[i]
+    const to = anchors[(i + 1) % anchors.length]
+    if (!from || !to) continue
+    const leg = route(liveGraph, from, to)
+    if (!leg) continue
+    loopNodes.push(...(i ? leg.slice(1) : leg))
+  }
+  if (loopNodes.length < 2) return []
+  const loopPoints: RoadPathSample[] = []
+  const legs: { start: number; end: number; from: string; to: string; width: number }[] = []
+  for (let i = 0; i < loopNodes.length; i++) {
+    const fromId = loopNodes[i]
+    const toId = loopNodes[(i + 1) % loopNodes.length]
+    if (!fromId || !toId) continue
+    const segment = Object.values(liveGraph.segments).find(
+      (candidate) =>
+        (candidate.from === fromId && candidate.to === toId) || (candidate.from === toId && candidate.to === fromId),
+    )
+    if (!segment) continue
+    if (!(segment.from in liveGraph.nodes) || !(segment.to in liveGraph.nodes)) continue
+    const a = liveGraph.nodes[segment.from]
+    const b = liveGraph.nodes[segment.to]
+    const points = sampleRoadCurve(a.x, a.z, b.x, b.z, segment.curve, segment.id, 1.8)
+    const directed =
+      segment.from === fromId
+        ? points
+        : points.reverse().map((p) => ({ ...p, tangentX: -p.tangentX, tangentZ: -p.tangentZ }))
+    const start = loopPoints.length
+    loopPoints.push(...directed)
+    legs.push({ start, end: loopPoints.length - 1, from: fromId, to: toId, width: segment.width })
+  }
+  if (loopPoints.length > 0) loopPoints.push({ ...loopPoints[0] })
+  const distances = [0]
+  for (let p = 1; p < loopPoints.length; p++) {
+    const prev = loopPoints[p - 1]
+    const current = loopPoints[p]
+    distances.push((distances[p - 1] ?? 0) + Math.hypot(current.x - prev.x, current.z - prev.z))
+  }
+  const loopLength = distances[distances.length - 1] ?? 1
+  if (loopLength <= 0) return []
+  const reversePoints = [...loopPoints]
+    .reverse()
+    .map((point) => ({ ...point, tangentX: -point.tangentX, tangentZ: -point.tangentZ }))
+  const reverseDistances = [...distances].reverse().map((distance) => loopLength - distance)
+  const forwardControls: TrafficControl[] = []
+  const reverseControls: TrafficControl[] = []
+  if ('seed:0' in liveGraph.nodes) {
+    const degrees = new Map<string, number>()
+    for (const segment of Object.values(liveGraph.segments)) {
+      degrees.set(segment.from, (degrees.get(segment.from) ?? 0) + 1)
+      degrees.set(segment.to, (degrees.get(segment.to) ?? 0) + 1)
+    }
+    for (const leg of legs) {
+      const startDistance = distances[leg.start] ?? 0
+      const endDistance = distances[leg.end] ?? 0
+      const setback = Math.min(leg.width / 2 + 1, (endDistance - startDistance) / 2)
+      const addControl = (nodeId: string, pointIndex: number, distance: number, out: TrafficControl[]) => {
+        const degree = degrees.get(nodeId) ?? 0
+        const tangent = loopPoints.at(pointIndex)
+        if (degree < 3 || !tangent) return
+        out.push({
+          distance: ((distance % loopLength) + loopLength) % loopLength,
+          kind: degree >= 4 ? 'signal' : 'stop',
+          axis: Math.abs(tangent.tangentX) >= Math.abs(tangent.tangentZ) ? 'x' : 'z',
+        })
+      }
+      addControl(leg.to, leg.end, endDistance - setback, forwardControls)
+      addControl(leg.from, leg.start, loopLength - startDistance - setback, reverseControls)
+    }
+  }
+  return Array.from({ length: 28 }, (_, i) => {
+    const phase = Math.floor(i / 2) / 14
+    return {
+      points: i % 2 ? reversePoints : loopPoints,
+      distances: i % 2 ? reverseDistances : distances,
+      length: loopLength,
+      laneOffset: -0.72,
+      phase,
+      // metres per real second: readable city movement, not simulation-time warp.
+      speed: 2.1 + (i % 3) * 0.28,
+      controls: i % 2 ? reverseControls : forwardControls,
+      motion: { distance: phase * loopLength, waitingAt: null, waited: 0, passed: null },
+    }
+  })
 }

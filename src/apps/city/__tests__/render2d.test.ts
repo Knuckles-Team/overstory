@@ -9,7 +9,7 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import { FLEET_SNAPSHOT, fleetToConnectors } from '../core/ecosystem'
 import { init2D, supportsWebGL } from '../core/render2d'
-import { initSim, resetSim, world } from '../core/sim'
+import { initSim, resetSim, tickSim, world } from '../core/sim'
 
 function installRecording2D(): { texts: string[]; rects: number; images: number[][]; restore: () => void } {
   const texts: string[] = []
@@ -79,6 +79,32 @@ describe('supportsWebGL probe (R015)', () => {
 describe('init2D (R015)', () => {
   afterEach(() => {
     resetSim()
+  })
+
+  it('renders shared traffic without advancing or resetting the simulation', () => {
+    initSim(fleetToConnectors(FLEET_SNAPSHOT))
+    tickSim(1, 0.05)
+    const fleet = world.traffic
+    expect(fleet?.routes.length).toBe(28)
+    const before = fleet!.routes.map((route) => route.motion.distance)
+    const { restore } = installRecording2D()
+    const container = document.createElement('div')
+    document.body.appendChild(container)
+    try {
+      const first = init2D(container, world, { onSelect: () => undefined })
+      first.render(0.05)
+      first.dispose()
+      const second = init2D(container, world, { onSelect: () => undefined })
+      second.render(0.05)
+      expect(world.traffic).toBe(fleet)
+      expect(fleet!.routes.map((route) => route.motion.distance)).toEqual(before)
+      tickSim(1, 0.05)
+      expect(fleet!.routes.some((route, i) => route.motion.distance !== before[i])).toBe(true)
+      second.dispose()
+    } finally {
+      container.remove()
+      restore()
+    }
   })
 
   it('fits the full 3D ground extent and zooms around the pointer', () => {

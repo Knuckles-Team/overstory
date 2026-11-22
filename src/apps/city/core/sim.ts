@@ -25,6 +25,7 @@ import {
 } from './ecosystem'
 import { BUILDING_POS, PLOTS, HOUSES, buildingDoor, plotDoor, findPath, type Vec2 } from './layout'
 import { pathOn, type RoadGraph } from '@/lib/scene3d/roads'
+import { makeTrafficRoutes, tickTraffic, type TrafficFleet } from './render3d/traffic'
 import { applyDocument, derivedRoadGraph, type LayoutOverride } from './layoutEdit'
 import { bus, makeEvent, type CityEvent } from './events'
 import { defaultPrng, type Prng } from './prng'
@@ -263,6 +264,8 @@ export const world = {
    * graph after a saved layout edit; null before the sim initializes.
    */
   roadGraph: null as RoadGraph | null,
+  /** Ambient vehicles belong to the world, not either renderer. */
+  traffic: null as TrafficFleet | null,
   /** District style overrides: domain → archetype (R032); empty when derived. */
   districtStyles: {} as Record<string, string>,
   /** The stored layout override document applied to this world (R032). */
@@ -475,6 +478,7 @@ export function initSim(connectors: ConnectorDef[]): void {
   // The derived road graph (R032): characters walk it, and a saved layout
   // edit replaces it with the overrides' graph.
   world.roadGraph = derivedRoadGraph()
+  world.traffic = null
   world.districtStyles = {}
   world.layoutDoc = null
 
@@ -1088,6 +1092,10 @@ function tickAgent(ch: Character, dtReal: number): void {
 // ---- Main tick ------------------------------------------------------------
 
 export function tickSim(dtGame: number, dtReal: number): void {
+  if (world.roadGraph && world.traffic?.graph !== world.roadGraph) {
+    world.traffic = { graph: world.roadGraph, routes: makeTrafficRoutes(world.roadGraph), elapsed: 0, positions: [] }
+  }
+  if (world.traffic) tickTraffic(world.traffic, dtReal)
   world.clock += dtGame
   world.absGameS += dtGame
   if (world.clock >= 86400) {
@@ -1195,6 +1203,7 @@ export function resetSim(): void {
   world.connectors = []
   world.overflow = []
   world.roadGraph = null
+  world.traffic = null
   world.districtStyles = {}
   world.layoutDoc = null
   world.initialized = false

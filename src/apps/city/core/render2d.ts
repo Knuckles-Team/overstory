@@ -9,6 +9,7 @@ import { encodingColor, stateColor } from './encoding'
 import { world as simWorld } from './sim'
 import { isRegionalWater } from './worldgen'
 import { sampleRoadCurve, type RoadGraph } from '@/lib/scene3d/roads'
+import { sampleTrafficPose } from './render3d/traffic'
 import type { CityRenderer, CityViewport, SelectionHit } from './types'
 
 /**
@@ -118,6 +119,7 @@ export function init2D(
   }
 
   let selectedId: string | null = null
+  const trafficPose = { x: 0, z: 0, heading: 0 }
   let cachedGraph: RoadGraph | null = null
   let roadPaths: { width: number; points: { x: number; z: number }[] }[] = []
 
@@ -163,6 +165,19 @@ export function init2D(
         ctx.moveTo(px(start.x), pz(start.z))
         for (let i = 1; i < road.points.length; i++) ctx.lineTo(px(road.points[i].x), pz(road.points[i].z))
         ctx.stroke()
+      }
+    }
+
+    // Vehicles use the same simulation state and pose sampler as 3D.
+    if (world.traffic) {
+      ctx.fillStyle = '#f4c957'
+      for (const route of world.traffic.routes) {
+        if (!sampleTrafficPose(route, trafficPose)) continue
+        ctx.save()
+        ctx.translate(px(trafficPose.x), pz(trafficPose.z))
+        ctx.rotate(-trafficPose.heading)
+        ctx.fillRect(-0.775 * scale, -0.36 * scale, 1.55 * scale, 0.72 * scale)
+        ctx.restore()
       }
     }
 
