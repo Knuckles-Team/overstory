@@ -108,4 +108,25 @@ describe('deterministic world generation', () => {
       true,
     )
   })
+
+  // spec: OVERSTORY-CITY-R048.9.1
+  it('keeps generated rotated buildings on dry ground and clear of one another across seeds', () => {
+    for (const seed of [1, 99, 20261121]) {
+      const buildings = generateRegionalMassing(seed)
+      const bounds = buildings.map((building) => {
+        const cos = Math.abs(Math.cos(building.yaw ?? 0))
+        const sin = Math.abs(Math.sin(building.yaw ?? 0))
+        return {
+          x: building.x,
+          z: building.z,
+          w: building.w * cos + building.d * sin,
+          d: building.w * sin + building.d * cos,
+        }
+      })
+      for (let i = 0; i < buildings.length; i++) {
+        expect(isDryFootprint(buildings[i], buildings[i].yaw, seed)).toBe(true)
+        for (let j = i + 1; j < buildings.length; j++) expect(rectsOverlap(bounds[i], bounds[j], 1)).toBe(false)
+      }
+    }
+  })
 })

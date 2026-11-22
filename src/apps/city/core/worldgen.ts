@@ -239,36 +239,19 @@ export function generateRegionalTiles(seed = CITY_WORLD_SEED, tileSize = 96): Re
  */
 export function generateRegionalMassing(seed = CITY_WORLD_SEED, tileSize = 96): RegionalMassing[] {
   const out: RegionalMassing[] = []
-  for (const tile of generateRegionalTiles(seed, tileSize)) {
-    if (tile.hasWater || tile.zone === 'waterfront') continue
-    const rand = mulberry32(
-      seed ^ Math.imul(Math.round(tile.x + 500), 73856093) ^ Math.imul(Math.round(tile.z + 500), 19349663),
-    )
-    // Distant tiles establish neighbourhood scale, not a wall of downtown
-    // boxes around the playable basin. Sparse silhouettes leave room for
-    // terrain, trees and sky to do the regional storytelling.
-    // Keep enough distributed silhouettes for a genuinely regional map;
-    // their restrained heights (below) preserve the landscape instead of
-    // erecting a wall of towers around the active basin.
-    const count = tile.zone === 'civic-core' ? 10 : tile.zone === 'suburban' ? 7 : 3
-    let placed = 0
-    for (let attempt = 0; attempt < count * 5 && placed < count; attempt++) {
-      const w = tile.zone === 'rural' ? 7 + rand() * 5 : 8 + rand() * 10
-      const d = tile.zone === 'rural' ? 7 + rand() * 5 : 8 + rand() * 10
-      const h =
-        tile.zone === 'civic-core' ? 9 + rand() * 11 : tile.zone === 'suburban' ? 4 + rand() * 8 : 3.4 + rand() * 3.2
-      const x = tile.x + (rand() - 0.5) * (tileSize - 22)
-      const z = tile.z + (rand() - 0.5) * (tileSize - 22)
-      // The central basin and default overview approach are rendered by live
-      // city data.  Keep impostor massing out of that wider corridor so a
-      // suburban batch cannot become a giant foreground box.
-      if (x > -108 && x < 120 && z > -92 && z < 102) continue
-      const yaw = rand() * Math.PI
-      if (!isDryFootprint({ x, z, w, d }, yaw, seed)) continue
-      out.push({ x, z, w, d, h, yaw, facade: tile.facade, zone: tile.zone })
-      placed++
+  const bounds = (building: RegionalMassing): WorldRect => {
+    const cos = Math.abs(Math.cos(building.yaw ?? 0))
+    const sin = Math.abs(Math.sin(building.yaw ?? 0))
+    return {
+      x: building.x,
+      z: building.z,
+      w: building.w * cos + building.d * sin,
+      d: building.w * sin + building.d * cos,
     }
   }
+  const fits = (building: RegionalMassing): boolean =>
+    isDryFootprint(building, building.yaw, seed) &&
+    out.every((other) => !rectsOverlap(bounds(building), bounds(other), 1))
   // The civic skyline belongs just across the river from the factual
   // connector basin.  These are regional, non-interactive volumes—not fake
   // connector records—and their modest seeded offsets prevent a static,
@@ -306,7 +289,38 @@ export function generateRegionalMassing(seed = CITY_WORLD_SEED, tileSize = 96): 
       zone: 'civic-core',
     },
   ]
-  out.push(...skylineBuildings.filter((building) => isDryFootprint(building, building.yaw, seed)))
+  for (const building of skylineBuildings) if (fits(building)) out.push(building)
+  for (const tile of generateRegionalTiles(seed, tileSize)) {
+    if (tile.hasWater || tile.zone === 'waterfront') continue
+    const rand = mulberry32(
+      seed ^ Math.imul(Math.round(tile.x + 500), 73856093) ^ Math.imul(Math.round(tile.z + 500), 19349663),
+    )
+    // Distant tiles establish neighbourhood scale, not a wall of downtown
+    // boxes around the playable basin. Sparse silhouettes leave room for
+    // terrain, trees and sky to do the regional storytelling.
+    // Keep enough distributed silhouettes for a genuinely regional map;
+    // their restrained heights (below) preserve the landscape instead of
+    // erecting a wall of towers around the active basin.
+    const count = tile.zone === 'civic-core' ? 10 : tile.zone === 'suburban' ? 7 : 3
+    let placed = 0
+    for (let attempt = 0; attempt < count * 20 && placed < count; attempt++) {
+      const w = tile.zone === 'rural' ? 7 + rand() * 5 : 8 + rand() * 10
+      const d = tile.zone === 'rural' ? 7 + rand() * 5 : 8 + rand() * 10
+      const h =
+        tile.zone === 'civic-core' ? 9 + rand() * 11 : tile.zone === 'suburban' ? 4 + rand() * 8 : 3.4 + rand() * 3.2
+      const x = tile.x + (rand() - 0.5) * (tileSize - 22)
+      const z = tile.z + (rand() - 0.5) * (tileSize - 22)
+      // The central basin and default overview approach are rendered by live
+      // city data.  Keep impostor massing out of that wider corridor so a
+      // suburban batch cannot become a giant foreground box.
+      if (x > -108 && x < 120 && z > -92 && z < 102) continue
+      const yaw = rand() * Math.PI
+      const building = { x, z, w, d, h, yaw, facade: tile.facade, zone: tile.zone }
+      if (!fits(building)) continue
+      out.push(building)
+      placed++
+    }
+  }
   return out
 }
 
