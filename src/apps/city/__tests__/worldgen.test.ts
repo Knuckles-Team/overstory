@@ -5,6 +5,7 @@ import {
   clearsRoad,
   generateRegionalMassing,
   generateRegionalTiles,
+  generateIslandRoads,
   isIslandLand,
   isDryFootprint,
   isRegionalWater,
@@ -15,9 +16,59 @@ import {
   terrainHeight,
   validateGeneratedLayout,
 } from '../core/worldgen'
-import { inWater } from '../core/layout'
+import { BUILDING_POS, HOUSES, PLOTS, inWater } from '../core/layout'
+import { graphConnected } from '@/lib/scene3d/roads'
 
 describe('deterministic world generation', () => {
+  // spec: OVERSTORY-CITY-R048.9.1
+  it('grows connected dry road corridors deterministically', () => {
+    for (const seed of [42, 99, 20261121]) {
+      const graph = generateIslandRoads(seed, [])
+      expect(graph).toEqual(generateIslandRoads(seed, []))
+      expect(graphConnected(graph)).toBe(true)
+      expect(Object.keys(graph.segments).length).toBeGreaterThan(10)
+      for (const segment of Object.values(graph.segments)) {
+        const from = graph.nodes[segment.from]
+        const to = graph.nodes[segment.to]
+        const steps = Math.ceil(Math.hypot(to.x - from.x, to.z - from.z) / 2)
+        for (let i = 0; i <= steps; i++) {
+          const x = from.x + ((to.x - from.x) * i) / steps
+          const z = from.z + ((to.z - from.z) * i) / steps
+          expect(isDryFootprint({ x, z, w: 5, d: 5 }, 0, seed)).toBe(true)
+        }
+      }
+    }
+  })
+
+  // spec: OVERSTORY-CITY-R048.9.1
+  it('keeps seeded road corridors clear of the city and regional building sites', () => {
+    const seed = 42
+    const obstacles = [
+      ...Object.values(BUILDING_POS),
+      ...PLOTS.map((plot) => ({ ...plot, w: 7, d: 7 })),
+      ...HOUSES.map((house) => ({ ...house, w: 4, d: 4 })),
+      ...generateRegionalMassing(seed).map((building) => ({
+        ...building,
+        w: building.w + building.d,
+        d: building.w + building.d,
+      })),
+    ]
+    const graph = generateIslandRoads(seed, obstacles)
+    expect(graphConnected(graph)).toBe(true)
+    expect(Object.keys(graph.segments).length).toBeGreaterThan(10)
+    for (const segment of Object.values(graph.segments)) {
+      const from = graph.nodes[segment.from]
+      const to = graph.nodes[segment.to]
+      const steps = Math.ceil(Math.hypot(to.x - from.x, to.z - from.z) / 2)
+      for (let i = 0; i <= steps; i++) {
+        const x = from.x + ((to.x - from.x) * i) / steps
+        const z = from.z + ((to.z - from.z) * i) / steps
+        expect(
+          obstacles.every((box) => Math.abs(x - box.x) >= box.w / 2 + 3 || Math.abs(z - box.z) >= box.d / 2 + 3),
+        ).toBe(true)
+      }
+    }
+  })
   // spec: OVERSTORY-CITY-R048.9.1
   it('accepts a reproducible island seed only in the local sandbox', () => {
     expect(cityWorldSeed('?seed=42', true)).toBe(42)

@@ -6,6 +6,7 @@
  */
 import { mulberry32 } from '@/lib/scene3d/generators'
 import { isCitySandbox } from '@/lib/city-sandbox'
+import type { RoadGraph } from '@/lib/scene3d/roads'
 
 export interface WorldRect {
   x: number
@@ -361,6 +362,48 @@ export function clearsRoad(
   return roads.every(
     (road) => pointSegmentDistanceSq(x, z, road.x1, road.z1, road.x2, road.z2) >= (road.width / 2 + margin) ** 2,
   )
+}
+
+/** Grow a deterministic connected network while keeping corridors on dry, unoccupied ground. */
+export function generateIslandRoads(seed: number, obstacles: readonly WorldRect[]): RoadGraph {
+  const random = mulberry32(seed)
+  const nodes: RoadGraph['nodes'] = { 'seed:0': { id: 'seed:0', x: -90, z: -85, kind: 'endpoint' } }
+  const segments: RoadGraph['segments'] = {}
+  const roads: GeneratedRoad[] = []
+  for (let attempt = 0; attempt < 1400 && roads.length < 48; attempt++) {
+    const candidates = Object.values(nodes)
+    const origin = candidates[Math.floor(random() * candidates.length)]
+    const angle = random() * Math.PI * 2
+    const length = 20 + random() * 24
+    const target = { x: origin.x + Math.cos(angle) * length, z: origin.z + Math.sin(angle) * length }
+    if (Math.abs(target.x) > 240 || Math.abs(target.z) > 240) continue
+    const otherRoads = roads.filter(
+      (road) => (road.x1 !== origin.x || road.z1 !== origin.z) && (road.x2 !== origin.x || road.z2 !== origin.z),
+    )
+    let valid = true
+    const steps = Math.ceil(length / 2)
+    for (let step = 0; step <= steps && valid; step++) {
+      const t = step / steps
+      const x = origin.x + (target.x - origin.x) * t
+      const z = origin.z + (target.z - origin.z) * t
+      if (
+        !isDryFootprint({ x, z, w: 5, d: 5 }, 0, seed) ||
+        obstacles.some((box) => Math.abs(x - box.x) < box.w / 2 + 3 && Math.abs(z - box.z) < box.d / 2 + 3)
+      ) {
+        valid = false
+        break
+      }
+      if (!clearsRoad(x, z, otherRoads, 3)) valid = false
+    }
+    if (!valid) continue
+    const id = `seed:${roads.length + 1}`
+    const segmentId = `seed-road:${roads.length}`
+    nodes[id] = { id, ...target, kind: 'endpoint' }
+    nodes[origin.id].kind = 'intersection'
+    segments[segmentId] = { id: segmentId, from: origin.id, to: id, curve: 0, width: 3 }
+    roads.push({ id: segmentId, x1: origin.x, z1: origin.z, x2: target.x, z2: target.z, width: 3 })
+  }
+  return { nodes, segments }
 }
 
 /** Deterministic rejection sampler used for vegetation and small props. */

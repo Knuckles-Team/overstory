@@ -19,9 +19,10 @@ import {
   type RoadSegment,
 } from '@/lib/scene3d/roads'
 import type { DistrictArchetype } from '@/lib/scene3d/generators'
-import { DISTRICT_DOMAINS, ROAD_W, X_ROADS, Z_ROADS, plotDoor } from './layout'
+import { BUILDING_POS, DISTRICT_DOMAINS, HOUSES, PLOTS, ROAD_W, X_ROADS, Z_ROADS, plotDoor } from './layout'
 import type { world as SimWorld } from './sim'
-import { isDryFootprint } from './worldgen'
+import { CITY_WORLD_SEED, generateIslandRoads, generateRegionalMassing, isDryFootprint } from './worldgen'
+import { isCitySandbox } from '@/lib/city-sandbox'
 
 export type World = typeof SimWorld
 
@@ -399,6 +400,19 @@ export function validateDocument(
 
 /** The road graph the derived layout ships with (the grid the district grew on). */
 export function derivedRoadGraph(): RoadGraph {
+  if (isCitySandbox() && new URLSearchParams(window.location.search).has('seed')) {
+    const obstacles = [
+      ...Object.values(BUILDING_POS),
+      ...PLOTS.map((plot) => ({ ...plot, w: 7, d: 7 })),
+      ...HOUSES.map((house) => ({ ...house, w: 4, d: 4 })),
+      ...generateRegionalMassing(CITY_WORLD_SEED).map((building) => ({
+        ...building,
+        w: building.w + building.d,
+        d: building.w + building.d,
+      })),
+    ]
+    return generateIslandRoads(CITY_WORLD_SEED, obstacles)
+  }
   return deriveRoadGraph(X_ROADS, Z_ROADS, { segmentWidth: ROAD_W })
 }
 

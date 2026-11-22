@@ -101,7 +101,7 @@ Producer first: the fleet seam (R003) and the world producers (R002, R004, R005)
 | R001.1, R001.2 | Loopback development sandbox, landing entry and isolated simulated layout edits | Installed signed-in Apps journey and capability behavior |
 | R028 | Debug FPS and slow-frame counters at `?demo=1&debug=1` | Sustained 60 FPS on reference hardware and capacity soak |
 | R048.1, R048.2, R048.4, R048.7 | Catalog and specialized recipes specified. Baseline brings in procedural facade variants and the existing interior preview | Versioned core kit, asset review scene, furnished landmark rooms and role-specific state bindings |
-| R048.3, R048.8 | Baseline street meshes, markings, curbs, sidewalks, verges, props and regional ambient traffic | One level-aware road and lane graph, road-frontage parcels, validated bridge journeys and connected traffic coverage |
+| R048.3, R048.8 | Baseline street meshes, markings, curbs, sidewalks, verges, props and regional ambient traffic. A sandbox seed generates a connected dry-ground road tree outside existing building footprints. | Road-frontage parcels and access to buildings, level-aware lanes, validated bridge journeys and connected traffic coverage |
 | R048.5, R048.9 | Seeded coastline and regional massing, dry-footprint checks and revised waterfront scenery | Drainage, navigable marine routes, access validation and revisioned growth replay |
 | R048.6 | Imported fixed browser viewpoints, adaptive quality baseline and idle scene-resource integrity coverage | Reviewed before/after views, hardware frame-time qualification and the active soak |
 | R047 | Shared-state consumer contract drafted | Arbora and Medulla producers and two-viewer acceptance |

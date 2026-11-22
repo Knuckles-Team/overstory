@@ -278,10 +278,6 @@ export function buildCityCore(scene: THREE.Scene, graph?: RoadGraph): CityCore {
   const woodTex = woodTexture()
   const metalTex = metalTexture()
   const litSheet = litWindowSheet()
-  const roadClearance = [
-    ...X_ROADS.map((x) => ({ x1: x, z1: Z_ROADS[0], x2: x, z2: Z_ROADS[Z_ROADS.length - 1], width: 2.6 })),
-    ...Z_ROADS.map((z) => ({ x1: X_ROADS[0], z1: z, x2: X_ROADS[X_ROADS.length - 1], z2: z, width: 2.6 })),
-  ]
   // One graph drives both asphalt and vehicle routes. Layout edits therefore
   // cannot leave traffic moving over stale, invisible straight lanes.
   const editableRoadGraph = graph ?? derivedRoadGraph()
@@ -407,8 +403,16 @@ export function buildCityCore(scene: THREE.Scene, graph?: RoadGraph): CityCore {
   // caller may hand in the live graph (the world's, when a stored document
   // was applied before the renderer booted); absent it the derived grid is
   // drawn — the tests measure the core against that default.
-  const roadGraph = withRegionalRoads(editableRoadGraph, regionalMassing)
+  const roadGraph =
+    'seed:0' in editableRoadGraph.nodes ? editableRoadGraph : withRegionalRoads(editableRoadGraph, regionalMassing)
   const roadLayer = createRoads(scene, roadGraph)
+  const roadClearance = Object.values(roadGraph.segments).map((segment) => ({
+    x1: roadGraph.nodes[segment.from].x,
+    z1: roadGraph.nodes[segment.from].z,
+    x2: roadGraph.nodes[segment.to].x,
+    z2: roadGraph.nodes[segment.to].z,
+    width: segment.width,
+  }))
 
   // ---- Regional biome vegetation -------------------------------------------
   // Two instanced meshes provide the island's ecological scale.  Candidate
@@ -1013,7 +1017,7 @@ export function buildCityCore(scene: THREE.Scene, graph?: RoadGraph): CityCore {
   const traffic = { body: trafficBody, cabin: trafficCabin, routes: makeTrafficRoutes(roadGraph) }
   const roads: RoadsApi = {
     rebuild(nextGraph): void {
-      const nextRegionalGraph = withRegionalRoads(nextGraph, regionalMassing)
+      const nextRegionalGraph = 'seed:0' in nextGraph.nodes ? nextGraph : withRegionalRoads(nextGraph, regionalMassing)
       roadLayer.rebuild(nextRegionalGraph)
       traffic.routes = makeTrafficRoutes(nextRegionalGraph)
     },
