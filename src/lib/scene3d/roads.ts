@@ -10,6 +10,59 @@
  * renderer; the city's scene module builds the geometry from this graph.
  */
 
+/** One centreline sample shared by the road mesh and the traffic layer. */
+export interface RoadPathSample {
+  x: number
+  z: number
+  tangentX: number
+  tangentZ: number
+}
+
+/**
+ * Deterministically sample the exact quadratic road centreline.  Traffic
+ * calls this same seam, so it can never drive a straight invisible lane
+ * while its visible asphalt bends beneath it.
+ */
+export function sampleRoadCurve(
+  x1: number,
+  z1: number,
+  x2: number,
+  z2: number,
+  curve: number,
+  id: string,
+  maxSpacing = 3.5,
+  inset = 0,
+): RoadPathSample[] {
+  const dx = x2 - x1
+  const dz = z2 - z1
+  const len = Math.hypot(dx, dz) || 1
+  const ux = dx / len
+  const uz = dz / len
+  let hash = 2166136261
+  for (let i = 0; i < id.length; i++) hash = Math.imul(hash ^ id.charCodeAt(i), 16777619)
+  const signedCurve = ((hash >>> 0) & 1 ? 1 : -1) * Math.min(len * 0.14, 2.1) * curve
+  const cx = (x1 + x2) / 2 - uz * signedCurve
+  const cz = (z1 + z2) / 2 + ux * signedCurve
+  const at = (t: number): { x: number; z: number } => {
+    const mt = 1 - t
+    return { x: mt * mt * x1 + 2 * mt * t * cx + t * t * x2, z: mt * mt * z1 + 2 * mt * t * cz + t * t * z2 }
+  }
+  const tangent = (t: number): { x: number; z: number } => ({
+    x: 2 * (1 - t) * (cx - x1) + 2 * t * (x2 - cx),
+    z: 2 * (1 - t) * (cz - z1) + 2 * t * (z2 - cz),
+  })
+  const edge = Math.min(Math.max(0, inset), len * 0.2) / len
+  const steps = Math.max(2, Math.ceil((len * (1 - edge * 2)) / maxSpacing))
+  const samples: RoadPathSample[] = []
+  for (let i = 0; i <= steps; i++) {
+    const t = edge + (1 - edge * 2) * (i / steps)
+    const p = at(t)
+    const d = tangent(t)
+    samples.push({ x: p.x, z: p.z, tangentX: d.x, tangentZ: d.z })
+  }
+  return samples
+}
+
 /** One node of the road graph. */
 export interface RoadNode {
   id: string
@@ -160,28 +213,38 @@ function segmentsOverlap(graph: RoadGraph, a: RoadSegment, b: RoadSegment): bool
     const product = Math.hypot(ax, az) * Math.hypot(bx, bz)
     return product === 0 || (ax * bx + az * bz) / product > Math.cos(Math.PI / 4)
   }
-  const cross = (p: RoadNode, q: RoadNode, r: RoadNode): number =>
-    (q.x - p.x) * (r.z - p.z) - (q.z - p.z) * (r.x - p.x)
-  const c1 = cross(a0, a1, b0)
-  const c2 = cross(a0, a1, b1)
-  const c3 = cross(b0, b1, a0)
-  const c4 = cross(b0, b1, a1)
-  if (c1 * c2 <= 0 && c3 * c4 <= 0) {
-    const overlapX =
-      Math.max(Math.min(a0.x, a1.x), Math.min(b0.x, b1.x)) <= Math.min(Math.max(a0.x, a1.x), Math.max(b0.x, b1.x))
-    const overlapZ =
-      Math.max(Math.min(a0.z, a1.z), Math.min(b0.z, b1.z)) <= Math.min(Math.max(a0.z, a1.z), Math.max(b0.z, b1.z))
-    if (overlapX && overlapZ) return true
+  const firstPoints = sampleRoadCurve(a0.x, a0.z, a1.x, a1.z, a.curve, a.id, 1)
+  const secondPoints = sampleRoadCurve(b0.x, b0.z, b1.x, b1.z, b.curve, b.id, 1)
+  const clearance = (a.width + b.width) / 2
+  interface Point {
+    x: number
+    z: number
   }
-  const distance = (p: RoadNode, start: RoadNode, end: RoadNode): number => {
+  const cross = (p: Point, q: Point, r: Point): number => (q.x - p.x) * (r.z - p.z) - (q.z - p.z) * (r.x - p.x)
+  const distance = (p: Point, start: Point, end: Point): number => {
     const dx = end.x - start.x
     const dz = end.z - start.z
     const lengthSq = dx * dx + dz * dz
     const t = lengthSq ? Math.max(0, Math.min(1, ((p.x - start.x) * dx + (p.z - start.z) * dz) / lengthSq)) : 0
     return Math.hypot(p.x - start.x - t * dx, p.z - start.z - t * dz)
   }
-  const clearance = (a.width + b.width) / 2
-  return Math.min(distance(a0, b0, b1), distance(a1, b0, b1), distance(b0, a0, a1), distance(b1, a0, a1)) < clearance
+  for (let i = 1; i < firstPoints.length; i++) {
+    const p = firstPoints[i - 1]
+    const q = firstPoints[i]
+    for (let j = 1; j < secondPoints.length; j++) {
+      const r = secondPoints[j - 1]
+      const s = secondPoints[j]
+      if (cross(p, q, r) * cross(p, q, s) <= 0 && cross(r, s, p) * cross(r, s, q) <= 0) {
+        const overlapX =
+          Math.max(Math.min(p.x, q.x), Math.min(r.x, s.x)) <= Math.min(Math.max(p.x, q.x), Math.max(r.x, s.x))
+        const overlapZ =
+          Math.max(Math.min(p.z, q.z), Math.min(r.z, s.z)) <= Math.min(Math.max(p.z, q.z), Math.max(r.z, s.z))
+        if (overlapX && overlapZ) return true
+      }
+      if (Math.min(distance(p, r, s), distance(q, r, s), distance(r, p, q), distance(s, p, q)) < clearance) return true
+    }
+  }
+  return false
 }
 
 /**

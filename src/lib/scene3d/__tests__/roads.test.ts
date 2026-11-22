@@ -19,6 +19,28 @@ const X_ROADS = [-80, -70, -60, -50, -40, -30, -20, -10, 0, 10, 20, 30]
 const Z_ROADS = [-60, -50, -40, -30, -20, -10, 0, 10, 20, 30, 40, 50, 60, 70]
 
 describe('the road network (R012.6)', () => {
+  // spec: OVERSTORY-CITY-R032
+  it('rejects a crossing on the bowed part of a curved road', () => {
+    const curve = sampleRoadCurve(0, 0, 20, 0, 1, 'curved', 1)
+    const midpoint = curve[Math.floor(curve.length / 2)]
+    const graph: RoadGraph = {
+      nodes: {
+        a: { id: 'a', x: 0, z: 0, kind: 'endpoint' },
+        b: { id: 'b', x: 20, z: 0, kind: 'endpoint' },
+        c: { id: 'c', x: midpoint.x, z: midpoint.z - 0.3, kind: 'endpoint' },
+        d: { id: 'd', x: midpoint.x, z: midpoint.z + 0.3, kind: 'endpoint' },
+      },
+      segments: { curved: { id: 'curved', from: 'a', to: 'b', curve: 1, width: 0.1 } },
+    }
+    expect(Math.abs(midpoint.z)).toBeGreaterThan(0.3)
+    expect(
+      validateRoadEdit(graph, {
+        kind: 'add-segment',
+        segment: { id: 'crossing', from: 'c', to: 'd', curve: 0, width: 0.1 },
+      }),
+    ).toEqual({ ok: false, reason: 'overlaps-existing-segment' })
+  })
+
   // spec: OVERSTORY-DESIGN-R012.6, OVERSTORY-CITY-R032
   it('rejects crossing and overlapping road corridors but permits shared junctions', () => {
     const graph: RoadGraph = {

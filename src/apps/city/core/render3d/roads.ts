@@ -14,7 +14,7 @@
 // spec: OVERSTORY-CITY-R032, OVERSTORY-DESIGN-R012.6
 import * as THREE from 'three'
 import { TRIM_SHEET } from '@/lib/scene3d/palette'
-import type { RoadGraph } from '@/lib/scene3d/roads'
+import { sampleRoadCurve, type RoadGraph } from '@/lib/scene3d/roads'
 import { ROAD_W } from '../layout'
 import { regionalTerrainHeight } from '../worldgen'
 import { sidewalkTexture, trimSheetTexture, zebraTexture } from './trimSheet'
@@ -48,58 +48,8 @@ const ROAD_WIDTH: Record<RoadClass, number> = {
   local: 1.65,
 }
 
-/** One centreline sample shared by the road mesh and the traffic layer. */
-export interface RoadPathSample {
-  x: number
-  z: number
-  tangentX: number
-  tangentZ: number
-}
-
-/**
- * Deterministically sample the exact quadratic road centreline.  Traffic
- * calls this same seam, so it can never drive a straight invisible lane
- * while its visible asphalt bends beneath it.
- */
-export function sampleRoadCurve(
-  x1: number,
-  z1: number,
-  x2: number,
-  z2: number,
-  curve: number,
-  id: string,
-  maxSpacing = 3.5,
-  inset = 0,
-): RoadPathSample[] {
-  const dx = x2 - x1
-  const dz = z2 - z1
-  const len = Math.hypot(dx, dz) || 1
-  const ux = dx / len
-  const uz = dz / len
-  let hash = 2166136261
-  for (let i = 0; i < id.length; i++) hash = Math.imul(hash ^ id.charCodeAt(i), 16777619)
-  const signedCurve = ((hash >>> 0) & 1 ? 1 : -1) * Math.min(len * 0.14, 2.1) * curve
-  const cx = (x1 + x2) / 2 - uz * signedCurve
-  const cz = (z1 + z2) / 2 + ux * signedCurve
-  const at = (t: number): { x: number; z: number } => {
-    const mt = 1 - t
-    return { x: mt * mt * x1 + 2 * mt * t * cx + t * t * x2, z: mt * mt * z1 + 2 * mt * t * cz + t * t * z2 }
-  }
-  const tangent = (t: number): { x: number; z: number } => ({
-    x: 2 * (1 - t) * (cx - x1) + 2 * t * (x2 - cx),
-    z: 2 * (1 - t) * (cz - z1) + 2 * t * (z2 - cz),
-  })
-  const edge = Math.min(Math.max(0, inset), len * 0.2) / len
-  const steps = Math.max(2, Math.ceil((len * (1 - edge * 2)) / maxSpacing))
-  const samples: RoadPathSample[] = []
-  for (let i = 0; i <= steps; i++) {
-    const t = edge + (1 - edge * 2) * (i / steps)
-    const p = at(t)
-    const d = tangent(t)
-    samples.push({ x: p.x, z: p.z, tangentX: d.x, tangentZ: d.z })
-  }
-  return samples
-}
+export { sampleRoadCurve } from '@/lib/scene3d/roads'
+export type { RoadPathSample } from '@/lib/scene3d/roads'
 
 function roadClassBetween(a: { x: number; z: number }, b: { x: number; z: number }): RoadClass {
   // The civic north/south spine and east/west waterfront connection are the
