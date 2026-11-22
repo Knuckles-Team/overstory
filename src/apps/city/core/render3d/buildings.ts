@@ -1024,6 +1024,12 @@ export function createBuildings(scene: THREE.Scene, world: World, markerRoot: TH
 
   function dispose(): void {
     unsubPulse()
+    for (const pulse of pulses) {
+      scene.remove(pulse.mesh)
+      const materials = Array.isArray(pulse.mesh.material) ? pulse.mesh.material : [pulse.mesh.material]
+      for (const material of materials) material.dispose()
+    }
+    pulses.length = 0
     for (const fig of queueFigs) scene.remove(fig)
     queueFigs.length = 0
     queueFigGeo.dispose()
@@ -1034,18 +1040,28 @@ export function createBuildings(scene: THREE.Scene, world: World, markerRoot: TH
     dressingGroups.clear()
     for (const c of constructionGroups.values()) disposeConstruction(c)
     constructionGroups.clear()
+    const geometries = new Set<THREE.BufferGeometry>()
+    const materials = new Set<THREE.Material>()
     for (const entry of buildingGroups.values()) {
       scene.remove(entry.group)
-      entry.coreGeo?.dispose()
-      entry.wallGeo?.dispose()
-      entry.windowGeo?.dispose()
-      entry.roofGeo?.dispose()
-      for (const material of entry.mats) material.dispose()
+      entry.group.traverse((object) => {
+        if (!isMesh(object)) return
+        geometries.add(object.geometry)
+        const material = object.material
+        if (Array.isArray(material)) material.forEach((item) => materials.add(item))
+        else materials.add(material)
+      })
     }
+    for (const geometry of geometries) geometry.dispose()
+    for (const material of materials) material.dispose()
     buildingGroups.clear()
     plotMarkerGeo.dispose()
     plotMarkerMat.dispose()
     pulseGeo.dispose()
+    for (const geometry of [dressingPatchGeo, plazaPatchGeo, treeGeo, benchGeo, signGeo, binGeo]) geometry.dispose()
+    for (const material of [wallTemplate, windowTemplate, roofTemplate, propMat, doorMat, parkMat, plazaMat])
+      material.dispose()
+    for (const texture of [trimTex, litSheet, roofSheet]) texture.dispose()
   }
 
   return { syncBuildings, update, dispose }
