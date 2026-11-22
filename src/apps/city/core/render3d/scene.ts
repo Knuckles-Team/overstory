@@ -32,7 +32,7 @@ import {
 } from '@/lib/scene3d/pipeline'
 import { buildingAsset, mulberry32, propAsset } from '@/lib/scene3d/generators'
 import { ARCHETYPE_GUIDE, SCENE_COLORS } from '@/lib/scene3d/palette'
-import { BUILDING_POS, GROUND_SIZE, HOUSES, PARKS, PIER, PLOTS, SHIPS, WATER_Z, X_ROADS, Z_ROADS } from '../layout'
+import { BUILDING_POS, GROUND_SIZE, HOUSES, PARKS, PLOTS, WATER_Z, X_ROADS, Z_ROADS } from '../layout'
 import {
   clearPropPositions,
   clearsRoad,
@@ -164,10 +164,6 @@ export interface CityCore {
   groundHeight: (x: number, z: number) => number
   /** Streetlamp glow sprites (the night ambience). */
   lampGlowMaterial: THREE.MeshBasicMaterial
-  /** The ship groups (the bobbing). */
-  ships: THREE.Group[]
-  /** The ship bob phases, one per ship. */
-  shipPhases: number[]
   /**
    * Batched vessels use the harbour as playable scenery: cargo, fishing,
    * yachts, kayaks and personal watercraft share three instanced meshes.
@@ -176,13 +172,6 @@ export interface CityCore {
     hull: THREE.InstancedMesh
     cabin: THREE.InstancedMesh
     mast: THREE.InstancedMesh
-    routes: {
-      radiusX: number
-      radiusZ: number
-      phase: number
-      speed: number
-      kind: 'cargo' | 'fishing' | 'yacht' | 'kayak' | 'jetski'
-    }[]
   }
   /** Distant aircraft that give the skyline a living scale reference. */
   aircraft: THREE.Group[]
@@ -283,7 +272,7 @@ function withRegionalRoads(base: RoadGraph, massing: readonly RegionalMassing[])
 export function buildCityCore(
   scene: THREE.Scene,
   graph?: RoadGraph,
-  layoutWorld?: Pick<World, 'buildings' | 'plots' | 'homes' | 'regionalMassing'>,
+  layoutWorld?: Pick<World, 'buildings' | 'plots' | 'homes' | 'regionalMassing'> & Partial<Pick<World, 'waterFleet'>>,
 ): CityCore {
   // The city's authored maps (R012.2): every non-marker surface in the
   // scene carries one of these — the material audit enforces it.
@@ -642,40 +631,12 @@ export function buildCityCore(
   shore.position.set(0, 0.04, WATER_Z - 0.4)
   scene.add(shore)
 
-  const pier = new THREE.Mesh(
-    new THREE.BoxGeometry(PIER.w, 0.4, PIER.z1 - PIER.z0 + 1),
-    new THREE.MeshStandardMaterial({ map: woodTex, roughness: 1 }),
-  )
-  pier.position.set(PIER.x, 0.2, (PIER.z0 + PIER.z1) / 2)
-  pier.castShadow = true
-  scene.add(pier)
-
-  const hullMat = new THREE.MeshStandardMaterial({ map: metalTex, roughness: 0.5, metalness: 0.3 })
-  const cabinMat = new THREE.MeshStandardMaterial({ map: woodTex, roughness: 0.9 })
-  const flagMat = new THREE.MeshStandardMaterial({ map: parkTex, roughness: 0.9 })
-  const ships = SHIPS.map((s) => {
-    const g = new THREE.Group()
-    const hull = new THREE.Mesh(new THREE.BoxGeometry(3.2, 0.7, 1.5), hullMat)
-    hull.position.y = 0.35
-    const cabin = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.6, 1.1), cabinMat)
-    cabin.position.set(-0.7, 0.95, 0)
-    const flag = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.5, 0.3), flagMat)
-    flag.position.set(1.2, 1.2, 0)
-    g.add(hull, cabin, flag)
-    g.position.set(s.x, 0.35, s.z)
-    scene.add(g)
-    return g
-  })
-  // Bob phases live in a typed array next to the ships (Object3D.userData is
-  // an untyped bag the strict lint rules refuse to trust).
-  const shipPhases = SHIPS.map((_, i) => i * 1.7)
-
   // The island's water is part of the world, not a skybox.  A compact
   // instanced fleet gives the harbour traffic at nearly constant render cost:
   // shared hull/cabin/mast geometry covers freight, fishing, leisure and
   // small water-sport craft without one Object3D tree per vehicle.
-  const vesselKinds = ['cargo', 'fishing', 'yacht', 'yacht', 'kayak', 'kayak', 'jetski', 'jetski', 'fishing'] as const
-  type VesselKind = (typeof vesselKinds)[number]
+  const vesselKinds = (layoutWorld?.waterFleet ?? []).map((vessel) => vessel.kind)
+  type VesselKind = 'fishing' | 'yacht' | 'kayak'
   const vesselHullMat = new THREE.MeshStandardMaterial({
     map: metalTex,
     color: 0xffffff,
@@ -699,30 +660,19 @@ export function buildCityCore(
     hull: new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), vesselHullMat, vesselKinds.length),
     cabin: new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), vesselCabinMat, vesselKinds.length),
     mast: new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), vesselMastMat, vesselKinds.length),
-    routes: vesselKinds.map((kind, index) => ({
-      kind,
-      // This loop is entirely inside the broadest part of the harbour bay;
-      // it is intentionally not a synthetic straight line across dry land.
-      radiusX: 55 + (index % 3) * 23,
-      radiusZ: 20 + (index % 2) * 11,
-      phase: (index / vesselKinds.length) * Math.PI * 2,
-      speed: 0.055 + (index % 4) * 0.012,
-    })),
   }
   const vesselColors: Record<VesselKind, THREE.Color> = {
-    cargo: new THREE.Color('#c05c3e'),
     fishing: new THREE.Color('#f1d39a'),
     yacht: new THREE.Color('#f4f4e8'),
     kayak: new THREE.Color('#e8a53a'),
-    jetski: new THREE.Color('#38a7b8'),
   }
-  for (let i = 0; i < watercraft.routes.length; i++) {
-    const colour = vesselColors[watercraft.routes[i]?.kind ?? 'yacht']
+  for (let i = 0; i < vesselKinds.length; i++) {
+    const colour = vesselColors[vesselKinds[i] ?? 'yacht']
     watercraft.hull.setColorAt(i, colour)
     watercraft.mast.setColorAt(i, colour)
   }
-  watercraft.hull.instanceColor!.needsUpdate = true
-  watercraft.mast.instanceColor!.needsUpdate = true
+  if (watercraft.hull.instanceColor) watercraft.hull.instanceColor.needsUpdate = true
+  if (watercraft.mast.instanceColor) watercraft.mast.instanceColor.needsUpdate = true
   watercraft.hull.castShadow = watercraft.cabin.castShadow = watercraft.mast.castShadow = true
   scene.add(watercraft.hull, watercraft.cabin, watercraft.mast)
 
@@ -1028,8 +978,6 @@ export function buildCityCore(
     houses,
     groundHeight: visibleGroundHeight,
     lampGlowMaterial,
-    ships,
-    shipPhases,
     watercraft,
     aircraft,
     traffic,
@@ -1367,45 +1315,21 @@ export function createCityScene(container: HTMLElement, world: World, opts: City
     // Lamps with the night (R031 ambient life).
     core.lampGlowMaterial.opacity = 0.55 * night
 
-    // Ships bobbing.
-    for (let i = 0; i < core.ships.length; i++) {
-      const s = core.ships[i]
-      s.position.y = 0.35 + Math.sin(clockS * 0.8 + core.shipPhases[i]) * 0.06
-      s.rotation.z = Math.sin(clockS * 0.6 + core.shipPhases[i]) * 0.02
-    }
-
-    // Harbour craft follow slow deterministic water circuits. Updating their
-    // existing instance matrices avoids the allocation and scene traversal
-    // cost that made prior long-open sessions degrade over time.
-    for (let i = 0; i < core.watercraft.routes.length; i++) {
-      const route = core.watercraft.routes[i]
-      const t = clockS * route.speed + route.phase
-      const x = -10 + Math.cos(t) * route.radiusX
-      const z = 150 + Math.sin(t) * route.radiusZ
-      const heading = Math.atan2(Math.cos(t) * route.radiusZ, -Math.sin(t) * route.radiusX)
+    // Both renderers consume the simulation's depth-checked vessel positions.
+    for (let i = 0; i < world.waterFleet.length; i++) {
+      const route = world.waterFleet[i]
+      const { x, z, heading } = route
       const bob = 0.18 + Math.sin(clockS * 1.1 + i * 0.77) * 0.035
       const hullScale =
-        route.kind === 'cargo'
-          ? [7.5, 0.85, 2.7]
-          : route.kind === 'fishing'
-            ? [4.2, 0.64, 1.65]
-            : route.kind === 'yacht'
-              ? [5.1, 0.56, 1.72]
-              : route.kind === 'kayak'
-                ? [2.2, 0.22, 0.58]
-                : [1.6, 0.25, 0.72]
-      const hasCabin = route.kind !== 'kayak' && route.kind !== 'jetski'
-      const hasMast = route.kind === 'cargo' || route.kind === 'fishing' || route.kind === 'yacht'
+        route.kind === 'fishing' ? [4.2, 0.64, 1.65] : route.kind === 'yacht' ? [5.1, 0.56, 1.72] : [2.2, 0.22, 0.58]
+      const hasCabin = route.kind !== 'kayak'
+      const hasMast = route.kind === 'fishing' || route.kind === 'yacht'
       vesselTransform.position.set(x, bob, z)
       vesselTransform.rotation.set(0, heading, 0)
       vesselTransform.scale.set(hullScale[0], hullScale[1], hullScale[2])
       vesselTransform.updateMatrix()
       core.watercraft.hull.setMatrixAt(i, vesselTransform.matrix)
-      vesselTransform.position.set(
-        x - Math.sin(heading) * (route.kind === 'cargo' ? 0.9 : 0.35),
-        bob + 0.6,
-        z - Math.cos(heading) * (route.kind === 'cargo' ? 0.9 : 0.35),
-      )
+      vesselTransform.position.set(x - Math.cos(heading) * 0.35, bob + 0.6, z + Math.sin(heading) * 0.35)
       vesselTransform.scale.set(
         hasCabin ? hullScale[0] * 0.32 : 0.01,
         hasCabin ? 0.7 : 0.01,
@@ -1414,9 +1338,9 @@ export function createCityScene(container: HTMLElement, world: World, opts: City
       vesselTransform.updateMatrix()
       core.watercraft.cabin.setMatrixAt(i, vesselTransform.matrix)
       vesselTransform.position.set(
-        x + Math.sin(heading) * hullScale[0] * 0.12,
+        x + Math.cos(heading) * hullScale[0] * 0.12,
         bob + 1.1,
-        z + Math.cos(heading) * hullScale[0] * 0.12,
+        z - Math.sin(heading) * hullScale[0] * 0.12,
       )
       vesselTransform.scale.set(
         hasMast ? 0.08 : 0.01,

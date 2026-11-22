@@ -656,7 +656,7 @@ export default function CityPage() {
           audio.update(renderer?.fidelity?.camera.position.y ?? AUDIO_OVERVIEW_HEIGHT, false)
         }
         let stageStart = meter ? performance.now() : 0
-        if (speed > 0) tickSim(dt * world.timeScale * speed, dt * speed)
+        if (speed > 0) tickSim(dt * world.timeScale * speed, dt * speed, dt)
         if (meter) {
           const now = performance.now()
           simulationMs += now - stageStart

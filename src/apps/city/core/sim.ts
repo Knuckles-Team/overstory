@@ -26,6 +26,7 @@ import {
 import { BUILDING_POS, PLOTS, HOUSES, buildingDoor, plotDoor, findPath, type Vec2 } from './layout'
 import { pathOn, type RoadGraph } from '@/lib/scene3d/roads'
 import { makeTrafficRoutes, tickTraffic, type TrafficFleet } from './render3d/traffic'
+import { createWaterFleet, tickWaterFleet, type WaterVessel } from './waterways'
 import {
   CITY_WORLD_SEED,
   generateFrontageSites,
@@ -278,6 +279,7 @@ export const world = {
   roadGraph: null as RoadGraph | null,
   /** Ambient vehicles belong to the world, not either renderer. */
   traffic: null as TrafficFleet | null,
+  waterFleet: [] as WaterVessel[],
   /** District style overrides: domain → archetype (R032); empty when derived. */
   districtStyles: {} as Record<string, string>,
   /** The stored layout override document applied to this world (R032). */
@@ -450,6 +452,7 @@ export function initSim(connectors: ConnectorDef[]): void {
   world.connectors = connectors
   world.absGameS = world.clock
   world.roadGraph = derivedRoadGraph()
+  world.waterFleet = createWaterFleet(CITY_WORLD_SEED)
   world.traffic = null
   let coreSites: FrontageSite[] = []
   if ('seed:0' in world.roadGraph.nodes) {
@@ -1151,11 +1154,12 @@ function tickAgent(ch: Character, dtReal: number): void {
 
 // ---- Main tick ------------------------------------------------------------
 
-export function tickSim(dtGame: number, dtReal: number): void {
+export function tickSim(dtGame: number, dtReal: number, dtWall = dtReal): void {
   if (world.roadGraph && world.traffic?.graph !== world.roadGraph) {
     world.traffic = { graph: world.roadGraph, routes: makeTrafficRoutes(world.roadGraph), elapsed: 0, positions: [] }
   }
   if (world.traffic) tickTraffic(world.traffic, dtReal)
+  tickWaterFleet(world.waterFleet, dtWall)
   world.clock += dtGame
   world.absGameS += dtGame
   if (world.clock >= 86400) {
@@ -1266,6 +1270,7 @@ export function resetSim(): void {
   world.overflow = []
   world.roadGraph = null
   world.traffic = null
+  world.waterFleet = []
   world.districtStyles = {}
   world.layoutDoc = null
   world.initialized = false

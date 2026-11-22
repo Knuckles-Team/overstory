@@ -4,7 +4,7 @@
  * (OVERSTORY-CITY-R015). Same city graph, same characters, same events — a
  * view over the shared world state, never a second system.
  */
-import { GROUND_SIZE, PLOT_W, PARKS, PIER } from './layout'
+import { GROUND_SIZE, PLOT_W, PARKS } from './layout'
 import { encodingColor, stateColor } from './encoding'
 import { world as simWorld } from './sim'
 import { isRegionalWater } from './worldgen'
@@ -204,9 +204,15 @@ export function init2D(
       }
     }
 
-    // Pier.
-    ctx.fillStyle = '#8a6f4d'
-    ctx.fillRect(px(PIER.x - PIER.w / 2), pz(PIER.z0), PIER.w * scale, (PIER.z1 - PIER.z0) * scale)
+    // Vessels share their real-time positions with the 3D view.
+    ctx.fillStyle = '#fff1cc'
+    for (const vessel of world.waterFleet) {
+      ctx.save()
+      ctx.translate(px(vessel.x), pz(vessel.z))
+      ctx.rotate(-vessel.heading)
+      ctx.fillRect(-2 * scale, -0.65 * scale, 4 * scale, 1.3 * scale)
+      ctx.restore()
+    }
 
     // Parks.
     ctx.fillStyle = '#85b874'

@@ -220,10 +220,8 @@ describe('performance budgets measured from the real scene graph (R028)', () => 
 
   it('the static city core is measured, and its geometry is real', () => {
     const core = buildCityCore(new THREE.Scene())
-    expect(core.ships.length).toBeGreaterThan(0)
-    expect(core.watercraft.routes.map((route) => route.kind)).toEqual(
-      expect.arrayContaining(['cargo', 'fishing', 'yacht', 'kayak', 'jetski']),
-    )
+    expect(core.watercraft.hull).toBeInstanceOf(THREE.InstancedMesh)
+    expect(core.watercraft.cabin).toBeInstanceOf(THREE.InstancedMesh)
     expect(core.houseWindows.length).toBeGreaterThan(0)
     expect(core.lampGlowMaterial).toBeInstanceOf(THREE.MeshBasicMaterial)
     expect(core.traffic.routes).toHaveLength(28)
