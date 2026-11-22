@@ -1435,9 +1435,14 @@ export function createCityScene(container: HTMLElement, world: World, opts: City
       const t = Math.min(1, Math.max(0, (distance - startDistance) / span))
       const dx = end.x - start.x
       const dz = end.z - start.z
-      const length = Math.hypot(dx, dz) || 1
-      const x = start.x + dx * t + (-dz / length) * route.laneOffset
-      const z = start.z + dz * t + (dx / length) * route.laneOffset
+      const startLength = Math.hypot(start.tangentX, start.tangentZ) || 1
+      const endLength = Math.hypot(end.tangentX, end.tangentZ) || 1
+      const startX = start.x - (start.tangentZ / startLength) * route.laneOffset
+      const startZ = start.z + (start.tangentX / startLength) * route.laneOffset
+      const endX = end.x - (end.tangentZ / endLength) * route.laneOffset
+      const endZ = end.z + (end.tangentX / endLength) * route.laneOffset
+      const x = startX + (endX - startX) * t
+      const z = startZ + (endZ - startZ) * t
       const roadY = regionalTerrainHeight(x, z)
       trafficTransform.position.set(x, roadY + 0.34, z)
       trafficTransform.rotation.set(0, Math.atan2(-dz, dx), 0)
