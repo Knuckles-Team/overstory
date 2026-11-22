@@ -181,6 +181,75 @@ export function isRegionalWater(x: number, z: number, seed = CITY_WORLD_SEED, se
   return Math.abs(x - riverCentreAt(z)) < RIVER_HALF_WIDTH + setback
 }
 
+/** Height of the same triangulated ground mesh used by the renderer. */
+export function islandSurfaceHeight(x: number, z: number, seed = CITY_WORLD_SEED): number {
+  const cells = 72,
+    size = 900,
+    step = size / cells
+  const gridX = (x + size / 2) / step,
+    gridZ = (z + size / 2) / step
+  const ix = Math.max(0, Math.min(cells - 1, Math.floor(gridX)))
+  const iz = Math.max(0, Math.min(cells - 1, Math.floor(gridZ)))
+  const u = gridX - ix,
+    v = gridZ - iz
+  const height = (gx: number, gz: number): number => {
+    const px = gx * step - size / 2,
+      pz = gz * step - size / 2
+    return isRegionalWater(px, pz, seed) ? -1.25 : regionalTerrainHeight(px, pz, seed)
+  }
+  const a = height(ix, iz),
+    b = height(ix, iz + 1),
+    c = height(ix + 1, iz + 1),
+    d = height(ix + 1, iz)
+  return u + v <= 1 ? a * (1 - u - v) + b * v + d * u : c * (u + v - 1) + b * (1 - u) + d * (1 - v)
+}
+
+export interface RegionalPlant {
+  x: number
+  z: number
+  scale: number
+  biome: RegionalBiome
+}
+
+/** Seeded vegetation is shared world data, with clearance from water, paths, roads and parcels. */
+export function generateRegionalPlants(
+  graph: RoadGraph,
+  seed: number,
+  obstacles: readonly WorldRect[],
+  paths: readonly { roadX: number; roadZ: number; entranceX: number; entranceZ: number }[] = [],
+): RegionalPlant[] {
+  const roads = Object.values(graph.segments).flatMap((segment) => {
+    const a = graph.nodes[segment.from],
+      b = graph.nodes[segment.to]
+    if (!(segment.from in graph.nodes) || !(segment.to in graph.nodes)) return []
+    const samples = sampleRoadCurve(a.x, a.z, b.x, b.z, segment.curve, segment.id, 2)
+    return samples
+      .slice(1)
+      .map((p, index) => ({ x1: samples[index].x, z1: samples[index].z, x2: p.x, z2: p.z, width: segment.width }))
+  })
+  const rand = mulberry32(seed ^ 0x6c616e64)
+  const plants: RegionalPlant[] = []
+  for (let z = -330; z <= 330; z += 24)
+    for (let x = -390; x <= 390; x += 24) {
+      const px = x + (rand() - 0.5) * 15,
+        pz = z + (rand() - 0.5) * 15
+      const footprint = { x: px, z: pz, w: 4.4, d: 4.4 }
+      if (!isDryFootprint(footprint, 0, seed) || islandSurfaceHeight(px, pz, seed) <= SEA_LEVEL_M + 0.1) continue
+      if (!clearsRoad(px, pz, roads, 2.5)) continue
+      if (obstacles.some((obstacle) => rectsOverlap(footprint, obstacle, 0.5))) continue
+      if (
+        paths.some(
+          (path) => pointSegmentDistanceSq(px, pz, path.roadX, path.roadZ, path.entranceX, path.entranceZ) < 9,
+        )
+      )
+        continue
+      const biome = regionalBiome(px, pz)
+      const probability = biome === 'jungle' ? 0.92 : biome === 'alpine' ? 0.68 : biome === 'sand' ? 0.26 : 0.5
+      if (rand() <= probability) plants.push({ x: px, z: pz, scale: 0.72 + rand() * 0.9, biome })
+    }
+  return plants
+}
+
 /** Survey the rotated foundation in bounded cells, with clearance at each sample. */
 export function isDryFootprint(rect: WorldRect, yaw = 0, seed = CITY_WORLD_SEED): boolean {
   if (![rect.x, rect.z, rect.w, rect.d, yaw].every(Number.isFinite) || rect.w <= 0 || rect.d <= 0) return false

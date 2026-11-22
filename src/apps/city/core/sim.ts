@@ -31,8 +31,10 @@ import {
   CITY_WORLD_SEED,
   generateFrontageSites,
   generateRoadsideMassing,
+  generateRegionalPlants,
   type FrontageSite,
   type RegionalMassing,
+  type RegionalPlant,
 } from './worldgen'
 import { applyDocument, derivedRoadGraph, type LayoutOverride } from './layoutEdit'
 import { bus, makeEvent, type CityEvent } from './events'
@@ -251,6 +253,7 @@ export const world = {
   characters: [] as Character[],
   buildings: {} as Record<string, Building>,
   regionalMassing: [] as RegionalMassing[],
+  regionalPlants: [] as RegionalPlant[],
   homes: HOUSES.map((home) => ({ ...home })) as (Vec2 & { access?: FrontageSite })[],
   plots: PLOTS.map((p) => ({
     x: p.x,
@@ -527,6 +530,28 @@ export function initSim(connectors: ConnectorDef[]): void {
       ...world.homes.map((home) => ({ ...home, w: 4, d: 4 })),
     ])
   }
+
+  const plantObstacles = [
+    ...Object.values(world.buildings),
+    ...world.plots.map((plot) => ({ ...plot, w: 5.6, d: 5.6 })),
+    ...world.homes.map((home) => ({ ...home, w: 4, d: 4 })),
+    ...world.regionalMassing.map((building) => ({
+      ...building,
+      w: Math.hypot(building.w, building.d),
+      d: Math.hypot(building.w, building.d),
+    })),
+  ]
+  const plantPaths = [
+    ...Object.values(world.buildings).flatMap((building) => (building.access ? [building.access] : [])),
+    ...world.plots.flatMap((plot) => (plot.access ? [plot.access] : [])),
+    ...world.homes.flatMap((home) => (home.access ? [home.access] : [])),
+    ...world.regionalMassing.flatMap((building) =>
+      building.access
+        ? [{ ...building.access, entranceX: building.access.doorX, entranceZ: building.access.doorZ }]
+        : [],
+    ),
+  ]
+  world.regionalPlants = generateRegionalPlants(world.roadGraph, CITY_WORLD_SEED, plantObstacles, plantPaths)
 
   ROSTER.forEach((r, i) => {
     const ch = new Character(r, i)
@@ -1253,6 +1278,7 @@ export function resetSim(): void {
   world.characters = []
   world.buildings = {}
   world.regionalMassing = []
+  world.regionalPlants = []
   world.homes = HOUSES.map((home) => ({ ...home }))
   world.plots = PLOTS.map((p) => ({
     x: p.x,

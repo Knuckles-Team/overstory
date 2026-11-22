@@ -76,6 +76,24 @@ describe('city scene steady state', () => {
     core.roads.dispose()
   })
 
+  // spec: OVERSTORY-CITY-R048.9.1
+  it('renders exactly the vegetation positions held in the shared world', () => {
+    initSim(fleetToConnectors(FLEET_SNAPSHOT))
+    const scene = new THREE.Scene()
+    const core = buildCityCore(scene, world.roadGraph ?? undefined, world)
+    const trunks = scene.getObjectByName('regional-vegetation-trunks') as THREE.InstancedMesh
+    expect(trunks.count).toBe(world.regionalPlants.length)
+    const matrix = new THREE.Matrix4()
+    const position = new THREE.Vector3()
+    for (let i = 0; i < trunks.count; i++) {
+      trunks.getMatrixAt(i, matrix)
+      position.setFromMatrixPosition(matrix)
+      expect(position.x).toBeCloseTo(world.regionalPlants[i].x, 4)
+      expect(position.z).toBeCloseTo(world.regionalPlants[i].z, 4)
+    }
+    core.roads.dispose()
+  })
+
   // spec: OVERSTORY-CITY-R032
   it('closes the sampled traffic path before its distance wraps', () => {
     const core = buildCityCore(new THREE.Scene())

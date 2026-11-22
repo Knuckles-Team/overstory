@@ -4,6 +4,9 @@ import {
   cityWorldSeed,
   clearsRoad,
   generateRegionalMassing,
+  generateRegionalPlants,
+  islandSurfaceHeight,
+  SEA_LEVEL_M,
   generateRegionalTiles,
   generateRoadsideMassing,
   generateRoadsideProps,
@@ -20,7 +23,7 @@ import {
   validateGeneratedLayout,
 } from '../core/worldgen'
 import { BUILDING_POS, HOUSES, PLOTS, inWater } from '../core/layout'
-import { graphConnected } from '@/lib/scene3d/roads'
+import { graphConnected, sampleRoadCurve } from '@/lib/scene3d/roads'
 
 describe('deterministic world generation', () => {
   it('derives dry, nonoverlapping building sites and entrances from roads', () => {
@@ -45,6 +48,29 @@ describe('deterministic world generation', () => {
       expect(isDryFootprint(site, 0, seed)).toBe(true)
       expect(Math.hypot(site.roadX - site.entranceX, site.roadZ - site.entranceZ)).toBeGreaterThan(0)
       expect(sites.filter((other) => other !== site).every((other) => !rectsOverlap(site, other, 1))).toBe(true)
+    }
+  })
+  // spec: OVERSTORY-CITY-R048.9.1
+  it('generates seed-specific vegetation on visible dry ground away from road and parcel footprints', () => {
+    const graph = generateIslandRoads(48, [])
+    const obstacle = { x: -100, z: -100, w: 50, d: 50 }
+    const plants = generateRegionalPlants(graph, 48, [obstacle])
+    expect(plants.length).toBeGreaterThan(50)
+    expect(plants).toEqual(generateRegionalPlants(graph, 48, [obstacle]))
+    expect(plants).not.toEqual(generateRegionalPlants(graph, 49, [obstacle]))
+    const roads = Object.values(graph.segments).flatMap((segment) => {
+      const a = graph.nodes[segment.from],
+        b = graph.nodes[segment.to]
+      const points = sampleRoadCurve(a.x, a.z, b.x, b.z, segment.curve, segment.id, 2)
+      return points
+        .slice(1)
+        .map((point, i) => ({ x1: points[i].x, z1: points[i].z, x2: point.x, z2: point.z, width: segment.width }))
+    })
+    for (const plant of plants) {
+      expect(isDryFootprint({ ...plant, w: 4.4, d: 4.4 }, 0, 48)).toBe(true)
+      expect(islandSurfaceHeight(plant.x, plant.z, 48)).toBeGreaterThan(SEA_LEVEL_M + 0.1)
+      expect(rectsOverlap({ ...plant, w: 4.4, d: 4.4 }, obstacle, 0.5)).toBe(false)
+      expect(clearsRoad(plant.x, plant.z, roads, 2.5)).toBe(true)
     }
   })
   it('places roadside furniture deterministically on dry, unobstructed road frontage', () => {

@@ -4,7 +4,7 @@
  * (OVERSTORY-CITY-R015). Same city graph, same characters, same events — a
  * view over the shared world state, never a second system.
  */
-import { GROUND_SIZE, PLOT_W, PARKS } from './layout'
+import { GROUND_SIZE, PLOT_W } from './layout'
 import { encodingColor, stateColor } from './encoding'
 import { world as simWorld } from './sim'
 import { isRegionalWater } from './worldgen'
@@ -214,11 +214,11 @@ export function init2D(
       ctx.restore()
     }
 
-    // Parks.
-    ctx.fillStyle = '#85b874'
-    for (const pk of PARKS) {
+    // The same generated vegetation that the 3D view renders.
+    ctx.fillStyle = '#376f43'
+    for (const plant of world.regionalPlants) {
       ctx.beginPath()
-      ctx.arc(px(pk.x), pz(pk.z), 4.5 * scale, 0, Math.PI * 2)
+      ctx.arc(px(plant.x), pz(plant.z), Math.max(0.7, 1.2 * plant.scale * scale), 0, Math.PI * 2)
       ctx.fill()
     }
 

@@ -30,14 +30,13 @@ import {
   type PipelineRenderer,
   type ScenePipeline,
 } from '@/lib/scene3d/pipeline'
-import { buildingAsset, mulberry32, propAsset } from '@/lib/scene3d/generators'
+import { buildingAsset, propAsset } from '@/lib/scene3d/generators'
 import { ARCHETYPE_GUIDE, SCENE_COLORS } from '@/lib/scene3d/palette'
-import { BUILDING_POS, GROUND_SIZE, HOUSES, PARKS, PLOTS, WATER_Z, X_ROADS, Z_ROADS } from '../layout'
+import { BUILDING_POS, GROUND_SIZE, HOUSES, PLOTS, X_ROADS, Z_ROADS } from '../layout'
 import {
-  clearPropPositions,
-  clearsRoad,
   CITY_WORLD_SEED,
   generateRegionalMassing,
+  generateRegionalPlants,
   generateRoadsideMassing,
   generateRoadsideProps,
   islandCoastPoint,
@@ -195,16 +194,6 @@ export interface CityCore {
   roads: RoadsApi
 }
 
-/** Deterministic per-park seed (R014): the scene core never calls Math.random. */
-function parkSeed(x: number, z: number): number {
-  let h = 2166136261 >>> 0
-  for (const v of [Math.round(x * 1000), Math.round(z * 1000)]) {
-    h ^= v
-    h = Math.imul(h, 16777619) >>> 0
-  }
-  return h >>> 0
-}
-
 /**
  * Extend the editable basin graph into deterministic regional access roads.
  * Background buildings are non-interactive scenery, but they must still be
@@ -272,7 +261,8 @@ function withRegionalRoads(base: RoadGraph, massing: readonly RegionalMassing[])
 export function buildCityCore(
   scene: THREE.Scene,
   graph?: RoadGraph,
-  layoutWorld?: Pick<World, 'buildings' | 'plots' | 'homes' | 'regionalMassing'> & Partial<Pick<World, 'waterFleet'>>,
+  layoutWorld?: Pick<World, 'buildings' | 'plots' | 'homes' | 'regionalMassing'> &
+    Partial<Pick<World, 'waterFleet' | 'regionalPlants'>>,
 ): CityCore {
   // The city's authored maps (R012.2): every non-marker surface in the
   // scene carries one of these — the material audit enforces it.
@@ -483,49 +473,13 @@ export function buildCityCore(
   const roadGraph =
     'seed:0' in editableRoadGraph.nodes ? editableRoadGraph : withRegionalRoads(editableRoadGraph, regionalMassing)
   const roadLayer = createRoads(scene, roadGraph)
-  const roadClearance = Object.values(roadGraph.segments).map((segment) => ({
-    x1: roadGraph.nodes[segment.from].x,
-    z1: roadGraph.nodes[segment.from].z,
-    x2: roadGraph.nodes[segment.to].x,
-    z2: roadGraph.nodes[segment.to].z,
-    width: segment.width,
-  }))
-
   // ---- Regional biome vegetation -------------------------------------------
   // Two instanced meshes provide the island's ecological scale.  Candidate
   // positions are generated once from the world seed and rejected against
   // water, the serviced basin, regional roads and building footprints; this
   // is generation-time collision control, never a per-frame physics pass.
-  const regionalRoadClearance = Object.values(roadGraph.segments).flatMap((segment) => {
-    if (!(segment.from in roadGraph.nodes) || !(segment.to in roadGraph.nodes)) return []
-    const a = roadGraph.nodes[segment.from]
-    const b = roadGraph.nodes[segment.to]
-    return [{ x1: a.x, z1: a.z, x2: b.x, z2: b.z, width: segment.width }]
-  })
-  const regionalPlants: { x: number; z: number; scale: number; biome: ReturnType<typeof regionalBiome> }[] = []
-  const foliageRand = mulberry32(0x6c616e64)
-  for (let z = -330; z <= 270; z += 24) {
-    for (let x = -360; x <= 360; x += 24) {
-      const px = x + (foliageRand() - 0.5) * 15
-      const pz = z + (foliageRand() - 0.5) * 15
-      if (px > -112 && px < 124 && pz > -96 && pz < 104) continue
-      if (isRegionalWater(px, pz) || visibleGroundHeight(px, pz) <= SEA_LEVEL_M + 0.1) continue
-      if (!clearsRoad(px, pz, regionalRoadClearance, 3.4)) continue
-      if (
-        regionalMassing.some(
-          (building) =>
-            Math.abs(px - building.x) < building.w * 0.8 + 3 && Math.abs(pz - building.z) < building.d * 0.8 + 3,
-        )
-      )
-        continue
-      const biome = regionalBiome(px, pz)
-      // Sandy shores remain open, while jungle and alpine zones get the
-      // density needed to establish an actual ecological silhouette.
-      const probability = biome === 'jungle' ? 0.92 : biome === 'alpine' ? 0.68 : biome === 'sand' ? 0.26 : 0.5
-      if (foliageRand() > probability) continue
-      regionalPlants.push({ x: px, z: pz, scale: 0.72 + foliageRand() * 0.9, biome })
-    }
-  }
+  const regionalPlants =
+    layoutWorld?.regionalPlants ?? generateRegionalPlants(roadGraph, CITY_WORLD_SEED, regionalMassing)
   const regionalTrunkGeo = new THREE.CylinderGeometry(0.09, 0.18, 3.4, 6)
   // A fuller crown avoids the flat, lollipop silhouette that a vertically
   // compressed icosahedron produced in the regional overview.
@@ -611,25 +565,6 @@ export function buildCityCore(
   )
   coastline.receiveShadow = true
   scene.add(coastline)
-
-  // A compact civic beach gives the harbour its own walkable waterfront;
-  // unlike the previous strip it does not imply that the harbour is the map
-  // boundary or cut straight through the rest of the island.
-  const beach = new THREE.Mesh(
-    new THREE.PlaneGeometry(250, 5.5),
-    new THREE.MeshStandardMaterial({ map: woodTex, color: 0xffd68a, roughness: 1 }),
-  )
-  beach.rotation.x = -Math.PI / 2
-  beach.position.set(0, 0.045, WATER_Z - 2.6)
-  scene.add(beach)
-
-  const shore = new THREE.Mesh(
-    new THREE.PlaneGeometry(250, 2.6),
-    new THREE.MeshStandardMaterial({ map: parkTex, roughness: 1 }),
-  )
-  shore.rotation.x = -Math.PI / 2
-  shore.position.set(0, 0.04, WATER_Z - 0.4)
-  scene.add(shore)
 
   // The island's water is part of the world, not a skybox.  A compact
   // instanced fleet gives the harbour traffic at nearly constant render cost:
@@ -770,34 +705,7 @@ export function buildCityCore(
     houseWindows.push(mat)
   })
 
-  // ---- Parks (kit street-furniture trees, seeded per park) --------------------
   const propMat = new THREE.MeshStandardMaterial({ map: trimTex, roughness: 0.95 })
-  const treeMat = new THREE.MeshStandardMaterial({
-    map: trimTex,
-    color: SCENE_COLORS['tropical-forest'].hex,
-    roughness: 1,
-  })
-  const treeGeo = propAsset({ seed: 1, kind: 'tree' }).geometry
-  for (const pk of PARKS) {
-    const patch = new THREE.Mesh(
-      new THREE.PlaneGeometry(9, 9),
-      new THREE.MeshStandardMaterial({ map: parkTex, roughness: 1 }),
-    )
-    patch.rotation.x = -Math.PI / 2
-    patch.position.set(pk.x, 0.03, pk.z)
-    scene.add(patch)
-    // Seeded per park: the tree layout is identical on every boot (R014).
-    const rand = mulberry32(parkSeed(pk.x, pk.z))
-    const positions = clearPropPositions(parkSeed(pk.x, pk.z), pk, pk.trees, 3.4, roadClearance)
-    for (const position of positions) {
-      const t = 0.9 + rand() * 0.3
-      const tree = new THREE.Mesh(treeGeo, treeMat)
-      tree.position.set(position.x, 0, position.z)
-      tree.scale.setScalar(t)
-      tree.castShadow = true
-      scene.add(tree)
-    }
-  }
 
   // ---- Public-realm kit ------------------------------------------------------
   // These are static, shared-kit details: no additional simulation state or
@@ -911,46 +819,6 @@ export function buildCityCore(
     regionalTerrainHeight,
     legacySignals,
   )
-  // Waterfront vegetation is instanced: a lively tropical edge costs two
-  // draw calls rather than one Object3D per palm, preserving the 60fps budget.
-  const palmPositions = Array.from({ length: 22 }, (_, i) => ({
-    x: -78 + i * 4.55,
-    // Start beyond the carriageway verge; foliage may not cover a road.
-    z: WATER_Z - 1.5 + (i % 2) * 0.45,
-    scale: 1.15 + (i % 4) * 0.11,
-  }))
-  const palmMat = new THREE.MeshStandardMaterial({
-    map: parkTex,
-    roughness: 0.95,
-    emissive: 0x27482a,
-    emissiveMap: parkTex,
-    emissiveIntensity: 0.45,
-  })
-  const palmTrunkMat = new THREE.MeshStandardMaterial({
-    map: trimTex,
-    color: SCENE_COLORS['tropical-trunk'].hex,
-    roughness: 0.92,
-  })
-  const palmTrunkGeo = new THREE.CylinderGeometry(0.1, 0.17, 3.2, 6)
-  const palmCrownGeo = new THREE.IcosahedronGeometry(0.92, 1)
-  const palmTrunks = new THREE.InstancedMesh(palmTrunkGeo, palmTrunkMat, palmPositions.length)
-  const palmCrowns = new THREE.InstancedMesh(palmCrownGeo, palmMat, palmPositions.length)
-  const palmTransform = new THREE.Object3D()
-  palmPositions.forEach((p, index) => {
-    palmTransform.position.set(p.x, 1.6 * p.scale, p.z)
-    palmTransform.rotation.y = index * 0.73
-    palmTransform.scale.set(p.scale, p.scale, p.scale)
-    palmTransform.updateMatrix()
-    palmTrunks.setMatrixAt(index, palmTransform.matrix)
-    palmTransform.position.set(p.x, 3.35 * p.scale, p.z)
-    palmTransform.scale.set(1.1 * p.scale, 0.48 * p.scale, 1.1 * p.scale)
-    palmTransform.updateMatrix()
-    palmCrowns.setMatrixAt(index, palmTransform.matrix)
-  })
-  palmTrunks.castShadow = palmCrowns.castShadow = true
-  palmTrunks.instanceMatrix.needsUpdate = palmCrowns.instanceMatrix.needsUpdate = true
-  scene.add(palmTrunks, palmCrowns)
-
   const traffic = { body: trafficBody, cabin: trafficCabin, routes: makeTrafficRoutes(roadGraph) }
   const roads: RoadsApi = {
     rebuild(nextGraph): void {
