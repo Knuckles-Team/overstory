@@ -225,7 +225,7 @@ describe('performance budgets measured from the real scene graph (R028)', () => 
       expect.arrayContaining(['cargo', 'fishing', 'yacht', 'kayak', 'jetski']),
     )
     expect(core.houseWindows.length).toBeGreaterThan(0)
-    expect(core.lampGlows.length).toBeGreaterThan(0)
+    expect(core.lampGlowMaterial).toBeInstanceOf(THREE.MeshBasicMaterial)
     expect(core.traffic.routes).toHaveLength(28)
     for (const trafficRoute of core.traffic.routes) {
       expect(trafficRoute.points.length).toBeGreaterThan(12)

@@ -159,7 +159,7 @@ export interface CityCore {
   /** House window materials (the night ambience). */
   houseWindows: THREE.MeshStandardMaterial[]
   /** Streetlamp glow sprites (the night ambience). */
-  lampGlows: THREE.Sprite[]
+  lampGlowMaterial: THREE.MeshBasicMaterial
   /** The ship groups (the bobbing). */
   ships: THREE.Group[]
   /** The ship bob phases, one per ship. */
@@ -871,6 +871,14 @@ export function buildCityCore(scene: THREE.Scene, graph?: RoadGraph): CityCore {
   const signalPoleGeo = new THREE.CylinderGeometry(0.055, 0.075, 2.28, 6)
   const signalGeo = new THREE.BoxGeometry(0.26, 0.7, 0.22)
   const hydrantGeo = new THREE.CylinderGeometry(0.11, 0.14, 0.52, 8)
+  const lampGeo = propAsset({ seed: 2, kind: 'streetlamp' }).geometry
+  const lampGlowGeo = new THREE.SphereGeometry(0.16, 6, 4)
+  const lampGlowMaterial = new THREE.MeshBasicMaterial({
+    color: 0xffdfaa,
+    transparent: true,
+    opacity: 0,
+    depthWrite: false,
+  })
   for (const geo of [shelterPostGeo, shelterRoofGeo, shelterBenchGeo, signalPoleGeo, signalGeo, hydrantGeo]) {
     remapUVs(geo, 0.02, 0.26, 0.98, 0.49)
   }
@@ -921,6 +929,25 @@ export function buildCityCore(scene: THREE.Scene, graph?: RoadGraph): CityCore {
       })
       hydrants.instanceMatrix.needsUpdate = true
       roadsideGroup.add(hydrants)
+    }
+    const lamps = props.filter((prop) => prop.kind === 'lamp')
+    if (lamps.length) {
+      const poles = new THREE.InstancedMesh(lampGeo, propMat, lamps.length)
+      const glows = new THREE.InstancedMesh(lampGlowGeo, lampGlowMaterial, lamps.length)
+      poles.name = 'generated-streetlights'
+      glows.name = 'generated-streetlight-glows'
+      lamps.forEach((lamp, i) => {
+        const y = visibleGroundHeight(lamp.x, lamp.z)
+        civicTransform.position.set(lamp.x, y, lamp.z)
+        civicTransform.rotation.set(0, lamp.rotation, 0)
+        civicTransform.updateMatrix()
+        poles.setMatrixAt(i, civicTransform.matrix)
+        civicTransform.position.y = y + 3.2
+        civicTransform.updateMatrix()
+        glows.setMatrixAt(i, civicTransform.matrix)
+      })
+      poles.instanceMatrix.needsUpdate = glows.instanceMatrix.needsUpdate = true
+      roadsideGroup.add(poles, glows)
     }
   }
   rebuildRoadsideProps(roadGraph)
@@ -978,54 +1005,6 @@ export function buildCityCore(scene: THREE.Scene, graph?: RoadGraph): CityCore {
   palmTrunks.instanceMatrix.needsUpdate = palmCrowns.instanceMatrix.needsUpdate = true
   scene.add(palmTrunks, palmCrowns)
 
-  // ---- Streetlamps (every other intersection) ---------------------------------
-  const lampGeo = propAsset({ seed: 2, kind: 'streetlamp' }).geometry
-  const glowTex = (() => {
-    const c = document.createElement('canvas')
-    c.width = c.height = 64
-    const g = c.getContext('2d')
-    if (!g) throw new Error('2D canvas context unavailable')
-    const grad = g.createRadialGradient(32, 32, 2, 32, 32, 32)
-    grad.addColorStop(0, 'rgba(255,225,170,0.85)')
-    grad.addColorStop(1, 'rgba(255,225,170,0)')
-    g.fillStyle = grad
-    g.fillRect(0, 0, 64, 64)
-    return new THREE.CanvasTexture(c)
-  })()
-  const lampGlows: THREE.Sprite[] = []
-  for (let xi = 1; xi < X_ROADS.length - 1; xi += 2)
-    for (let zi = 1; zi < Z_ROADS.length - 1; zi += 2) {
-      const x = X_ROADS[xi] + 1.7
-      const z = Z_ROADS[zi] + 1.7
-      const pole = new THREE.Mesh(lampGeo, propMat)
-      pole.position.set(x, 0, z)
-      pole.castShadow = true
-      const glow = new THREE.Sprite(
-        new THREE.SpriteMaterial({ map: glowTex, blending: THREE.AdditiveBlending, depthWrite: false, opacity: 0 }),
-      )
-      glow.position.set(x, 3.2, z)
-      glow.scale.setScalar(2.2)
-      scene.add(pole, glow)
-      lampGlows.push(glow)
-    }
-
-  // The waterfront terminates the grid, so it needs its own lamp cadence
-  // rather than inheriting the interior-intersection rule above.
-  for (let xi = 1; xi < X_ROADS.length - 1; xi += 2) {
-    const x = X_ROADS[xi] + 1.7
-    const z = Z_ROADS[Z_ROADS.length - 1] - 1.7
-    const pole = new THREE.Mesh(lampGeo, propMat)
-    pole.position.set(x, 0, z)
-    pole.castShadow = true
-    const glow = new THREE.Sprite(
-      new THREE.SpriteMaterial({ map: glowTex, blending: THREE.AdditiveBlending, depthWrite: false, opacity: 0 }),
-    )
-    glow.position.set(x, 3.2, z)
-    glow.scale.setScalar(2.2)
-    scene.add(pole, glow)
-    lampGlows.push(glow)
-  }
-
   const traffic = { body: trafficBody, cabin: trafficCabin, routes: makeTrafficRoutes(roadGraph) }
   const roads: RoadsApi = {
     rebuild(nextGraph): void {
@@ -1040,14 +1019,17 @@ export function buildCityCore(scene: THREE.Scene, graph?: RoadGraph): CityCore {
       junctionControls.dispose()
       for (const child of roadsideGroup.children) if (child instanceof THREE.InstancedMesh) child.dispose()
       scene.remove(roadsideGroup)
-      for (const geometry of [shelterPostGeo, shelterRoofGeo, shelterBenchGeo, hydrantGeo]) geometry.dispose()
+      for (const geometry of [shelterPostGeo, shelterRoofGeo, shelterBenchGeo, hydrantGeo, lampGeo, lampGlowGeo])
+        geometry.dispose()
       publicMat.dispose()
       hydrantMat.dispose()
+      propMat.dispose()
+      lampGlowMaterial.dispose()
     },
   }
   return {
     houseWindows,
-    lampGlows,
+    lampGlowMaterial,
     ships,
     shipPhases,
     watercraft,
@@ -1385,7 +1367,7 @@ export function createCityScene(container: HTMLElement, world: World, opts: City
     })
 
     // Lamps with the night (R031 ambient life).
-    for (const g of core.lampGlows) g.material.opacity = 0.55 * night
+    core.lampGlowMaterial.opacity = 0.55 * night
 
     // Ships bobbing.
     for (let i = 0; i < core.ships.length; i++) {

@@ -28,6 +28,7 @@ describe('deterministic world generation', () => {
     const props = generateRoadsideProps(graph, seed, [])
     expect(props.some((prop) => prop.kind === 'shelter')).toBe(true)
     expect(props.some((prop) => prop.kind === 'hydrant')).toBe(true)
+    expect(props.some((prop) => prop.kind === 'lamp')).toBe(true)
     expect(props).toEqual(generateRoadsideProps(graph, seed, []))
     for (const prop of props) {
       const radius = prop.kind === 'shelter' ? 1.55 : 0.3

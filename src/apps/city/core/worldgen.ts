@@ -367,7 +367,7 @@ export function clearsRoad(
 
 export interface RoadsideProp {
   roadId: string
-  kind: 'shelter' | 'hydrant'
+  kind: 'shelter' | 'hydrant' | 'lamp'
   x: number
   z: number
   rotation: number
@@ -402,10 +402,11 @@ export function generateRoadsideProps(
     let hash = seed >>> 0
     for (const char of segment.id) hash = Math.imul(hash ^ char.charCodeAt(0), 16777619) >>> 0
     const random = mulberry32(hash)
-    for (const kind of ['shelter', 'hydrant'] as const) {
+    for (const kind of ['shelter', 'hydrant', 'lamp'] as const) {
       if (
         (kind === 'shelter' && (out.filter((prop) => prop.kind === kind).length >= 8 || random() > 0.35)) ||
-        (kind === 'hydrant' && (out.filter((prop) => prop.kind === kind).length >= 24 || random() > 0.65))
+        (kind === 'hydrant' && (out.filter((prop) => prop.kind === kind).length >= 24 || random() > 0.65)) ||
+        (kind === 'lamp' && (out.filter((prop) => prop.kind === kind).length >= 60 || random() > 0.8))
       )
         continue
       const point = points[Math.floor((0.3 + random() * 0.4) * (points.length - 1))]
