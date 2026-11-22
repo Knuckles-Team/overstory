@@ -27,5 +27,5 @@ Algorithm references are [Parish and Müller’s city generation paper](https://
 ## Discover Arbora City from Overstory
 
 - Signed-in users with City access can open **Apps → Arbora City** through the canonical route registry. The host advertises `app:city` when the city can render. An unavailable live fleet still permits the labeled simulation.
-- The explicitly enabled local anonymous sandbox exposes **Play Arbora City** from its landing surface. It links to `/apps/city?demo=1` and uses the local simulation. The entry preserves the R001.1 scope and does not expose protected navigation or operations.
+- The explicitly enabled loopback development sandbox exposes **Play Arbora City** from its landing surface. It links to `/apps/city?demo=1` and uses the bundled simulation. Its layout edits operate on in-memory state. Release builds keep normal admission.
 - Keep one lazy City route. Verify both entry journeys from the landing UI, keyboard navigation, deep links, browser back, disabled sandbox configuration and the signed-in capability boundary.

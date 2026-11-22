@@ -343,7 +343,9 @@ against a live host plus the lockfile audit, recorded in
 
 These cases are planned. Bind tests to the full requirement IDs when implemented.
 
-- OVERSTORY-CITY-R001.1: planned `src/lib/__tests__/city-sandbox.test.ts::anonymous_city_route` verifies opt-in and route scope.
+- OVERSTORY-CITY-R001.1: `src/lib/__tests__/city-sandbox.test.ts::requires an explicit development flag and a loopback origin` verifies opt-in and route scope. `e2e/city-sandbox.browser.ts::opens the anonymous demo from the Overstory landing page` aborts session lookup and observes browser-local registration.
+- OVERSTORY-CITY-R001.2.1: `e2e/city-sandbox.browser.ts::opens the anonymous demo from the Overstory landing page` follows the link and verifies the demo UI.
+- OVERSTORY-CITY-R028.1: `e2e/city-sandbox.browser.ts::reports browser FPS and the 60 FPS target when debug is enabled` waits for measured data and the budget status. R028 reference-hardware performance is measured separately.
 - OVERSTORY-CITY-R031.1: planned `e2e/city-production-world.browser.ts::daylight_contrast` verifies readable day materials and fallback.
 - OVERSTORY-CITY-R041.1: planned `e2e/city-production-world.browser.ts::production_world_slice` qualifies the composed regional views.
 - OVERSTORY-CITY-R047: planned `e2e/city-production-world.browser.ts::shared_city_state` compares admitted snapshots across two viewers and refresh.

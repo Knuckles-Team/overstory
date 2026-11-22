@@ -14,10 +14,12 @@
  * the replay driver (R029) and the first-visit tour trigger (R030).
  */
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { isCitySandbox } from '@/lib/city-sandbox'
 import { CityWebMcp } from './CityWebMcp'
 import { fetchCityFleet, fetchCityLayout, saveCityLayout } from '../api'
 import { FLEET_SNAPSHOT, fleetToConnectors, type FleetServer } from '../core/ecosystem'
 import { pinBytes } from '../core/assets'
+import { BUDGETS } from '../core/budgets'
 import { AUDIO_OVERVIEW_HEIGHT, createAudioEngine } from '../core/audio'
 import { bus, makeEvent, setMode, setTimeSource } from '../core/events'
 import { derivedRoadGraph, nextDocument, validateEdit, type LayoutOverride } from '../core/layoutEdit'
@@ -136,6 +138,8 @@ export default function CityPage() {
   const simBadgeRef = useRef<HTMLDivElement | null>(null)
   const activityBadgeRef = useRef<HTMLSpanElement | null>(null)
   const clockRef = useRef<HTMLSpanElement | null>(null)
+  const fpsRef = useRef<HTMLSpanElement | null>(null)
+  const debugFps = new URLSearchParams(window.location.search).get('debug') === '1'
   const modeRef = useRef<HTMLSpanElement | null>(null)
   const bannerRef = useRef<HTMLDivElement | null>(null)
   const modalRef = useRef<HTMLDivElement | null>(null)
@@ -256,11 +260,13 @@ export default function CityPage() {
     if (!holder) return
 
     let disposed = false
+    const sandbox = isCitySandbox()
     // Read through a function so each post-await check sees a plain boolean
     // (the flag is set only in the unmount closure, so the first check would
     // otherwise narrow the rest of the body to `false`).
     const isDisposed = (): boolean => disposed
     let raf = 0
+    const meterLifecycle = new AbortController()
     // R042: the ambience engine starts muted; the toggle (a user gesture) enables it.
     const audio = createAudioEngine(() => (typeof AudioContext === 'undefined' ? null : new AudioContext()))
     const unsubscribeCues = bus.subscribe((e) => {
@@ -386,10 +392,12 @@ export default function CityPage() {
       let fleet: FleetServer[] = FLEET_SNAPSHOT
       let live = false
       try {
-        const res = await fetchCityFleet()
-        if (res.servers.length > 0) {
-          fleet = res.servers
-          live = true
+        if (!sandbox) {
+          const res = await fetchCityFleet()
+          if (res.servers.length > 0) {
+            fleet = res.servers
+            live = true
+          }
         }
       } catch {
         // Host unreachable or 503 → SIMULATED; the banner states the reason.
@@ -403,8 +411,7 @@ export default function CityPage() {
       // derived layout, never a partial one.
       let layoutDoc: LayoutOverride | null = null
       try {
-        const res = await fetchCityLayout()
-        layoutDoc = res.doc
+        if (!sandbox) layoutDoc = (await fetchCityLayout()).doc
       } catch {
         // 503 (the served layout read is not live yet) or absent → derived.
       }
@@ -531,7 +538,7 @@ export default function CityPage() {
           if (!verdict.ok) return { ok: false, reason: verdict.reason }
           try {
             const doc = nextDocument(world.layoutDoc, edit, world)
-            const saved = await saveCityLayout(doc)
+            const saved = sandbox ? { doc } : await saveCityLayout(doc)
             if (isDisposed()) return { ok: true }
             applyLayoutEdit(saved.doc)
             world.layoutDoc = saved.doc
@@ -571,7 +578,44 @@ export default function CityPage() {
 
       let last = performance.now()
       let audioClock = 0
+      const meter = fpsRef.current
+      let meterLast: number | null = null
+      let meterStart = 0
+      let meterFrames = 0
+      let slowFrames = 0
+      const targetFrameMs = Math.ceil((1000 / BUDGETS.fpsIntegrated) * 10) / 10
+      const resetMeter = (): void => {
+        meterLast = null
+        meterFrames = 0
+        slowFrames = 0
+        if (meter) {
+          meter.textContent = document.hidden ? 'FPS paused' : 'Measuring FPS…'
+          delete meter.dataset.budget
+        }
+      }
+      if (meter) document.addEventListener('visibilitychange', resetMeter, { signal: meterLifecycle.signal })
+      function updateMeter(now: number): void {
+        if (!meter || document.hidden) return
+        if (meterLast === null) {
+          meterStart = now
+        } else {
+          meterFrames++
+          if (now - meterLast > targetFrameMs) slowFrames++
+        }
+        meterLast = now
+        const elapsed = now - meterStart
+        if (elapsed < 1000) return
+        const fps = (meterFrames * 1000) / elapsed
+        const belowBudget = fps < 1000 / targetFrameMs
+        meter.dataset.budget = belowBudget ? 'below' : 'met'
+        meter.textContent = `${fps.toFixed(1)} FPS · ${BUDGETS.fpsIntegrated} target · ${slowFrames} slow frames`
+        meter.title = `${view.toUpperCase()} · ${belowBudget ? 'Below target' : 'Target met'} · Last measurement window`
+        meterStart = now
+        meterFrames = 0
+        slowFrames = 0
+      }
       const frame = (now: number): void => {
+        updateMeter(now)
         const dt = Math.min(0.1, (now - last) / 1000)
         last = now
         // R042: the ambience follows the camera height, four times a second.
@@ -603,6 +647,7 @@ export default function CityPage() {
       // R015), the UI subscription, then the world and the bus.
       disposed = true
       cancelAnimationFrame(raf)
+      meterLifecycle.abort()
       if (scrubTimer) clearTimeout(scrubTimer)
       observer?.disconnect()
       if (kept3d) kept3d.dispose()
@@ -633,6 +678,11 @@ export default function CityPage() {
         <span ref={clockRef} className="city-clock">
           Day 1 · 09:00
         </span>
+        {debugFps && (
+          <span ref={fpsRef} className="city-fps" data-testid="city-fps" aria-label="City frame rate">
+            Measuring FPS…
+          </span>
+        )}
         <div className="stats">
           <div className="stat">
             <span className="stat-label">Population</span>

@@ -31,6 +31,15 @@
 }
 
 /* ---- Top bar ---------------------------------------------------------------- */
+.city-fps {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.city-fps[data-budget='below'] {
+  color: #ffb178;
+}
+
 .city-topbar {
   display: flex;
   align-items: center;

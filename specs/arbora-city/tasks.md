@@ -72,7 +72,7 @@ Producer first: the fleet seam (R003) and the world producers (R002, R004, R005)
 - [x] T066 OVERSTORY-CITY-R046 Original identity audit. Touches `src/apps/city/__tests__/identity.test.ts`.
 - [x] T067 OVERSTORY-CITY-R028 Load, chunk and audio budgets as a gate. Touches `src/apps/city/core/budgets.ts`, `src/apps/city/__tests__/budgets.test.ts`.
 
-- [ ] T068 OVERSTORY-CITY-R001.1 Add the explicit anonymous local city sandbox route posture and browser-local WebMCP registration. Touches `src/lib/city-sandbox.ts`, `src/apps/city/routes.ts`, `src/lib/webmcp/provider.tsx`.
+- [x] T068 OVERSTORY-CITY-R001.1 Add the explicit anonymous local city sandbox route posture and browser-local WebMCP registration. Touches `src/lib/city-sandbox.ts`, `src/apps/city/routes.ts`, `src/lib/webmcp/provider.tsx`.
 - [ ] T069 OVERSTORY-CITY-R031.1 Restore colour-managed 3D contrast and add rendered regression evidence. Touches `src/apps/city/core/render3d/trimSheet.ts`, `src/apps/city/core/render3d/scene.ts`, `src/lib/scene3d/pipeline.ts`, city tests.
 - [ ] T070 OVERSTORY-CITY-R041.1 Build the production-world visual slice: watertight architecture, terrain, waterfront, sky, navigation, landmarks and approved overview captures. Touches generators, `render3d/`, `docs/art-direction.md`, and browser evidence.
 - [ ] T071 OVERSTORY-CITY-R047 Hydrate and render Arbora's authoritative revisioned city state; add the host adapter and subject-bound human heartbeat. Touches City API, host gateway/router, state reducer, CityPage and bound tests.
@@ -88,3 +88,14 @@ Producer first: the fleet seam (R003) and the world producers (R002, R004, R005)
 - [ ] T081 [US5] OVERSTORY-CITY-R048.8 Derive corridors, parcels and roadside sockets with stable placement and edit validation. Qualify the combined reference scene against R048.6 budgets.
 - [ ] T082 [US5] OVERSTORY-CITY-R048.9 Implement deterministic seed generation, revisioned growth, dry-ground checks and replay acceptance.
 - [ ] T083 [US1] OVERSTORY-CITY-R001.2 Qualify the signed-in Apps entry and add the sandbox landing entry through the existing route.
+- [x] T084 [US1] OVERSTORY-CITY-R001.2.1 Link the loopback landing page to the demo.
+- [x] T085 [US3] OVERSTORY-CITY-R028.1 Report observed FPS, target and slow frames in the debug HUD.
+
+## Draft PR milestones
+
+| Spec | Milestone | Remaining acceptance |
+| --- | --- | --- |
+| R001.1, R001.2 | Loopback development sandbox, landing entry and isolated simulated layout edits | Installed signed-in Apps journey and capability behavior |
+| R028 | Debug FPS and slow-frame counters at `?demo=1&debug=1` | Sustained 60 FPS on reference hardware and capacity soak |
+| R048.1–R048.9 | Catalog and generation contracts drafted | Minimal kit, dry-land validation, road-led generation, landmark interiors, growth and visual qualification |
+| R047 | Shared-state consumer contract drafted | Arbora and Medulla producers and two-viewer acceptance |

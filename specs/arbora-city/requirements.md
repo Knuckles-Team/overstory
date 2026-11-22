@@ -83,6 +83,15 @@ Depends: R028, R031, R032, R041.1 and R047. Verification: deterministic world re
 
 The [asset pack contract](asset-pack.md) defines the catalog, placement rules and visual targets for these child requirements.
 
+### Incremental acceptance
+
+| Requirement | Required behavior | Evidence |
+| --- | --- | --- |
+| `OVERSTORY-CITY-R001.2.1` | The loopback sandbox landing page must expose Play Arbora City and open the canonical demo route. Caller chain: landing link in `src/App.tsx` → city route → simulated CityPage. Shape: one keyboard-accessible link to `/apps/city?demo=1`. Depends: OVERSTORY-CITY-R001.1. | `e2e/city-sandbox.browser.ts::opens the anonymous demo from the Overstory landing page`. |
+| `OVERSTORY-CITY-R028.1` | The City debug view must report measured animation-frame rate, the 60 FPS integrated graphics target and slow-frame counts. Caller chain: CityPage animation callback → debug HUD. Shape: `src/apps/city/components/CityPage.tsx` and the shared FPS budget. Depends: OVERSTORY-CITY-R028. | `e2e/city-sandbox.browser.ts::reports browser FPS and the 60 FPS target when debug is enabled`. |
+
+### Full production acceptance
+
 | Requirement | Required behavior | Planned evidence |
 | --- | --- | --- |
 | `OVERSTORY-CITY-R048.1` | The catalog must validate versioned asset IDs, source proofs, scale, pivots, sockets, collision bounds, LOD and budget metadata. Caller chain: CityPage boot → asset pin verification → catalog validation. Shape: Extend assets.ts and the existing asset schemas with a versioned catalog, typed sockets and bounds. Depends: OVERSTORY-CITY-R013, OVERSTORY-CITY-R024, OVERSTORY-CITY-R046. | Catalog audit and a rejected fixture for each invalid metadata class. | Planned `e2e/city-production-world.browser.ts::asset_catalog_contract`.

@@ -100,6 +100,8 @@ The city and the web UI do the same work and stay in parity. Anything one can do
 
 Assets are generated from rules and parameters. The budgets are gates. Authored assets are the exception and pass the license gate.
 
+Arbora City must sustain at least 60 FPS at 1× on the integrated-graphics reference profile defined by the City spec. Debug mode displays measured FPS and flags a missed budget. Release acceptance uses recorded frame times from the reference hardware.
+
 **Enforced by:** OVERSTORY-CITY-R024, R028 and R041.
 
 **Plan check:** Could a rule generate this asset? If not, which byte budget covers it?

@@ -7,6 +7,7 @@
 import { lazy } from 'react'
 import { Building2 } from 'lucide-react'
 import type { RouteDef } from '@/lib/nav-registry'
+import { isCitySandbox } from '@/lib/city-sandbox'
 
 export const APP_ROUTES: readonly RouteDef[] = [
   {
@@ -20,6 +21,16 @@ export const APP_ROUTES: readonly RouteDef[] = [
     minRole: 'user',
     capability: 'app:city',
     mobile: 'adapted',
+    // This is deliberately a build-time, local-only posture. Production
+    // retains the normal identity and role boundary for the city route.
+    ...(isCitySandbox()
+      ? {
+          page: {
+            visibility: 'public' as const,
+            indexable: false,
+          },
+        }
+      : {}),
     element: lazy(() => import('./components/CityPage')),
   },
 ]

@@ -35,6 +35,7 @@ import { SidebarProvider } from './components/ui/sidebar.tsx'
 import { Toaster } from './components/ui/sonner.tsx'
 import ChatPanel from './components/ChatPanel'
 import { useIdentity, type Identity } from './lib/auth.ts'
+import { isCitySandbox } from './lib/city-sandbox'
 import { MCPProvider } from './lib/mcp-context.tsx'
 import {
   getRoutePageMetadata,
@@ -513,6 +514,14 @@ export default function App() {
                   pathname={new URL(currentRoute, window.location.origin).pathname}
                   authMode={identity.raw?.mode}
                 />
+                {isCitySandbox() && new URL(currentRoute, window.location.origin).pathname === '/' && (
+                  <a
+                    href="/apps/city?demo=1"
+                    className="fixed right-4 top-4 z-50 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
+                  >
+                    Play Arbora City
+                  </a>
+                )}
                 <AppSurface
                   pageRoute={pageRoute}
                   isPublicRoute={isPublicRoute}
