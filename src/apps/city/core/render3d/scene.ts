@@ -50,14 +50,8 @@ import type { world as SimWorld } from '../sim'
 import { derivedRoadGraph } from '../layoutEdit'
 import { route, type RoadGraph } from '@/lib/scene3d/roads'
 import { createRoads, sampleRoadCurve, type RoadPathSample, type RoadsApi } from './roads'
-import {
-  advanceTraffic,
-  followingSpeed,
-  junctionApproaches,
-  signalIsGreen,
-  type TrafficControl,
-  type TrafficMotion,
-} from './traffic'
+import { advanceTraffic, followingSpeed, type TrafficControl, type TrafficMotion } from './traffic'
+import { createJunctionControls } from './junctionControls'
 import {
   litWindowSheet,
   metalTexture,
@@ -202,7 +196,7 @@ export interface CityCore {
       motion: TrafficMotion
     }[]
   }
-  trafficSignals: { bulbs: THREE.InstancedMesh; axes: ('x' | 'z')[] } | null
+  junctionControls: ReturnType<typeof createJunctionControls>
   /** The road layer (R032): rebuilds for a new road graph, disposes with the scene. */
   roads: RoadsApi
 }
@@ -1005,43 +999,22 @@ export function buildCityCore(scene: THREE.Scene, graph?: RoadGraph): CityCore {
     shelter.rotation.y = stop.rot
     scene.add(shelter)
   }
-  const seededRoads = 'seed:0' in roadGraph.nodes
-  const approaches = seededRoads ? junctionApproaches(roadGraph) : []
-  const lightApproaches = approaches.filter((approach) => approach.kind === 'signal')
-  const stopApproaches = approaches.filter((approach) => approach.kind === 'stop')
-  const signalCount = seededRoads ? lightApproaches.length : 16
-  const signalPoles = new THREE.InstancedMesh(signalPoleGeo, signalMat, signalCount)
-  const signals = new THREE.InstancedMesh(signalGeo, signalMat, signalCount)
-  const signalAxes: ('x' | 'z')[] = []
-  const signalBulbs =
-    seededRoads && signalCount
-      ? new THREE.InstancedMesh(
-          new THREE.BoxGeometry(0.18, 0.18, 0.05),
-          new THREE.MeshBasicMaterial({ color: 0xffffff }),
-          signalCount,
-        )
-      : null
+  const legacySignals = Array.from({ length: 16 }, (_, i) => ({
+    x: X_ROADS[1 + ((i * 3) % (X_ROADS.length - 2))] + 1.7,
+    z: Z_ROADS[1 + ((i * 5) % (Z_ROADS.length - 2))] + 1.7,
+    rotation: i % 2 ? Math.PI / 2 : 0,
+  }))
+  const junctionControls = createJunctionControls(
+    scene,
+    roadGraph,
+    signalPoleGeo,
+    signalGeo,
+    signalMat,
+    regionalTerrainHeight,
+    legacySignals,
+  )
   const hydrants = new THREE.InstancedMesh(hydrantGeo, hydrantMat, 18)
   const civicTransform = new THREE.Object3D()
-  for (let i = 0; i < signalCount; i++) {
-    const x = seededRoads ? lightApproaches[i].x : X_ROADS[1 + ((i * 3) % (X_ROADS.length - 2))] + 1.7
-    const z = seededRoads ? lightApproaches[i].z : Z_ROADS[1 + ((i * 5) % (Z_ROADS.length - 2))] + 1.7
-    const rotation = seededRoads ? lightApproaches[i].rotation : i % 2 ? Math.PI / 2 : 0
-    if (seededRoads) signalAxes.push(lightApproaches[i].axis)
-    civicTransform.position.set(x, regionalTerrainHeight(x, z) + 1.14, z)
-    civicTransform.rotation.y = rotation
-    civicTransform.updateMatrix()
-    signalPoles.setMatrixAt(i, civicTransform.matrix)
-    civicTransform.position.y = regionalTerrainHeight(x, z) + 2.38
-    civicTransform.updateMatrix()
-    signals.setMatrixAt(i, civicTransform.matrix)
-    if (signalBulbs) {
-      civicTransform.position.x += Math.sin(rotation) * 0.14
-      civicTransform.position.z += Math.cos(rotation) * 0.14
-      civicTransform.updateMatrix()
-      signalBulbs.setMatrixAt(i, civicTransform.matrix)
-    }
-  }
   for (let i = 0; i < 18; i++) {
     const x = X_ROADS[1 + ((i * 2) % (X_ROADS.length - 2))] + (i % 2 ? 2.05 : -2.05)
     const z = Z_ROADS[1 + ((i * 3) % (Z_ROADS.length - 2))] + 3.1
@@ -1050,29 +1023,8 @@ export function buildCityCore(scene: THREE.Scene, graph?: RoadGraph): CityCore {
     civicTransform.updateMatrix()
     hydrants.setMatrixAt(i, civicTransform.matrix)
   }
-  signalPoles.instanceMatrix.needsUpdate = signals.instanceMatrix.needsUpdate = true
   hydrants.instanceMatrix.needsUpdate = true
-  scene.add(signalPoles, signals, hydrants)
-  if (signalBulbs) scene.add(signalBulbs)
-  if (seededRoads && stopApproaches.length) {
-    const signGeo = new THREE.CylinderGeometry(0.31, 0.31, 0.06, 8)
-    signGeo.rotateX(Math.PI / 2)
-    const signMat = new THREE.MeshStandardMaterial({ color: 0xc92e35, roughness: 0.75 })
-    const stopPoles = new THREE.InstancedMesh(signalPoleGeo, signalMat, stopApproaches.length)
-    const signs = new THREE.InstancedMesh(signGeo, signMat, stopApproaches.length)
-    stopApproaches.forEach((approach, index) => {
-      const height = regionalTerrainHeight(approach.x, approach.z)
-      civicTransform.position.set(approach.x, height + 1.14, approach.z)
-      civicTransform.rotation.set(0, approach.rotation, 0)
-      civicTransform.updateMatrix()
-      stopPoles.setMatrixAt(index, civicTransform.matrix)
-      civicTransform.position.y = height + 2.15
-      civicTransform.updateMatrix()
-      signs.setMatrixAt(index, civicTransform.matrix)
-    })
-    stopPoles.instanceMatrix.needsUpdate = signs.instanceMatrix.needsUpdate = true
-    scene.add(stopPoles, signs)
-  }
+  scene.add(hydrants)
 
   // Waterfront vegetation is instanced: a lively tropical edge costs two
   // draw calls rather than one Object3D per palm, preserving the 60fps budget.
@@ -1168,9 +1120,11 @@ export function buildCityCore(scene: THREE.Scene, graph?: RoadGraph): CityCore {
       const nextRegionalGraph = 'seed:0' in nextGraph.nodes ? nextGraph : withRegionalRoads(nextGraph, regionalMassing)
       roadLayer.rebuild(nextRegionalGraph)
       traffic.routes = makeTrafficRoutes(nextRegionalGraph)
+      junctionControls.rebuild(nextRegionalGraph)
     },
     dispose(): void {
       roadLayer.dispose()
+      junctionControls.dispose()
     },
   }
   return {
@@ -1181,7 +1135,7 @@ export function buildCityCore(scene: THREE.Scene, graph?: RoadGraph): CityCore {
     watercraft,
     aircraft,
     traffic,
-    trafficSignals: signalBulbs ? { bulbs: signalBulbs, axes: signalAxes } : null,
+    junctionControls,
     roads,
   }
 }
@@ -1483,9 +1437,6 @@ export function createCityScene(container: HTMLElement, world: World, opts: City
   // simulation clock (which advances a city day in minutes during demo).
   let trafficElapsedS = 0
   const trafficPositions: number[] = []
-  let trafficSignalPhase = -1
-  const redSignal = new THREE.Color(0xf32431)
-  const greenSignal = new THREE.Color(0x28e85d)
 
   // ---- Per-frame environment (day/night, houses, lamps, ships) --------------
   function updateEnvironment(clockS: number, dtReal: number): void {
@@ -1591,14 +1542,7 @@ export function createCityScene(container: HTMLElement, world: World, opts: City
 
     const trafficDelta = Math.min(Math.max(dtReal, 0), 0.1)
     trafficElapsedS += trafficDelta
-    const signalPhase = Math.floor(trafficElapsedS % 18)
-    if (core.trafficSignals && signalPhase !== trafficSignalPhase) {
-      trafficSignalPhase = signalPhase
-      core.trafficSignals.axes.forEach((axis, index) => {
-        core.trafficSignals?.bulbs.setColorAt(index, signalIsGreen(axis, trafficElapsedS) ? greenSignal : redSignal)
-      })
-      if (core.trafficSignals.bulbs.instanceColor) core.trafficSignals.bulbs.instanceColor.needsUpdate = true
-    }
+    core.junctionControls.update(trafficElapsedS)
     for (let i = 0; i < core.traffic.routes.length; i++) trafficPositions[i] = core.traffic.routes[i].motion.distance
     for (let i = 0; i < core.traffic.routes.length; i++) {
       const route = core.traffic.routes[i]

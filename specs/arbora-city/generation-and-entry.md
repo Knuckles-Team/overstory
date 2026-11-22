@@ -10,6 +10,14 @@ Generate one playable starting island from a seed and a versioned recipe. The re
 4. Assign eligible parcels to building recipes. Attach entrances to the pedestrian network. Place roadside assets in reserved sockets. Produce a stable manifest of terrain, corridors, lots, access and assemblies.
 5. Validate the candidate before publishing it. Reuse a valid prior revision if a regeneration attempt fails. Keep retries bounded and report constraint failures.
 
+### Procedural placement is required
+
+All generated map assets, including landmarks, connector lots, housing, parks, shelters, hydrants, waterfront structures, vegetation and traffic controls, must be placed by the versioned seed and the accepted terrain, road, water and parcel constraints. Remove legacy fixed-coordinate placements from both views; do not preserve them as a fallback for a new seed. Asset prototypes may have local coordinates, and an explicit user-pinned edit may have a persisted world coordinate. Every building must have a valid pedestrian connection to the road network; road-dependent services also require a valid vehicle approach. If a valid site does not exist, leave the asset unplaced and report the constraint rather than placing it in water, clipping another asset or disconnecting its access.
+
+### One world and movement model across views
+
+The 2D and 3D views must represent the same generated island, terrain and water boundaries, road graph, placements, characters and vehicles at the same world-coordinate scale and complete world extent. Both renderers consume one authoritative movement and time model; switching views must not reset, duplicate, teleport or independently advance entities. Maintain selection, world-space camera focus and a corresponding visible world span across a switch, including fallback and restoration after WebGL context loss. Transition smoothly when the device permits, honor reduced-motion preferences and keep the existing view usable until the replacement is ready. The transition must not create duplicate simulation loops or retain an inactive GPU-heavy renderer merely for animation. Camera projection can differ, but one metre and a given world coordinate refer to the same place in both views.
+
 ## Dry-ground rule
 
 Check the full transformed foundation polygon and entrance path against the buildable land polygon. Exclude ocean, lake, river, canal and flood setback. Require the supported foundation elevation to clear the local water envelope plus the profile's declared freeboard. Use conservative intersection checks against terrain and water cells. A dry center or four dry corners alone cannot certify the footprint. Reject unsupported foundations and inaccessible entrances. Try a smaller eligible assembly or leave the lot vacant.

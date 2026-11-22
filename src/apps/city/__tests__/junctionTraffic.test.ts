@@ -1,5 +1,7 @@
 // spec: OVERSTORY-CITY-R032
 import { describe, expect, it } from 'vitest'
+import * as THREE from 'three'
+import { createJunctionControls } from '../core/render3d/junctionControls'
 import {
   advanceTraffic,
   followingSpeed,
@@ -14,6 +16,51 @@ function motion(distance: number): TrafficMotion {
 }
 
 describe('road traffic controls', () => {
+  it('replaces and disposes control instances when the road graph changes', () => {
+    const nodes = {
+      'seed:0': { id: 'seed:0', x: 0, z: 0, kind: 'intersection' as const },
+      a: { id: 'a', x: 20, z: 0, kind: 'endpoint' as const },
+      b: { id: 'b', x: -20, z: 0, kind: 'endpoint' as const },
+      c: { id: 'c', x: 0, z: 20, kind: 'endpoint' as const },
+      d: { id: 'd', x: 0, z: -20, kind: 'endpoint' as const },
+    }
+    const segments = Object.fromEntries(
+      ['a', 'b', 'c', 'd'].map((id) => [
+        id,
+        {
+          id,
+          from: 'seed:0',
+          to: id,
+          curve: 0,
+          width: 3,
+        },
+      ]),
+    )
+    const scene = new THREE.Scene()
+    const controls = createJunctionControls(
+      scene,
+      { nodes, segments },
+      new THREE.BoxGeometry(),
+      new THREE.BoxGeometry(),
+      new THREE.MeshBasicMaterial(),
+      () => 0,
+      [],
+    )
+    const group = scene.getObjectByName('junction-controls') as THREE.Group
+    expect(group.children).toHaveLength(3)
+    const original = group.children[0] as THREE.InstancedMesh
+    let disposed = 0
+    original.addEventListener('dispose', () => {
+      disposed++
+    })
+    controls.update(3)
+    controls.rebuild({ nodes, segments: { a: segments.a, b: segments.b, c: segments.c } })
+    expect(disposed).toBe(1)
+    expect(group.children).toHaveLength(2)
+    expect((group.children[0] as THREE.InstancedMesh).count).toBe(3)
+    controls.dispose()
+    expect(scene.getObjectByName('junction-controls')).toBeUndefined()
+  })
   it('places one oriented control on each approach to a generated junction', () => {
     const nodes = {
       c: { id: 'c', x: 0, z: 0, kind: 'intersection' as const },

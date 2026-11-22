@@ -95,6 +95,7 @@ Producer first: the fleet seam (R003) and the world producers (R002, R004, R005)
 - [x] T088 [US5] OVERSTORY-CITY-R048.9.1 Reject wet foundations in regional placement and edited connector layouts.
 - [ ] T089 [US5] OVERSTORY-CITY-R048.8 Replace fixed landmark, house, plot, park and prop placements with seeded road-led parcels and connected pedestrian access.
 - [ ] T090 [US5] OVERSTORY-CITY-R048.5 Integrate EZ-Tree, threejs-water and Fire Pro with reproducible sources, lifecycle management and the existing performance targets.
+- [ ] T091 [US5] OVERSTORY-CITY-R015 OVERSTORY-CITY-R027 Make 2D and 3D consume the same full-island world, scale and shared movement state; preserve focus and selection through smooth, accessible view switches and context recovery.
 
 ## Draft PR milestones
 
