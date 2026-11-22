@@ -762,7 +762,12 @@ export function createBuildings(
       })
       const ring = new THREE.Mesh(pulseGeo, mat)
       ring.rotation.x = -Math.PI / 2
-      ring.position.set(-15, 0.3, -15)
+      if (!('medulla' in world.buildings)) {
+        mat.dispose()
+        return
+      }
+      const vault = world.buildings.medulla
+      ring.position.set(vault.x, groundHeight(vault.x, vault.z) + 0.3, vault.z)
       ring.userData.marker = 'commit-pulse'
       scene.add(ring)
       pulses.push({ mesh: ring, t: 0 })

@@ -8,7 +8,7 @@
 import * as THREE from 'three'
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { FLEET_SNAPSHOT, fleetToConnectors } from '../core/ecosystem'
-import { bus } from '../core/events'
+import { bus, makeEvent } from '../core/events'
 import { createBuildings } from '../core/render3d/buildings'
 import { buildCityCore } from '../core/render3d/scene'
 import { initSim, resetSim, world } from '../core/sim'
@@ -95,6 +95,22 @@ describe('city scene steady state', () => {
     expect(reverse.points[1].tangentZ).toBeCloseTo(-forward.points.at(-2)!.tangentZ)
     expect(reverse.laneOffset).toBe(forward.laneOffset)
     core.roads.dispose()
+  })
+
+  // spec: OVERSTORY-CITY-R048.6.1
+  it('anchors a memory pulse to the current vault and removes it after the effect ends', () => {
+    initSim(fleetToConnectors(FLEET_SNAPSHOT))
+    const scene = new THREE.Scene()
+    const vault = world.buildings.medulla
+    vault.x = 36
+    vault.z = -18
+    const buildings = createBuildings(scene, world, null, () => 7)
+    bus.emit(makeEvent('knowledge.committed'))
+    const pulse = scene.children.find((child) => child.userData.marker === 'commit-pulse')
+    expect(pulse?.position.toArray()).toEqual([36, 7.3, -18])
+    buildings.update(2, 0)
+    expect(scene.children).not.toContain(pulse)
+    buildings.dispose()
   })
 
   // spec: OVERSTORY-CITY-R048.6.1

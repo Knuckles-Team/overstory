@@ -17,6 +17,7 @@ import type { world as simWorld } from './sim'
 import { createCityScene } from './render3d/scene'
 import { createBuildings } from './render3d/buildings'
 import { initCharacters } from './render3d/characters'
+import { createAsyncLayerSlot } from './render3d/asyncLayer'
 import { collectLabelCandidates, createLabelLayer } from './render3d/labelLayer'
 import { createPicking } from './render3d/picking'
 import type { CityRenderer, SelectionHit } from './types'
@@ -91,7 +92,9 @@ export async function init3D(
   }
 
   const buildings = createBuildings(scene, world, markerRoot, sceneCore.groundHeight)
-  let characters = await initCharacters(scene, world, markerRoot, loadPinnedGLB, camera, sceneCore.groundHeight)
+  const characters = createAsyncLayerSlot(
+    await initCharacters(scene, world, markerRoot, loadPinnedGLB, camera, sceneCore.groundHeight),
+  )
   const picking = createPicking(scene, camera, renderer.domElement, world, controls, onSelect)
 
   // Landmarks + pre-existing buildings.
@@ -104,14 +107,9 @@ export async function init3D(
    */
   function resync(): void {
     if (disposed) return
-    characters.dispose()
-    void initCharacters(scene, world, markerRoot, loadPinnedGLB, camera, sceneCore.groundHeight).then((api) => {
-      if (disposed) {
-        api.dispose()
-        return
-      }
-      characters = api
-    })
+    void characters.replace(() =>
+      initCharacters(scene, world, markerRoot, loadPinnedGLB, camera, sceneCore.groundHeight),
+    )
     buildings.syncBuildings()
   }
 
@@ -138,7 +136,7 @@ export async function init3D(
     const sceneClock = heldAmbientTime ?? world.clock
     sceneCore.updateEnvironment(sceneClock, dtReal)
     buildings.update(dtReal, sceneClock)
-    characters.update(dtReal, sceneClock)
+    characters.current.update(dtReal, sceneClock)
     buildings.syncBuildings()
     picking.update(sceneClock)
     const labelBand = zoomBandFor(camera.position.distanceTo(controls.target))
@@ -203,7 +201,7 @@ export async function init3D(
       programs: renderer.info.programs?.length ?? 0,
     }),
     say: (charId: string, text: string) => {
-      characters.say(charId, text)
+      characters.current.say(charId, text)
     },
     onResize,
     setSelected: (hit: SelectionHit | null) => {
