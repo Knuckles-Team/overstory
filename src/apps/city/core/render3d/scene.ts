@@ -312,6 +312,24 @@ export function buildCityCore(scene: THREE.Scene, graph?: RoadGraph): CityCore {
   )
   ground.receiveShadow = true
   scene.add(ground)
+  // Match the rendered triangle surface when anchoring distant vegetation.
+  // The analytic height field can differ substantially between the 12.5 m
+  // terrain vertices, especially at the edge of the water mask.
+  function visibleGroundHeight(x: number, z: number): number {
+    const cells = 72
+    const step = GROUND_SIZE / cells
+    const gridX = (x + GROUND_SIZE / 2) / step
+    const gridZ = (z + GROUND_SIZE / 2) / step
+    const ix = Math.max(0, Math.min(cells - 1, Math.floor(gridX)))
+    const iz = Math.max(0, Math.min(cells - 1, Math.floor(gridZ)))
+    const u = gridX - ix
+    const v = gridZ - iz
+    const a = terrainPos.getY(iz * (cells + 1) + ix)
+    const b = terrainPos.getY((iz + 1) * (cells + 1) + ix)
+    const c = terrainPos.getY((iz + 1) * (cells + 1) + ix + 1)
+    const d = terrainPos.getY(iz * (cells + 1) + ix + 1)
+    return u + v <= 1 ? a * (1 - u - v) + b * v + d * u : c * (u + v - 1) + b * (1 - u) + d * (1 - v)
+  }
 
   // ---- Distant terrain --------------------------------------------------------
   // The same deterministic heightfield drives the entire landscape.  Do not
@@ -432,7 +450,8 @@ export function buildCityCore(scene: THREE.Scene, graph?: RoadGraph): CityCore {
       const px = x + (foliageRand() - 0.5) * 15
       const pz = z + (foliageRand() - 0.5) * 15
       if (px > -112 && px < 124 && pz > -96 && pz < 104) continue
-      if (isRegionalWater(px, pz) || !clearsRoad(px, pz, regionalRoadClearance, 3.4)) continue
+      if (isRegionalWater(px, pz) || visibleGroundHeight(px, pz) <= SEA_LEVEL_M + 0.1) continue
+      if (!clearsRoad(px, pz, regionalRoadClearance, 3.4)) continue
       if (
         regionalMassing.some(
           (building) =>
@@ -471,6 +490,7 @@ export function buildCityCore(scene: THREE.Scene, graph?: RoadGraph): CityCore {
     emissiveIntensity: 0.45,
   })
   const regionalTrunks = new THREE.InstancedMesh(regionalTrunkGeo, regionalTrunkMat, regionalPlants.length)
+  regionalTrunks.name = 'regional-vegetation-trunks'
   const regionalCrowns = new THREE.InstancedMesh(regionalCrownGeo, regionalCrownMat, regionalPlants.length)
   const regionalPlantTransform = new THREE.Object3D()
   const biomeFoliage: Record<ReturnType<typeof regionalBiome>, string> = {
@@ -482,7 +502,7 @@ export function buildCityCore(scene: THREE.Scene, graph?: RoadGraph): CityCore {
     snow: '#8ca7a8',
   }
   regionalPlants.forEach((plant, index) => {
-    const ground = regionalTerrainHeight(plant.x, plant.z)
+    const ground = visibleGroundHeight(plant.x, plant.z)
     regionalPlantTransform.position.set(plant.x, ground + 1.7 * plant.scale, plant.z)
     regionalPlantTransform.rotation.y = index * 1.91
     regionalPlantTransform.scale.set(plant.scale, plant.scale, plant.scale)

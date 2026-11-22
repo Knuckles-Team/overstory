@@ -12,6 +12,7 @@ import { bus } from '../core/events'
 import { createBuildings } from '../core/render3d/buildings'
 import { buildCityCore } from '../core/render3d/scene'
 import { initSim, resetSim, world } from '../core/sim'
+import { isRegionalWater, SEA_LEVEL_M } from '../core/worldgen'
 
 beforeAll(() => {
   const original = HTMLCanvasElement.prototype.getContext
@@ -42,6 +43,25 @@ describe('city scene steady state', () => {
   afterEach(() => {
     resetSim()
     bus.reset()
+  })
+
+  // spec: OVERSTORY-CITY-R048.9.1
+  it('places regional vegetation above the visible water surface', () => {
+    const scene = new THREE.Scene()
+    const core = buildCityCore(scene)
+    const trunks = scene.getObjectByName('regional-vegetation-trunks') as THREE.InstancedMesh
+    expect(trunks.count).toBeGreaterThan(0)
+    const matrix = new THREE.Matrix4()
+    const position = new THREE.Vector3()
+    const scale = new THREE.Vector3()
+    const rotation = new THREE.Quaternion()
+    for (let i = 0; i < trunks.count; i++) {
+      trunks.getMatrixAt(i, matrix)
+      matrix.decompose(position, rotation, scale)
+      expect(isRegionalWater(position.x, position.z)).toBe(false)
+      expect(position.y - 1.7 * scale.y).toBeGreaterThan(SEA_LEVEL_M)
+    }
+    core.roads.dispose()
   })
 
   // spec: OVERSTORY-CITY-R032
