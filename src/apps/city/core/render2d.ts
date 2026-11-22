@@ -4,9 +4,11 @@
  * (OVERSTORY-CITY-R015). Same city graph, same characters, same events — a
  * view over the shared world state, never a second system.
  */
-import { WATER_Z, PLOT_W, HOUSES, PARKS, PIER } from './layout'
+import { GROUND_SIZE, PLOT_W, HOUSES, PARKS, PIER } from './layout'
 import { encodingColor, stateColor } from './encoding'
 import { world as simWorld } from './sim'
+import { isRegionalWater } from './worldgen'
+import { sampleRoadCurve, type RoadGraph } from '@/lib/scene3d/roads'
 import type { CityRenderer, SelectionHit } from './types'
 
 /**
@@ -39,10 +41,11 @@ export function init2D(
   // context (narrowing does not cross function boundaries).
   const ctx: CanvasRenderingContext2D = maybeCtx
 
-  // The city spans the full grid plus the connector district west and the
-  // waterfront south (see layout.ts); the fitted view covers all of it.
-  const WORLD = { x0: -90, x1: 45, z0: -65, z1: 85 }
+  // Use the same playable ground extent as the 3D terrain, in metres.
+  const WORLD = { x0: -GROUND_SIZE / 2, x1: GROUND_SIZE / 2, z0: -GROUND_SIZE / 2, z1: GROUND_SIZE / 2 }
   let scale = 6
+  let baseScale = 1
+  let zoom = 1
   let ox = 0
   let oz = 0
 
@@ -60,7 +63,8 @@ export function init2D(
     const dpr = window.devicePixelRatio || 1
     cssW = canvas.width / dpr
     cssH = canvas.height / dpr
-    scale = Math.min(cssW / (WORLD.x1 - WORLD.x0), cssH / (WORLD.z1 - WORLD.z0))
+    baseScale = Math.min(cssW / (WORLD.x1 - WORLD.x0), cssH / (WORLD.z1 - WORLD.z0))
+    scale = baseScale * zoom
     // Centre the world's midpoint on the canvas (the standalone prototype's
     // symmetric bounds made the old midpoint formula a no-op).
     ox = cssW / 2 - ((WORLD.x1 - WORLD.x0) / 2) * scale
@@ -70,6 +74,25 @@ export function init2D(
 
   const px = (x: number): number => ox + (x - WORLD.x0) * scale + panX
   const pz = (z: number): number => oz + (z - WORLD.z0) * scale + panY
+
+  // Cache the seed-derived land/water mask once, instead of resampling the
+  // island on every frame. The simulation and 3D terrain use this same rule.
+  const terrain = document.createElement('canvas')
+  const terrainCells = 180
+  terrain.width = terrain.height = terrainCells
+  const terrainContext = terrain.getContext('2d')
+  if (terrainContext) {
+    terrainContext.fillStyle = '#79a96b'
+    terrainContext.fillRect(0, 0, terrainCells, terrainCells)
+    terrainContext.fillStyle = '#3d7fb5'
+    const cellSize = GROUND_SIZE / terrainCells
+    for (let z = 0; z < terrainCells; z++) {
+      for (let x = 0; x < terrainCells; x++) {
+        if (isRegionalWater(WORLD.x0 + (x + 0.5) * cellSize, WORLD.z0 + (z + 0.5) * cellSize))
+          terrainContext.fillRect(x, z, 1, 1)
+      }
+    }
+  }
 
   function drawBuilding(b: (typeof world.buildings)[string], selected: boolean): void {
     // The building's quarter-turn rotation (R032): the rect rotates about the
@@ -95,6 +118,8 @@ export function init2D(
   }
 
   let selectedId: string | null = null
+  let cachedGraph: RoadGraph | null = null
+  let roadPaths: { width: number; points: { x: number; z: number }[] }[] = []
 
   function render(): void {
     const dpr = window.devicePixelRatio || 1
@@ -105,28 +130,38 @@ export function init2D(
     const elev = Math.sin((t - 0.25) * Math.PI * 2)
     const night = Math.max(0, Math.min(1, (-elev + 0.06) * 3))
 
-    ctx.fillStyle = `rgb(${Math.round(121 - 100 * night)}, ${Math.round(169 - 145 * night)}, ${Math.round(107 - 74 * night)})`
+    ctx.fillStyle = '#3d7fb5'
     ctx.fillRect(0, 0, W, H)
-
-    // Water.
-    ctx.fillStyle = `rgb(${Math.round(61 - 35 * night)}, ${Math.round(127 - 85 * night)}, ${Math.round(181 - 110 * night)})`
-    ctx.fillRect(0, pz(WATER_Z), W, H - pz(WATER_Z))
+    if (terrainContext) ctx.drawImage(terrain, px(WORLD.x0), pz(WORLD.z0), GROUND_SIZE * scale, GROUND_SIZE * scale)
 
     // Roads: drawn from the live road graph (R032) — a saved layout edit
     // swaps the derived grid for the overrides' segments and this view
     // follows; the derived city draws the same grid it has always shown.
     const graph = world.roadGraph
     if (graph) {
+      if (graph !== cachedGraph) {
+        cachedGraph = graph
+        roadPaths = Object.values(graph.segments).flatMap((segment) => {
+          if (!(segment.from in graph.nodes) || !(segment.to in graph.nodes)) return []
+          const a = graph.nodes[segment.from]
+          const b = graph.nodes[segment.to]
+          return [
+            {
+              width: segment.width,
+              points: sampleRoadCurve(a.x, a.z, b.x, b.z, segment.curve, segment.id, 3.5),
+            },
+          ]
+        })
+      }
       ctx.strokeStyle = '#3a3f47'
       ctx.lineCap = 'round'
-      for (const seg of Object.values(graph.segments)) {
-        const a = seg.from in graph.nodes ? graph.nodes[seg.from] : null
-        const b = seg.to in graph.nodes ? graph.nodes[seg.to] : null
-        if (!a || !b) continue
-        ctx.lineWidth = Math.max(1, seg.width * scale)
+      for (const road of roadPaths) {
+        const start = road.points.at(0)
+        if (!start) continue
+        ctx.lineWidth = Math.max(1, road.width * scale)
         ctx.beginPath()
-        ctx.moveTo(px(a.x), pz(a.z))
-        ctx.lineTo(px(b.x), pz(b.z))
+        ctx.moveTo(px(start.x), pz(start.z))
+        for (let i = 1; i < road.points.length; i++) ctx.lineTo(px(road.points[i].x), pz(road.points[i].z))
         ctx.stroke()
       }
     }
@@ -246,35 +281,69 @@ export function init2D(
   }
 
   let downAt: [number, number] | null = null
+  let panAt: [number, number] = [0, 0]
   const onDown = (e: PointerEvent): void => {
     downAt = [e.clientX, e.clientY]
+    panAt = [panX, panY]
+  }
+  const onMove = (e: PointerEvent): void => {
+    if (!downAt || Math.hypot(e.clientX - downAt[0], e.clientY - downAt[1]) <= 6) return
+    panX = panTX = panAt[0] + e.clientX - downAt[0]
+    panY = panTY = panAt[1] + e.clientY - downAt[1]
   }
   const onUp = (e: PointerEvent): void => {
-    if (!downAt || Math.hypot(e.clientX - downAt[0], e.clientY - downAt[1]) > 6) return
+    if (!downAt) return
+    const dragged = Math.hypot(e.clientX - downAt[0], e.clientY - downAt[1]) > 6
+    downAt = null
+    if (dragged) return
     const hit = pick(e)
     onSelect(hit)
   }
+  const onCancel = (): void => {
+    downAt = null
+  }
   canvas.addEventListener('pointerdown', onDown)
+  canvas.addEventListener('pointermove', onMove)
   canvas.addEventListener('pointerup', onUp)
+  canvas.addEventListener('pointercancel', onCancel)
+
+  const onWheel = (event: WheelEvent): void => {
+    event.preventDefault()
+    const rect = canvas.getBoundingClientRect()
+    const x = event.clientX - rect.left
+    const y = event.clientY - rect.top
+    const worldX = WORLD.x0 + (x - ox - panX) / scale
+    const worldZ = WORLD.z0 + (y - oz - panY) / scale
+    zoom = Math.max(1, Math.min(16, zoom * Math.exp(-event.deltaY * 0.001)))
+    scale = baseScale * zoom
+    ox = cssW / 2 - ((WORLD.x1 - WORLD.x0) / 2) * scale
+    oz = cssH / 2 - ((WORLD.z1 - WORLD.z0) / 2) * scale
+    panX = panTX = x - ox - (worldX - WORLD.x0) * scale
+    panY = panTY = y - oz - (worldZ - WORLD.z0) * scale
+  }
+  canvas.addEventListener('wheel', onWheel, { passive: false })
 
   function focus(x: number, z: number): void {
     // Centre the target: pan so its screen position lands at the view centre.
     panTX = cssW / 2 - (ox + (x - WORLD.x0) * scale)
     panTY = cssH / 2 - (oz + (z - WORLD.z0) * scale)
-    // Keep the pan within a reasonable range of the fitted view.
-    const lim = Math.min(cssW, cssH) * 0.5
-    panTX = Math.max(-lim, Math.min(lim, panTX))
-    panTY = Math.max(-lim, Math.min(lim, panTY))
   }
 
   function overview(): void {
+    zoom = 1
+    scale = baseScale
+    ox = cssW / 2 - ((WORLD.x1 - WORLD.x0) / 2) * scale
+    oz = cssH / 2 - ((WORLD.z1 - WORLD.z0) / 2) * scale
     panTX = 0
     panTY = 0
   }
 
   function dispose(): void {
     canvas.removeEventListener('pointerdown', onDown)
+    canvas.removeEventListener('pointermove', onMove)
     canvas.removeEventListener('pointerup', onUp)
+    canvas.removeEventListener('pointercancel', onCancel)
+    canvas.removeEventListener('wheel', onWheel)
     container.removeChild(canvas)
   }
 
