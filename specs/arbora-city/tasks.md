@@ -96,6 +96,8 @@ Producer first: the fleet seam (R003) and the world producers (R002, R004, R005)
 - [ ] T089 [US5] OVERSTORY-CITY-R048.8 Replace fixed landmark, house, plot, park and prop placements with seeded road-led parcels and connected pedestrian access.
 - [ ] T090 [US5] OVERSTORY-CITY-R048.5 Integrate EZ-Tree, threejs-water and Fire Pro with reproducible sources, lifecycle management and the existing performance targets.
 - [ ] T091 [US5] OVERSTORY-CITY-R015 OVERSTORY-CITY-R027 Make 2D and 3D consume the same full-island world, scale and shared movement state; preserve focus and selection through smooth, accessible view switches and context recovery.
+- [ ] T092 [US5] OVERSTORY-CITY-R048.5 Replace circular boat animations with shared navigable water routes, depth and clearance validation, and realistic vessel movement.
+- [ ] T093 [US5] OVERSTORY-CITY-R048.8 OVERSTORY-CITY-R048.9 Generate road-first building and home sites across the buildable island and render identical site identities and built states in 2D and 3D.
 
 ## Draft PR milestones
 
