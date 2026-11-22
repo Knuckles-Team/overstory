@@ -741,8 +741,9 @@ export function buildCityCore(scene: THREE.Scene, graph?: RoadGraph): CityCore {
         segment.from === fromId
           ? points
           : points.reverse().map((p) => ({ ...p, tangentX: -p.tangentX, tangentZ: -p.tangentZ }))
-      loopPoints.push(...(loopPoints.length ? directed.slice(1) : directed))
+      loopPoints.push(...directed)
     }
+    if (loopPoints.length > 0) loopPoints.push({ ...loopPoints[0] })
     const distances = [0]
     for (let p = 1; p < loopPoints.length; p++) {
       const prev = loopPoints[p - 1]

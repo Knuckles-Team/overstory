@@ -44,6 +44,20 @@ describe('city scene steady state', () => {
     bus.reset()
   })
 
+  // spec: OVERSTORY-CITY-R032
+  it('closes the sampled traffic path before its distance wraps', () => {
+    const core = buildCityCore(new THREE.Scene())
+    for (const route of core.traffic.routes) {
+      expect(route.points.length).toBeGreaterThan(2)
+      expect(route.points.at(-1)).toEqual(route.points[0])
+      expect(route.distances.at(-1)).toBe(route.length)
+      const last = route.points.at(-1)!
+      const previous = route.points.at(-2)!
+      expect(route.length - route.distances.at(-2)!).toBeCloseTo(Math.hypot(last.x - previous.x, last.z - previous.z))
+    }
+    core.roads.dispose()
+  })
+
   // spec: OVERSTORY-CITY-R048.6.1
   it('holds scene-object and texture references steady through ten minutes of idle demo frames', () => {
     initSim(fleetToConnectors(FLEET_SNAPSHOT))
