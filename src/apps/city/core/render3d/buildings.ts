@@ -667,6 +667,21 @@ export function createBuildings(scene: THREE.Scene, world: World, markerRoot: TH
     return { group: g, scaffold, slabs, armP, cable, hookBlock, marker, runner }
   }
 
+  function disposeConstruction(entry: ConstructionEntry): void {
+    scene.remove(entry.group)
+    const geometries = new Set<THREE.BufferGeometry>()
+    const materials = new Set<THREE.Material>()
+    entry.group.traverse((object) => {
+      if (!isMesh(object) || object.userData.marker === 'construction-marker') return
+      geometries.add(object.geometry)
+      const material = object.material
+      if (Array.isArray(material)) material.forEach((item) => materials.add(item))
+      else materials.add(material)
+    })
+    for (const geometry of geometries) geometry.dispose()
+    for (const material of materials) material.dispose()
+  }
+
   // ---- Dressed blocks (undressed plots: parks, plazas, lots) -----------------
   const dressingPatchGeo = new THREE.PlaneGeometry(8, 8)
   const parkMat = new THREE.MeshStandardMaterial({ map: trimTex, roughness: 1 })
@@ -981,23 +996,7 @@ export function createBuildings(scene: THREE.Scene, world: World, markerRoot: TH
       } else if (constructionGroups.has(key)) {
         const done = constructionGroups.get(key)
         if (done) {
-          scene.remove(done.group)
-          const geos = new Set<THREE.BufferGeometry>()
-          const mats = new Set<THREE.Material>()
-          done.group.traverse((o) => {
-            if (isMesh(o)) {
-              geos.add(o.geometry)
-              const m = o.material
-              if (Array.isArray(m)) m.forEach((mm) => mats.add(mm))
-              else mats.add(m)
-            }
-          })
-          geos.forEach((g2) => {
-            g2.dispose()
-          })
-          mats.forEach((m2) => {
-            m2.dispose()
-          })
+          disposeConstruction(done)
         }
         constructionGroups.delete(key)
         // Reveal the finished building with a pop and lights on (the
@@ -1033,7 +1032,7 @@ export function createBuildings(scene: THREE.Scene, world: World, markerRoot: TH
     reservedMarkers.clear()
     for (const g of dressingGroups.values()) scene.remove(g)
     dressingGroups.clear()
-    for (const c of constructionGroups.values()) scene.remove(c.group)
+    for (const c of constructionGroups.values()) disposeConstruction(c)
     constructionGroups.clear()
     for (const entry of buildingGroups.values()) {
       scene.remove(entry.group)

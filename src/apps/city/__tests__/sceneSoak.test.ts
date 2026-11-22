@@ -6,7 +6,7 @@
  * references grow every frame while a city is simply left open.
  */
 import * as THREE from 'three'
-import { afterEach, beforeAll, describe, expect, it } from 'vitest'
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { FLEET_SNAPSHOT, fleetToConnectors } from '../core/ecosystem'
 import { bus } from '../core/events'
 import { createBuildings } from '../core/render3d/buildings'
@@ -63,6 +63,28 @@ describe('city scene steady state', () => {
     expect(reverse.points[1].tangentZ).toBeCloseTo(-forward.points.at(-2)!.tangentZ)
     expect(reverse.laneOffset).toBe(forward.laneOffset)
     core.roads.dispose()
+  })
+
+  // spec: OVERSTORY-CITY-R048.6.1
+  it('preserves shared marker assets when a construction rig is removed', () => {
+    initSim(fleetToConnectors(FLEET_SNAPSHOT))
+    const scene = new THREE.Scene()
+    const geometry = new THREE.BoxGeometry()
+    const material = new THREE.MeshBasicMaterial()
+    const marker = new THREE.Mesh(geometry, material)
+    const geometryDispose = vi.spyOn(geometry, 'dispose')
+    const materialDispose = vi.spyOn(material, 'dispose')
+    const buildings = createBuildings(scene, world, marker)
+    const plot = world.plots[0]
+    plot.construction = { connectorId: 'test', progress: 0.5, lastMilestone: 0 }
+    buildings.update(0.016, 0)
+    plot.construction = null
+    buildings.update(0.016, 0)
+    expect(geometryDispose).not.toHaveBeenCalled()
+    expect(materialDispose).not.toHaveBeenCalled()
+    buildings.dispose()
+    geometry.dispose()
+    material.dispose()
   })
 
   // spec: OVERSTORY-CITY-R048.6.1
