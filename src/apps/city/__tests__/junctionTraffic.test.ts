@@ -1,6 +1,12 @@
 // spec: OVERSTORY-CITY-R032
 import { describe, expect, it } from 'vitest'
-import { advanceTraffic, signalIsGreen, type TrafficControl, type TrafficMotion } from '../core/render3d/traffic'
+import {
+  advanceTraffic,
+  followingSpeed,
+  signalIsGreen,
+  type TrafficControl,
+  type TrafficMotion,
+} from '../core/render3d/traffic'
 
 function motion(distance: number): TrafficMotion {
   return { distance, waitingAt: null, waited: 0, passed: null }
@@ -40,5 +46,29 @@ describe('road traffic controls', () => {
     expect(signalIsGreen('z', 12)).toBe(true)
     expect(signalIsGreen('x', 17.5)).toBe(false)
     expect(signalIsGreen('z', 17.5)).toBe(false)
+  })
+
+  it('keeps its distance behind the car ahead even across the route boundary', () => {
+    const path: unknown[] = []
+    const routes = [
+      { points: path, length: 100, speed: 4, motion: motion(98) },
+      { points: path, length: 100, speed: 4, motion: motion(2) },
+      { points: [], length: 100, speed: 4, motion: motion(99) },
+    ]
+    expect(followingSpeed(routes, [98, 2, 99], 0, 1)).toBeCloseTo(1.6)
+    expect(followingSpeed(routes, [98, 2, 99], 1, 1)).toBe(4)
+    expect(followingSpeed(routes, [98, 0, 99], 0, 1)).toBe(0)
+  })
+
+  it('does not repeat a completed stop while queued behind another car', () => {
+    const car = motion(10)
+    car.waitingAt = 0
+    car.waited = 1
+    const controls: TrafficControl[] = [{ distance: 10, kind: 'stop', axis: 'x' }]
+    advanceTraffic(car, controls, 100, 0, 0.1, 2)
+    advanceTraffic(car, controls, 100, 0, 0.1, 2.1)
+    advanceTraffic(car, controls, 100, 2, 0.1, 2.2)
+    expect(car.distance).toBeCloseTo(10.2)
+    expect(car.waitingAt).toBeNull()
   })
 })

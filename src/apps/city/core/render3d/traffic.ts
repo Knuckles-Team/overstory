@@ -13,6 +13,32 @@ export interface TrafficMotion {
   passed: number | null
 }
 
+export interface FollowingRoute {
+  points: readonly unknown[]
+  length: number
+  speed: number
+  motion: TrafficMotion
+}
+
+/** Limit movement using a snapshot, so vehicle update order cannot cause overtaking. */
+export function followingSpeed(
+  routes: readonly FollowingRoute[],
+  positions: readonly number[],
+  index: number,
+  dt: number,
+  minimumGap = 2.4,
+): number {
+  const route = routes[index]
+  if (!(dt > 0) || !(route.length > 0)) return 0
+  let available = route.speed * dt
+  for (let other = 0; other < routes.length; other++) {
+    if (other === index || routes[other].points !== route.points) continue
+    const gap = (((positions[other] - positions[index]) % route.length) + route.length) % route.length
+    available = Math.min(available, Math.max(0, gap - minimumGap))
+  }
+  return available / dt
+}
+
 /** Alternating approaches have a one-second all-red interval at each change. */
 export function signalIsGreen(axis: 'x' | 'z', elapsed: number): boolean {
   const phase = ((elapsed % 18) + 18) % 18
@@ -62,5 +88,5 @@ export function advanceTraffic(
     return
   }
   state.distance = (state.distance + travel) % length
-  state.passed = null
+  if (travel > 0) state.passed = null
 }

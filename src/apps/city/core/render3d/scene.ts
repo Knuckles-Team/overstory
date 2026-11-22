@@ -50,7 +50,7 @@ import type { world as SimWorld } from '../sim'
 import { derivedRoadGraph } from '../layoutEdit'
 import { route, type RoadGraph } from '@/lib/scene3d/roads'
 import { createRoads, sampleRoadCurve, type RoadPathSample, type RoadsApi } from './roads'
-import { advanceTraffic, signalIsGreen, type TrafficControl, type TrafficMotion } from './traffic'
+import { advanceTraffic, followingSpeed, signalIsGreen, type TrafficControl, type TrafficMotion } from './traffic'
 import {
   litWindowSheet,
   metalTexture,
@@ -856,7 +856,7 @@ export function buildCityCore(scene: THREE.Scene, graph?: RoadGraph): CityCore {
       }
     }
     return Array.from({ length: 28 }, (_, i) => {
-      const phase = (i * 0.173) % 1
+      const phase = Math.floor(i / 2) / 14
       return {
         points: i % 2 ? reversePoints : loopPoints,
         distances: i % 2 ? reverseDistances : distances,
@@ -1497,6 +1497,7 @@ export function createCityScene(container: HTMLElement, world: World, opts: City
   // Vehicles use real elapsed time, not the deliberately accelerated
   // simulation clock (which advances a city day in minutes during demo).
   let trafficElapsedS = 0
+  const trafficPositions: number[] = []
   let trafficSignalPhase = -1
   const redSignal = new THREE.Color(0xf32431)
   const greenSignal = new THREE.Color(0x28e85d)
@@ -1613,9 +1614,11 @@ export function createCityScene(container: HTMLElement, world: World, opts: City
       })
       if (core.trafficSignals.bulbs.instanceColor) core.trafficSignals.bulbs.instanceColor.needsUpdate = true
     }
+    for (let i = 0; i < core.traffic.routes.length; i++) trafficPositions[i] = core.traffic.routes[i].motion.distance
     for (let i = 0; i < core.traffic.routes.length; i++) {
       const route = core.traffic.routes[i]
-      advanceTraffic(route.motion, route.controls, route.length, route.speed, trafficDelta, trafficElapsedS)
+      const speed = followingSpeed(core.traffic.routes, trafficPositions, i, trafficDelta)
+      advanceTraffic(route.motion, route.controls, route.length, speed, trafficDelta, trafficElapsedS)
       const distance = route.motion.distance
       let segmentIndex = 0
       while (segmentIndex < route.distances.length - 2 && distance > (route.distances[segmentIndex + 1] ?? Infinity))
