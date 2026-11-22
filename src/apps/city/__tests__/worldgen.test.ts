@@ -5,6 +5,7 @@ import {
   clearsRoad,
   generateRegionalMassing,
   generateRegionalTiles,
+  generateRoadsideMassing,
   generateIslandRoads,
   isIslandLand,
   isDryFootprint,
@@ -20,6 +21,23 @@ import { BUILDING_POS, HOUSES, PLOTS, inWater } from '../core/layout'
 import { graphConnected } from '@/lib/scene3d/roads'
 
 describe('deterministic world generation', () => {
+  // spec: OVERSTORY-CITY-R048.9.1
+  it('places seeded regional buildings beside the generated network on dry ground', () => {
+    const seed = 42
+    const graph = generateIslandRoads(seed, [])
+    const buildings = generateRoadsideMassing(graph, seed, [])
+    expect(buildings.length).toBeGreaterThan(5)
+    expect(buildings).toEqual(generateRoadsideMassing(graph, seed, []))
+    for (const building of buildings) {
+      expect(isDryFootprint(building, building.yaw, seed)).toBe(true)
+      const nearRoad = Object.values(graph.segments).some((segment) => {
+        const a = graph.nodes[segment.from]
+        const b = graph.nodes[segment.to]
+        return !clearsRoad(building.x, building.z, [{ x1: a.x, z1: a.z, x2: b.x, z2: b.z, width: segment.width }], 10)
+      })
+      expect(nearRoad).toBe(true)
+    }
+  })
   // spec: OVERSTORY-CITY-R048.9.1
   it('grows connected dry road corridors deterministically', () => {
     for (const seed of [42, 99, 20261121]) {

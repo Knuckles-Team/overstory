@@ -406,6 +406,79 @@ export function generateIslandRoads(seed: number, obstacles: readonly WorldRect[
   return { nodes, segments }
 }
 
+/** Place regional buildings beside existing roads, retaining a dry pedestrian approach. */
+export function generateRoadsideMassing(
+  graph: RoadGraph,
+  seed: number,
+  obstacles: readonly WorldRect[],
+): RegionalMassing[] {
+  const random = mulberry32(seed ^ 0x52a4)
+  const roads = Object.values(graph.segments).map((segment) => ({
+    id: segment.id,
+    x1: graph.nodes[segment.from].x,
+    z1: graph.nodes[segment.from].z,
+    x2: graph.nodes[segment.to].x,
+    z2: graph.nodes[segment.to].z,
+    width: segment.width,
+  }))
+  const buildings: RegionalMassing[] = []
+  const facades: RegionalMassing['facade'][] = ['coral', 'mango', 'aqua', 'lime']
+  for (const road of roads) {
+    const dx = road.x2 - road.x1
+    const dz = road.z2 - road.z1
+    const length = Math.hypot(dx, dz)
+    if (length < 12) continue
+    const nx = -dz / length
+    const nz = dx / length
+    for (const side of [-1, 1]) {
+      const t = 0.35 + random() * 0.3
+      const roadX = road.x1 + dx * t
+      const roadZ = road.z1 + dz * t
+      const width = 6 + random() * 2
+      const depth = 6 + random() * 2
+      const offset = road.width / 2 + Math.hypot(width, depth) / 2 + 2
+      const building: RegionalMassing = {
+        x: roadX + nx * offset * side,
+        z: roadZ + nz * offset * side,
+        w: width,
+        d: depth,
+        h: 5 + random() * 12,
+        yaw: Math.atan2(-dz, dx),
+        facade: facades[Math.floor(random() * facades.length)],
+        zone: 'suburban',
+      }
+      const radius = Math.hypot(width, depth) / 2
+      const bounds = { x: building.x, z: building.z, w: radius * 2, d: radius * 2 }
+      if (!isDryFootprint(building, building.yaw, seed)) continue
+      if (!clearsRoad(building.x, building.z, roads, radius + 0.75)) continue
+      if (obstacles.some((other) => rectsOverlap(bounds, other, 0.75))) continue
+      if (
+        buildings.some((other) => {
+          const diameter = Math.hypot(other.w, other.d)
+          return rectsOverlap(bounds, { ...other, w: diameter, d: diameter }, 0.75)
+        })
+      )
+        continue
+      let dryApproach = true
+      for (let i = 0; i <= Math.ceil(offset); i++) {
+        const t = i / Math.ceil(offset)
+        if (
+          !isDryFootprint(
+            { x: roadX + nx * offset * side * t, z: roadZ + nz * offset * side * t, w: 1, d: 1 },
+            0,
+            seed,
+          )
+        ) {
+          dryApproach = false
+          break
+        }
+      }
+      if (dryApproach) buildings.push(building)
+    }
+  }
+  return buildings
+}
+
 /** Deterministic rejection sampler used for vegetation and small props. */
 export function clearPropPositions(
   seed: number,

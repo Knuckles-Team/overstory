@@ -32,11 +32,13 @@ import {
 } from '@/lib/scene3d/pipeline'
 import { buildingAsset, mulberry32, propAsset } from '@/lib/scene3d/generators'
 import { ARCHETYPE_GUIDE, SCENE_COLORS } from '@/lib/scene3d/palette'
-import { GROUND_SIZE, HOUSES, PARKS, PIER, SHIPS, WATER_Z, X_ROADS, Z_ROADS } from '../layout'
+import { BUILDING_POS, GROUND_SIZE, HOUSES, PARKS, PIER, PLOTS, SHIPS, WATER_Z, X_ROADS, Z_ROADS } from '../layout'
 import {
   clearPropPositions,
   clearsRoad,
+  CITY_WORLD_SEED,
   generateRegionalMassing,
+  generateRoadsideMassing,
   islandCoastPoint,
   isRegionalWater,
   regionalBiome,
@@ -358,7 +360,14 @@ export function buildCityCore(scene: THREE.Scene, graph?: RoadGraph): CityCore {
     coral: 2,
     lime: 3,
   }
-  const regionalMassing = generateRegionalMassing()
+  const regionalMassing =
+    'seed:0' in editableRoadGraph.nodes
+      ? generateRoadsideMassing(editableRoadGraph, CITY_WORLD_SEED, [
+          ...Object.values(BUILDING_POS),
+          ...PLOTS.map((plot) => ({ ...plot, w: 7, d: 7 })),
+          ...HOUSES.map((house) => ({ ...house, w: 4, d: 4 })),
+        ])
+      : generateRegionalMassing()
   const regionalTransform = new THREE.Object3D()
   for (const facade of Object.keys(facadeRoles) as (keyof typeof facadeRoles)[]) {
     const members = regionalMassing.filter((building) => building.facade === facade)

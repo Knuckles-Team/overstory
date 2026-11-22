@@ -21,7 +21,7 @@ import {
 import type { DistrictArchetype } from '@/lib/scene3d/generators'
 import { BUILDING_POS, DISTRICT_DOMAINS, HOUSES, PLOTS, ROAD_W, X_ROADS, Z_ROADS, plotDoor } from './layout'
 import type { world as SimWorld } from './sim'
-import { CITY_WORLD_SEED, generateIslandRoads, generateRegionalMassing, isDryFootprint } from './worldgen'
+import { CITY_WORLD_SEED, generateIslandRoads, isDryFootprint } from './worldgen'
 import { isCitySandbox } from '@/lib/city-sandbox'
 
 export type World = typeof SimWorld
@@ -405,11 +405,6 @@ export function derivedRoadGraph(): RoadGraph {
       ...Object.values(BUILDING_POS),
       ...PLOTS.map((plot) => ({ ...plot, w: 7, d: 7 })),
       ...HOUSES.map((house) => ({ ...house, w: 4, d: 4 })),
-      ...generateRegionalMassing(CITY_WORLD_SEED).map((building) => ({
-        ...building,
-        w: building.w + building.d,
-        d: building.w + building.d,
-      })),
     ]
     return generateIslandRoads(CITY_WORLD_SEED, obstacles)
   }
