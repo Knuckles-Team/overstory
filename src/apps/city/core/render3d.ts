@@ -91,7 +91,7 @@ export async function init3D(
   }
 
   const buildings = createBuildings(scene, world, markerRoot)
-  let characters = await initCharacters(scene, world, markerRoot, loadPinnedGLB)
+  let characters = await initCharacters(scene, world, markerRoot, loadPinnedGLB, camera)
   const picking = createPicking(scene, camera, renderer.domElement, world, controls, onSelect)
 
   // Landmarks + pre-existing buildings.
@@ -105,7 +105,7 @@ export async function init3D(
   function resync(): void {
     if (disposed) return
     characters.dispose()
-    void initCharacters(scene, world, markerRoot, loadPinnedGLB).then((api) => {
+    void initCharacters(scene, world, markerRoot, loadPinnedGLB, camera).then((api) => {
       if (disposed) {
         api.dispose()
         return
@@ -194,6 +194,14 @@ export async function init3D(
       camera.position.copy(controls.target).addScaledVector(direction, distance)
       controls.update()
     },
+    diagnostics: () => ({
+      tier: pipeline.tier,
+      drawCalls: renderer.info.render.calls,
+      triangles: renderer.info.render.triangles,
+      geometries: renderer.info.memory.geometries,
+      textures: renderer.info.memory.textures,
+      programs: renderer.info.programs?.length ?? 0,
+    }),
     say: (charId: string, text: string) => {
       characters.say(charId, text)
     },

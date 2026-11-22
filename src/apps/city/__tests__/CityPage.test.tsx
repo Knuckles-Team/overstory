@@ -128,6 +128,41 @@ async function bootCity(mode: 'live' | 'simulated', path = '/apps/city') {
 }
 
 describe('speed and demo URL params (R012/R026)', () => {
+  it('reports CPU stages and renderer resources in debug mode', async () => {
+    let frame: FrameRequestCallback | null = null
+    const raf = vi.spyOn(globalThis, 'requestAnimationFrame').mockImplementation((callback) => {
+      frame = callback
+      return 1
+    })
+    const renderer = fakeRenderer()
+    renderer.diagnostics = () => ({
+      tier: 'low',
+      drawCalls: 25,
+      triangles: 900,
+      geometries: 12,
+      textures: 4,
+      programs: 3,
+    })
+    vi.mocked(init3D).mockResolvedValue(renderer)
+    const view = await bootCity('simulated', '/apps/city?debug=1')
+    try {
+      const runFrame = (time: number) => {
+        const callback = frame as FrameRequestCallback | null
+        if (!callback) throw new Error('city frame was not scheduled')
+        callback(time)
+      }
+      runFrame(10000)
+      runFrame(11010)
+      const meter = screen.getByTestId('city-fps')
+      expect(meter.title).toContain('CPU avg: simulation')
+      expect(meter.title).toContain('25 draw calls')
+      expect(meter.title).toContain('12 geometries')
+      expect(meter.title).toContain('CPU timings exclude GPU completion')
+    } finally {
+      view.unmount()
+      raf.mockRestore()
+    }
+  })
   it('parseSpeedParam: parses the accepted speeds and defaults to 1x', () => {
     expect(parseSpeedParam('?speed=4')).toBe(4)
     expect(parseSpeedParam('?speed=0')).toBe(0)

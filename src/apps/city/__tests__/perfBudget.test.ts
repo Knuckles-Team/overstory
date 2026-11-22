@@ -302,6 +302,25 @@ describe('performance budgets measured from the real scene graph (R028)', () => 
     api.dispose()
   })
 
+  it('uses a single lightweight character mesh at a distance and restores the rig nearby', async () => {
+    initSim(fleetToConnectors(FLEET_SNAPSHOT))
+    const scene = new THREE.Scene()
+    const camera = new THREE.PerspectiveCamera()
+    camera.position.set(0, 180, 0)
+    const api = await initCharacters(scene, world, null, loadPinned, camera)
+    const group = scene.children.find((child) => child instanceof THREE.Group) as THREE.Group
+    const distant = group.children.find((child) => child.userData.marker === 'character-distant') as THREE.Mesh
+    const rig = group.children[0]
+    api.update(0.016, 0)
+    expect(distant.visible).toBe(true)
+    expect(rig.visible).toBe(false)
+    camera.position.set(group.position.x, 5, group.position.z)
+    api.update(0.016, 0)
+    expect(distant.visible).toBe(false)
+    expect(rig.visible).toBe(true)
+    api.dispose()
+  })
+
   it('measured texture memory of the whole scene holds the budget', async () => {
     initSim(fleetToConnectors(FLEET_SNAPSHOT))
     const coreScene = new THREE.Scene()

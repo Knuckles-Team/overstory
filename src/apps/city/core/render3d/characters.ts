@@ -37,6 +37,7 @@ interface CharacterEntry {
   ch: Character
   group: THREE.Group
   root: THREE.Object3D
+  distant: THREE.Mesh
   blender: ClipBlenderApi | null
   materials: THREE.Material[]
   /** A ground halo keeps every person findable in a large city overview. */
@@ -113,9 +114,12 @@ export async function initCharacters(
   world: World,
   markerRoot: THREE.Object3D | null,
   loadPinnedGLB: (url: string) => Promise<GLTF>,
+  camera?: THREE.Camera,
 ): Promise<CharactersApi> {
   const characters = new Map<string, CharacterEntry>()
   const presenceGeo = new THREE.RingGeometry(0.42, 0.58, 16)
+  const distantGeo = new THREE.CapsuleGeometry(0.24, 1.15, 3, 6)
+  const distantMaterials = new Map<RoleId, THREE.MeshStandardMaterial>()
 
   /**
    * One character on a placeholder rig (the rig pin failed, R010): the
@@ -200,6 +204,21 @@ export async function initCharacters(
       // material audit, which governs architecture and public-realm surfaces.
       group.userData.marker = 'character-rig'
 
+      let distantMaterial = distantMaterials.get(ch.role)
+      if (!distantMaterial) {
+        distantMaterial = new THREE.MeshStandardMaterial({
+          color: SCENE_COLORS[`role-${ch.role}`].hex,
+          roughness: 0.75,
+        })
+        distantMaterials.set(ch.role, distantMaterial)
+      }
+      const distant = new THREE.Mesh(distantGeo, distantMaterial)
+      distant.position.y = HUMAN_HEIGHT_M / 2
+      distant.visible = false
+      distant.userData.charId = ch.id
+      distant.userData.marker = 'character-distant'
+      group.add(distant)
+
       const bubble = new THREE.Sprite(
         new THREE.SpriteMaterial({ map: null, depthWrite: false, transparent: true, opacity: 0 }),
       )
@@ -228,6 +247,7 @@ export async function initCharacters(
         ch,
         group,
         root,
+        distant,
         blender,
         materials,
         halo,
@@ -262,11 +282,14 @@ export async function initCharacters(
       if (!ch.visible) continue
       entry.group.position.set(ch.pos.x, 0, ch.pos.z)
       entry.group.rotation.y = ch.facing
+      const isDistant = !!camera && camera.position.distanceToSquared(entry.group.position) > 65 * 65
+      entry.root.visible = !isDistant
+      entry.distant.visible = isDistant
       if (entry.blender) {
         // The state → clip mapping and the ≤0.25 s crossfade are the
         // shared rig's policy (R012.4); the city only names the state.
         entry.blender.playState(ch.state)
-        entry.blender.update(dtReal)
+        if (!isDistant) entry.blender.update(dtReal)
       } else if (entry.placeholder) {
         // A placeholder is still alive (never frozen): a gentle sway on
         // the inner root, the outer group keeping the sim's facing.
@@ -298,6 +321,8 @@ export async function initCharacters(
     }
     characters.clear()
     presenceGeo.dispose()
+    distantGeo.dispose()
+    for (const material of distantMaterials.values()) material.dispose()
   }
 
   await loadCharacters()

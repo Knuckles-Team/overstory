@@ -29,4 +29,8 @@ test('reports browser FPS and the 60 FPS target when debug is enabled', async ({
   const meter = page.getByTestId('city-fps')
   await expect(meter).toHaveText(/\d+\.\d FPS · 60 target · \d+ slow frames/, { timeout: 45_000 })
   await expect(meter).toHaveAttribute('data-budget', /^(below|met)$/)
+  await expect(meter).toHaveAttribute(
+    'title',
+    /CPU avg: simulation .*render submission .*UI .*CPU timings exclude GPU completion/,
+  )
 })

@@ -23,6 +23,16 @@ export interface CityViewport {
   verticalSpan: number
 }
 
+/** Renderer counters are sampled on demand by the debug HUD. */
+export interface CityRenderDiagnostics {
+  tier: string
+  drawCalls: number
+  triangles: number
+  geometries: number
+  textures: number
+  programs: number
+}
+
 /** One renderer (3D scene or 2D schematic) of the same city. */
 export interface CityRenderer {
   /** Draw one frame; `dtReal` is the real elapsed seconds. */
@@ -42,6 +52,7 @@ export interface CityRenderer {
   /** Preserve world-space focus and scale when switching view implementations. */
   getViewport?(): CityViewport
   setViewport?(viewport: CityViewport): void
+  diagnostics?(): CityRenderDiagnostics
   /**
    * Rebind layer references after the world was replaced (the replay seek,
    * R029). Stateless renderers (the 2D schematic) need no rebind.

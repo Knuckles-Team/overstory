@@ -599,11 +599,17 @@ export default function CityPage() {
       let meterStart = 0
       let meterFrames = 0
       let slowFrames = 0
+      let sampledFrames = 0
+      let simulationMs = 0
+      let renderMs = 0
+      let uiMs = 0
       const targetFrameMs = Math.ceil((1000 / BUDGETS.fpsIntegrated) * 10) / 10
       const resetMeter = (): void => {
         meterLast = null
         meterFrames = 0
         slowFrames = 0
+        sampledFrames = 0
+        simulationMs = renderMs = uiMs = 0
         if (meter) {
           meter.textContent = document.hidden ? 'FPS paused' : 'Measuring FPS…'
           delete meter.dataset.budget
@@ -625,10 +631,19 @@ export default function CityPage() {
         const belowBudget = fps < BUDGETS.fpsIntegrated
         meter.dataset.budget = belowBudget ? 'below' : 'met'
         meter.textContent = `${fps.toFixed(1)} FPS · ${BUDGETS.fpsIntegrated} target · ${slowFrames} slow frames`
-        meter.title = `${view.toUpperCase()} · ${belowBudget ? 'Below target' : 'Target met'} · Last measurement window`
+        const diag = renderer?.diagnostics?.()
+        const timing = sampledFrames
+          ? `CPU avg: simulation ${(simulationMs / sampledFrames).toFixed(1)} ms, render submission ${(renderMs / sampledFrames).toFixed(1)} ms, UI ${(uiMs / sampledFrames).toFixed(1)} ms`
+          : 'CPU timing unavailable'
+        const resources = diag
+          ? ` · ${diag.tier} · ${diag.drawCalls} draw calls · ${diag.triangles} triangles · ${diag.geometries} geometries · ${diag.textures} textures · ${diag.programs} programs`
+          : ''
+        meter.title = `${view.toUpperCase()} · ${belowBudget ? 'Below target' : 'Target met'} · ${timing}${resources} · CPU timings exclude GPU completion`
         meterStart = now
         meterFrames = 0
         slowFrames = 0
+        sampledFrames = 0
+        simulationMs = renderMs = uiMs = 0
       }
       const frame = (now: number): void => {
         updateMeter(now)
@@ -640,9 +655,24 @@ export default function CityPage() {
           audioClock = 0
           audio.update(renderer?.fidelity?.camera.position.y ?? AUDIO_OVERVIEW_HEIGHT, false)
         }
+        let stageStart = meter ? performance.now() : 0
         if (speed > 0) tickSim(dt * world.timeScale * speed, dt * speed)
+        if (meter) {
+          const now = performance.now()
+          simulationMs += now - stageStart
+          stageStart = now
+        }
         renderer?.render(dt)
+        if (meter) {
+          const now = performance.now()
+          renderMs += now - stageStart
+          stageStart = now
+        }
         ui?.tick(dt)
+        if (meter) {
+          uiMs += performance.now() - stageStart
+          sampledFrames++
+        }
         raf = requestAnimationFrame(frame)
       }
       raf = requestAnimationFrame(frame)
