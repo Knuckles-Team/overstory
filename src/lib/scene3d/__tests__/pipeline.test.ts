@@ -149,6 +149,21 @@ describe('frame-time tracking (R012.1)', () => {
     expect(tracker.p95()).toBe(5)
   })
 
+  it('retains the correct percentile while repeated samples expire', () => {
+    const tracker = new FrameTimeTracker(30)
+    const window: number[] = []
+    for (let i = 0; i < 200; i++) {
+      const sample = (i * 17) % 11
+      tracker.record(sample)
+      window.push(sample)
+      if (window.length > 30) window.shift()
+      if (window.length === 30) {
+        const sorted = [...window].sort((a, b) => a - b)
+        expect(tracker.p95()).toBe(sorted[Math.ceil(0.95 * sorted.length) - 1])
+      }
+    }
+  })
+
   it('rejects non-finite and negative durations', () => {
     const tracker = new FrameTimeTracker()
     tracker.record(Number.NaN)

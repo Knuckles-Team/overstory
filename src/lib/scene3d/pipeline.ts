@@ -124,6 +124,7 @@ export function sunFromClock(timeAcc: number, sun: PipelineSun): void {
  */
 export class FrameTimeTracker {
   private samples: number[] = []
+  private sorted: number[] = []
   private readonly capacity: number
 
   constructor(capacity = 120) {
@@ -134,19 +135,30 @@ export class FrameTimeTracker {
   record(ms: number): void {
     if (!Number.isFinite(ms) || ms < 0) return
     this.samples.push(ms)
-    if (this.samples.length > this.capacity) this.samples.shift()
+    let low = 0
+    let high = this.sorted.length
+    while (low < high) {
+      const middle = Math.floor((low + high) / 2)
+      if (this.sorted[middle] < ms) low = middle + 1
+      else high = middle
+    }
+    this.sorted.splice(low, 0, ms)
+    if (this.samples.length > this.capacity) {
+      const expired = this.samples.shift()
+      if (expired !== undefined) this.sorted.splice(this.sorted.indexOf(expired), 1)
+    }
   }
 
   /** The p95 frame time in ms, or null until 30 frames are recorded. */
   p95(): number | null {
     if (this.samples.length < 30) return null
-    const sorted = [...this.samples].sort((a, b) => a - b)
-    const idx = Math.min(sorted.length - 1, Math.max(0, Math.ceil(0.95 * sorted.length) - 1))
-    return sorted[idx]
+    const idx = Math.min(this.sorted.length - 1, Math.max(0, Math.ceil(0.95 * this.sorted.length) - 1))
+    return this.sorted[idx]
   }
 
   reset(): void {
     this.samples = []
+    this.sorted = []
   }
 }
 
