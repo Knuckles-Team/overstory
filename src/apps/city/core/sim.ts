@@ -26,6 +26,13 @@ import {
 import { BUILDING_POS, PLOTS, HOUSES, buildingDoor, plotDoor, findPath, type Vec2 } from './layout'
 import { pathOn, type RoadGraph } from '@/lib/scene3d/roads'
 import { makeTrafficRoutes, tickTraffic, type TrafficFleet } from './render3d/traffic'
+import {
+  CITY_WORLD_SEED,
+  generateFrontageSites,
+  generateRoadsideMassing,
+  type FrontageSite,
+  type RegionalMassing,
+} from './worldgen'
 import { applyDocument, derivedRoadGraph, type LayoutOverride } from './layoutEdit'
 import { bus, makeEvent, type CityEvent } from './events'
 import { defaultPrng, type Prng } from './prng'
@@ -75,6 +82,7 @@ export interface Plot {
   /** Display name of a reserved, not-yet-built plot. */
   reservedName: string | null
   construction: { connectorId: string; progress: number; lastMilestone: number } | null
+  access?: FrontageSite
 }
 
 export interface Task {
@@ -115,6 +123,7 @@ export interface Building {
   rot: number
   /** The plot the derived layout places this building on (R032); null for core landmarks. */
   derivedPlot: number | null
+  access?: FrontageSite
 }
 
 class Character {
@@ -159,8 +168,9 @@ class Character {
     this.mood = this.kind === 'npc' ? 'supervising' : 'wandering'
     this.context = 10 + simRandom() * 15
     this.walkPhase = simRandom() * Math.PI * 2
-    this.home = HOUSES[index % HOUSES.length]
-    this.homeDoor = { x: this.home.x - 4, z: this.home.z }
+    const home = world.homes[index % world.homes.length]
+    this.home = home
+    this.homeDoor = home.access ? { x: home.access.roadX, z: home.access.roadZ } : { x: home.x - 4, z: home.z }
     this.wanderTimer = 2 + simRandom() * 6
   }
 
@@ -239,6 +249,8 @@ export const world = {
   activity: 'quiet' as ActivityMode,
   characters: [] as Character[],
   buildings: {} as Record<string, Building>,
+  regionalMassing: [] as RegionalMassing[],
+  homes: HOUSES.map((home) => ({ ...home })) as (Vec2 & { access?: FrontageSite })[],
   plots: PLOTS.map((p) => ({
     x: p.x,
     z: p.z,
@@ -411,6 +423,7 @@ function makeBuilding(def: CoreDef | ConnectorDef, category: 'core' | 'connector
 function placeConnector(def: ConnectorDef, plot: Plot, prebuilt: boolean): void {
   const b = makeBuilding(def, 'connector', plot)
   b.door = plotDoor(plot)
+  b.access = plot.access
   // The derived layout's own placement (R032): restoring the derived city
   // puts the building back exactly here.
   b.derivedPlot = world.plots.indexOf(plot)
@@ -436,8 +449,47 @@ export function initSim(connectors: ConnectorDef[]): void {
   if (world.initialized) return
   world.connectors = connectors
   world.absGameS = world.clock
+  world.roadGraph = derivedRoadGraph()
+  world.traffic = null
+  let coreSites: FrontageSite[] = []
+  if ('seed:0' in world.roadGraph.nodes) {
+    const requests = [
+      ...CORE_LANDMARKS.map((core) => ({ id: core.id, w: BUILDING_POS[core.id].w, d: BUILDING_POS[core.id].d })),
+      ...HOUSES.map((_, index) => ({ id: `home-${index}`, w: 4, d: 4 })),
+      ...PLOTS.map((_, index) => ({ id: `plot-${index}`, w: 5.6, d: 5.6 })),
+    ]
+    const sites = generateFrontageSites(world.roadGraph, CITY_WORLD_SEED, requests)
+    coreSites = sites.filter((site) => !site.id.startsWith('plot-') && !site.id.startsWith('home-'))
+    if (coreSites.length !== CORE_LANDMARKS.length)
+      throw new Error('Seed cannot place all city landmarks beside roads')
+    world.homes = sites
+      .filter((site) => site.id.startsWith('home-'))
+      .map((site) => ({ x: site.x, z: site.z, access: site }))
+    if (world.homes.length < ROSTER.length) throw new Error('Seed cannot place all city homes beside roads')
+    world.plots = sites
+      .filter((site) => site.id.startsWith('plot-'))
+      .map((site) => ({
+        x: site.x,
+        z: site.z,
+        buildingId: null,
+        reservedId: null,
+        reservedName: null,
+        construction: null,
+        access: site,
+      }))
+  }
 
-  for (const c of CORE_LANDMARKS) world.buildings[c.id] = makeBuilding(c, 'core')
+  for (const c of CORE_LANDMARKS) {
+    const building = makeBuilding(c, 'core')
+    const site = coreSites.find((candidate) => candidate.id === c.id)
+    if (site) {
+      building.x = site.x
+      building.z = site.z
+      building.door = { x: site.roadX, z: site.roadZ }
+      building.access = site
+    }
+    world.buildings[c.id] = building
+  }
 
   let plotIdx = 0
   for (const c of connectorsByDomain(connectors)) {
@@ -465,10 +517,19 @@ export function initSim(connectors: ConnectorDef[]): void {
     )
   }
 
+  if ('seed:0' in world.roadGraph.nodes) {
+    world.regionalMassing = generateRoadsideMassing(world.roadGraph, CITY_WORLD_SEED, [
+      ...Object.values(world.buildings),
+      ...world.plots.map((plot) => ({ ...plot, w: 5.6, d: 5.6 })),
+      ...world.homes.map((home) => ({ ...home, w: 4, d: 4 })),
+    ])
+  }
+
   ROSTER.forEach((r, i) => {
     const ch = new Character(r, i)
     const a = (i / ROSTER.length) * Math.PI * 2
-    ch.setPos(Math.cos(a) * 4.5, Math.sin(a) * 4.5)
+    if ('seed:0' in world.roadGraph!.nodes) ch.setPos(ch.homeDoor.x, ch.homeDoor.z)
+    else ch.setPos(Math.cos(a) * 4.5, Math.sin(a) * 4.5)
     world.characters.push(ch)
     // Spawn events live in the sim, not the renderer, so both views emit
     // the identical vocabulary (constitution P2).
@@ -477,8 +538,6 @@ export function initSim(connectors: ConnectorDef[]): void {
 
   // The derived road graph (R032): characters walk it, and a saved layout
   // edit replaces it with the overrides' graph.
-  world.roadGraph = derivedRoadGraph()
-  world.traffic = null
   world.districtStyles = {}
   world.layoutDoc = null
 
@@ -975,7 +1034,8 @@ function tickHumans(ch: Character, _dtReal: number): void {
       return
     }
     if (world.activity === 'demo' && !ch.moving() && ch.waitTimer <= 0) {
-      const arboraDoor = buildingDoor('arbora') ?? { x: 0, z: 0 }
+      const arboraDoor = ('arbora' in world.buildings ? world.buildings.arbora.door : null) ??
+        buildingDoor('arbora') ?? { x: 0, z: 0 }
       const spots = [arboraDoor, { x: -45, z: -45 }, { x: -65, z: 30 }, { x: -5, z: 15 }]
       const s = spots[Math.floor(simRandom() * spots.length)]
       ch.go(
@@ -1188,6 +1248,8 @@ export function resetSim(): void {
   world.activity = 'quiet'
   world.characters = []
   world.buildings = {}
+  world.regionalMassing = []
+  world.homes = HOUSES.map((home) => ({ ...home }))
   world.plots = PLOTS.map((p) => ({
     x: p.x,
     z: p.z,

@@ -39,7 +39,8 @@ export function buildingDoor(id: string): Vec2 | null {
   return project(b.x, b.z)
 }
 
-export function plotDoor(plot: Vec2): Vec2 {
+export function plotDoor(plot: Vec2 & { access?: { roadX: number; roadZ: number } }): Vec2 {
+  if (plot.access) return { x: plot.access.roadX, z: plot.access.roadZ }
   return project(plot.x, plot.z)
 }
 

@@ -90,8 +90,8 @@ export async function init3D(
     console.warn('[city] marker cube unavailable:', err)
   }
 
-  const buildings = createBuildings(scene, world, markerRoot)
-  let characters = await initCharacters(scene, world, markerRoot, loadPinnedGLB, camera)
+  const buildings = createBuildings(scene, world, markerRoot, sceneCore.groundHeight)
+  let characters = await initCharacters(scene, world, markerRoot, loadPinnedGLB, camera, sceneCore.groundHeight)
   const picking = createPicking(scene, camera, renderer.domElement, world, controls, onSelect)
 
   // Landmarks + pre-existing buildings.
@@ -105,7 +105,7 @@ export async function init3D(
   function resync(): void {
     if (disposed) return
     characters.dispose()
-    void initCharacters(scene, world, markerRoot, loadPinnedGLB, camera).then((api) => {
+    void initCharacters(scene, world, markerRoot, loadPinnedGLB, camera, sceneCore.groundHeight).then((api) => {
       if (disposed) {
         api.dispose()
         return

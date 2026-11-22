@@ -379,6 +379,126 @@ export interface RoadsideProp {
   rotation: number
 }
 
+export interface FrontageRequest {
+  id: string
+  w: number
+  d: number
+}
+
+export interface FrontageSite extends FrontageRequest {
+  x: number
+  z: number
+  roadId: string
+  roadX: number
+  roadZ: number
+  entranceX: number
+  entranceZ: number
+}
+
+/** Allocate bounded, dry parcels next to the actual generated road network. */
+export function generateFrontageSites(
+  graph: RoadGraph,
+  seed: number,
+  requests: readonly FrontageRequest[],
+): FrontageSite[] {
+  const segments = Object.values(graph.segments).sort((a, b) => a.id.localeCompare(b.id))
+  const roads = segments.flatMap((segment) => {
+    if (!(segment.from in graph.nodes) || !(segment.to in graph.nodes)) return []
+    const a = graph.nodes[segment.from]
+    const b = graph.nodes[segment.to]
+    const points = sampleRoadCurve(a.x, a.z, b.x, b.z, segment.curve, segment.id, 2)
+    return [{ segment, points }]
+  })
+  const spans = roads.flatMap(({ segment, points }) =>
+    points.slice(1).map((point, i) => ({
+      id: segment.id,
+      x1: points[i].x,
+      z1: points[i].z,
+      x2: point.x,
+      z2: point.z,
+      width: segment.width,
+    })),
+  )
+  const candidates = roads.flatMap(({ segment, points }) => {
+    const result: { segment: typeof segment; point: (typeof points)[number]; side: number }[] = []
+    for (let i = 3; i < points.length - 3; i += 4) {
+      result.push({ segment, point: points[i], side: 1 }, { segment, point: points[i], side: -1 })
+    }
+    return result
+  })
+  const random = mulberry32(seed ^ 0x706c6f74)
+  for (let i = candidates.length - 1; i > 0; i--) {
+    const j = Math.floor(random() * (i + 1))
+    ;[candidates[i], candidates[j]] = [candidates[j], candidates[i]]
+  }
+  const sites: FrontageSite[] = []
+  for (const request of requests) {
+    if (!Number.isFinite(request.w) || !Number.isFinite(request.d) || !(request.w > 0 && request.d > 0)) continue
+    for (const candidate of candidates) {
+      const { point, segment, side } = candidate
+      const length = Math.hypot(point.tangentX, point.tangentZ) || 1
+      const nx = (-point.tangentZ / length) * side
+      const nz = (point.tangentX / length) * side
+      const radius = Math.hypot(request.w, request.d) / 2
+      const offset = segment.width / 2 + radius + 2
+      const x = point.x + nx * offset
+      const z = point.z + nz * offset
+      const footprint = { x, z, w: request.w, d: request.d }
+      if (!isDryFootprint(footprint, 0, seed) || !clearsRoad(x, z, spans, radius + 0.5)) continue
+      if (sites.some((other) => rectsOverlap(footprint, other, 1))) continue
+      if (
+        sites.some((other) => {
+          const steps = Math.ceil(Math.hypot(other.entranceX - other.roadX, other.entranceZ - other.roadZ))
+          for (let i = 0; i <= steps; i++) {
+            const t = i / steps
+            if (
+              rectsOverlap(
+                footprint,
+                {
+                  x: other.roadX + (other.entranceX - other.roadX) * t,
+                  z: other.roadZ + (other.entranceZ - other.roadZ) * t,
+                  w: 1,
+                  d: 1,
+                },
+                0.5,
+              )
+            )
+              return true
+          }
+          return false
+        })
+      )
+        continue
+      const inset = Math.min(
+        Math.abs(nx) > 1e-6 ? request.w / (2 * Math.abs(nx)) : Infinity,
+        Math.abs(nz) > 1e-6 ? request.d / (2 * Math.abs(nz)) : Infinity,
+      )
+      const entranceX = x - nx * inset
+      const entranceZ = z - nz * inset
+      let accessible = true
+      const otherRoads = spans.filter((span) => span.id !== segment.id)
+      const steps = Math.ceil(Math.hypot(entranceX - point.x, entranceZ - point.z))
+      for (let i = 0; i <= steps; i++) {
+        const t = i / steps
+        const px = point.x + (entranceX - point.x) * t
+        const pz = point.z + (entranceZ - point.z) * t
+        if (
+          !isDryFootprint({ x: px, z: pz, w: 1, d: 1 }, 0, seed) ||
+          !clearsRoad(px, pz, otherRoads, 0.5) ||
+          sites.some((other) => rectsOverlap({ x: px, z: pz, w: 1, d: 1 }, other, 0.5))
+        ) {
+          accessible = false
+          break
+        }
+      }
+      if (!accessible) continue
+      sites.push({ ...request, x, z, roadId: segment.id, roadX: point.x, roadZ: point.z, entranceX, entranceZ })
+      break
+    }
+  }
+  return sites
+}
+
 /** Seeded roadside furniture with dry foundations and conservative clearance. */
 export function generateRoadsideProps(
   graph: RoadGraph,

@@ -201,7 +201,12 @@ export interface BuildingsApi {
   dispose(): void
 }
 
-export function createBuildings(scene: THREE.Scene, world: World, markerRoot: THREE.Object3D | null): BuildingsApi {
+export function createBuildings(
+  scene: THREE.Scene,
+  world: World,
+  markerRoot: THREE.Object3D | null,
+  groundHeight: (x: number, z: number) => number = () => 0,
+): BuildingsApi {
   const buildingGroups = new Map<string, BuildingEntry>()
   const constructionGroups = new Map<string, ConstructionEntry>()
   const dressingGroups = new Map<string, THREE.Group>()
@@ -344,7 +349,7 @@ export function createBuildings(scene: THREE.Scene, world: World, markerRoot: TH
       doorMatMesh.position.set(b.door.x - b.x, 0.035, b.door.z - b.z)
       g.add(doorMatMesh)
     }
-    g.position.set(b.x, 0, b.z)
+    g.position.set(b.x, groundHeight(b.x, b.z), b.z)
     g.rotation.y = (b.rot * Math.PI) / 180
     scene.add(g)
     const entry: BuildingEntry = {
@@ -557,7 +562,7 @@ export function createBuildings(scene: THREE.Scene, world: World, markerRoot: TH
       }
     }
 
-    g.position.set(b.x, 0, b.z)
+    g.position.set(b.x, groundHeight(b.x, b.z), b.z)
     scene.add(g)
     buildingGroups.set(b.id, {
       group: g,
@@ -574,7 +579,7 @@ export function createBuildings(scene: THREE.Scene, world: World, markerRoot: TH
   // ---- Construction rig -----------------------------------------------------
   function makeConstruction(plot: World['plots'][number]): ConstructionEntry {
     const g = new THREE.Group()
-    g.position.set(plot.x, 0, plot.z)
+    g.position.set(plot.x, groundHeight(plot.x, plot.z), plot.z)
     const h = 5.5
     const scaffoldMat = new THREE.MeshStandardMaterial({ map: trimTex, roughness: 0.85 })
     scaffoldMat.color.setHex(encodingColor('scaffolding')) // the 'scaffolding' channel (R025)
@@ -692,7 +697,7 @@ export function createBuildings(scene: THREE.Scene, world: World, markerRoot: TH
 
   function makeDressing(plot: World['plots'][number]): THREE.Group {
     const g = new THREE.Group()
-    g.position.set(plot.x, 0, plot.z)
+    g.position.set(plot.x, groundHeight(plot.x, plot.z), plot.z)
     const kind = dressingForPlot(plot.x, plot.z)
     const patch = new THREE.Mesh(
       kind === 'plaza' ? plazaPatchGeo : dressingPatchGeo,
@@ -889,6 +894,7 @@ export function createBuildings(scene: THREE.Scene, world: World, markerRoot: TH
         const e = k < 0.5 ? 4 * k * k * k : 1 - (-2 * k + 2) ** 3 / 2
         gpos.x = mv.fx + (b.x - mv.fx) * e
         gpos.z = mv.fz + (b.z - mv.fz) * e
+        gpos.y = groundHeight(gpos.x, gpos.z)
         entry.group.rotation.y = mv.fr + (targetRot - mv.fr) * e
         if (entry.doorMat && b.door) {
           entry.doorMat.position.set(b.door.x - gpos.x, 0.035, b.door.z - gpos.z)

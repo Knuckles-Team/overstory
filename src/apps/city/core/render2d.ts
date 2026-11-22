@@ -4,7 +4,7 @@
  * (OVERSTORY-CITY-R015). Same city graph, same characters, same events — a
  * view over the shared world state, never a second system.
  */
-import { GROUND_SIZE, PLOT_W, HOUSES, PARKS, PIER } from './layout'
+import { GROUND_SIZE, PLOT_W, PARKS, PIER } from './layout'
 import { encodingColor, stateColor } from './encoding'
 import { world as simWorld } from './sim'
 import { isRegionalWater } from './worldgen'
@@ -120,8 +120,16 @@ export function init2D(
 
   let selectedId: string | null = null
   const trafficPose = { x: 0, z: 0, heading: 0 }
+  const regionalColors = { coral: '#da9b80', mango: '#d0b47e', aqua: '#82b7b9', lime: '#a7b887' }
   let cachedGraph: RoadGraph | null = null
   let roadPaths: { width: number; points: { x: number; z: number }[] }[] = []
+  const drawAccess = (access: (typeof world.plots)[number]['access']): void => {
+    if (!access) return
+    ctx.beginPath()
+    ctx.moveTo(px(access.roadX), pz(access.roadZ))
+    ctx.lineTo(px(access.entranceX), pz(access.entranceZ))
+    ctx.stroke()
+  }
 
   function render(): void {
     const dpr = window.devicePixelRatio || 1
@@ -166,6 +174,21 @@ export function init2D(
         for (let i = 1; i < road.points.length; i++) ctx.lineTo(px(road.points[i].x), pz(road.points[i].z))
         ctx.stroke()
       }
+    }
+
+    // Access paths are generated with the sites, so they join real roads.
+    ctx.strokeStyle = '#d7c9a8'
+    ctx.lineWidth = Math.max(1, scale)
+    for (const building of Object.values(world.buildings))
+      if (building.category === 'core') drawAccess(building.access)
+    for (const plot of world.plots) drawAccess(plot.access)
+    for (const home of world.homes) drawAccess(home.access)
+    for (const building of world.regionalMassing) {
+      if (!building.access) continue
+      ctx.beginPath()
+      ctx.moveTo(px(building.access.roadX), pz(building.access.roadZ))
+      ctx.lineTo(px(building.access.doorX), pz(building.access.doorZ))
+      ctx.stroke()
     }
 
     // Vehicles use the same simulation state and pose sampler as 3D.
@@ -216,7 +239,7 @@ export function init2D(
     }
 
     // Houses.
-    for (const h of HOUSES) {
+    for (const h of world.homes) {
       ctx.fillStyle = '#b8987c'
       ctx.fillRect(px(h.x - 2), pz(h.z - 2), 4 * scale, 4 * scale)
       if (night > 0.5) {
@@ -226,6 +249,14 @@ export function init2D(
     }
 
     // Buildings.
+    for (const building of world.regionalMassing) {
+      ctx.save()
+      ctx.translate(px(building.x), pz(building.z))
+      ctx.rotate(-(building.yaw ?? 0))
+      ctx.fillStyle = regionalColors[building.facade]
+      ctx.fillRect((-building.w / 2) * scale, (-building.d / 2) * scale, building.w * scale, building.d * scale)
+      ctx.restore()
+    }
     for (const b of Object.values(world.buildings)) {
       const plot = world.plots.find((p) => p.buildingId === b.id)
       if (plot?.construction) continue

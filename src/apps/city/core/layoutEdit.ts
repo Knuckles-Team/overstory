@@ -19,7 +19,7 @@ import {
   type RoadSegment,
 } from '@/lib/scene3d/roads'
 import type { DistrictArchetype } from '@/lib/scene3d/generators'
-import { BUILDING_POS, DISTRICT_DOMAINS, HOUSES, PLOTS, ROAD_W, X_ROADS, Z_ROADS, plotDoor } from './layout'
+import { DISTRICT_DOMAINS, ROAD_W, X_ROADS, Z_ROADS, plotDoor } from './layout'
 import type { world as SimWorld } from './sim'
 import { CITY_WORLD_SEED, generateIslandRoads, isDryFootprint } from './worldgen'
 import { isCitySandbox } from '@/lib/city-sandbox'
@@ -232,6 +232,11 @@ export function validateEdit(edit: LayoutEdit, world: World, graph: RoadGraph): 
     }
     case 'remove-road': {
       if (!(edit.segmentId in graph.segments)) return { ok: false, reason: 'unknown-segment' }
+      if (
+        world.plots.some((plot) => plot.access?.roadId === edit.segmentId) ||
+        Object.values(world.buildings).some((building) => building.access?.roadId === edit.segmentId)
+      )
+        return { ok: false, reason: 'road-serves-building' }
       const segment = graph.segments[edit.segmentId]
       const verdict = validateRoadEdit(graph, { kind: 'remove-segment', segment })
       return verdict.ok ? { ok: true } : { ok: false, reason: verdict.reason }
@@ -401,12 +406,7 @@ export function validateDocument(
 /** The road graph the derived layout ships with (the grid the district grew on). */
 export function derivedRoadGraph(): RoadGraph {
   if (isCitySandbox() && new URLSearchParams(window.location.search).has('seed')) {
-    const obstacles = [
-      ...Object.values(BUILDING_POS),
-      ...PLOTS.map((plot) => ({ ...plot, w: 7, d: 7 })),
-      ...HOUSES.map((house) => ({ ...house, w: 4, d: 4 })),
-    ]
-    return generateIslandRoads(CITY_WORLD_SEED, obstacles)
+    return generateIslandRoads(CITY_WORLD_SEED, [])
   }
   return deriveRoadGraph(X_ROADS, Z_ROADS, { segmentWidth: ROAD_W })
 }
@@ -436,6 +436,7 @@ export function applyDocument(world: World, doc: LayoutOverride): RoadGraph {
     b.z = targetPlot.z
     b.rot = entry ? entry.rotation : 0
     b.door = plotDoor(targetPlot)
+    b.access = targetPlot.access
   }
   const graph = derivedRoadGraph()
   for (const r of doc.roads) {

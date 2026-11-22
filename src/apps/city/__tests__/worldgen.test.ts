@@ -7,6 +7,7 @@ import {
   generateRegionalTiles,
   generateRoadsideMassing,
   generateRoadsideProps,
+  generateFrontageSites,
   generateIslandRoads,
   isIslandLand,
   isDryFootprint,
@@ -22,6 +23,30 @@ import { BUILDING_POS, HOUSES, PLOTS, inWater } from '../core/layout'
 import { graphConnected } from '@/lib/scene3d/roads'
 
 describe('deterministic world generation', () => {
+  it('derives dry, nonoverlapping building sites and entrances from roads', () => {
+    const seed = 42
+    const graph = generateIslandRoads(seed, [])
+    const landmarks = Object.entries(BUILDING_POS).map(([id, value]) => ({ id, w: value.w, d: value.d }))
+    const requests = [
+      ...landmarks,
+      ...Array.from({ length: 18 }, (_, i) => ({ id: `home-${i}`, w: 4, d: 4 })),
+      ...Array.from({ length: 78 }, (_, i) => ({ id: `site-${i}`, w: 5.6, d: 5.6 })),
+    ]
+    const sites = generateFrontageSites(graph, seed, requests)
+    expect(sites.length).toBe(103)
+    for (const otherSeed of [1, 7, 48, 100]) {
+      const otherSites = generateFrontageSites(generateIslandRoads(otherSeed, []), otherSeed, requests)
+      expect(otherSites.slice(0, landmarks.length).map((site) => site.id)).toEqual(landmarks.map((site) => site.id))
+      expect(otherSites.filter((site) => site.id.startsWith('home-')).length).toBeGreaterThanOrEqual(17)
+    }
+    expect(sites).toEqual(generateFrontageSites(graph, seed, requests))
+    for (const site of sites) {
+      expect(site.roadId in graph.segments).toBe(true)
+      expect(isDryFootprint(site, 0, seed)).toBe(true)
+      expect(Math.hypot(site.roadX - site.entranceX, site.roadZ - site.entranceZ)).toBeGreaterThan(0)
+      expect(sites.filter((other) => other !== site).every((other) => !rectsOverlap(site, other, 1))).toBe(true)
+    }
+  })
   it('places roadside furniture deterministically on dry, unobstructed road frontage', () => {
     const seed = 42
     const graph = generateIslandRoads(seed, [])

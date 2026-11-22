@@ -141,6 +141,7 @@ export interface CityScene {
   controls: OrbitControls
   /** The shared pipeline the render loop drives (tiers, sun, composer). */
   pipeline: ScenePipeline
+  groundHeight: (x: number, z: number) => number
   /** The road layer (R032): rebuilds for the saved layout edit's graph. */
   roads: RoadsApi
   /** Day/night + ambient animation for one frame at the supplied scene clock. */
@@ -159,6 +160,8 @@ export interface CityScene {
 export interface CityCore {
   /** House window materials (the night ambience). */
   houseWindows: THREE.MeshStandardMaterial[]
+  houses: readonly { x: number; z: number }[]
+  groundHeight: (x: number, z: number) => number
   /** Streetlamp glow sprites (the night ambience). */
   lampGlowMaterial: THREE.MeshBasicMaterial
   /** The ship groups (the bobbing). */
@@ -277,7 +280,11 @@ function withRegionalRoads(base: RoadGraph, massing: readonly RegionalMassing[])
  * test (R028) measures its real triangles, draw calls and texture memory
  * with a bare `THREE.Scene` — no WebGL renderer required.
  */
-export function buildCityCore(scene: THREE.Scene, graph?: RoadGraph): CityCore {
+export function buildCityCore(
+  scene: THREE.Scene,
+  graph?: RoadGraph,
+  layoutWorld?: Pick<World, 'buildings' | 'plots' | 'homes' | 'regionalMassing'>,
+): CityCore {
   // The city's authored maps (R012.2): every non-marker surface in the
   // scene carries one of these — the material audit enforces it.
   const trimTex = trimSheetTexture()
@@ -369,17 +376,30 @@ export function buildCityCore(scene: THREE.Scene, graph?: RoadGraph): CityCore {
   }
   const regionalMassing =
     'seed:0' in editableRoadGraph.nodes
-      ? generateRoadsideMassing(editableRoadGraph, CITY_WORLD_SEED, [
-          ...Object.values(BUILDING_POS),
-          ...PLOTS.map((plot) => ({ ...plot, w: 7, d: 7 })),
-          ...HOUSES.map((house) => ({ ...house, w: 4, d: 4 })),
-        ])
+      ? (layoutWorld?.regionalMassing ??
+        generateRoadsideMassing(editableRoadGraph, CITY_WORLD_SEED, [
+          ...Object.values(layoutWorld?.buildings ?? BUILDING_POS),
+          ...(layoutWorld?.plots ?? PLOTS).map((plot) => ({ ...plot, w: 5.6, d: 5.6 })),
+          ...(layoutWorld?.homes ?? HOUSES).map((house) => ({ ...house, w: 4, d: 4 })),
+        ]))
       : generateRegionalMassing()
   const approachPositions: number[] = []
   const approachIndices: number[] = []
-  for (const building of regionalMassing) {
-    const access = building.access
-    if (!access) continue
+  const sharedAccess = layoutWorld
+    ? [
+        ...Object.values(layoutWorld.buildings)
+          .filter((building) => building.category === 'core')
+          .map((building) => building.access),
+        ...layoutWorld.plots.map((plot) => plot.access),
+        ...layoutWorld.homes.map((home) => home.access),
+      ].flatMap((access) =>
+        access ? [{ roadX: access.roadX, roadZ: access.roadZ, doorX: access.entranceX, doorZ: access.entranceZ }] : [],
+      )
+    : []
+  for (const access of [
+    ...regionalMassing.flatMap((building) => (building.access ? [building.access] : [])),
+    ...sharedAccess,
+  ]) {
     const dx = access.doorX - access.roadX
     const dz = access.doorZ - access.roadZ
     const length = Math.hypot(dx, dz)
@@ -769,7 +789,8 @@ export function buildCityCore(scene: THREE.Scene, graph?: RoadGraph): CityCore {
   })
   const houseCoreMat = new THREE.MeshStandardMaterial({ map: trimTex, roughness: 0.94 })
   const houseWindows: THREE.MeshStandardMaterial[] = []
-  HOUSES.forEach((h, i) => {
+  const houses = layoutWorld?.homes ?? HOUSES
+  houses.forEach((h, i) => {
     const archetype = i % 2 ? 'workshop' : 'studio'
     const floorHeight = archetype === 'workshop' ? 3 : 3.6
     const house = buildingAsset({
@@ -794,7 +815,7 @@ export function buildCityCore(scene: THREE.Scene, graph?: RoadGraph): CityCore {
     core.castShadow = mesh.castShadow = true
     core.receiveShadow = mesh.receiveShadow = true
     group.add(core, mesh)
-    group.position.set(h.x, 0, h.z)
+    group.position.set(h.x, visibleGroundHeight(h.x, h.z), h.z)
     scene.add(group)
     houseWindows.push(mat)
   })
@@ -858,9 +879,9 @@ export function buildCityCore(scene: THREE.Scene, graph?: RoadGraph): CityCore {
     remapUVs(geo, 0.02, 0.26, 0.98, 0.49)
   }
   const roadsideObstacles = [
-    ...Object.values(BUILDING_POS),
-    ...PLOTS.map((plot) => ({ ...plot, w: 7, d: 7 })),
-    ...HOUSES.map((house) => ({ ...house, w: 4, d: 4 })),
+    ...Object.values(layoutWorld?.buildings ?? BUILDING_POS),
+    ...(layoutWorld?.plots ?? PLOTS).map((plot) => ({ ...plot, w: 5.6, d: 5.6 })),
+    ...(layoutWorld?.homes ?? HOUSES).map((house) => ({ ...house, w: 4, d: 4 })),
     ...regionalMassing.map((building) => ({
       ...building,
       w: Math.hypot(building.w, building.d),
@@ -1004,6 +1025,8 @@ export function buildCityCore(scene: THREE.Scene, graph?: RoadGraph): CityCore {
   }
   return {
     houseWindows,
+    houses,
+    groundHeight: visibleGroundHeight,
     lampGlowMaterial,
     ships,
     shipPhases,
@@ -1298,7 +1321,7 @@ export function createCityScene(container: HTMLElement, world: World, opts: City
   // ---- Static city geometry (ground, roads, water, houses, parks, lamps) ----
   // The world's live road graph (a stored layout document may already be
   // applied at boot — the second viewer boots into the edited city, R032).
-  const core = buildCityCore(scene, world.roadGraph ?? undefined)
+  const core = buildCityCore(scene, world.roadGraph ?? undefined, world)
   // Retain the occupancy map rather than allocating a new Map every frame.
   // This is part of the steady-state renderer contract: leaving a demo open
   // must not gradually turn ordinary ambience into garbage-collection stalls.
@@ -1337,7 +1360,7 @@ export function createCityScene(container: HTMLElement, world: World, opts: City
       }
     }
     core.houseWindows.forEach((m, i) => {
-      const h = HOUSES[i]
+      const h = core.houses[i]
       m.emissiveIntensity = (homeOccupancy.get(`${h.x}|${h.z}`) ?? 0) > 0 ? 1.4 : 0
     })
 
@@ -1488,6 +1511,7 @@ export function createCityScene(container: HTMLElement, world: World, opts: City
     camera,
     controls,
     pipeline,
+    groundHeight: core.groundHeight,
     roads: core.roads,
     updateEnvironment,
     isLost: () => lost,

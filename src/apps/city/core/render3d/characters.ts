@@ -115,6 +115,7 @@ export async function initCharacters(
   markerRoot: THREE.Object3D | null,
   loadPinnedGLB: (url: string) => Promise<GLTF>,
   camera?: THREE.Camera,
+  groundHeight: (x: number, z: number) => number = () => 0,
 ): Promise<CharactersApi> {
   const characters = new Map<string, CharacterEntry>()
   const presenceGeo = new THREE.RingGeometry(0.42, 0.58, 16)
@@ -280,7 +281,7 @@ export async function initCharacters(
       const ch = entry.ch
       entry.group.visible = ch.visible
       if (!ch.visible) continue
-      entry.group.position.set(ch.pos.x, 0, ch.pos.z)
+      entry.group.position.set(ch.pos.x, groundHeight(ch.pos.x, ch.pos.z), ch.pos.z)
       entry.group.rotation.y = ch.facing
       const isDistant = !!camera && camera.position.distanceToSquared(entry.group.position) > 65 * 65
       entry.root.visible = !isDistant
