@@ -751,12 +751,16 @@ export function buildCityCore(scene: THREE.Scene, graph?: RoadGraph): CityCore {
       distances.push((distances[p - 1] ?? 0) + Math.hypot(current.x - prev.x, current.z - prev.z))
     }
     const loopLength = distances[distances.length - 1] ?? 1
+    const reversePoints = [...loopPoints]
+      .reverse()
+      .map((point) => ({ ...point, tangentX: -point.tangentX, tangentZ: -point.tangentZ }))
+    const reverseDistances = [...distances].reverse().map((distance) => loopLength - distance)
     return Array.from({ length: 28 }, (_, i) => {
       return {
-        points: loopPoints,
-        distances,
+        points: i % 2 ? reversePoints : loopPoints,
+        distances: i % 2 ? reverseDistances : distances,
         length: loopLength,
-        laneOffset: i % 2 ? 0.72 : -0.72,
+        laneOffset: -0.72,
         phase: (i * 0.173) % 1,
         // metres per real second: readable city movement, not simulation-time warp.
         speed: 2.1 + (i % 3) * 0.28,

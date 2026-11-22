@@ -55,6 +55,13 @@ describe('city scene steady state', () => {
       const previous = route.points.at(-2)!
       expect(route.length - route.distances.at(-2)!).toBeCloseTo(Math.hypot(last.x - previous.x, last.z - previous.z))
     }
+    const forward = core.traffic.routes[0]
+    const reverse = core.traffic.routes[1]
+    expect(reverse.points[1].x).toBeCloseTo(forward.points.at(-2)!.x)
+    expect(reverse.points[1].z).toBeCloseTo(forward.points.at(-2)!.z)
+    expect(reverse.points[1].tangentX).toBeCloseTo(-forward.points.at(-2)!.tangentX)
+    expect(reverse.points[1].tangentZ).toBeCloseTo(-forward.points.at(-2)!.tangentZ)
+    expect(reverse.laneOffset).toBe(forward.laneOffset)
     core.roads.dispose()
   })
 
