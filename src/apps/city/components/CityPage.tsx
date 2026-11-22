@@ -614,7 +614,7 @@ export default function CityPage() {
         const elapsed = now - meterStart
         if (elapsed < 1000) return
         const fps = (meterFrames * 1000) / elapsed
-        const belowBudget = fps < 1000 / targetFrameMs
+        const belowBudget = fps < BUDGETS.fpsIntegrated
         meter.dataset.budget = belowBudget ? 'below' : 'met'
         meter.textContent = `${fps.toFixed(1)} FPS · ${BUDGETS.fpsIntegrated} target · ${slowFrames} slow frames`
         meter.title = `${view.toUpperCase()} · ${belowBudget ? 'Below target' : 'Target met'} · Last measurement window`
