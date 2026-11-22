@@ -1,4 +1,59 @@
 // spec: OVERSTORY-CITY-R032
+import { sampleRoadCurve, type RoadGraph } from '@/lib/scene3d/roads'
+
+export interface JunctionApproach {
+  nodeId: string
+  segmentId: string
+  kind: 'stop' | 'signal'
+  x: number
+  z: number
+  rotation: number
+  axis: 'x' | 'z'
+}
+
+/** Place a control beside every approach using the same curve tangents as traffic. */
+export function junctionApproaches(graph: RoadGraph): JunctionApproach[] {
+  const incident = new Map<string, (typeof graph.segments)[string][]>()
+  for (const segment of Object.values(graph.segments)) {
+    for (const nodeId of [segment.from, segment.to]) {
+      const arms = incident.get(nodeId) ?? []
+      arms.push(segment)
+      incident.set(nodeId, arms)
+    }
+  }
+  const result: JunctionApproach[] = []
+  for (const [nodeId, arms] of incident) {
+    if (!(nodeId in graph.nodes) || arms.length < 3) continue
+    const node = graph.nodes[nodeId]
+    for (const arm of arms) {
+      if (!(arm.from in graph.nodes) || !(arm.to in graph.nodes)) continue
+      const a = graph.nodes[arm.from]
+      const b = graph.nodes[arm.to]
+      const samples = sampleRoadCurve(a.x, a.z, b.x, b.z, arm.curve, arm.id, 1.8, 1.65)
+      const atStart = arm.from === nodeId
+      const tangent = atStart ? samples.at(0) : samples.at(-1)
+      if (!tangent) continue
+      const direction = atStart ? 1 : -1
+      const length = Math.hypot(tangent.tangentX, tangent.tangentZ)
+      if (!length) continue
+      const ux = (direction * tangent.tangentX) / length
+      const uz = (direction * tangent.tangentZ) / length
+      const along = Math.min(arm.width / 2 + 1.5, Math.hypot(b.x - a.x, b.z - a.z) * 0.35)
+      const side = arm.width / 2 + 0.65
+      result.push({
+        nodeId,
+        segmentId: arm.id,
+        kind: arms.length >= 4 ? 'signal' : 'stop',
+        x: node.x + ux * along - uz * side,
+        z: node.z + uz * along + ux * side,
+        rotation: Math.atan2(ux, uz),
+        axis: Math.abs(ux) >= Math.abs(uz) ? 'x' : 'z',
+      })
+    }
+  }
+  return result
+}
+
 /** A control on a directed, closed road route, measured from its first point. */
 export interface TrafficControl {
   distance: number

@@ -50,7 +50,14 @@ import type { world as SimWorld } from '../sim'
 import { derivedRoadGraph } from '../layoutEdit'
 import { route, type RoadGraph } from '@/lib/scene3d/roads'
 import { createRoads, sampleRoadCurve, type RoadPathSample, type RoadsApi } from './roads'
-import { advanceTraffic, followingSpeed, signalIsGreen, type TrafficControl, type TrafficMotion } from './traffic'
+import {
+  advanceTraffic,
+  followingSpeed,
+  junctionApproaches,
+  signalIsGreen,
+  type TrafficControl,
+  type TrafficMotion,
+} from './traffic'
 import {
   litWindowSheet,
   metalTexture,
@@ -998,16 +1005,11 @@ export function buildCityCore(scene: THREE.Scene, graph?: RoadGraph): CityCore {
     shelter.rotation.y = stop.rot
     scene.add(shelter)
   }
-  const seededJunctions = Object.values(roadGraph.nodes).flatMap((node) => {
-    const degree = Object.values(roadGraph.segments).filter(
-      (segment) => segment.from === node.id || segment.to === node.id,
-    ).length
-    return degree >= 3 ? [{ id: node.id, x: node.x + 3, z: node.z + 3, degree }] : []
-  })
   const seededRoads = 'seed:0' in roadGraph.nodes
-  const lightJunctions = seededJunctions.filter((junction) => junction.degree >= 4)
-  const stopJunctions = seededJunctions.filter((junction) => junction.degree === 3)
-  const signalCount = seededRoads ? lightJunctions.length : 16
+  const approaches = seededRoads ? junctionApproaches(roadGraph) : []
+  const lightApproaches = approaches.filter((approach) => approach.kind === 'signal')
+  const stopApproaches = approaches.filter((approach) => approach.kind === 'stop')
+  const signalCount = seededRoads ? lightApproaches.length : 16
   const signalPoles = new THREE.InstancedMesh(signalPoleGeo, signalMat, signalCount)
   const signals = new THREE.InstancedMesh(signalGeo, signalMat, signalCount)
   const signalAxes: ('x' | 'z')[] = []
@@ -1022,27 +1024,10 @@ export function buildCityCore(scene: THREE.Scene, graph?: RoadGraph): CityCore {
   const hydrants = new THREE.InstancedMesh(hydrantGeo, hydrantMat, 18)
   const civicTransform = new THREE.Object3D()
   for (let i = 0; i < signalCount; i++) {
-    let x = seededRoads ? lightJunctions[i].x : X_ROADS[1 + ((i * 3) % (X_ROADS.length - 2))] + 1.7
-    let z = seededRoads ? lightJunctions[i].z : Z_ROADS[1 + ((i * 5) % (Z_ROADS.length - 2))] + 1.7
-    let rotation = i % 2 ? Math.PI / 2 : 0
-    if (seededRoads) {
-      const junction = roadGraph.nodes[lightJunctions[i].id]
-      const arm = Object.values(roadGraph.segments).find(
-        (segment) => segment.from === junction.id || segment.to === junction.id,
-      )
-      const neighbour = arm && roadGraph.nodes[arm.from === junction.id ? arm.to : arm.from]
-      if (arm && neighbour) {
-        const dx = neighbour.x - junction.x
-        const dz = neighbour.z - junction.z
-        const length = Math.hypot(dx, dz) || 1
-        const ux = dx / length
-        const uz = dz / length
-        x = junction.x + ux * (arm.width / 2 + 1.5) - uz * (arm.width / 2 + 0.65)
-        z = junction.z + uz * (arm.width / 2 + 1.5) + ux * (arm.width / 2 + 0.65)
-        rotation = Math.atan2(ux, uz)
-        signalAxes.push(Math.abs(dx) >= Math.abs(dz) ? 'x' : 'z')
-      } else signalAxes.push('x')
-    }
+    const x = seededRoads ? lightApproaches[i].x : X_ROADS[1 + ((i * 3) % (X_ROADS.length - 2))] + 1.7
+    const z = seededRoads ? lightApproaches[i].z : Z_ROADS[1 + ((i * 5) % (Z_ROADS.length - 2))] + 1.7
+    const rotation = seededRoads ? lightApproaches[i].rotation : i % 2 ? Math.PI / 2 : 0
+    if (seededRoads) signalAxes.push(lightApproaches[i].axis)
     civicTransform.position.set(x, regionalTerrainHeight(x, z) + 1.14, z)
     civicTransform.rotation.y = rotation
     civicTransform.updateMatrix()
@@ -1069,16 +1054,16 @@ export function buildCityCore(scene: THREE.Scene, graph?: RoadGraph): CityCore {
   hydrants.instanceMatrix.needsUpdate = true
   scene.add(signalPoles, signals, hydrants)
   if (signalBulbs) scene.add(signalBulbs)
-  if (seededRoads && stopJunctions.length) {
+  if (seededRoads && stopApproaches.length) {
     const signGeo = new THREE.CylinderGeometry(0.31, 0.31, 0.06, 8)
     signGeo.rotateX(Math.PI / 2)
     const signMat = new THREE.MeshStandardMaterial({ color: 0xc92e35, roughness: 0.75 })
-    const stopPoles = new THREE.InstancedMesh(signalPoleGeo, signalMat, stopJunctions.length)
-    const signs = new THREE.InstancedMesh(signGeo, signMat, stopJunctions.length)
-    stopJunctions.forEach((junction, index) => {
-      const height = regionalTerrainHeight(junction.x, junction.z)
-      civicTransform.position.set(junction.x, height + 1.14, junction.z)
-      civicTransform.rotation.set(0, 0, 0)
+    const stopPoles = new THREE.InstancedMesh(signalPoleGeo, signalMat, stopApproaches.length)
+    const signs = new THREE.InstancedMesh(signGeo, signMat, stopApproaches.length)
+    stopApproaches.forEach((approach, index) => {
+      const height = regionalTerrainHeight(approach.x, approach.z)
+      civicTransform.position.set(approach.x, height + 1.14, approach.z)
+      civicTransform.rotation.set(0, approach.rotation, 0)
       civicTransform.updateMatrix()
       stopPoles.setMatrixAt(index, civicTransform.matrix)
       civicTransform.position.y = height + 2.15

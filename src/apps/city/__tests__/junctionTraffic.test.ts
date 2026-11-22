@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
   advanceTraffic,
   followingSpeed,
+  junctionApproaches,
   signalIsGreen,
   type TrafficControl,
   type TrafficMotion,
@@ -13,6 +14,34 @@ function motion(distance: number): TrafficMotion {
 }
 
 describe('road traffic controls', () => {
+  it('places one oriented control on each approach to a generated junction', () => {
+    const nodes = {
+      c: { id: 'c', x: 0, z: 0, kind: 'intersection' as const },
+      e: { id: 'e', x: 20, z: 0, kind: 'endpoint' as const },
+      w: { id: 'w', x: -20, z: 0, kind: 'endpoint' as const },
+      n: { id: 'n', x: 0, z: -20, kind: 'endpoint' as const },
+      s: { id: 's', x: 0, z: 20, kind: 'endpoint' as const },
+    }
+    const segments = {
+      east: { id: 'east', from: 'c', to: 'e', width: 3, curve: 0 },
+      west: { id: 'west', from: 'w', to: 'c', width: 3, curve: 0 },
+      north: { id: 'north', from: 'c', to: 'n', width: 3, curve: 0 },
+      south: { id: 'south', from: 's', to: 'c', width: 3, curve: 0 },
+    }
+    const fourWay = junctionApproaches({ nodes, segments })
+    expect(fourWay).toHaveLength(4)
+    expect(fourWay.every((arm) => arm.kind === 'signal' && arm.nodeId === 'c')).toBe(true)
+    expect(fourWay.find((arm) => arm.segmentId === 'east')?.axis).toBe('x')
+    expect(fourWay.find((arm) => arm.segmentId === 'north')?.axis).toBe('z')
+    expect(fourWay.find((arm) => arm.segmentId === 'east')?.x).toBeGreaterThan(0)
+    expect(fourWay.find((arm) => arm.segmentId === 'west')?.x).toBeLessThan(0)
+    const threeWay = junctionApproaches({
+      nodes,
+      segments: { east: segments.east, west: segments.west, north: segments.north },
+    })
+    expect(threeWay).toHaveLength(3)
+    expect(threeWay.every((arm) => arm.kind === 'stop')).toBe(true)
+  })
   it('stops at a stop line, waits a second, then continues without stopping twice', () => {
     const car = motion(8)
     const controls: TrafficControl[] = [{ distance: 10, kind: 'stop', axis: 'x' }]
