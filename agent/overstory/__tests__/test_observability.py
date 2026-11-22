@@ -311,6 +311,14 @@ async def test_liveness_paths_log_at_debug_not_info(
 ) -> None:
     from overstory.server import RequestObservabilityMiddleware
 
+    # The first import of ``overstory.server`` runs ``configure_logging()``
+    # at module level, which pins the ``overstory`` logger level from the
+    # environment (default INFO). If this test is the first to import the
+    # package, that runs AFTER ``overstory_caplog`` set the level to DEBUG
+    # and would drop the very record captured below. Re-assert DEBUG so the
+    # capture does not depend on which test imported the module first.
+    logging.getLogger('overstory').setLevel(logging.DEBUG)
+
     async def inner(_scope: dict, _receive: Any, send: Any) -> None:
         await send({'type': 'http.response.start', 'status': 200, 'headers': []})
         await send({'type': 'http.response.body', 'body': b'{"status":"ok"}'})
