@@ -158,6 +158,13 @@ export function isIslandLand(x: number, z: number, seed = CITY_WORLD_SEED): bool
   return islandShoreDistance(x, z, seed) > 0
 }
 
+/** The same centreline and half-width drive water exclusion and rendering. */
+export function riverCentreAt(z: number): number {
+  return 42 + Math.sin(z * 0.012) * 15
+}
+
+export const RIVER_HALF_WIDTH = 8
+
 /** The coast and river corridor reserved by the regional recipe. */
 export function isRegionalWater(x: number, z: number, seed = CITY_WORLD_SEED, setback = 0): boolean {
   if (islandShoreDistance(x, z, seed) <= setback) return true
@@ -171,8 +178,7 @@ export function isRegionalWater(x: number, z: number, seed = CITY_WORLD_SEED, se
       67 + bayDistance * bayDistance * 205 + Math.sin((x + seed * 0.0002) * 0.035) * 5 + Math.sin(x * 0.09) * 2.5
     if (z >= harbourCoast - setback) return true
   }
-  const riverCentre = 42 + Math.sin(z * 0.012) * 15
-  return Math.abs(x - riverCentre) < 8 + setback
+  return Math.abs(x - riverCentreAt(z)) < RIVER_HALF_WIDTH + setback
 }
 
 /** Survey the rotated foundation in bounded cells, with clearance at each sample. */

@@ -53,6 +53,7 @@ import type { RoadGraph } from '@/lib/scene3d/roads'
 import { createRoads, sampleRoadCurve, type RoadPathSample, type RoadsApi } from './roads'
 import { makeTrafficRoutes, sampleTrafficPose, type TrafficControl, type TrafficMotion } from './traffic'
 import { createJunctionControls } from './junctionControls'
+import { createRiverGeometry } from './river'
 import {
   litWindowSheet,
   metalTexture,
@@ -583,40 +584,14 @@ export function buildCityCore(scene: THREE.Scene, graph?: RoadGraph): CityCore {
   water.position.set(0, SEA_LEVEL_M, 0)
   scene.add(water)
 
-  // A sheltered canal joins the regional waterfront to the city. It is an
-  // actual water surface (not a painted line), deliberately east of the
-  // serviced grid so it frames the city without cutting through parcels.
-  const canal = new THREE.Mesh(
-    new THREE.PlaneGeometry(16, 180),
+  // The river follows the same centreline and water mask used by placement.
+  // No free-standing bridge is rendered unless the road graph owns one.
+  const river = new THREE.Mesh(
+    createRiverGeometry(CITY_WORLD_SEED, GROUND_SIZE),
     new THREE.MeshStandardMaterial({ map: waterTex, roughness: 0.24, metalness: 0.14 }),
   )
-  canal.rotation.x = -Math.PI / 2
-  canal.position.set(42, 0.08, -10)
-  scene.add(canal)
-
-  // Two compact road bridges make the water corridor part of the city
-  // network.  Their deck sits above the water (no coplanar overlap) and the
-  // piers are deliberately inset from the banks, preserving a navigable
-  // canal rather than pretending water can simply terminate at a road tile.
-  const bridgeMat = new THREE.MeshStandardMaterial({ map: trimTex, color: SCENE_COLORS.asphalt.hex, roughness: 0.82 })
-  const bridgePierMat = new THREE.MeshStandardMaterial({ map: trimTex, color: 0x4a6658, roughness: 0.95 })
-  for (const z of [-30, 20]) {
-    const deckGeo = new THREE.BoxGeometry(20, 0.42, 3.1)
-    remapUVs(deckGeo, 0.02, 0.78, 0.98, 0.98)
-    const deck = new THREE.Mesh(deckGeo, bridgeMat)
-    deck.position.set(42, 0.48, z)
-    deck.castShadow = true
-    deck.receiveShadow = true
-    scene.add(deck)
-    for (const x of [35.5, 48.5]) {
-      const pierGeo = new THREE.BoxGeometry(0.7, 0.65, 1.1)
-      remapUVs(pierGeo, 0.02, 0.26, 0.98, 0.49)
-      const pier = new THREE.Mesh(pierGeo, bridgePierMat)
-      pier.position.set(x, 0.32, z)
-      pier.castShadow = true
-      scene.add(pier)
-    }
-  }
+  river.name = 'generated-river'
+  scene.add(river)
 
   // The continuous island shore replaces the old 900m-wide rectangular beach
   // strips. It shares the worldgen coast, so this is a navigable boundary,
