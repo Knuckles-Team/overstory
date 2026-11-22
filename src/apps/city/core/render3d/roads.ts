@@ -62,6 +62,17 @@ function roadClassBetween(a: { x: number; z: number }, b: { x: number; z: number
   return 'local'
 }
 
+/** Generated roads use the same width as their collision and placement data. */
+function renderedRoadWidth(
+  seg: RoadGraph['segments'][string],
+  a: { x: number; z: number },
+  b: { x: number; z: number },
+): number {
+  return seg.id.startsWith('seed-road:') || seg.id.startsWith('regional-road:')
+    ? seg.width
+    : ROAD_WIDTH[roadClassBetween(a, b)]
+}
+
 /**
  * One merged road quad for a segment: the four corners start-left,
  * end-left, end-right, start-right (perpendicular = (-dz, dx) of the unit
@@ -210,11 +221,12 @@ function crosswalkArms(graph: RoadGraph): { x: number; z: number; rotY: number; 
       [a, b],
       [b, a],
     ] as [typeof a, typeof b][]) {
-      if (!isMajorJunction(n, degree.get(n.id) ?? 0)) continue
+      const generated = seg.id.startsWith('seed-road:') || seg.id.startsWith('regional-road:')
+      if (generated ? (degree.get(n.id) ?? 0) < 3 : !isMajorJunction(n, degree.get(n.id) ?? 0)) continue
       const dx = o.x - n.x
       const dz = o.z - n.z
       const len = Math.hypot(dx, dz) || 1
-      const roadWidth = ROAD_WIDTH[roadClassBetween(n, o)]
+      const roadWidth = renderedRoadWidth(seg, n, o)
       // Only mark the broad approaches. Local arms at a boulevard get a
       // sidewalk crossing via the junction asset but no oversized zebra band.
       if (roadWidth < ROAD_WIDTH.collector) continue
@@ -262,9 +274,7 @@ function buildMesh(
     const base = pos.length / 3
     // Regional access spines carry their declared width. The editable basin
     // still receives the readable arterial/collector/local hierarchy above.
-    const width = seg.id.startsWith('regional-road:')
-      ? Math.max(ROAD_WIDTH.collector, seg.width)
-      : ROAD_WIDTH[roadClassBetween(a, b)]
+    const width = renderedRoadWidth(seg, a, b)
     appendSegment(
       pos,
       uv,
