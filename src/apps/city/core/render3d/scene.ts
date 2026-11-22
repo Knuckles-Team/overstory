@@ -39,6 +39,7 @@ import {
   CITY_WORLD_SEED,
   generateRegionalMassing,
   generateRoadsideMassing,
+  generateRoadsideProps,
   islandCoastPoint,
   isRegionalWater,
   regionalBiome,
@@ -873,26 +874,56 @@ export function buildCityCore(scene: THREE.Scene, graph?: RoadGraph): CityCore {
   for (const geo of [shelterPostGeo, shelterRoofGeo, shelterBenchGeo, signalPoleGeo, signalGeo, hydrantGeo]) {
     remapUVs(geo, 0.02, 0.26, 0.98, 0.49)
   }
-  for (const stop of [
-    { x: -17.3, z: -8, rot: Math.PI / 2 },
-    { x: 2.7, z: 28, rot: Math.PI / 2 },
-    { x: 18, z: -18, rot: 0 },
-  ]) {
-    const shelter = new THREE.Group()
-    const roof = new THREE.Mesh(shelterRoofGeo, publicMat)
-    roof.position.y = 2.28
-    const bench = new THREE.Mesh(shelterBenchGeo, publicMat)
-    bench.position.set(0, 0.45, -0.22)
-    shelter.add(roof, bench)
-    for (const x of [-1.12, 1.12]) {
-      const post = new THREE.Mesh(shelterPostGeo, publicMat)
-      post.position.set(x, 1.15, 0)
-      shelter.add(post)
+  const roadsideObstacles = [
+    ...Object.values(BUILDING_POS),
+    ...PLOTS.map((plot) => ({ ...plot, w: 7, d: 7 })),
+    ...HOUSES.map((house) => ({ ...house, w: 4, d: 4 })),
+    ...regionalMassing.map((building) => ({
+      ...building,
+      w: Math.hypot(building.w, building.d),
+      d: Math.hypot(building.w, building.d),
+    })),
+  ]
+  const roadsideGroup = new THREE.Group()
+  roadsideGroup.name = 'generated-roadside-props'
+  scene.add(roadsideGroup)
+  const civicTransform = new THREE.Object3D()
+  function rebuildRoadsideProps(graph: RoadGraph): void {
+    for (const child of roadsideGroup.children) if (child instanceof THREE.InstancedMesh) child.dispose()
+    roadsideGroup.clear()
+    const props = generateRoadsideProps(graph, CITY_WORLD_SEED, roadsideObstacles).filter(
+      (prop) => visibleGroundHeight(prop.x, prop.z) > SEA_LEVEL_M + 0.1,
+    )
+    for (const stop of props.filter((prop) => prop.kind === 'shelter')) {
+      const shelter = new THREE.Group()
+      const roof = new THREE.Mesh(shelterRoofGeo, publicMat)
+      roof.position.y = 2.28
+      const bench = new THREE.Mesh(shelterBenchGeo, publicMat)
+      bench.position.set(0, 0.45, -0.22)
+      shelter.add(roof, bench)
+      for (const x of [-1.12, 1.12]) {
+        const post = new THREE.Mesh(shelterPostGeo, publicMat)
+        post.position.set(x, 1.15, 0)
+        shelter.add(post)
+      }
+      shelter.position.set(stop.x, visibleGroundHeight(stop.x, stop.z), stop.z)
+      shelter.rotation.y = stop.rotation
+      roadsideGroup.add(shelter)
     }
-    shelter.position.set(stop.x, 0, stop.z)
-    shelter.rotation.y = stop.rot
-    scene.add(shelter)
+    const positions = props.filter((prop) => prop.kind === 'hydrant')
+    if (positions.length) {
+      const hydrants = new THREE.InstancedMesh(hydrantGeo, hydrantMat, positions.length)
+      positions.forEach(({ x, z }, i) => {
+        civicTransform.position.set(x, visibleGroundHeight(x, z) + 0.27, z)
+        civicTransform.rotation.set(0, 0, 0)
+        civicTransform.updateMatrix()
+        hydrants.setMatrixAt(i, civicTransform.matrix)
+      })
+      hydrants.instanceMatrix.needsUpdate = true
+      roadsideGroup.add(hydrants)
+    }
   }
+  rebuildRoadsideProps(roadGraph)
   const legacySignals = Array.from({ length: 16 }, (_, i) => ({
     x: X_ROADS[1 + ((i * 3) % (X_ROADS.length - 2))] + 1.7,
     z: Z_ROADS[1 + ((i * 5) % (Z_ROADS.length - 2))] + 1.7,
@@ -907,19 +938,6 @@ export function buildCityCore(scene: THREE.Scene, graph?: RoadGraph): CityCore {
     regionalTerrainHeight,
     legacySignals,
   )
-  const hydrants = new THREE.InstancedMesh(hydrantGeo, hydrantMat, 18)
-  const civicTransform = new THREE.Object3D()
-  for (let i = 0; i < 18; i++) {
-    const x = X_ROADS[1 + ((i * 2) % (X_ROADS.length - 2))] + (i % 2 ? 2.05 : -2.05)
-    const z = Z_ROADS[1 + ((i * 3) % (Z_ROADS.length - 2))] + 3.1
-    civicTransform.position.set(x, 0.27, z)
-    civicTransform.rotation.set(0, 0, 0)
-    civicTransform.updateMatrix()
-    hydrants.setMatrixAt(i, civicTransform.matrix)
-  }
-  hydrants.instanceMatrix.needsUpdate = true
-  scene.add(hydrants)
-
   // Waterfront vegetation is instanced: a lively tropical edge costs two
   // draw calls rather than one Object3D per palm, preserving the 60fps budget.
   const palmPositions = Array.from({ length: 22 }, (_, i) => ({
@@ -1015,10 +1033,16 @@ export function buildCityCore(scene: THREE.Scene, graph?: RoadGraph): CityCore {
       roadLayer.rebuild(nextRegionalGraph)
       traffic.routes = makeTrafficRoutes(nextRegionalGraph)
       junctionControls.rebuild(nextRegionalGraph)
+      rebuildRoadsideProps(nextRegionalGraph)
     },
     dispose(): void {
       roadLayer.dispose()
       junctionControls.dispose()
+      for (const child of roadsideGroup.children) if (child instanceof THREE.InstancedMesh) child.dispose()
+      scene.remove(roadsideGroup)
+      for (const geometry of [shelterPostGeo, shelterRoofGeo, shelterBenchGeo, hydrantGeo]) geometry.dispose()
+      publicMat.dispose()
+      hydrantMat.dispose()
     },
   }
   return {

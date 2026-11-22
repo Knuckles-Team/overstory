@@ -12,7 +12,7 @@ import { bus } from '../core/events'
 import { createBuildings } from '../core/render3d/buildings'
 import { buildCityCore } from '../core/render3d/scene'
 import { initSim, resetSim, world } from '../core/sim'
-import { isRegionalWater, SEA_LEVEL_M } from '../core/worldgen'
+import { generateIslandRoads, isRegionalWater, SEA_LEVEL_M } from '../core/worldgen'
 
 beforeAll(() => {
   const original = HTMLCanvasElement.prototype.getContext
@@ -43,6 +43,18 @@ describe('city scene steady state', () => {
   afterEach(() => {
     resetSim()
     bus.reset()
+  })
+
+  it('rebuilds roadside props when the generated road graph changes', () => {
+    const scene = new THREE.Scene()
+    const core = buildCityCore(scene, generateIslandRoads(42, []))
+    const props = scene.getObjectByName('generated-roadside-props') as THREE.Group
+    const oldChildren = [...props.children]
+    expect(oldChildren.length).toBeGreaterThan(0)
+    core.roads.rebuild(generateIslandRoads(43, []))
+    expect(props.children.every((child) => !oldChildren.includes(child))).toBe(true)
+    core.roads.dispose()
+    expect(scene.getObjectByName('generated-roadside-props')).toBeUndefined()
   })
 
   // spec: OVERSTORY-CITY-R048.9.1

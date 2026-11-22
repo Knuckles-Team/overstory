@@ -6,6 +6,7 @@ import {
   generateRegionalMassing,
   generateRegionalTiles,
   generateRoadsideMassing,
+  generateRoadsideProps,
   generateIslandRoads,
   isIslandLand,
   isDryFootprint,
@@ -21,6 +22,21 @@ import { BUILDING_POS, HOUSES, PLOTS, inWater } from '../core/layout'
 import { graphConnected } from '@/lib/scene3d/roads'
 
 describe('deterministic world generation', () => {
+  it('places roadside furniture deterministically on dry, unobstructed road frontage', () => {
+    const seed = 42
+    const graph = generateIslandRoads(seed, [])
+    const props = generateRoadsideProps(graph, seed, [])
+    expect(props.some((prop) => prop.kind === 'shelter')).toBe(true)
+    expect(props.some((prop) => prop.kind === 'hydrant')).toBe(true)
+    expect(props).toEqual(generateRoadsideProps(graph, seed, []))
+    for (const prop of props) {
+      const radius = prop.kind === 'shelter' ? 1.55 : 0.3
+      expect(prop.roadId in graph.segments).toBe(true)
+      expect(isDryFootprint({ x: prop.x, z: prop.z, w: radius * 2, d: radius * 2 }, 0, seed)).toBe(true)
+    }
+    const first = props[0]
+    expect(generateRoadsideProps(graph, seed, [{ x: first.x, z: first.z, w: 8, d: 8 }])).not.toContainEqual(first)
+  })
   // spec: OVERSTORY-CITY-R048.9.1
   it('places seeded regional buildings beside the generated network on dry ground', () => {
     const seed = 42

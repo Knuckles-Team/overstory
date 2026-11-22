@@ -6,7 +6,7 @@
  */
 import { mulberry32 } from '@/lib/scene3d/generators'
 import { isCitySandbox } from '@/lib/city-sandbox'
-import type { RoadGraph } from '@/lib/scene3d/roads'
+import { sampleRoadCurve, type RoadGraph } from '@/lib/scene3d/roads'
 
 export interface WorldRect {
   x: number
@@ -363,6 +363,71 @@ export function clearsRoad(
   return roads.every(
     (road) => pointSegmentDistanceSq(x, z, road.x1, road.z1, road.x2, road.z2) >= (road.width / 2 + margin) ** 2,
   )
+}
+
+export interface RoadsideProp {
+  roadId: string
+  kind: 'shelter' | 'hydrant'
+  x: number
+  z: number
+  rotation: number
+}
+
+/** Seeded roadside furniture with dry foundations and conservative clearance. */
+export function generateRoadsideProps(
+  graph: RoadGraph,
+  seed: number,
+  obstacles: readonly WorldRect[],
+): RoadsideProp[] {
+  const segments = Object.values(graph.segments).sort((a, b) => a.id.localeCompare(b.id))
+  const sampled = segments.flatMap((segment) => {
+    if (!(segment.from in graph.nodes) || !(segment.to in graph.nodes)) return []
+    const a = graph.nodes[segment.from]
+    const b = graph.nodes[segment.to]
+    const points = sampleRoadCurve(a.x, a.z, b.x, b.z, segment.curve, segment.id, 2)
+    return [{ segment, points }]
+  })
+  const roads = sampled.flatMap(({ segment, points }) =>
+    points.slice(1).map((point, index) => ({
+      x1: points[index].x,
+      z1: points[index].z,
+      x2: point.x,
+      z2: point.z,
+      width: segment.width,
+    })),
+  )
+  const out: RoadsideProp[] = []
+  for (const { segment, points } of sampled) {
+    if (points.length < 7) continue
+    let hash = seed >>> 0
+    for (const char of segment.id) hash = Math.imul(hash ^ char.charCodeAt(0), 16777619) >>> 0
+    const random = mulberry32(hash)
+    for (const kind of ['shelter', 'hydrant'] as const) {
+      if (
+        (kind === 'shelter' && (out.filter((prop) => prop.kind === kind).length >= 8 || random() > 0.35)) ||
+        (kind === 'hydrant' && (out.filter((prop) => prop.kind === kind).length >= 24 || random() > 0.65))
+      )
+        continue
+      const point = points[Math.floor((0.3 + random() * 0.4) * (points.length - 1))]
+      const length = Math.hypot(point.tangentX, point.tangentZ) || 1
+      const side = random() < 0.5 ? -1 : 1
+      const radius = kind === 'shelter' ? 1.55 : 0.3
+      const offset = segment.width / 2 + 1.15 + radius
+      const x = point.x - (point.tangentZ / length) * offset * side
+      const z = point.z + (point.tangentX / length) * offset * side
+      const footprint = { x, z, w: radius * 2, d: radius * 2 }
+      if (!isDryFootprint(footprint, 0, seed) || !clearsRoad(x, z, roads, radius + 0.2)) continue
+      if (obstacles.some((box) => rectsOverlap(footprint, box, 0.5))) continue
+      if (
+        out.some(
+          (other) => Math.hypot(x - other.x, z - other.z) < radius + (other.kind === 'shelter' ? 1.55 : 0.3) + 1,
+        )
+      )
+        continue
+      out.push({ roadId: segment.id, kind, x, z, rotation: Math.atan2(-point.tangentZ, point.tangentX) })
+    }
+  }
+  return out
 }
 
 /** Grow a deterministic connected network while keeping corridors on dry, unoccupied ground. */
