@@ -14,7 +14,7 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import * as THREE from 'three'
 import { GLTFLoader, type GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js'
-import { beforeAll, afterEach, describe, expect, it } from 'vitest'
+import { beforeAll, afterEach, describe, expect, it, vi } from 'vitest'
 import { BUDGETS } from '../core/budgets'
 import { clearPins } from '../core/assets'
 import { FLEET_SNAPSHOT, domainOf, fleetToConnectors } from '../core/ecosystem'
@@ -298,6 +298,39 @@ describe('performance budgets measured from the real scene graph (R028)', () => 
     }
     expect(rigs).toBe(world.characters.length)
     api.dispose()
+  })
+
+  // spec: OVERSTORY-CITY-R048.6.1
+  it('releases parsed rig resources and per-character skeletons when the layer is replaced', async () => {
+    initSim(fleetToConnectors(FLEET_SNAPSHOT))
+    const scene = new THREE.Scene()
+    const geometrySpies: ReturnType<typeof vi.spyOn>[] = []
+    const materialSpies: ReturnType<typeof vi.spyOn>[] = []
+    const api = await initCharacters(scene, world, null, async (path) => {
+      const rig = await loadPinned(path)
+      const geometries = new Set<THREE.BufferGeometry>()
+      const materials = new Set<THREE.Material>()
+      rig.scene.traverse((object) => {
+        if (!(object instanceof THREE.Mesh)) return
+        geometries.add(object.geometry)
+        const owned = Array.isArray(object.material) ? object.material : [object.material]
+        for (const material of owned) materials.add(material)
+      })
+      for (const geometry of geometries) geometrySpies.push(vi.spyOn(geometry, 'dispose'))
+      for (const material of materials) materialSpies.push(vi.spyOn(material, 'dispose'))
+      return rig
+    })
+    const skeletonSpies: ReturnType<typeof vi.spyOn>[] = []
+    scene.traverse((object) => {
+      if (object instanceof THREE.SkinnedMesh) skeletonSpies.push(vi.spyOn(object.skeleton, 'dispose'))
+    })
+    expect(geometrySpies.length).toBeGreaterThan(0)
+    expect(materialSpies.length).toBeGreaterThan(0)
+    expect(skeletonSpies.length).toBeGreaterThan(0)
+    api.dispose()
+    api.dispose()
+    for (const spy of [...geometrySpies, ...materialSpies, ...skeletonSpies]) expect(spy).toHaveBeenCalledOnce()
+    expect(scene.children).toHaveLength(0)
   })
 
   it('uses a single lightweight character mesh at a distance and restores the rig nearby', async () => {

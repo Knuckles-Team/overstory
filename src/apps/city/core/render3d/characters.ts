@@ -121,6 +121,9 @@ export async function initCharacters(
   const presenceGeo = new THREE.RingGeometry(0.42, 0.58, 16)
   const distantGeo = new THREE.CapsuleGeometry(0.24, 1.15, 3, 6)
   const distantMaterials = new Map<RoleId, THREE.MeshStandardMaterial>()
+  // The loader parses a fresh GLB for each layer; this layer owns its source.
+  let rigSource: THREE.Object3D | null = null
+  let disposed = false
 
   /**
    * One character on a placeholder rig (the rig pin failed, R010): the
@@ -158,6 +161,7 @@ export async function initCharacters(
     let clips: RigClips | null = null
     try {
       rig = await loadPinnedGLB(RIG_PATH)
+      rigSource = rig.scene
       clips = completeClipSet(rig.scene, rig.animations)
     } catch (err) {
       console.warn('[city] shared rig load failed:', RIG_PATH, err)
@@ -310,20 +314,51 @@ export async function initCharacters(
   }
 
   function dispose(): void {
+    if (disposed) return
+    disposed = true
     for (const entry of characters.values()) {
       scene.remove(entry.group)
       entry.blender?.dispose()
       entry.bubble.material.map?.dispose()
       entry.bubble.material.dispose()
       entry.halo.material.dispose()
-      // Only the per-character material clones are released; the shared
-      // rig geometry stays with the loader's cache.
+      // Rig clones share geometry with their parsed source but own their
+      // materials and skeletons. Fallback boxes own their own geometry too.
+      entry.root.traverse((object) => {
+        if (object instanceof THREE.SkinnedMesh) object.skeleton.dispose()
+        if (entry.placeholder && !markerRoot && isMesh(object)) {
+          object.geometry.dispose()
+          const materials = Array.isArray(object.material) ? object.material : [object.material]
+          for (const material of materials) material.dispose()
+        }
+      })
       for (const m of entry.materials) m.dispose()
     }
     characters.clear()
     presenceGeo.dispose()
     distantGeo.dispose()
     for (const material of distantMaterials.values()) material.dispose()
+    if (rigSource) {
+      const geometries = new Set<THREE.BufferGeometry>()
+      const materials = new Set<THREE.Material>()
+      const textures = new Set<THREE.Texture>()
+      rigSource.traverse((object) => {
+        if (!isMesh(object)) return
+        geometries.add(object.geometry)
+        if (object instanceof THREE.SkinnedMesh) object.skeleton.dispose()
+        const sourceMaterial = object.material as THREE.Material | THREE.Material[]
+        const ownedMaterials = Array.isArray(sourceMaterial) ? sourceMaterial : [sourceMaterial]
+        for (const material of ownedMaterials) materials.add(material)
+      })
+      for (const material of materials) {
+        for (const value of Object.values(material as unknown as Record<string, unknown>))
+          if (value instanceof THREE.Texture) textures.add(value as THREE.Texture)
+        material.dispose()
+      }
+      for (const geometry of geometries) geometry.dispose()
+      for (const texture of textures) texture.dispose()
+      rigSource = null
+    }
   }
 
   await loadCharacters()
