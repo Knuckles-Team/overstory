@@ -54,6 +54,24 @@ describe('deterministic world generation', () => {
       expect(graph).toEqual(generateIslandRoads(seed, []))
       expect(graphConnected(graph)).toBe(true)
       expect(Object.keys(graph.segments).length).toBeGreaterThan(10)
+      for (const node of Object.values(graph.nodes)) {
+        const incident = Object.values(graph.segments).filter(
+          (segment) => segment.from === node.id || segment.to === node.id,
+        )
+        for (let i = 0; i < incident.length; i++) {
+          for (let j = i + 1; j < incident.length; j++) {
+            const a = graph.nodes[incident[i].from === node.id ? incident[i].to : incident[i].from]
+            const b = graph.nodes[incident[j].from === node.id ? incident[j].to : incident[j].from]
+            const ax = a.x - node.x
+            const az = a.z - node.z
+            const bx = b.x - node.x
+            const bz = b.z - node.z
+            expect((ax * bx + az * bz) / (Math.hypot(ax, az) * Math.hypot(bx, bz))).toBeLessThanOrEqual(
+              Math.cos(Math.PI / 4) + 1e-10,
+            )
+          }
+        }
+      }
       for (const segment of Object.values(graph.segments)) {
         const from = graph.nodes[segment.from]
         const to = graph.nodes[segment.to]

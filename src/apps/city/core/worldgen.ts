@@ -375,12 +375,39 @@ export function generateIslandRoads(seed: number, obstacles: readonly WorldRect[
     const candidates = Object.values(nodes)
     const origin = candidates[Math.floor(random() * candidates.length)]
     const angle = random() * Math.PI * 2
-    const length = 20 + random() * 24
-    const target = { x: origin.x + Math.cos(angle) * length, z: origin.z + Math.sin(angle) * length }
+    const proposedLength = 20 + random() * 24
+    const proposed = { x: origin.x + Math.cos(angle) * proposedLength, z: origin.z + Math.sin(angle) * proposedLength }
+    const targetNode = candidates
+      .filter((node) => node.id !== origin.id && Math.hypot(node.x - proposed.x, node.z - proposed.z) < 10)
+      .sort((a, b) => Math.hypot(a.x - proposed.x, a.z - proposed.z) - Math.hypot(b.x - proposed.x, b.z - proposed.z))
+      .at(0)
+    const target = targetNode ?? proposed
+    const length = Math.hypot(target.x - origin.x, target.z - origin.z)
+    if (length < 12) continue
     if (Math.abs(target.x) > 240 || Math.abs(target.z) > 240) continue
-    const otherRoads = roads.filter(
-      (road) => (road.x1 !== origin.x || road.z1 !== origin.z) && (road.x2 !== origin.x || road.z2 !== origin.z),
+    const incident = roads.filter(
+      (road) =>
+        (road.x1 === origin.x && road.z1 === origin.z) ||
+        (road.x2 === origin.x && road.z2 === origin.z) ||
+        (road.x1 === target.x && road.z1 === target.z) ||
+        (road.x2 === target.x && road.z2 === target.z),
     )
+    if (
+      incident.some((road) => {
+        const atOrigin =
+          (road.x1 === origin.x && road.z1 === origin.z) || (road.x2 === origin.x && road.z2 === origin.z)
+        const junction = atOrigin ? origin : target
+        const otherX = road.x1 === junction.x && road.z1 === junction.z ? road.x2 : road.x1
+        const otherZ = road.x1 === junction.x && road.z1 === junction.z ? road.z2 : road.z1
+        const newX = atOrigin ? target.x - origin.x : origin.x - target.x
+        const newZ = atOrigin ? target.z - origin.z : origin.z - target.z
+        const oldX = otherX - junction.x
+        const oldZ = otherZ - junction.z
+        return (newX * oldX + newZ * oldZ) / (length * Math.hypot(oldX, oldZ)) > Math.cos(Math.PI / 4)
+      })
+    )
+      continue
+    const otherRoads = roads.filter((road) => !incident.includes(road))
     let valid = true
     const steps = Math.ceil(length / 2)
     for (let step = 0; step <= steps && valid; step++) {
@@ -397,9 +424,10 @@ export function generateIslandRoads(seed: number, obstacles: readonly WorldRect[
       if (!clearsRoad(x, z, otherRoads, 3)) valid = false
     }
     if (!valid) continue
-    const id = `seed:${roads.length + 1}`
+    const id = targetNode?.id ?? `seed:${roads.length + 1}`
     const segmentId = `seed-road:${roads.length}`
-    nodes[id] = { id, ...target, kind: 'endpoint' }
+    if (!targetNode) nodes[id] = { id, x: target.x, z: target.z, kind: 'endpoint' }
+    else nodes[id].kind = 'intersection'
     nodes[origin.id].kind = 'intersection'
     segments[segmentId] = { id: segmentId, from: origin.id, to: id, curve: 0, width: 3 }
     roads.push({ id: segmentId, x1: origin.x, z1: origin.z, x2: target.x, z2: target.z, width: 3 })
@@ -424,6 +452,15 @@ export function generateRoadsideMassing(
   }))
   const buildings: RegionalMassing[] = []
   const facades: RegionalMassing['facade'][] = ['coral', 'mango', 'aqua', 'lime']
+  const approachIntersects = (access: NonNullable<RegionalMassing['access']>, box: WorldRect): boolean => {
+    const steps = Math.max(1, Math.ceil(Math.hypot(access.doorX - access.roadX, access.doorZ - access.roadZ) * 2))
+    for (let i = 0; i <= steps; i++) {
+      const x = access.roadX + ((access.doorX - access.roadX) * i) / steps
+      const z = access.roadZ + ((access.doorZ - access.roadZ) * i) / steps
+      if (Math.abs(x - box.x) < box.w / 2 + 0.5 && Math.abs(z - box.z) < box.d / 2 + 0.5) return true
+    }
+    return false
+  }
   for (const road of roads) {
     const dx = road.x2 - road.x1
     const dz = road.z2 - road.z1
@@ -460,10 +497,19 @@ export function generateRoadsideMassing(
       if (!isDryFootprint(building, building.yaw, seed)) continue
       if (!clearsRoad(building.x, building.z, roads, radius + 0.75)) continue
       if (obstacles.some((other) => rectsOverlap(bounds, other, 0.75))) continue
+      if (buildings.some((other) => other.access && approachIntersects(other.access, bounds))) continue
       if (
         buildings.some((other) => {
           const diameter = Math.hypot(other.w, other.d)
           return rectsOverlap(bounds, { ...other, w: diameter, d: diameter }, 0.75)
+        })
+      )
+        continue
+      if (
+        [...obstacles, ...buildings].some((other) => {
+          const diameter = 'yaw' in other ? Math.hypot(other.w, other.d) : 0
+          const box = diameter ? { ...other, w: diameter, d: diameter } : other
+          return approachIntersects(building.access!, box)
         })
       )
         continue

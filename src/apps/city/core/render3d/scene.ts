@@ -962,18 +962,28 @@ export function buildCityCore(scene: THREE.Scene, graph?: RoadGraph): CityCore {
     shelter.rotation.y = stop.rot
     scene.add(shelter)
   }
-  const signalPoles = new THREE.InstancedMesh(signalPoleGeo, signalMat, 16)
-  const signals = new THREE.InstancedMesh(signalGeo, signalMat, 16)
+  const seededJunctions = Object.values(roadGraph.nodes).flatMap((node) => {
+    const degree = Object.values(roadGraph.segments).filter(
+      (segment) => segment.from === node.id || segment.to === node.id,
+    ).length
+    return degree >= 3 ? [{ x: node.x + 3, z: node.z + 3, degree }] : []
+  })
+  const seededRoads = 'seed:0' in roadGraph.nodes
+  const lightJunctions = seededJunctions.filter((junction) => junction.degree >= 4)
+  const stopJunctions = seededJunctions.filter((junction) => junction.degree === 3)
+  const signalCount = seededRoads ? lightJunctions.length : 16
+  const signalPoles = new THREE.InstancedMesh(signalPoleGeo, signalMat, signalCount)
+  const signals = new THREE.InstancedMesh(signalGeo, signalMat, signalCount)
   const hydrants = new THREE.InstancedMesh(hydrantGeo, hydrantMat, 18)
   const civicTransform = new THREE.Object3D()
-  for (let i = 0; i < 16; i++) {
-    const x = X_ROADS[1 + ((i * 3) % (X_ROADS.length - 2))] + 1.7
-    const z = Z_ROADS[1 + ((i * 5) % (Z_ROADS.length - 2))] + 1.7
-    civicTransform.position.set(x, 1.14, z)
+  for (let i = 0; i < signalCount; i++) {
+    const x = seededRoads ? lightJunctions[i].x : X_ROADS[1 + ((i * 3) % (X_ROADS.length - 2))] + 1.7
+    const z = seededRoads ? lightJunctions[i].z : Z_ROADS[1 + ((i * 5) % (Z_ROADS.length - 2))] + 1.7
+    civicTransform.position.set(x, regionalTerrainHeight(x, z) + 1.14, z)
     civicTransform.rotation.y = i % 2 ? Math.PI / 2 : 0
     civicTransform.updateMatrix()
     signalPoles.setMatrixAt(i, civicTransform.matrix)
-    civicTransform.position.y = 2.38
+    civicTransform.position.y = regionalTerrainHeight(x, z) + 2.38
     civicTransform.updateMatrix()
     signals.setMatrixAt(i, civicTransform.matrix)
   }
@@ -988,6 +998,25 @@ export function buildCityCore(scene: THREE.Scene, graph?: RoadGraph): CityCore {
   signalPoles.instanceMatrix.needsUpdate = signals.instanceMatrix.needsUpdate = true
   hydrants.instanceMatrix.needsUpdate = true
   scene.add(signalPoles, signals, hydrants)
+  if (seededRoads && stopJunctions.length) {
+    const signGeo = new THREE.CylinderGeometry(0.31, 0.31, 0.06, 8)
+    signGeo.rotateX(Math.PI / 2)
+    const signMat = new THREE.MeshStandardMaterial({ color: 0xc92e35, roughness: 0.75 })
+    const stopPoles = new THREE.InstancedMesh(signalPoleGeo, signalMat, stopJunctions.length)
+    const signs = new THREE.InstancedMesh(signGeo, signMat, stopJunctions.length)
+    stopJunctions.forEach((junction, index) => {
+      const height = regionalTerrainHeight(junction.x, junction.z)
+      civicTransform.position.set(junction.x, height + 1.14, junction.z)
+      civicTransform.rotation.set(0, 0, 0)
+      civicTransform.updateMatrix()
+      stopPoles.setMatrixAt(index, civicTransform.matrix)
+      civicTransform.position.y = height + 2.15
+      civicTransform.updateMatrix()
+      signs.setMatrixAt(index, civicTransform.matrix)
+    })
+    stopPoles.instanceMatrix.needsUpdate = signs.instanceMatrix.needsUpdate = true
+    scene.add(stopPoles, signs)
+  }
 
   // Waterfront vegetation is instanced: a lively tropical edge costs two
   // draw calls rather than one Object3D per palm, preserving the 60fps budget.
