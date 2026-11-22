@@ -50,6 +50,7 @@ import type { world as SimWorld } from '../sim'
 import { derivedRoadGraph } from '../layoutEdit'
 import { route, type RoadGraph } from '@/lib/scene3d/roads'
 import { createRoads, sampleRoadCurve, type RoadPathSample, type RoadsApi } from './roads'
+import { advanceTraffic, signalIsGreen, type TrafficControl, type TrafficMotion } from './traffic'
 import {
   litWindowSheet,
   metalTexture,
@@ -190,8 +191,11 @@ export interface CityCore {
       laneOffset: number
       phase: number
       speed: number
+      controls: TrafficControl[]
+      motion: TrafficMotion
     }[]
   }
+  trafficSignals: { bulbs: THREE.InstancedMesh; axes: ('x' | 'z')[] } | null
   /** The road layer (R032): rebuilds for a new road graph, disposes with the scene. */
   roads: RoadsApi
 }
@@ -791,6 +795,7 @@ export function buildCityCore(scene: THREE.Scene, graph?: RoadGraph): CityCore {
     }
     if (loopNodes.length < 2) throw new Error('road graph has no connected traffic loop')
     const loopPoints: RoadPathSample[] = []
+    const legs: { start: number; end: number; from: string; to: string; width: number }[] = []
     for (let i = 0; i < loopNodes.length; i++) {
       const fromId = loopNodes[i]
       const toId = loopNodes[(i + 1) % loopNodes.length]
@@ -808,7 +813,9 @@ export function buildCityCore(scene: THREE.Scene, graph?: RoadGraph): CityCore {
         segment.from === fromId
           ? points
           : points.reverse().map((p) => ({ ...p, tangentX: -p.tangentX, tangentZ: -p.tangentZ }))
+      const start = loopPoints.length
       loopPoints.push(...directed)
+      legs.push({ start, end: loopPoints.length - 1, from: fromId, to: toId, width: segment.width })
     }
     if (loopPoints.length > 0) loopPoints.push({ ...loopPoints[0] })
     const distances = [0]
@@ -822,15 +829,44 @@ export function buildCityCore(scene: THREE.Scene, graph?: RoadGraph): CityCore {
       .reverse()
       .map((point) => ({ ...point, tangentX: -point.tangentX, tangentZ: -point.tangentZ }))
     const reverseDistances = [...distances].reverse().map((distance) => loopLength - distance)
+    const forwardControls: TrafficControl[] = []
+    const reverseControls: TrafficControl[] = []
+    if ('seed:0' in liveGraph.nodes) {
+      const degrees = new Map<string, number>()
+      for (const segment of Object.values(liveGraph.segments)) {
+        degrees.set(segment.from, (degrees.get(segment.from) ?? 0) + 1)
+        degrees.set(segment.to, (degrees.get(segment.to) ?? 0) + 1)
+      }
+      for (const leg of legs) {
+        const startDistance = distances[leg.start] ?? 0
+        const endDistance = distances[leg.end] ?? 0
+        const setback = Math.min(leg.width / 2 + 1, (endDistance - startDistance) / 2)
+        const addControl = (nodeId: string, pointIndex: number, distance: number, out: TrafficControl[]) => {
+          const degree = degrees.get(nodeId) ?? 0
+          const tangent = loopPoints.at(pointIndex)
+          if (degree < 3 || !tangent) return
+          out.push({
+            distance: ((distance % loopLength) + loopLength) % loopLength,
+            kind: degree >= 4 ? 'signal' : 'stop',
+            axis: Math.abs(tangent.tangentX) >= Math.abs(tangent.tangentZ) ? 'x' : 'z',
+          })
+        }
+        addControl(leg.to, leg.end, endDistance - setback, forwardControls)
+        addControl(leg.from, leg.start, loopLength - startDistance - setback, reverseControls)
+      }
+    }
     return Array.from({ length: 28 }, (_, i) => {
+      const phase = (i * 0.173) % 1
       return {
         points: i % 2 ? reversePoints : loopPoints,
         distances: i % 2 ? reverseDistances : distances,
         length: loopLength,
         laneOffset: -0.72,
-        phase: (i * 0.173) % 1,
+        phase,
         // metres per real second: readable city movement, not simulation-time warp.
         speed: 2.1 + (i % 3) * 0.28,
+        controls: i % 2 ? reverseControls : forwardControls,
+        motion: { distance: phase * loopLength, waitingAt: null, waited: 0, passed: null },
       }
     })
   }
@@ -966,7 +1002,7 @@ export function buildCityCore(scene: THREE.Scene, graph?: RoadGraph): CityCore {
     const degree = Object.values(roadGraph.segments).filter(
       (segment) => segment.from === node.id || segment.to === node.id,
     ).length
-    return degree >= 3 ? [{ x: node.x + 3, z: node.z + 3, degree }] : []
+    return degree >= 3 ? [{ id: node.id, x: node.x + 3, z: node.z + 3, degree }] : []
   })
   const seededRoads = 'seed:0' in roadGraph.nodes
   const lightJunctions = seededJunctions.filter((junction) => junction.degree >= 4)
@@ -974,18 +1010,52 @@ export function buildCityCore(scene: THREE.Scene, graph?: RoadGraph): CityCore {
   const signalCount = seededRoads ? lightJunctions.length : 16
   const signalPoles = new THREE.InstancedMesh(signalPoleGeo, signalMat, signalCount)
   const signals = new THREE.InstancedMesh(signalGeo, signalMat, signalCount)
+  const signalAxes: ('x' | 'z')[] = []
+  const signalBulbs =
+    seededRoads && signalCount
+      ? new THREE.InstancedMesh(
+          new THREE.BoxGeometry(0.18, 0.18, 0.05),
+          new THREE.MeshBasicMaterial({ color: 0xffffff }),
+          signalCount,
+        )
+      : null
   const hydrants = new THREE.InstancedMesh(hydrantGeo, hydrantMat, 18)
   const civicTransform = new THREE.Object3D()
   for (let i = 0; i < signalCount; i++) {
-    const x = seededRoads ? lightJunctions[i].x : X_ROADS[1 + ((i * 3) % (X_ROADS.length - 2))] + 1.7
-    const z = seededRoads ? lightJunctions[i].z : Z_ROADS[1 + ((i * 5) % (Z_ROADS.length - 2))] + 1.7
+    let x = seededRoads ? lightJunctions[i].x : X_ROADS[1 + ((i * 3) % (X_ROADS.length - 2))] + 1.7
+    let z = seededRoads ? lightJunctions[i].z : Z_ROADS[1 + ((i * 5) % (Z_ROADS.length - 2))] + 1.7
+    let rotation = i % 2 ? Math.PI / 2 : 0
+    if (seededRoads) {
+      const junction = roadGraph.nodes[lightJunctions[i].id]
+      const arm = Object.values(roadGraph.segments).find(
+        (segment) => segment.from === junction.id || segment.to === junction.id,
+      )
+      const neighbour = arm && roadGraph.nodes[arm.from === junction.id ? arm.to : arm.from]
+      if (arm && neighbour) {
+        const dx = neighbour.x - junction.x
+        const dz = neighbour.z - junction.z
+        const length = Math.hypot(dx, dz) || 1
+        const ux = dx / length
+        const uz = dz / length
+        x = junction.x + ux * (arm.width / 2 + 1.5) - uz * (arm.width / 2 + 0.65)
+        z = junction.z + uz * (arm.width / 2 + 1.5) + ux * (arm.width / 2 + 0.65)
+        rotation = Math.atan2(ux, uz)
+        signalAxes.push(Math.abs(dx) >= Math.abs(dz) ? 'x' : 'z')
+      } else signalAxes.push('x')
+    }
     civicTransform.position.set(x, regionalTerrainHeight(x, z) + 1.14, z)
-    civicTransform.rotation.y = i % 2 ? Math.PI / 2 : 0
+    civicTransform.rotation.y = rotation
     civicTransform.updateMatrix()
     signalPoles.setMatrixAt(i, civicTransform.matrix)
     civicTransform.position.y = regionalTerrainHeight(x, z) + 2.38
     civicTransform.updateMatrix()
     signals.setMatrixAt(i, civicTransform.matrix)
+    if (signalBulbs) {
+      civicTransform.position.x += Math.sin(rotation) * 0.14
+      civicTransform.position.z += Math.cos(rotation) * 0.14
+      civicTransform.updateMatrix()
+      signalBulbs.setMatrixAt(i, civicTransform.matrix)
+    }
   }
   for (let i = 0; i < 18; i++) {
     const x = X_ROADS[1 + ((i * 2) % (X_ROADS.length - 2))] + (i % 2 ? 2.05 : -2.05)
@@ -998,6 +1068,7 @@ export function buildCityCore(scene: THREE.Scene, graph?: RoadGraph): CityCore {
   signalPoles.instanceMatrix.needsUpdate = signals.instanceMatrix.needsUpdate = true
   hydrants.instanceMatrix.needsUpdate = true
   scene.add(signalPoles, signals, hydrants)
+  if (signalBulbs) scene.add(signalBulbs)
   if (seededRoads && stopJunctions.length) {
     const signGeo = new THREE.CylinderGeometry(0.31, 0.31, 0.06, 8)
     signGeo.rotateX(Math.PI / 2)
@@ -1117,7 +1188,17 @@ export function buildCityCore(scene: THREE.Scene, graph?: RoadGraph): CityCore {
       roadLayer.dispose()
     },
   }
-  return { houseWindows, lampGlows, ships, shipPhases, watercraft, aircraft, traffic, roads }
+  return {
+    houseWindows,
+    lampGlows,
+    ships,
+    shipPhases,
+    watercraft,
+    aircraft,
+    traffic,
+    trafficSignals: signalBulbs ? { bulbs: signalBulbs, axes: signalAxes } : null,
+    roads,
+  }
 }
 
 /** The real post pipeline: render, SSAO, bloom, FXAA, output (R012.1). */
@@ -1416,6 +1497,9 @@ export function createCityScene(container: HTMLElement, world: World, opts: City
   // Vehicles use real elapsed time, not the deliberately accelerated
   // simulation clock (which advances a city day in minutes during demo).
   let trafficElapsedS = 0
+  let trafficSignalPhase = -1
+  const redSignal = new THREE.Color(0xf32431)
+  const greenSignal = new THREE.Color(0x28e85d)
 
   // ---- Per-frame environment (day/night, houses, lamps, ships) --------------
   function updateEnvironment(clockS: number, dtReal: number): void {
@@ -1519,10 +1603,20 @@ export function createCityScene(container: HTMLElement, world: World, opts: City
       plane.position.y = 30 + i * 6 + Math.sin(clockS * 0.35 + i) * 0.7
     }
 
-    trafficElapsedS += Math.min(Math.max(dtReal, 0), 0.1)
+    const trafficDelta = Math.min(Math.max(dtReal, 0), 0.1)
+    trafficElapsedS += trafficDelta
+    const signalPhase = Math.floor(trafficElapsedS % 18)
+    if (core.trafficSignals && signalPhase !== trafficSignalPhase) {
+      trafficSignalPhase = signalPhase
+      core.trafficSignals.axes.forEach((axis, index) => {
+        core.trafficSignals?.bulbs.setColorAt(index, signalIsGreen(axis, trafficElapsedS) ? greenSignal : redSignal)
+      })
+      if (core.trafficSignals.bulbs.instanceColor) core.trafficSignals.bulbs.instanceColor.needsUpdate = true
+    }
     for (let i = 0; i < core.traffic.routes.length; i++) {
       const route = core.traffic.routes[i]
-      const distance = (trafficElapsedS * route.speed + route.phase * route.length) % route.length
+      advanceTraffic(route.motion, route.controls, route.length, route.speed, trafficDelta, trafficElapsedS)
+      const distance = route.motion.distance
       let segmentIndex = 0
       while (segmentIndex < route.distances.length - 2 && distance > (route.distances[segmentIndex + 1] ?? Infinity))
         segmentIndex++
