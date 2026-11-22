@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   clearPropPositions,
+  cityWorldSeed,
   clearsRoad,
   generateRegionalMassing,
   generateRegionalTiles,
@@ -17,6 +18,16 @@ import {
 import { inWater } from '../core/layout'
 
 describe('deterministic world generation', () => {
+  // spec: OVERSTORY-CITY-R048.9.1
+  it('accepts a reproducible island seed only in the local sandbox', () => {
+    expect(cityWorldSeed('?seed=42', true)).toBe(42)
+    expect(cityWorldSeed('?seed=42', false)).toBe(20261120)
+    expect(cityWorldSeed('?seed=-1', true)).toBe(20261120)
+    expect(cityWorldSeed('?seed=4294967296', true)).toBe(20261120)
+    expect(generateRegionalMassing(cityWorldSeed('?seed=42', true))).toEqual(generateRegionalMassing(42))
+    expect(generateRegionalMassing(42)).not.toEqual(generateRegionalMassing(43))
+  })
+
   it('repeats the terrain recipe and keeps generated vegetation clear of roads', () => {
     expect(terrainHeight(31, -14)).toBe(terrainHeight(31, -14))
     expect(terrainHeight(31, -14)).not.toBe(terrainHeight(31, -13))

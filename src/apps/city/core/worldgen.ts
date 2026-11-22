@@ -5,6 +5,7 @@
  * building may occupy a place.
  */
 import { mulberry32 } from '@/lib/scene3d/generators'
+import { isCitySandbox } from '@/lib/city-sandbox'
 
 export interface WorldRect {
   x: number
@@ -56,7 +57,17 @@ export interface RegionalMassing {
 }
 
 /** The world seed is part of the city recipe, never a call to Math.random. */
-export const CITY_WORLD_SEED = 20261120
+export function cityWorldSeed(search: string, sandbox: boolean): number {
+  const value = new URLSearchParams(search).get('seed')
+  if (!sandbox || value === null || !/^\d{1,10}$/.test(value)) return 20261120
+  const seed = Number(value)
+  return seed <= 0xffffffff ? seed : 20261120
+}
+
+export const CITY_WORLD_SEED = cityWorldSeed(
+  typeof window === 'undefined' ? '' : window.location.search,
+  isCitySandbox(),
+)
 export const SEA_LEVEL_M = -0.18
 const FOUNDATION_FREEBOARD_M = 0.12
 
