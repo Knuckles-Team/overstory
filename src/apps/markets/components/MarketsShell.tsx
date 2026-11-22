@@ -7,12 +7,18 @@
  */
 import type { ReactNode } from 'react'
 import { MarketsNav } from './MarketsNav'
+import { PwaInstallPrompt } from './PwaInstallPrompt'
 
 export function MarketsShell({ children }: { children: ReactNode }) {
   return (
     <div className="flex gap-4 pb-16 md:pb-0">
       <MarketsNav />
-      <div className="min-w-0 flex-1">{children}</div>
+      <div className="min-w-0 flex-1">
+        <div className="mb-2 flex justify-end">
+          <PwaInstallPrompt />
+        </div>
+        {children}
+      </div>
     </div>
   )
 }

@@ -5,7 +5,7 @@ Generated from the active rows of [requirements.md](requirements.md); one line p
 ## Tasks
 
 - [x] T001 OVERSTORY-R001.1 implement and prove: Detail-tab support model
-- [ ] T002 OVERSTORY-R001.2 implement and prove: Live Markets app wiring (remaining)
+- [ ] T002 OVERSTORY-R001.2 implement and prove: Live Markets app wiring (rollup)
 - [x] T003 OVERSTORY-R002.1 implement and prove: Shared ChartRenderer input contract
 - [x] T004 OVERSTORY-R002.2 implement and prove: Live ChartRenderer wiring
 - [x] T005 OVERSTORY-R004 implement and prove: Responsive five-destination navigation
@@ -30,6 +30,11 @@ Generated from the active rows of [requirements.md](requirements.md); one line p
 - [x] T024 OVERSTORY-R016.1 implement and prove: Chart accessibility text-summary contract
 - [x] T025 OVERSTORY-R016.2 implement and prove: Live chart/control accessibility wiring
 - [ ] T026 OVERSTORY-R003 implement and prove: Arbora Markets app with scanner, search, and layered chart
+- [x] T027 OVERSTORY-R001.2.1 implement and prove: Detail tabs render on the chart page
+- [ ] T028 OVERSTORY-R001.2.2 implement and prove: Performance card serves on the chart page (blocked: the owned card read is not served; the chart page now shows its explicit unavailable state)
+- [ ] T029 OVERSTORY-R001.2.3 implement and prove: Instrument groups serve on the Portfolio destination (blocked: the medulla finance-v1 groups read is PENDING)
+- [x] T030 OVERSTORY-R001.2.4 implement and prove: PWA install, theming and accessibility on the Markets surface
+- [x] T031 OVERSTORY-R001.2.5 implement and prove: Responsive browser proof of the Markets wiring
 
 ## Earlier task notes
 

@@ -187,4 +187,54 @@ test.describe('Markets app', () => {
     await expect(page.getByRole('list', { name: 'Flip timeline' })).toContainText('Flipped bearish')
     await page.screenshot({ path: info.outputPath('markets-chart.png'), fullPage: true })
   })
+
+  // spec: OVERSTORY-R001.2.4, OVERSTORY-R001.2.5
+  test('markets_responsive_wiring', async ({ page }, info) => {
+    for (const [width, height] of [
+      [375, 812],
+      [1440, 900],
+    ] as const) {
+      await page.setViewportSize({ width, height })
+      await page.goto('/apps/markets')
+      // the five-destination navigation, in both the bottom bar and the side rail
+      for (const destination of ['Markets', 'News', 'Calendar', 'Portfolio', 'Menu']) {
+        await expect(page.getByRole('link', { name: destination })).toBeVisible()
+      }
+      // keyboard walking of the navigation enters the Portfolio destination
+      await page.getByRole('link', { name: 'Portfolio' }).focus()
+      await page.keyboard.press('Enter')
+      await expect(page).toHaveURL('/apps/markets/portfolio')
+      // the Portfolio destination states its honest group state
+      await expect(page.getByText(/No account provider is connected yet/)).toBeVisible()
+      // the PWA install affordance offers and consumes the deferred prompt
+      await page.evaluate(() => {
+        const event = new Event('beforeinstallprompt', { cancelable: true })
+        ;(event as unknown as { prompt(): Promise<unknown> }).prompt = () => Promise.resolve()
+        window.dispatchEvent(event)
+      })
+      const install = page.getByRole('button', { name: 'Install app' })
+      await expect(install).toBeVisible()
+      await install.click()
+      await expect(install).toBeHidden()
+      if (!LIVE) {
+        // the chart's detail tabs: offered vs withheld, keyboard-driven, in the URL
+        await page.goto(`/apps/markets/chart/${encodeURIComponent(LISTING.listing_id)}?tf=1W`)
+        const tabs = page.getByRole('group', { name: 'Detail tabs' })
+        await expect(tabs.getByRole('button', { name: 'Chart' })).toBeEnabled()
+        await expect(tabs.getByRole('button', { name: 'Rates' })).toBeDisabled()
+        await expect(tabs.getByRole('list', { name: 'Unavailable tabs' })).toContainText(
+          'Rates: Rates are not available for this instrument',
+        )
+        await tabs.getByRole('button', { name: 'News' }).focus()
+        await page.keyboard.press('Enter')
+        await expect(page).toHaveURL(/tab=news/)
+      }
+      // the dark theme renders the same surface
+      await page.goto('/apps/markets')
+      await page.evaluate(() => document.documentElement.classList.add('dark'))
+      await expect(page.getByRole('link', { name: 'Markets' })).toBeVisible()
+      await page.evaluate(() => document.documentElement.classList.remove('dark'))
+    }
+    await page.screenshot({ path: info.outputPath('markets-responsive-wiring.png'), fullPage: true })
+  })
 })

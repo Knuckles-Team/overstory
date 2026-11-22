@@ -221,3 +221,54 @@ describe('Markets search and detail controls', () => {
     expect(await screen.findByTestId('chart-a11y-text')).toHaveTextContent('6 bars, trend rising, last close 110')
   })
 })
+
+describe('detail_tabs', () => {
+  beforeEach(() => {
+    visit(`/apps/markets/chart/${encodeURIComponent(LISTING.listing_id)}?tf=1W`)
+  })
+
+  // spec: OVERSTORY-R001.2.1
+  it('offers the tabs the series supports and explains the withheld ones', async () => {
+    vi.spyOn(api, 'fetchChart').mockResolvedValue(CHART)
+    renderWithProviders(<ChartPage />)
+    const tabs = await screen.findByRole('group', { name: 'Detail tabs' })
+    expect(within(tabs).getByRole('button', { name: 'Chart' })).toBeEnabled()
+    expect(within(tabs).getByRole('button', { name: 'News' })).toBeEnabled()
+    expect(within(tabs).getByRole('button', { name: 'Notes' })).toBeEnabled()
+    expect(within(tabs).getByRole('button', { name: 'Analysis' })).toBeEnabled()
+    expect(within(tabs).getByRole('button', { name: 'Rates' })).toBeDisabled()
+    expect(within(tabs).getByRole('button', { name: 'Dividends' })).toBeDisabled()
+    const withheld = within(tabs).getByRole('list', { name: 'Unavailable tabs' })
+    expect(withheld).toHaveTextContent('Rates: Rates are not available for this instrument')
+    expect(withheld).toHaveTextContent('Dividends: Dividends are not available for this instrument')
+  })
+
+  // spec: OVERSTORY-R001.2.1
+  it('persists the selected tab in the URL and fills each offered tab honestly', async () => {
+    vi.spyOn(api, 'fetchChart').mockResolvedValue(CHART)
+    renderWithProviders(<ChartPage />)
+    const tabs = await screen.findByRole('group', { name: 'Detail tabs' })
+    fireEvent.click(within(tabs).getByRole('button', { name: 'News' }))
+    expect(window.location.search).toContain('tab=news')
+    expect(await screen.findByRole('button', { name: 'Open the Markets news feed' })).toBeInTheDocument()
+    expect(screen.queryByRole('slider')).not.toBeInTheDocument()
+    fireEvent.click(within(tabs).getByRole('button', { name: 'Notes' }))
+    expect(window.location.search).toContain('tab=notes')
+    expect(screen.getByText('Notes for this instrument is not available yet.')).toBeInTheDocument()
+    fireEvent.click(within(tabs).getByRole('button', { name: 'Chart' }))
+    expect(new URLSearchParams(window.location.search).get('tab')).toBeNull()
+    await screen.findByRole('slider')
+  })
+})
+
+// OVERSTORY-R001.2.2 stays open until the owned card read is served; this asserts the pre-read half only, unbound.
+describe('performance_card', () => {
+  it('shows an explicit unavailable state that names the missing read', async () => {
+    vi.spyOn(api, 'fetchChart').mockResolvedValue(CHART)
+    visit(`/apps/markets/chart/${encodeURIComponent(LISTING.listing_id)}?tf=1W`)
+    renderWithProviders(<ChartPage />)
+    const card = await screen.findByTestId('performance-card')
+    expect(card).toHaveAttribute('data-state', 'unavailable')
+    expect(screen.getByTestId('performance-card-unavailable-reason')).toHaveTextContent('ARBORA-DATA-MARKET-R009.1')
+  })
+})

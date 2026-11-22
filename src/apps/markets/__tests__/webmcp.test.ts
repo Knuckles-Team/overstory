@@ -14,6 +14,7 @@ function controller(overrides: Partial<MarketsToolController> = {}): MarketsTool
 }
 
 describe('Markets WebMCP tools', () => {
+  // spec: OVERSTORY-R003
   it('are namespaced, validated and bound to the page that mounted them', () => {
     const names = createMarketsTools(controller()).map((tool) => tool.name)
     expect(names).toEqual([

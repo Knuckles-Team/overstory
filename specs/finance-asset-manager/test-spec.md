@@ -51,7 +51,11 @@ Run `python3 scripts/check_complexity_staged.py` through the staged hook for sup
 
 | Test | Requirement | Level and setup | Expected observation |
 |---|---|---|---|
-| FIN-T20 | OVERSTORY-R001.2 | Planned browser case in e2e/markets-app.spec.ts at phone and desktop widths | Navigation, groups, detail tabs and range selector are wired and accessible |
+| FIN-T20 | OVERSTORY-R001.2.1, OVERSTORY-R001.2.5 | Browser case in e2e/markets-app.spec.ts at phone and desktop widths | Navigation, the honest Portfolio group state, detail tabs and range selector are wired and accessible |
+| FIN-T20.1 | OVERSTORY-R001.2.1 | Rendered ChartPage in src/apps/markets/__tests__/MarketsPages.test.tsx | Offered tabs render; a withheld tab stays disabled with its reason; selection persists in the URL |
+| FIN-T20.2 | OVERSTORY-R001.2.2 | Rendered ChartPage in src/apps/markets/__tests__/MarketsPages.test.tsx | The unavailable card names the missing read; a served card renders the owner string verbatim |
+| FIN-T20.3 | OVERSTORY-R001.2.3 | Planned component test in src/apps/markets/components/__tests__/InstrumentGroups.test.tsx, driving each data state from a fixture | A distinct, correctly labeled rendering per data state; the page-level assertion lands with the production transport |
+| FIN-T20.4 | OVERSTORY-R001.2.4 | Rendered Markets shell plus the e2e case | The install affordance offers and consumes the prompt; both themes render; keyboard walks the navigation and tabs |
 | FIN-T21 | OVERSTORY-R002.2 | Planned in src/apps/markets/__tests__/chart-contract.test.ts against the rendered `OhlcChart` | Full and decimated views give identical finalized output |
 | FIN-T22 | OVERSTORY-R003 | src/apps/markets/__tests__/webmcp.test.ts and MarketsPages.test.tsx with fixture market data | Scanner, search and chart views work and tool calls return expected results |
 | FIN-T23 | OVERSTORY-R008.2 | Planned in src/apps/markets/__tests__/MarketsPages.test.tsx | Unsupported options are hidden or explained |
