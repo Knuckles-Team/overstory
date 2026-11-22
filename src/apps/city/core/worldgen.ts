@@ -53,6 +53,7 @@ export interface RegionalMassing {
   d: number
   h: number
   yaw?: number
+  access?: { roadId: string; roadX: number; roadZ: number; doorX: number; doorZ: number }
   facade: RegionalTile['facade']
   zone: Exclude<RegionalZone, 'waterfront'>
 }
@@ -446,6 +447,13 @@ export function generateRoadsideMassing(
         yaw: Math.atan2(-dz, dx),
         facade: facades[Math.floor(random() * facades.length)],
         zone: 'suburban',
+        access: {
+          roadId: road.id,
+          roadX: roadX + nx * (road.width / 2 + 0.2) * side,
+          roadZ: roadZ + nz * (road.width / 2 + 0.2) * side,
+          doorX: roadX + nx * (offset - depth / 2) * side,
+          doorZ: roadZ + nz * (offset - depth / 2) * side,
+        },
       }
       const radius = Math.hypot(width, depth) / 2
       const bounds = { x: building.x, z: building.z, w: radius * 2, d: radius * 2 }
@@ -469,6 +477,12 @@ export function generateRoadsideMassing(
             seed,
           )
         ) {
+          dryApproach = false
+          break
+        }
+        const x = roadX + nx * offset * side * t
+        const z = roadZ + nz * offset * side * t
+        if (obstacles.some((box) => Math.abs(x - box.x) < box.w / 2 + 0.5 && Math.abs(z - box.z) < box.d / 2 + 0.5)) {
           dryApproach = false
           break
         }

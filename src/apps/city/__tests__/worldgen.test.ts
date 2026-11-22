@@ -30,6 +30,15 @@ describe('deterministic world generation', () => {
     expect(buildings).toEqual(generateRoadsideMassing(graph, seed, []))
     for (const building of buildings) {
       expect(isDryFootprint(building, building.yaw, seed)).toBe(true)
+      expect(building.access).toBeDefined()
+      expect(building.access!.roadId in graph.segments).toBe(true)
+      const access = building.access!
+      const steps = Math.ceil(Math.hypot(access.doorX - access.roadX, access.doorZ - access.roadZ))
+      for (let i = 0; i <= steps; i++) {
+        const x = access.roadX + ((access.doorX - access.roadX) * i) / steps
+        const z = access.roadZ + ((access.doorZ - access.roadZ) * i) / steps
+        expect(isDryFootprint({ x, z, w: 1, d: 1 }, 0, seed)).toBe(true)
+      }
       const nearRoad = Object.values(graph.segments).some((segment) => {
         const a = graph.nodes[segment.from]
         const b = graph.nodes[segment.to]

@@ -368,6 +368,40 @@ export function buildCityCore(scene: THREE.Scene, graph?: RoadGraph): CityCore {
           ...HOUSES.map((house) => ({ ...house, w: 4, d: 4 })),
         ])
       : generateRegionalMassing()
+  const approachPositions: number[] = []
+  const approachIndices: number[] = []
+  for (const building of regionalMassing) {
+    const access = building.access
+    if (!access) continue
+    const dx = access.doorX - access.roadX
+    const dz = access.doorZ - access.roadZ
+    const length = Math.hypot(dx, dz)
+    const segments = Math.max(1, Math.ceil(length / 2))
+    const px = (-dz / length) * 0.5
+    const pz = (dx / length) * 0.5
+    const base = approachPositions.length / 3
+    for (let i = 0; i <= segments; i++) {
+      const x = access.roadX + (dx * i) / segments
+      const z = access.roadZ + (dz * i) / segments
+      approachPositions.push(x + px, visibleGroundHeight(x + px, z + pz) + 0.04, z + pz)
+      approachPositions.push(x - px, visibleGroundHeight(x - px, z - pz) + 0.04, z - pz)
+      if (i < segments) {
+        const index = base + i * 2
+        approachIndices.push(index, index + 2, index + 1, index + 1, index + 2, index + 3)
+      }
+    }
+  }
+  if (approachPositions.length) {
+    const geometry = new THREE.BufferGeometry()
+    geometry.setAttribute('position', new THREE.Float32BufferAttribute(approachPositions, 3))
+    geometry.setIndex(approachIndices)
+    geometry.computeVertexNormals()
+    const material = new THREE.MeshStandardMaterial({ color: SCENE_COLORS.sidewalk.hex, roughness: 1 })
+    const approaches = new THREE.Mesh(geometry, material)
+    approaches.name = 'regional-pedestrian-approaches'
+    approaches.userData.marker = 'regional-pedestrian-approaches'
+    scene.add(approaches)
+  }
   const regionalTransform = new THREE.Object3D()
   for (const facade of Object.keys(facadeRoles) as (keyof typeof facadeRoles)[]) {
     const members = regionalMassing.filter((building) => building.facade === facade)
