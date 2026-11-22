@@ -21,8 +21,28 @@ import {
 import type { DistrictArchetype } from '@/lib/scene3d/generators'
 import { DISTRICT_DOMAINS, ROAD_W, X_ROADS, Z_ROADS, plotDoor } from './layout'
 import type { world as SimWorld } from './sim'
+import { isDryFootprint } from './worldgen'
 
 export type World = typeof SimWorld
+
+function dryBuildingSite(
+  building: { w: number; d: number },
+  site: { x: number; z: number },
+  rotation: number,
+): boolean {
+  const door = plotDoor(site)
+  const dx = door.x - site.x
+  const dz = door.z - site.z
+  return (
+    isDryFootprint({ ...site, w: building.w, d: building.d }, (rotation * Math.PI) / 180) &&
+    isDryFootprint({
+      x: site.x + dx / 2,
+      z: site.z + dz / 2,
+      w: Math.max(0.8, Math.abs(dx)),
+      d: Math.max(0.8, Math.abs(dz)),
+    })
+  )
+}
 
 /** The only override document version the city reads or writes. */
 export const LAYOUT_VERSION = 1 as const
@@ -40,6 +60,72 @@ export const ARCHETYPES: readonly DistrictArchetype[] = [
   'studio',
   'docks',
 ]
+
+/** Minimum clear pedestrian verge between a building wall and a carriageway. */
+const BUILDING_ROAD_SETBACK_M = 0.75
+
+/** True when a segment crosses an axis-aligned, already-expanded footprint. */
+function segmentHitsAabb(
+  x0: number,
+  z0: number,
+  x1: number,
+  z1: number,
+  minX: number,
+  maxX: number,
+  minZ: number,
+  maxZ: number,
+): boolean {
+  let enter = 0
+  let exit = 1
+  const clip = (p: number, q: number): boolean => {
+    if (Math.abs(p) < 1e-9) return q >= 0
+    const t = q / p
+    if (p < 0) {
+      if (t > exit) return false
+      if (t > enter) enter = t
+    } else {
+      if (t < enter) return false
+      if (t < exit) exit = t
+    }
+    return true
+  }
+  return (
+    clip(-(x1 - x0), x0 - minX) &&
+    clip(x1 - x0, maxX - x0) &&
+    clip(-(z1 - z0), z0 - minZ) &&
+    clip(z1 - z0, maxZ - z0) &&
+    enter <= exit
+  )
+}
+
+/**
+ * Static collision gate for an operator-drawn road. Its corridor is expanded
+ * by carriageway half-width and sidewalk setback, then tested against every
+ * building's oriented (quarter-turn) footprint. This belongs in generation /
+ * edit validation, never the render loop, so invalid geometry never reaches
+ * the GPU and cannot cause a clipped city block.
+ */
+function roadHitsBuilding(segment: RoadSegment, graph: RoadGraph, world: World): boolean {
+  if (!(segment.from in graph.nodes) || !(segment.to in graph.nodes)) return false
+  const from = graph.nodes[segment.from]
+  const to = graph.nodes[segment.to]
+  const pad = segment.width / 2 + BUILDING_ROAD_SETBACK_M
+  return Object.values(world.buildings).some((building) => {
+    const swapped = building.rot % 180 !== 0
+    const halfX = (swapped ? building.d : building.w) / 2 + pad
+    const halfZ = (swapped ? building.w : building.d) / 2 + pad
+    return segmentHitsAabb(
+      from.x,
+      from.z,
+      to.x,
+      to.z,
+      building.x - halfX,
+      building.x + halfX,
+      building.z - halfZ,
+      building.z + halfZ,
+    )
+  })
+}
 
 /** One building override: the plot it sits on and its quarter-turn rotation. */
 export interface BuildingMove {
@@ -119,6 +205,7 @@ export function validateEdit(edit: LayoutEdit, world: World, graph: RoadGraph): 
       if (plot.construction) return { ok: false, reason: 'plot-under-construction' }
       if (edit.rotation !== undefined && !(ROTATIONS as readonly number[]).includes(edit.rotation))
         return { ok: false, reason: 'invalid-rotation' }
+      if (!dryBuildingSite(b, plot, edit.rotation ?? b.rot)) return { ok: false, reason: 'building-hits-water' }
       return { ok: true }
     }
     case 'rotate-building': {
@@ -126,6 +213,7 @@ export function validateEdit(edit: LayoutEdit, world: World, graph: RoadGraph): 
       const b = world.buildings[edit.buildingId]
       if (b.category !== 'connector') return { ok: false, reason: 'not-movable' }
       if (!(ROTATIONS as readonly number[]).includes(edit.rotation)) return { ok: false, reason: 'invalid-rotation' }
+      if (!dryBuildingSite(b, b, edit.rotation)) return { ok: false, reason: 'building-hits-water' }
       return { ok: true }
     }
     case 'add-road': {
@@ -137,7 +225,9 @@ export function validateEdit(edit: LayoutEdit, world: World, graph: RoadGraph): 
         width: ROAD_W,
       }
       const verdict = validateRoadEdit(graph, { kind: 'add-segment', segment })
-      return verdict.ok ? { ok: true } : { ok: false, reason: verdict.reason }
+      if (!verdict.ok) return { ok: false, reason: verdict.reason }
+      if (roadHitsBuilding(segment, graph, world)) return { ok: false, reason: 'road-hits-building' }
+      return { ok: true }
     }
     case 'remove-road': {
       if (!(edit.segmentId in graph.segments)) return { ok: false, reason: 'unknown-segment' }
@@ -248,6 +338,10 @@ export function validateDocument(
     }
     if (m.plot < 0 || m.plot >= world.plots.length) {
       reasons.push(`move: plot ${m.plot} does not exist`)
+      continue
+    }
+    if (!dryBuildingSite(b, world.plots[m.plot], m.rotation)) {
+      reasons.push(`move: ${m.buildingId} foundation or entrance intersects water`)
       continue
     }
     const other = finalPlotOf.get(m.plot)
@@ -398,6 +492,8 @@ export const REFUSAL_TEXT: Record<string, string> = {
   'unknown-segment': 'Unknown segment.',
   'disconnects-graph': 'Refused — removing that segment would disconnect the road network.',
   'overlaps-existing-segment': 'Refused — a segment already runs between those intersections.',
+  'road-hits-building': 'Refused — the road corridor would intersect a building or its pedestrian setback.',
+  'building-hits-water': 'Refused — the building foundation or its entrance needs dry ground.',
   'unknown-domain': 'Unknown district.',
   'unknown-archetype': 'Unknown district style.',
   unavailable: 'The served layout is unavailable right now; the edit was not saved and nothing changed locally.',

@@ -41,9 +41,14 @@ const NIGHT_CLOCK_S = 21 * 3600
  * the live world state at capture time.
  */
 export const GOLDEN_VIEWS = {
-  overview: { cam: [36, 62, 108] as const, target: [-20, 1, 8] as const },
-  district: { cam: [-46, 30, 46] as const, target: [-50, 0.5, 5] as const },
-  street: { cam: [2, 6, 20] as const, target: [0, 1.2, -8] as const },
+  // Must mirror the renderer's first-frame composition: an approved overview
+  // that omits the river, waterfront or skyline is not production evidence.
+  overview: { cam: [62, 55, 112] as const, target: [-8, 2, 10] as const },
+  // Both poses are on declared road corridors, never inside the Arbora gate
+  // or a connector footprint. Their oblique view exposes façades, sidewalks
+  // and public furniture rather than a top-down label carpet.
+  district: { cam: [-90, 42, 78] as const, target: [-50, 2, 5] as const },
+  street: { cam: [-20, 5.5, 38] as const, target: [-20, 1.2, 4] as const },
 } as const
 
 export type GoldenView = keyof typeof GOLDEN_VIEWS | 'close-up' | 'night'
@@ -175,7 +180,10 @@ function parkTreePositions(): { x: number; z: number }[] {
 
 /** The scene's streetlamp rule: one pole at every other interior intersection. */
 function streetLampAt(xi: number, zi: number): boolean {
-  return xi >= 1 && zi >= 1 && xi < X_ROADS.length - 1 && zi < Z_ROADS.length - 1 && xi % 2 === 1 && zi % 2 === 1
+  const interior =
+    xi >= 1 && zi >= 1 && xi < X_ROADS.length - 1 && zi < Z_ROADS.length - 1 && xi % 2 === 1 && zi % 2 === 1
+  const waterfront = xi >= 1 && xi < X_ROADS.length - 1 && xi % 2 === 1 && zi === Z_ROADS.length - 1
+  return interior || waterfront
 }
 
 /** The street-edge zone of one block cell (a 10 m band around its edges). */
@@ -211,7 +219,6 @@ export function installCityFidelity(deps: CityFidelityDeps): CityFidelityHandle 
   async function capture(view: GoldenView): Promise<void> {
     const core = deps.core()
     if (!core) throw new Error('the 3D scene is not active')
-    if (view === 'night') await holdAt(NIGHT_CLOCK_S)
     let cam: readonly [number, number, number]
     let target: readonly [number, number, number]
     if (view === 'close-up') {
@@ -226,7 +233,16 @@ export function installCityFidelity(deps: CityFidelityDeps): CityFidelityHandle 
     core.camera.position.set(cam[0], cam[1], cam[2])
     core.controls.target.set(target[0], target[1], target[2])
     core.controls.update()
-    core.holdAmbient(0)
+    // Capture lighting directly. Replaying twelve simulated hours simply to
+    // get a night screenshot freezes the browser and couples visual proof to
+    // an unrelated historical-state exercise; `holdAt` remains the replay
+    // seam when a test actually needs state at a past clock.
+    core.holdAmbient(view === 'night' ? NIGHT_CLOCK_S : BOOT_CLOCK_S)
+    await new Promise<void>((resolve) => {
+      requestAnimationFrame(() => {
+        resolve()
+      })
+    })
   }
 
   async function setSchematic(): Promise<void> {
@@ -244,7 +260,14 @@ export function installCityFidelity(deps: CityFidelityDeps): CityFidelityHandle 
 
     // R012.2: the city declares its markers through `userData.marker`.
     const material = materialAudit(core.scene, {
-      isMarker: (o) => o.userData.marker !== undefined,
+      isMarker: (object) => {
+        let node: typeof object | null = object
+        while (node) {
+          if (node.userData.marker !== undefined) return true
+          node = node.parent
+        }
+        return false
+      },
     })
 
     // R012.3: mirror the scene's dressed-layout derivation over the live

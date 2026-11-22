@@ -116,7 +116,13 @@ export async function init3D(
   }
 
   let disposed = false
-  let timeAcc = 0
+  // Labels are a semantic overlay, not simulation state.  Projecting and
+  // painting them every render frame created short-lived arrays and canvas
+  // work continuously, which eventually showed up as GC hitches in a city
+  // left open in demo mode.  Ten updates per second is visually immediate
+  // for an overlay while leaving the render loop allocation-light.
+  let labelElapsed = 0
+  const LABEL_REFRESH_S = 0.1
   // The fidelity hold (R012.9): while set, every frame renders at the same
   // ambient time, so the golden viewpoints are identical on every run.
   let heldAmbientTime: number | null = null
@@ -126,20 +132,21 @@ export async function init3D(
 
   function render(dtReal: number): void {
     if (disposed || sceneCore.isLost()) return
-    timeAcc = heldAmbientTime ?? timeAcc + dtReal
     const frameStart = performance.now()
     controls.update()
     picking.tick(dtReal)
-    sceneCore.updateEnvironment(timeAcc)
-    buildings.update(dtReal, timeAcc)
-    characters.update(dtReal, timeAcc)
+    const sceneClock = heldAmbientTime ?? world.clock
+    sceneCore.updateEnvironment(sceneClock, dtReal)
+    buildings.update(dtReal, sceneClock)
+    characters.update(dtReal, sceneClock)
     buildings.syncBuildings()
-    picking.update(timeAcc)
-    labelLayer.update(
-      collectLabelCandidates(world, camera, viewport),
-      viewport,
-      zoomBandFor(camera.position.distanceTo(controls.target)),
-    )
+    picking.update(sceneClock)
+    const labelBand = zoomBandFor(camera.position.distanceTo(controls.target))
+    labelElapsed += dtReal
+    if (labelElapsed >= LABEL_REFRESH_S) {
+      labelElapsed = 0
+      labelLayer.update(collectLabelCandidates(world, camera, viewport, labelBand), viewport, labelBand)
+    }
     // The shared pipeline owns the frame: the composer renders, and the
     // measured frame time drives the tier (p95 drop, R012.1).
     pipeline.renderFrame()
@@ -167,6 +174,7 @@ export async function init3D(
       picking.focus(x, z)
     },
     overview: () => {
+      sceneCore.exitInterior()
       picking.overview()
     },
     say: (charId: string, text: string) => {
@@ -175,6 +183,12 @@ export async function init3D(
     onResize,
     setSelected: (hit: SelectionHit | null) => {
       picking.setSelected(hit)
+    },
+    enterInterior: (buildingId: string) => {
+      sceneCore.enterInterior(buildingId)
+    },
+    exitInterior: () => {
+      sceneCore.exitInterior()
     },
     resync,
     setRoads: (graph: RoadGraph) => {

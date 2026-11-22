@@ -29,6 +29,9 @@ import type { world as SimWorld } from '../sim'
 export type World = typeof SimWorld
 type Character = (typeof SimWorld.characters)[number]
 
+/** City-world metres: a person is roughly 1.72 m tall, never a landmark. */
+const HUMAN_HEIGHT_M = 1.72
+
 /** One character on the shared rig: its clone, mixer, blender and bubble. */
 interface CharacterEntry {
   ch: Character
@@ -36,6 +39,8 @@ interface CharacterEntry {
   root: THREE.Object3D
   blender: ClipBlenderApi | null
   materials: THREE.Material[]
+  /** A ground halo keeps every person findable in a large city overview. */
+  halo: THREE.Mesh<THREE.RingGeometry, THREE.MeshBasicMaterial>
   bubble: THREE.Sprite
   lastBubbleText: string | null
   bubbleTimer: number
@@ -87,6 +92,22 @@ function tintForRole(root: THREE.Object3D, role: RoleId): THREE.Material[] {
   return clones
 }
 
+/**
+ * Imported GLBs are authored in many unit systems.  Normalize every shared
+ * rig clone from its actual bounds, then put its feet on the ground.  This
+ * keeps agents human-scale beside 3–4 m storeys and makes a bad source scale
+ * impossible to turn a robot into a building-sized prop.
+ */
+function normalizeToHumanScale(root: THREE.Object3D): void {
+  root.updateMatrixWorld(true)
+  const bounds = new THREE.Box3().setFromObject(root)
+  const height = bounds.max.y - bounds.min.y
+  if (!Number.isFinite(height) || height < 0.001) return
+  const factor = HUMAN_HEIGHT_M / height
+  root.scale.multiplyScalar(factor)
+  root.position.y -= bounds.min.y * factor
+}
+
 export async function initCharacters(
   scene: THREE.Scene,
   world: World,
@@ -94,6 +115,7 @@ export async function initCharacters(
   loadPinnedGLB: (url: string) => Promise<GLTF>,
 ): Promise<CharactersApi> {
   const characters = new Map<string, CharacterEntry>()
+  const presenceGeo = new THREE.RingGeometry(0.42, 0.58, 16)
 
   /**
    * One character on a placeholder rig (the rig pin failed, R010): the
@@ -103,12 +125,15 @@ export async function initCharacters(
   function makePlaceholder(ch: Character): { group: THREE.Group; root: THREE.Object3D } {
     const body = markerRoot
       ? markerRoot.clone(true)
-      : new THREE.Mesh(new THREE.BoxGeometry(0.7, 1.4, 0.7), new THREE.MeshStandardMaterial({ color: 0xff8c42 }))
+      : new THREE.Mesh(
+          new THREE.BoxGeometry(0.42, HUMAN_HEIGHT_M, 0.42),
+          new THREE.MeshStandardMaterial({ color: 0xff8c42 }),
+        )
     if (markerRoot) {
-      body.scale.setScalar(1.5)
-      body.position.y = 0.3
+      body.scale.setScalar(1)
+      body.position.y = 0
     } else {
-      body.position.y = 0.7
+      body.position.y = HUMAN_HEIGHT_M / 2
     }
     const root = new THREE.Group()
     root.add(body)
@@ -155,6 +180,7 @@ export async function initCharacters(
           if (isMesh(o)) o.castShadow = true
           o.userData.charId = ch.id
         })
+        normalizeToHumanScale(root)
         const mixer = new THREE.AnimationMixer(root)
         // The fail beat is one-shot: it clamps at its end (a failed agent
         // holds the fall, it does not replay it).
@@ -166,15 +192,37 @@ export async function initCharacters(
         group = made.group
         root = made.root
         placeholder = true
+        normalizeToHumanScale(root)
       }
+
+      // Character rigs have their own pinned-asset QA.  This parent marker
+      // keeps their untextured rig pieces and speech UI out of the city-kit
+      // material audit, which governs architecture and public-realm surfaces.
+      group.userData.marker = 'character-rig'
 
       const bubble = new THREE.Sprite(
         new THREE.SpriteMaterial({ map: null, depthWrite: false, transparent: true, opacity: 0 }),
       )
       bubble.scale.set(2.2, 0.4, 1)
-      bubble.position.y = 2.75
+      bubble.position.y = HUMAN_HEIGHT_M + 0.38
       bubble.visible = false
       group.add(bubble)
+      const roleColor = SCENE_COLORS[`role-${ch.role}`].hex
+      const halo = new THREE.Mesh(
+        presenceGeo,
+        new THREE.MeshBasicMaterial({
+          color: roleColor,
+          transparent: true,
+          opacity: ch.kind === 'npc' ? 0.78 : 0.54,
+          depthWrite: false,
+        }),
+      )
+      halo.rotation.x = -Math.PI / 2
+      halo.position.y = 0.08
+      // Markers are intentionally untextured semantic affordances, exempt
+      // from the surface-material audit like the selected-character ring.
+      halo.userData.marker = 'character-presence'
+      group.add(halo)
       scene.add(group)
       characters.set(ch.id, {
         ch,
@@ -182,6 +230,7 @@ export async function initCharacters(
         root,
         blender,
         materials,
+        halo,
         bubble,
         lastBubbleText: null,
         bubbleTimer: 0,
@@ -195,6 +244,10 @@ export async function initCharacters(
     entry.lastBubbleText = text
     entry.bubbleTimer = 2.6
     const mat = entry.bubble.material
+    // Speech text is rasterized to a fresh canvas texture.  Release the old
+    // one before replacing it; otherwise an active city leaks one GPU texture
+    // per utterance and its frame time worsens as the demo runs.
+    mat.map?.dispose()
     mat.map = bubbleTexture(text)
     mat.needsUpdate = true
     entry.bubble.visible = true
@@ -219,6 +272,7 @@ export async function initCharacters(
         // the inner root, the outer group keeping the sim's facing.
         entry.root.rotation.y = Math.sin(timeAcc * 0.6) * 0.15
       }
+      entry.halo.material.opacity = (ch.kind === 'npc' ? 0.62 : 0.42) + 0.18 * (0.5 + 0.5 * Math.sin(timeAcc * 3.2))
       if (entry.bubbleTimer > 0) {
         entry.bubbleTimer -= dtReal
         if (entry.bubbleTimer <= 0) entry.bubble.visible = false
@@ -237,11 +291,13 @@ export async function initCharacters(
       entry.blender?.dispose()
       entry.bubble.material.map?.dispose()
       entry.bubble.material.dispose()
+      entry.halo.material.dispose()
       // Only the per-character material clones are released; the shared
       // rig geometry stays with the loader's cache.
       for (const m of entry.materials) m.dispose()
     }
     characters.clear()
+    presenceGeo.dispose()
   }
 
   await loadCharacters()

@@ -85,6 +85,7 @@ export interface CityUi {
 export function initUI(world: World, renderer: CityRenderer, actions: CityActions, els: CityUiElements): CityUi {
   let rendererRef = renderer
   let selected: SelectionHit | null = null
+  let enteredBuildingId: string | null = null
   let modalOpen = false
   /** The structural key of the last built inspector scaffold (in-place patching). */
   let inspectorLastKey = ''
@@ -372,10 +373,17 @@ export function initUI(world: World, renderer: CityRenderer, actions: CityAction
       <div class="tools">${tools}</div>
       ${simToolsNote}
       <h4>Locations inside</h4>
-      <div class="rooms" data-slot="rooms" data-key="${insideKey}">${rooms}</div>`
+      <div class="rooms" data-slot="rooms" data-key="${insideKey}">${rooms}</div>
+      <div class="interior-actions">
+        <button type="button" data-interior-action="${enteredBuildingId === b.id ? 'exit' : 'enter'}" data-building-id="${escapeHtml(b.id)}">${enteredBuildingId === b.id ? 'Exit interior' : 'Enter interior'}</button>
+      </div>`
   }
 
   function select(hit: SelectionHit | null): void {
+    if (enteredBuildingId && hit?.id !== enteredBuildingId) {
+      actions.exitInterior()
+      enteredBuildingId = null
+    }
     selected = hit
     actions.setSelected(hit)
     if (hit?.kind === 'character') {
@@ -388,6 +396,30 @@ export function initUI(world: World, renderer: CityRenderer, actions: CityAction
     updatePopList()
     renderInspector()
   }
+
+  // Inspector content is rebuilt as simulation facts change. A single
+  // delegated listener on the stable container keeps interior entry/exit
+  // responsive without accumulating handlers or stale closures.
+  els.inspector.addEventListener('click', (event) => {
+    const target = event.target
+    if (!(target instanceof HTMLElement)) return
+    const action = target.dataset.interiorAction
+    if (!action) return
+    if (action === 'enter') {
+      const id = target.dataset.buildingId
+      if (!id) return
+      enteredBuildingId = id
+      actions.enterBuilding(id)
+    } else {
+      actions.exitInterior()
+      enteredBuildingId = null
+    }
+    // Entry state is presentation state rather than a world fact, so force
+    // the inspector scaffold to refresh the button label as well as patching
+    // its simulation slots.
+    inspectorLastKey = ''
+    renderInspector()
+  })
 
   // ---- Feed --------------------------------------------------------------------
   // Every row carries its provenance mark (R010): LIVE rows come from the

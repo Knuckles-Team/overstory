@@ -221,13 +221,34 @@ describe('performance budgets measured from the real scene graph (R028)', () => 
   it('the static city core is measured, and its geometry is real', () => {
     const core = buildCityCore(new THREE.Scene())
     expect(core.ships.length).toBeGreaterThan(0)
+    expect(core.watercraft.routes.map((route) => route.kind)).toEqual(
+      expect.arrayContaining(['cargo', 'fishing', 'yacht', 'kayak', 'jetski']),
+    )
     expect(core.houseWindows.length).toBeGreaterThan(0)
     expect(core.lampGlows.length).toBeGreaterThan(0)
+    expect(core.traffic.routes).toHaveLength(28)
+    for (const trafficRoute of core.traffic.routes) {
+      expect(trafficRoute.points.length).toBeGreaterThan(12)
+      expect(trafficRoute.length).toBeGreaterThan(100)
+      const first = trafficRoute.points[0]
+      const last = trafficRoute.points[trafficRoute.points.length - 1]
+      expect(first).toBeTruthy()
+      expect(last).toBeTruthy()
+      // The vehicle route closes at the same graph node, so no single-block
+      // visual lane needs to pop a car back to its start.
+      expect(Math.hypot((first?.x ?? 0) - (last?.x ?? 0), (first?.z ?? 0) - (last?.z ?? 0))).toBeLessThan(0.01)
+    }
     // The seeded park trees mean the core carries hundreds of triangles
     // measured from the graph — not a hand-computed constant.
     const scene = new THREE.Scene()
     buildCityCore(scene)
     expect(subtreeTriangles(scene)).toBeGreaterThan(500)
+    // The regional skyline is a fixed handful of instanced façade batches,
+    // never hundreds of individual background meshes competing with the live
+    // connector district for draw calls.
+    const regional = scene.children.filter((child) => child.userData.marker === 'regional-massing')
+    expect(regional).toHaveLength(4)
+    expect(regional.every((child) => child instanceof THREE.InstancedMesh)).toBe(true)
   })
 
   it('measured triangles per building hold the budget for every building', () => {

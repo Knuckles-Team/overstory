@@ -381,8 +381,11 @@ function makeBuilding(def: CoreDef | ConnectorDef, category: 'core' | 'connector
     kind: 'kind' in def ? def.kind : def.archetype,
     x: plot ? plot.x : pos ? pos.x : 0,
     z: plot ? plot.z : pos ? pos.z : 0,
-    w: pos ? pos.w : 7,
-    d: pos ? pos.d : 7,
+    // Connector parcels are ten metres between road centrelines. A 5.6 m
+    // kit preserves a real sidewalk/setback on all four sides instead of
+    // letting the generated facade graze the 2.6 m carriageway.
+    w: pos ? pos.w : 5.6,
+    d: pos ? pos.d : 5.6,
     online: true,
     visits: 0,
     fresh: 0,

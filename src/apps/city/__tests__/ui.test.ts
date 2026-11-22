@@ -36,6 +36,8 @@ const noopActions: CityActions = {
   speed: () => undefined,
   setActivity: () => undefined,
   setAudio: () => undefined,
+  enterBuilding: () => undefined,
+  exitInterior: () => undefined,
   setView: () => undefined,
   scrub: () => undefined,
   startTour: () => undefined,
@@ -139,6 +141,28 @@ describe('population list (R027: in place, never rebuilt)', () => {
 })
 
 describe('inspector (in-place patching)', () => {
+  it('enters and exits a selected building through the stable inspector action', () => {
+    const calls: string[] = []
+    const actions: CityActions = {
+      ...noopActions,
+      enterBuilding: (id) => calls.push(`enter:${id}`),
+      exitInterior: () => calls.push('exit'),
+    }
+    const ui = initUI(world, fakeRenderer(), actions, els!)
+    const building = Object.values(world.buildings)[0]
+    expect(building).toBeTruthy()
+    if (!building) return
+    ui.select({ kind: 'building', id: building.id })
+    const enter = els!.inspector.querySelector<HTMLButtonElement>('[data-interior-action="enter"]')
+    expect(enter?.textContent).toBe('Enter interior')
+    enter?.click()
+    expect(calls).toEqual([`enter:${building.id}`])
+    const exit = els!.inspector.querySelector<HTMLButtonElement>('[data-interior-action="exit"]')
+    exit?.click()
+    expect(calls).toEqual([`enter:${building.id}`, 'exit'])
+    ui.dispose()
+  })
+
   it('patches the dynamic slots instead of rebuilding the scaffold', () => {
     const ui = initUI(world, fakeRenderer(), noopActions, els!)
     const ch = world.characters[0]

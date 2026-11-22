@@ -175,6 +175,7 @@ export default function CityPage() {
   const webmcpViewRef = useRef<'3d' | '2d'>('3d')
   const webmcpSpeedRef = useRef(1)
   const webmcpSelectionRef = useRef<SelectionHit | null>(null)
+  const citySelectionRef = useRef<(hit: SelectionHit | null) => void>(() => undefined)
   const webmcpController = useMemo<CityToolController>(
     () => ({
       actions: {
@@ -182,10 +183,14 @@ export default function CityPage() {
         onboard: (id) => actionsRef.current?.onboard(id),
         focus: (x, z) => actionsRef.current?.focus(x, z),
         overview: () => actionsRef.current?.overview(),
-        setSelected: (hit) => actionsRef.current?.setSelected(hit),
+        setSelected: (hit) => {
+          citySelectionRef.current(hit)
+        },
         speed: (v) => actionsRef.current?.speed(v),
         setActivity: (m) => actionsRef.current?.setActivity(m),
         setAudio: (on) => actionsRef.current?.setAudio(on),
+        enterBuilding: (id) => actionsRef.current?.enterBuilding(id),
+        exitInterior: () => actionsRef.current?.exitInterior(),
         setView: (v) => actionsRef.current?.setView(v),
         scrub: (o) => actionsRef.current?.scrub(o),
         startTour: () => actionsRef.current?.startTour(),
@@ -314,6 +319,7 @@ export default function CityPage() {
       webmcpSelectionRef.current = hit
       ui?.select(hit)
     }
+    citySelectionRef.current = onSelect
 
     // R015: on WebGL context loss the page overlays the 2D schematic of the
     // same city graph — and keeps the paused 3D renderer instead of disposing
@@ -524,6 +530,8 @@ export default function CityPage() {
           btnAudioRef.current?.setAttribute('aria-pressed', String(on))
           if (btnAudioRef.current) btnAudioRef.current.textContent = on ? 'Sound: on' : 'Sound: off'
         },
+        enterBuilding: (buildingId) => renderer?.enterInterior?.(buildingId),
+        exitInterior: () => renderer?.exitInterior?.(),
         startTour: () => {
           ui?.startTour()
         },
@@ -656,6 +664,7 @@ export default function CityPage() {
       unsubscribeCues()
       audio.dispose()
       ui?.dispose()
+      citySelectionRef.current = () => undefined
       resetSim()
       bus.reset()
     }

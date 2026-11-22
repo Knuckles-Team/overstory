@@ -12,12 +12,24 @@ import { describe, expect, it } from 'vitest'
 import { crosswalksFor, deriveRoadGraph, graphConnected, route } from '../roads'
 import type { RoadGraph } from '../roads'
 import { validateRoadEdit } from '../roads'
+import { sampleRoadCurve } from '@/apps/city/core/render3d/roads'
 
 // The bundled fixture grid (the city's layout road grid, in metres).
 const X_ROADS = [-80, -70, -60, -50, -40, -30, -20, -10, 0, 10, 20, 30]
 const Z_ROADS = [-60, -50, -40, -30, -20, -10, 0, 10, 20, 30, 40, 50, 60, 70]
 
 describe('the road network (R012.6)', () => {
+  it('uses one deterministic curved centreline for asphalt and traffic', () => {
+    const samples = sampleRoadCurve(0, 0, 20, 0, 1, 'traffic-proof', 2)
+    expect(samples.length).toBeGreaterThan(8)
+    // The curve is real geometry, not a rectangular texture illusion.
+    expect(samples.some((sample) => Math.abs(sample.z) > 0.1)).toBe(true)
+    // Endpoint continuity means a route can hand a car between segments
+    // without teleporting it to a hidden straight-lane origin.
+    expect(samples[0]).toMatchObject({ x: 0, z: 0 })
+    expect(samples[samples.length - 1]).toMatchObject({ x: 20, z: 0 })
+  })
+
   it('network_and_edits: the generated graph is connected, every intersection has crosswalks, and an edit is refused when it disconnects the graph and otherwise persists and re-routes', () => {
     const graph = deriveRoadGraph(X_ROADS, Z_ROADS)
     // The generated grid is connected.

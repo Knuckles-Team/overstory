@@ -112,9 +112,9 @@ describe('quality tiers (R012.1)', () => {
     expect(selectTier(null, 'high')).toBe('high')
     // Within budget: kept.
     expect(selectTier(10, 'high')).toBe('high')
-    // Over the high budget, under the medium: one drop.
-    expect(selectTier(20, 'high')).toBe('medium')
-    // Over the medium budget too: two drops.
+    // Every tier has a 60 fps ceiling; a missed frame reaches the lightest tier.
+    expect(selectTier(20, 'high')).toBe('low')
+    // Sustained slow frames remain at the lightest tier.
     expect(selectTier(30, 'high')).toBe('low')
     // The low tier is the floor: worse times still hold it (no further drop).
     expect(selectTier(100, 'high')).toBe('low')
@@ -127,7 +127,7 @@ describe('quality tiers (R012.1)', () => {
     expect(selectTier(200, 'high', 'low')).toBe('low')
     expect(selectTier(5, 'low', 'high')).toBe('high')
     // A null override means the measured selection rules.
-    expect(selectTier(20, 'high', null)).toBe('medium')
+    expect(selectTier(20, 'high', null)).toBe('low')
   })
 })
 
@@ -290,6 +290,30 @@ describe('the scene pipeline (R012.1)', () => {
     pipeline.onResize(1200, 400)
     expect(pipeline.camera.aspect).toBeCloseTo(3)
     pipeline.renderFrame() // the composer's render is driven
+    pipeline.dispose()
+  })
+
+  it('uses direct renderer output at the no-post-processing low tier', () => {
+    let rendererFrames = 0
+    let composerFrames = 0
+    const renderer = stubRenderer()
+    renderer.render = () => {
+      rendererFrames++
+    }
+    const composer = stubComposer()
+    composer.render = () => {
+      composerFrames++
+    }
+    const container = document.createElement('div')
+    document.body.appendChild(container)
+    const pipeline = createScenePipeline(container, {
+      createRenderer: () => renderer,
+      createComposer: () => composer,
+      initialTier: 'low',
+    })
+    pipeline.renderFrame()
+    expect(rendererFrames).toBe(1)
+    expect(composerFrames).toBe(0)
     pipeline.dispose()
   })
 })

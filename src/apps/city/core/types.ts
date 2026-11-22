@@ -43,6 +43,10 @@ export interface CityRenderer {
    * needs no call.
    */
   setRoads?(graph: RoadGraph): void
+  /** Enter the selected building's generated 3D interior, when supported. */
+  enterInterior?(buildingId: string): void
+  /** Return from the generated interior to the exterior city view. */
+  exitInterior?(): void
   /**
    * The fidelity harness surface (R012.9), on 3D renderers only: the live
    * scene graph the audits walk, the camera and controls the golden views
@@ -91,6 +95,10 @@ export interface CityActions {
   scrub(offsetS: number): void
   /** Turn the synthesized ambience on or off (R042). Starts muted; turning on needs a user gesture. */
   setAudio(on: boolean): void
+  /** Enter the selected building's generated 3D interior. */
+  enterBuilding(buildingId: string): void
+  /** Return from an entered interior to the exterior city. */
+  exitInterior(): void
   /** (Re)start the first-visit tour (R030). */
   startTour(): void
   /**

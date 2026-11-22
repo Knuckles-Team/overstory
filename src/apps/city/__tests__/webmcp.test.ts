@@ -47,6 +47,8 @@ function controller(): CityToolController {
     speed: vi.fn(),
     setActivity: vi.fn(),
     setAudio: vi.fn(),
+    enterBuilding: vi.fn(),
+    exitInterior: vi.fn(),
     setView: vi.fn(),
     scrub: vi.fn(),
     startTour: vi.fn(),

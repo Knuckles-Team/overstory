@@ -34,8 +34,19 @@ export const LABEL_PLATE_H = 26
  * building names, construction state, character names and tool chips. A
  * candidate behind the camera is dropped.
  */
-export function collectLabelCandidates(world: World, camera: THREE.Camera, viewport: Viewport): CityLabel[] {
+export function collectLabelCandidates(
+  world: World,
+  camera: THREE.Camera,
+  viewport: Viewport,
+  band?: ZoomBand,
+): CityLabel[] {
   const out: CityLabel[] = []
+  // On the live render path, do not project dozens of registered plots only
+  // to discard them moments later.  The optional band preserves the complete
+  // candidate surface for tests and callers that need it, while city zoom
+  // projects only the handful of labels that can actually be drawn.
+  const allowed = band ? LABEL_SETS[band] : null
+  const wants = (kind: string): boolean => allowed === null || allowed.includes(kind)
   const v3 = new THREE.Vector3()
   const project = (x: number, y: number, z: number): { x: number; y: number } | null => {
     v3.set(x, y, z).project(camera)
@@ -68,51 +79,78 @@ export function collectLabelCandidates(world: World, camera: THREE.Camera, viewp
   }
 
   // District signs: one per domain, at the domain's plot centroid.
-  for (const d of CONNECTOR_DISTRICT) {
-    let cx = 0
-    let cz = 0
-    let n = 0
-    for (const p of world.plots) {
-      const rid = p.reservedId ?? p.buildingId
-      if (rid && domainOf(rid) === d.id) {
-        cx += p.x
-        cz += p.z
-        n++
+  if (wants('district-sign'))
+    for (const d of CONNECTOR_DISTRICT) {
+      let cx = 0
+      let cz = 0
+      let n = 0
+      for (const p of world.plots) {
+        const rid = p.reservedId ?? p.buildingId
+        if (rid && domainOf(rid) === d.id) {
+          cx += p.x
+          cz += p.z
+          n++
+        }
       }
+      if (n === 0) continue
+      push(`district:${d.id}`, 'district-sign', cx / n, 9, cz / n, d.id, 100)
     }
-    if (n === 0) continue
-    push(`district:${d.id}`, 'district-sign', cx / n, 9, cz / n, d.id, 100)
-  }
 
   // Buildings: core landmarks at city zoom, connector names below it.
   for (const b of Object.values(world.buildings)) {
-    if (b.category === 'core') push(b.id, 'core-landmark', b.x, 13, b.z, b.name, 100)
-    else push(b.id, 'building-name', b.x, Math.max(4, b.w * 0 + 5), b.z, b.name, 40)
+    if (b.category === 'core' && wants('core-landmark')) push(b.id, 'core-landmark', b.x, 13, b.z, b.name, 100)
+    else if (b.category !== 'core' && wants('building-name'))
+      push(b.id, 'building-name', b.x, Math.max(4, b.w * 0 + 5), b.z, b.name, 40)
   }
 
-  // Construction state: registered (not yet built) plots and live sites.
-  for (const p of world.plots) {
-    if (p.buildingId || !p.reservedName) continue
-    const label = p.construction
-      ? `${p.reservedName} (${Math.round(p.construction.progress * 100)}%)`
-      : `${p.reservedName} — registered`
-    push(`plot:${p.x}:${p.z}`, 'construction-state', p.x, 4, p.z, label, 50)
-  }
+  // Construction state is useful while inspecting a building, but it is not
+  // city signage. Suppressing it in district zoom prevents dozens of
+  // "registered" plates from carpeting the view before the player can see
+  // the actual streets and architecture.
+  if (wants('construction-state') && band !== 'district')
+    for (const p of world.plots) {
+      if (p.buildingId || !p.reservedName) continue
+      const label = p.construction
+        ? `${p.reservedName} (${Math.round(p.construction.progress * 100)}%)`
+        : `${p.reservedName} — registered`
+      push(`plot:${p.x}:${p.z}`, 'construction-state', p.x, 4, p.z, label, 50)
+    }
 
   // Characters: one persistent name per agent, the state colour from the table.
-  for (const c of world.characters) {
-    if (!c.visible) continue
-    push(c.id, 'character-name', c.pos.x, 2, c.pos.z, c.name, 30, parseInt(stateColor(c.state, c.kind).slice(1), 16))
-  }
+  if (wants('character-name'))
+    for (const c of world.characters) {
+      if (!c.visible) continue
+      push(c.id, 'character-name', c.pos.x, 2, c.pos.z, c.name, 30, parseInt(stateColor(c.state, c.kind).slice(1), 16))
+    }
 
   // Tool chips: the in-flight tool at each working building (building zoom).
-  for (const t of world.tasks) {
-    if (t.state !== 'active') continue
-    const b = t.buildingId in world.buildings ? world.buildings[t.buildingId] : null
-    if (!b) continue
-    push(`task:${t.id}`, 'tool-chip', b.x + 3, 2.5, b.z, t.tool, 20)
-  }
+  if (wants('tool-chip'))
+    for (const t of world.tasks) {
+      if (t.state !== 'active') continue
+      const b = t.buildingId in world.buildings ? world.buildings[t.buildingId] : null
+      if (!b) continue
+      push(`task:${t.id}`, 'tool-chip', b.x + 3, 2.5, b.z, t.tool, 20)
+    }
 
+  // Semantic zoom needs a density budget as well as collision resolution:
+  // labels can be technically non-overlapping and still obscure a compact
+  // district. Keep the nearest built places at district zoom, deterministic
+  // by screen-distance then id. Building zoom deliberately retains the full
+  // interaction surface (characters, tool chips and active construction).
+  if (band === 'district') {
+    const fixed = out.filter((label) => label.kind !== 'building-name')
+    const buildingNames = out
+      .filter((label) => label.kind === 'building-name')
+      .sort(
+        (a, b) =>
+          (a.x - viewport.width / 2) ** 2 +
+            (a.y - viewport.height / 2) ** 2 -
+            ((b.x - viewport.width / 2) ** 2 + (b.y - viewport.height / 2) ** 2) ||
+          (a.id < b.id ? -1 : a.id > b.id ? 1 : 0),
+      )
+      .slice(0, 8)
+    return [...fixed, ...buildingNames]
+  }
   return out
 }
 
@@ -155,14 +193,26 @@ export function createLabelLayer(container: HTMLElement): LabelLayerApi {
   if (!context) throw new Error('2D canvas context unavailable for the label layer')
   // A dedicated const so the closures below see the non-null context type.
   const g: CanvasRenderingContext2D = context
+  let rasterWidth = 0
+  let rasterHeight = 0
+  let rasterDpr = 0
 
   function setSize(width: number, height: number): void {
     const dpr = Math.min(window.devicePixelRatio || 1, 2)
-    canvas.width = Math.max(1, Math.round(width * dpr))
-    canvas.height = Math.max(1, Math.round(height * dpr))
+    const nextWidth = Math.max(1, Math.round(width * dpr))
+    const nextHeight = Math.max(1, Math.round(height * dpr))
+    // Assigning canvas.width/height reallocates its backing store. The old
+    // update path did that on every animation frame, causing steadily worse
+    // main-thread and GPU pressure. Resize only when the viewport changes.
+    if (nextWidth === rasterWidth && nextHeight === rasterHeight && dpr === rasterDpr) return
+    canvas.width = nextWidth
+    canvas.height = nextHeight
     canvas.style.width = `${width}px`
     canvas.style.height = `${height}px`
     g.setTransform(dpr, 0, 0, dpr, 0, 0)
+    rasterWidth = nextWidth
+    rasterHeight = nextHeight
+    rasterDpr = dpr
   }
 
   function update(candidates: CityLabel[], viewport: Viewport, band: ZoomBand): void {
