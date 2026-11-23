@@ -4,10 +4,12 @@ skill_type: skill
 description: >-
   How to develop, build, test, gate, and release the overstory repository
   itself: the frontend/backend commands, the FastAPI host modules, how a page
-  gets routed, and the gates that must pass before a change lands. Use this
-  when you are changing overstory's own code, adding a new view, or
-  preparing a commit/PR in this repository — not for using the shipped UI
-  (see the `kg-webui-*` skills for that).
+  gets routed, and the gates that must pass before a change lands. Also
+  covers the Blender asset authoring pipeline (blender-mcp) used to build
+  and validate the city asset kit. Use this when you are changing
+  overstory's own code, adding a new view, authoring or re-exporting city
+  assets in Blender, or preparing a commit/PR in this repository — not for
+  using the shipped UI (see the `kg-webui-*` skills for that).
 license: MIT
 tags: [arbora, webui, development, build, test, gates, routing]
 tier: repository
@@ -213,6 +215,17 @@ skips `mkdocs build --strict` unless it also touches `docs/` or `mkdocs.yml`.
   worktree). Create a real Git worktree per lane
   (`git worktree add "$WORKTREE_ROOT/overstory/<branch>" -b <branch> main`),
   never a harness-managed isolated worktree against this repository.
+
+## Blender asset creation (city kit)
+
+Authoring the city asset kit in Blender through the `blender` MCP server —
+setup, the transform/depsgraph conventions, the family factory with
+export-time QA, glTF export contract, the multi-angle review protocol and
+the packaging/license gate — is documented in
+[references/blender-asset-pipeline.md](references/blender-asset-pipeline.md).
+Read it before authoring, fixing or re-exporting any kit family. Its rules
+implement the [asset-pack authoring protocol](../../specs/arbora-city/asset-pack.md#asset-authoring-and-validation-protocol)
+and constitution article R-G10.
 
 ## Skill packaging
 

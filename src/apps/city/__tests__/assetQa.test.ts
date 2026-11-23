@@ -7,7 +7,7 @@
  * GLB container is read directly (glTF 2.0 binary layout), no renderer
  * required.
  */
-// spec: OVERSTORY-CITY-R013, OVERSTORY-CITY-R028
+// spec: OVERSTORY-CITY-R013, OVERSTORY-CITY-R028, OVERSTORY-CITY-R048.1, OVERSTORY-CITY-R048.2, OVERSTORY-CITY-R048.4
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
@@ -59,12 +59,12 @@ describe('asset QA budgets (R013/R028)', () => {
     expect(BUDGETS.assetTexturePx).toBe(2048)
   })
 
-  it('every pinned GLB clears the triangle, material and texture budgets (2/2)', () => {
+  it('every pinned GLB clears the triangle, material and texture budgets (100/100)', () => {
     const raw = JSON.parse(readFileSync(join(PUBLIC_DIR, 'city-assets', 'assets.lock.json'), 'utf8')) as {
       files: Record<string, unknown>
     }
     const paths = Object.keys(raw.files)
-    expect(paths).toHaveLength(2)
+    expect(paths).toHaveLength(100)
     for (const path of paths) {
       const g = parseGlb(readFileSync(join(PUBLIC_DIR, path)))
       expect(trianglesOf(g), `${path} triangle budget`).toBeLessThanOrEqual(BUDGETS.assetTriangles)

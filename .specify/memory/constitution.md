@@ -2,7 +2,7 @@
 
 This repository inherits the [organization constitution](https://github.com/Knuckles-Team/pipelines/blob/main/.specify/memory/constitution.md) version 1.6.0. Every article of that constitution applies here. This file adds only the rules and limits of this repository.
 
-**Inherits**: organization constitution v1.6.0 | **Version**: 1.2.0 | **Ratified**: 2026-10-31 | **Last amended**: 2026-11-20
+**Inherits**: organization constitution v1.6.0 | **Version**: 1.3.0 | **Ratified**: 2026-10-31 | **Last amended**: 2026-11-23
 
 ## Organization standards
 
@@ -46,7 +46,7 @@ Every operator-facing capability of an app must be exposed as a WebMCP tool. Cit
 
 ### Game principles (the city)
 
-These nine principles bind every row of `specs/arbora-city/`. Each names its enforcing row and its plan check.
+These ten principles bind every row of `specs/arbora-city/`. Each names its enforcing row and its plan check.
 
 ### R-G1. The city is a projection
 
@@ -121,6 +121,14 @@ The art direction, the names, the audio and the assets are our own. Third-party 
 **Enforced by:** OVERSTORY-CITY-R046 and its bound test `identity.test.ts`.
 
 **Plan check:** Is every name, sound and asset original or license-gated?
+
+### R-G10. Assets prove themselves before shipping
+
+An asset is not accepted on the authority of its author. The pipeline measures transforms, extents, ground contact and budgets. A multi-angle review render signs off each authoring stage. A fix re-exports every family it touches. A stale asset never ships.
+
+**Enforced by:** OVERSTORY-CITY-R048.1 and R048.2 with the export QA report, the asset-QA budget tests and the [asset-pack authoring protocol](../../specs/arbora-city/asset-pack.md#asset-authoring-and-validation-protocol).
+
+**Plan check:** Which measurements and review renders prove each new asset is correct?
 
 ## Repository limits
 

@@ -1,6 +1,7 @@
 # SOURCES — provenance for Arbora City
 
-Captured 2026-11-14; updated 2026-11-19 (shared-rig cast, OVERSTORY-CITY-R033).
+Captured 2026-11-14; updated 2026-11-19 (shared-rig cast, OVERSTORY-CITY-R033);
+updated 2026-11-23 (original city asset kit, OVERSTORY-CITY-R048.1/R048.2/R048.4).
 This file records every external source the project uses, per the
 ecosystem's third-party-attribution convention.
 
@@ -108,6 +109,29 @@ hard-coded guesses:
   `specs/arbora-city/plan.md` (pinned version, CDN-served).
 - Everything else is hand-written ES modules; no build step, no other
   dependencies.
+
+## 5. Original city asset kit (authored 2026-11-23, OVERSTORY-CITY-R048.1/R048.2/R048.4)
+
+The asset kit under [`kit/`](kit/) is **original geometry**, not an external
+source: 98 families across eight categories (roads, street props,
+landscape, vehicles, architecture modules, buildings, furnished interior
+rooms, marine) authored in Blender through the blender-mcp pipeline in
+[`scripts/asset-kit/`](../../scripts/asset-kit/), per the [launch catalog
+and authoring protocol](../../specs/arbora-city/asset-pack.md) (full
+playbook: `agent/overstory/skills/overstory-development/references/blender-asset-pipeline.md`).
+
+- **License:** CC0 1.0 (public-domain dedication of an original work).
+- **No textures.** Flat palette materials with sRGB→linear `baseColorFactor`;
+  the kit carries zero embedded images (audited by the asset-QA test).
+- **Provenance:** every file is tracked in
+  [`assets.lock.json`](assets.lock.json) with SHA-256, byte count and
+  license; `source_path` names the authoring script that generated it. The
+  versioned family catalog (stable id, footprint, measured cost, digest) is
+  [`kit/catalog.json`](kit/catalog.json).
+- **Quality gates:** per-family export QA (transforms, design-intent
+  extents, ground contact, join integrity, triangle/material budgets) plus
+  multi-angle review renders per stage (R-G10); the engine-side
+  `src/apps/city/__tests__/assetQa.test.ts` re-checks every locked file.
 
 ## Interim status (OVERSTORY-CITY-R046)
 
