@@ -35,7 +35,7 @@ Images are visual evidence. Author original meshes, textures, signs, brands, rec
 
 The [ecosystem landmark and road-led district contract](ecosystem-districts.md) adds capability-specific pieces and builds on the base catalog.
 
-The draft sets **66 reusable exterior module families** as the production target. One numbered entry counts once. Colorways, LODs, arbitrary rotations, repeated placements and assembled presets do not add to the count.
+The draft sets **66 reusable exterior module families** as the launch target. One numbered entry counts once. Colorways, LODs, arbitrary rotations, repeated placements and assembled presets do not add to the count. The launch catalog is a floor, not a cap: per the 2026-11-23 scope decision the catalog is open and grows with city need. Extension families are listed in the [extension catalog](#extension-catalog-2026-11-23-scope-expansion) and tracked under R048.10–R048.17.
 
 | IDs | Independently reusable families in ID order |
 | --- | --- |
@@ -48,6 +48,28 @@ The draft sets **66 reusable exterior module families** as the production target
 
 Shared recipes must assemble a rowhouse, detached home, apartment, hotel, office tower, garage and fuel station. Add civic hall, clinic, security station, grocer, bakery/café and waterfront pavilion recipes. The fuel station needs a distinct canopy, pump islands, sign, forecourt, convenience shop and curb-cut connection. Declare these as subassemblies of the architecture, furnishing and marking families. The emergency kit must compose both patrol and ambulance variants. The park recipe must support a play area and court. Marine extensions have their own registry entries outside the 66-family target. Cover cargo, fishing, yacht, kayak, personal watercraft and water-sports markers.
 
+## Extension catalog (2026-11-23 scope expansion)
+
+The launch catalog is a floor, not a cap. The extension catalog below is open: families are added as the city's districts, infrastructure and transport need them, and every family passes the same authoring protocol, budgets and review gates as the launch families (R-G7, R-G10). Family IDs reuse the existing category namespaces; **covered** marks a launch-catalog family that already satisfies an extended request.
+
+| Domain | Families (category.id) |
+| --- | --- |
+| Infrastructure landmarks | `building.police-station` · `building.firehouse` · `building.hospital` · `building.energy-plant` · `building.water-works` · `building.funeral-home` · `building.train-station` · `building.bus-station` · `building.airport-terminal` · `building.shipyard` · `building.train-yard` · `building.nuclear-plant` · `building.coal-plant` · `building.fuel-station` (covered) |
+| Skyscraper variance | `building.skyscraper-slab` · `building.skyscraper-setback` · `building.skyscraper-tapered` · `building.skyscraper-podium` · `building.skyscraper-twin` · `building.office-tower` (covered; floor-count and crown recipes vary height and shape) |
+| Industry and services | `building.ore-plant` · `landscape.mining-site` · `building.oil-gas-plant` · `building.datacenter` · `building.office-campus` |
+| Commerce and entertainment | `building.movie-theater` · `building.arcade` · `building.restaurant-row` · `building.mall` · `building.clothing-store` · `building.furniture-store` · `building.fast-food` · `building.pier-carnival` · `building.carnival-bigtop` · `building.theme-park` · `building.stadium` |
+| Farming and settlement | `building.farm-barn` · `building.farm-house` · `building.farmers-market` · `landscape.orchard-row` · `building.house-suburban` · `landscape.rural-plot` |
+| Wild terrain | `landscape.wild-forest` · `landscape.wild-lake` · `landscape.wild-river` · `landscape.wild-desert` · `landscape.wild-jungle` · `landscape.recreational-lake` |
+| Transport fleet | `vehicle.fire-truck` · `vehicle.police-van` · `vehicle.police-suv` · `vehicle.police-helicopter` · `vehicle.hearse` · `vehicle.train-cargo` · `vehicle.train-passenger` · `vehicle.plane-small` · `vehicle.plane-medium` · `vehicle.plane-large` · `vehicle.ambulance`, `vehicle.taxi`, `vehicle.bus`, `vehicle.patrol` (covered) |
+| Advanced road classes | `road.highway-4` · `road.highway-6` · `road.highway-8` · `road.toll-portal` · `road.country-2` · `road.dirt-road` · `road.one-way-2` · `road.asymmetric-32` · `road.boulevard-tree` · `road.viaduct-elevated` · `road.flyover-ramp` · `road.interchange-double` · `road.rail-track` · `road.runway` |
+| Traffic control | `prop.yield-sign` · `prop.stop-sign`, `prop.traffic-signal` (covered) |
+
+Notes:
+
+- Wild lakes and rivers compose with the seeded hydrology (R048.5) as shoreline, bank, river-bend and vegetation-density modules, not opaque water volumes. Wild terrain stays outside the serviced basin; construction sites still require dry ground.
+- Trains and aircraft ride dedicated corridors (`road.rail-track`, `road.runway`, taxiway pads) declared in the route graph, not the lane graph.
+- Lane management, traffic-flow dynamics with buildup, and the multimodal NPC/AI/human route network (train, bus, plane, walking) are engine-side behavior owned by R048.16 and R048.17, not asset families; the pack supplies the signs, signals, lane geometry and corridors they run on.
+
 ## Asset and assembly contract
 
 - Author geometry in metres with Y up. Declare forward, base pivot, dimensions, tight bounds, collision proxy and allowed transforms. Use a local 0.25 m authoring increment where useful. World placement may rotate freely. Use authored or calculated road-relative sockets.
@@ -56,6 +78,18 @@ Shared recipes must assemble a rowhouse, detached home, apartment, hotel, office
 - Keep separate geometry or material channels for solid façades, glazing, emissive panels and signs. Attach roofs, canopies, stairs and fixtures through declared sockets. Apply material-specific UVs and physically plausible texel scale. Reject unsupported mating sockets, holes in opaque shells, detached windows and overlapping faces.
 - Use shared geometry and atlases. Instance repeated modules and vehicle classes. Compare merged geometry and BatchedMesh for heterogeneous static props by chunk. Keep LOD changes and asset eviction local to the affected chunk. Pool materials, textures and moving instances. Keep loading and interior creation out of the hot frame loop.
 - Qualify in stages using proposed family caps of 1,200 triangles for building modules, 600 for small props and 2,500 for near vehicles. Keep R028 and R048 aggregate caps authoritative. Measure real draw submissions, composed buildings, active interiors and visible traffic on the reviewed camera routes.
+
+## Asset authoring and validation protocol
+
+Authored kit assets pass the gates below before export. The authoring pipeline runs each check per family and records the report as PR evidence.
+
+- **Transform convention.** Every primitive keeps its mesh centred on the object origin and carries placement in the object transform. Rotations pivot about the part's own centre, never the world origin. This is what keeps parts attached when a part is rotated: wheel axles, gables, door leaves, stringers.
+- **Fresh dependency graph.** Blender scripts force a depsgraph update before every join, origin move and measurement. A stale `matrix_world` bakes parts at the wrong position; the pipeline measures and flags instead of silently shipping.
+- **Size guards from design intent.** Every family declares expected extents (dx, dy, dz) from its design intent. The exporter measures the built assembly and flags any axis beyond its guard. Guards follow the design intent, not a guess: a two-storey bay curtain is 4.2 m tall, not 3.4 m.
+- **Ground contact.** A family's lowest point sits on its ground plane unless the spec declares otherwise. The export pivot is the bottom centre, so the game seats the family by its origin. Geometry that dips below the ground is flagged and fixed.
+- **Parts inside the silhouette.** No part extends past the family's declared silhouette: windshields sit in the cabin face, not beside the body; windows sit proud of the wall face, not floating in front of it. Per-part extents are measured during review, not assumed from the assembly bounds.
+- **Multi-angle review.** Each stage is reviewed on a non-overlapping review shelf with top and three-quarter renders before export. Overlaps, floaters and detached parts are found in the render and fixed there, not discovered by a reviewer of the code.
+- **Full re-export.** A fix re-exports every family it touches. No GLB in the kit predates the last authoring fix. Catalog digests and byte counts are regenerated from the final files.
 
 ## Roads, elevation and lots
 

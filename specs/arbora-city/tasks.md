@@ -98,6 +98,14 @@ Producer first: the fleet seam (R003) and the world producers (R002, R004, R005)
 - [ ] T091 [US5] OVERSTORY-CITY-R015 OVERSTORY-CITY-R027 Make 2D and 3D consume the same full-island world, scale and shared movement state; preserve focus and selection through smooth, accessible view switches and context recovery.
 - [ ] T092 [US5] OVERSTORY-CITY-R048.5 Replace circular boat animations with shared navigable water routes, depth and clearance validation, and realistic vessel movement.
 - [ ] T093 [US5] OVERSTORY-CITY-R048.8 OVERSTORY-CITY-R048.9 Generate road-first building and home sites across the buildable island and render identical site identities and built states in 2D and 3D.
+- [ ] T094 [US5] OVERSTORY-CITY-R048.10 Author the infrastructure and utility landmark families (police station, firehouse, hospital, energy and water plants, funeral home, train and bus stations, airport, shipyard, train yard, nuclear and coal plants) with district recipes and clean export QA.
+- [ ] T095 [US5] OVERSTORY-CITY-R048.11 Author the commerce, entertainment and recreation families (movie theater, arcade, restaurant block, mall, clothing and furniture stores, fast food, pier carnival, carnival, theme park, stadium) with frontage and signage detail.
+- [ ] T096 [US5] OVERSTORY-CITY-R048.12 Author the industry, farming and settlement families (ore plant, mining site, oil/gas, datacenter, office campus, barn, farmhouse, farmers market, orchard, suburban houses, rural plots) and the skyscraper variance (five tower forms with height and crown variance by district recipe).
+- [ ] T097 [US5] OVERSTORY-CITY-R048.13 Author the wild terrain modules (forest, lake, river, desert, jungle, recreational lake) as shoreline, bank, river-bend and vegetation-density families composing with the seeded hydrology.
+- [ ] T098 [US5] OVERSTORY-CITY-R048.14 Author the transport fleet families (fire truck, police van, police SUV, police helicopter, hearse, cargo and passenger trains, small/medium/large aircraft) with contact anchors, lights and corridor ride interfaces.
+- [ ] T099 [US5] OVERSTORY-CITY-R048.15 Author the advanced road class and grade-separation modules (4/6/8-lane highways and freeways, toll portals, country and dirt roads, one-way, two-lane, asymmetric, tree boulevards, bridges, viaducts, flyover ramps, double-stacked interchanges, rail track, runways).
+- [ ] T100 [US5] OVERSTORY-CITY-R048.16 Implement traffic control and real flow: stop/yield/signals, explicit lane management and deterministic queue buildup, dissipation and no-visible-reset vehicle flow under the frame budget.
+- [ ] T101 [US5] OVERSTORY-CITY-R048.17 Implement the multimodal route graph: train, bus, plane and walking edges over connected 3D corridors so NPC, AI and human characters reach destinations without leaving their corridor.
 
 ## Draft PR milestones
 
@@ -109,4 +117,5 @@ Producer first: the fleet seam (R003) and the world producers (R002, R004, R005)
 | R048.3, R048.8 | Baseline street meshes, markings, curbs, sidewalks, verges, props and regional ambient traffic. A sandbox seed generates a connected dry-ground road tree outside existing building footprints. | Road-frontage parcels and access to buildings, level-aware lanes, validated bridge journeys and connected traffic coverage |
 | R048.5, R048.9 | Seeded coastline and regional massing, dry-footprint checks and revised waterfront scenery | Drainage, navigable marine routes, access validation and revisioned growth replay |
 | R048.6 | Imported fixed browser viewpoints, adaptive quality baseline and idle scene-resource integrity coverage | Reviewed before/after views, hardware frame-time qualification and the active soak |
+| R048.10–R048.17 | Extension catalog scoped (2026-11-23): open catalog with nine asset domains, plus traffic flow and multimodal routes specified | Extension families authored in resource-batched stages with clean export QA; deterministic traffic buildup; per-modality route journeys |
 | R047 | Shared-state consumer contract drafted | Arbora and Medulla producers and two-viewer acceptance |

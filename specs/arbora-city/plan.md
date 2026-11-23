@@ -513,6 +513,42 @@ per-edit imperative state:
   second viewer reads the same city, cache semantics, stated 503s,
   typed-refusal pass-through, strict normalization, 422s).
 
+#### 2026-11-23: The asset catalog is open — scope expansion
+
+The 66-family launch catalog was a production target, not a cap. The city
+needs the kit to grow with district, infrastructure and transport need, so
+the catalog is now open: the launch families are the floor, and extension
+families are added as the seeded world demands them. The [extension
+catalog](asset-pack.md#extension-catalog-2026-11-23-scope-expansion) in
+asset-pack.md adds stable family IDs across nine domains, and the scope
+lands as new child rows:
+
+| Domain | Row |
+|---|---|
+| Infrastructure landmarks (police station, firehouse, hospital, energy and water plants, funeral home, train/bus stations, airport, shipyard, train yard, nuclear and coal plants) | R048.10 |
+| Commerce, entertainment, recreation (movie theater, arcade, restaurant, mall, clothing and furniture stores, fast food, pier carnival, carnival, theme park, stadium) | R048.11 |
+| Industry, farming, settlement, skyline variance (ore plant, mining, oil/gas, datacenter, office campus, farms, market, orchards, suburban and rural housing, five skyscraper forms with height and crown variance) | R048.12 |
+| Wild terrain (forest, lake, river, desert, jungle, recreational lake) | R048.13 |
+| Transport fleet (fire truck, police van/SUV/helicopter, hearse, cargo and passenger trains, small/medium/large aircraft) | R048.14 |
+| Advanced road classes and grade separation (4/6/8-lane highways and freeways, tollways, country and dirt roads, one-way, two-lane, asymmetric, tree boulevards, bridges, viaducts, flyover ramps, double-stacked interchanges, rail track, runways) | R048.15 |
+| Traffic control, lane management, real flow with buildup (stop signs, stop lights, yield signs, queueing, dissipation) | R048.16 |
+| Multimodal NPC/AI/human routes (train, bus, plane, walking over sidewalks and paths) | R048.17 |
+
+Decisions:
+
+- **Spec first, assets second.** Every extension domain is a tracked spec
+  row before it is built; the Blender pipeline stages are resource-batched
+  (scene cleared between batches, modest review renders) and follow the row
+  order. The "66 families" number in R048.2's acceptance becomes "all
+  catalog families" against the open catalog.
+- **Engine-side behavior stays engine-side.** Lane management, traffic
+  buildup and the multimodal route graph (R048.16, R048.17) are simulation
+  and graph work, not asset families; the pack supplies the signs,
+  signals, lane geometry and corridors they run on.
+- **Gates unchanged.** Extension families pass the same authoring protocol
+  (R-G10), budgets (R-G7) and license gate as launch families; the open
+  catalog adds no new governance.
+
 ### Rejected alternatives
 
 - **Server-side rendered frames (WebRTC/WebGPU stream):** server GPU cost
