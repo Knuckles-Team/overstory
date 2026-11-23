@@ -41,6 +41,10 @@ export type IdentityOp =
   | 'identity.scim.clients.get'
   | 'identity.scim.clients.upsert'
   | 'identity.scim.clients.revoke'
+  | 'access.elevation.list'
+  | 'access.elevation.request'
+  | 'access.elevation.approve'
+  | 'access.elevation.revoke'
 
 export type IdentityReply<T> =
   | { kind: 'ready'; result: T }
@@ -81,6 +85,28 @@ const policySchema = z
 const mappingSchema = z
   .object({ roles: z.array(z.string()), groups: z.array(z.string()), scopes: z.array(z.string()) })
   .loose()
+const elevationScopeSchema = z.object({ graph: z.string(), action: z.enum(['read', 'write']) }).loose()
+/** One elevation as the access service reports it, plus the receipt an
+ *  approve/revoke answers with (same shape for every elevation op). */
+const elevationReceiptSchema = z
+  .object({
+    elevation_id: z.string(),
+    grantee: z.string(),
+    status: z.string(),
+    scopes: z.array(elevationScopeSchema),
+    span_ms: z.number(),
+    justification: z.string(),
+    request_digest: z.string(),
+    requested_at_ms: z.number(),
+    revision: z.number(),
+    approved_at_ms: z.number().nullable().optional(),
+    hard_expires_at_ms: z.number().nullable().optional(),
+    ended_at_ms: z.number().nullable().optional(),
+    remaining_ms: z.number().optional(),
+    own: z.boolean().optional(),
+  })
+  .loose()
+const elevationListSchema = z.object({ elevations: z.array(elevationReceiptSchema) }).loose()
 const readOps = new Set<IdentityOp>([
   'identity.users.list',
   'identity.service_accounts.list',
@@ -97,6 +123,7 @@ const readOps = new Set<IdentityOp>([
   'identity.providers.mapping_dry_run',
   'identity.scim.clients.list',
   'identity.scim.clients.get',
+  'access.elevation.list',
 ])
 
 /** Ops whose result shape is not just "the list/record default" -- a dict dispatch
@@ -113,6 +140,10 @@ const EXACT_RESULT_SCHEMAS: Partial<Record<IdentityOp, z.ZodType>> = {
   'identity.providers.mapping_dry_run': mappingSchema,
   'identity.audit.verify': z.object({ valid: z.boolean() }).loose(),
   'identity.users.admin_reset': z.object({ delivery: z.string(), one_time_secret: z.string().optional() }).loose(),
+  'access.elevation.list': elevationListSchema,
+  'access.elevation.approve': elevationReceiptSchema,
+  'access.elevation.request': elevationReceiptSchema,
+  'access.elevation.revoke': elevationReceiptSchema,
 }
 
 function resultSchema(op: IdentityOp): z.ZodType {
@@ -187,4 +218,26 @@ export interface IdentityUser {
 export interface IdentityPage<T> {
   items: T[]
   next_cursor?: string | null
+}
+
+export interface ElevationScope {
+  graph: string
+  action: 'read' | 'write'
+}
+
+export interface ElevationReceipt {
+  elevation_id: string
+  grantee: string
+  status: string
+  scopes: ElevationScope[]
+  span_ms: number
+  justification: string
+  request_digest: string
+  requested_at_ms: number
+  revision: number
+  approved_at_ms?: number | null
+  hard_expires_at_ms?: number | null
+  ended_at_ms?: number | null
+  remaining_ms?: number
+  own?: boolean
 }
