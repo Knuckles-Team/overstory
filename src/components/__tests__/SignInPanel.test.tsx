@@ -36,6 +36,7 @@ function answer(outcome: string, status = 200): void {
   )
 }
 
+// spec: OVERSTORY-IDENTITY-R005.1
 describe('SignInPanel', () => {
   const assign = vi.fn()
 

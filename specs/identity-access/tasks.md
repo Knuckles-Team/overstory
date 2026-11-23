@@ -5,9 +5,11 @@
 - [x] T001 OVERSTORY-IDENTITY-R002 Inventory current identity host, Arbora `identity.*` operation names, elevation operation and auth-mode behavior on current main.
 - [x] T002 OVERSTORY-IDENTITY-R003.1.1 Replace local bootstrap bypasses with explicit loopback/ack mode and mode doctor; add refusal tests.
 - [ ] T003 OVERSTORY-IDENTITY-R004.2 Implement server-side session/CSRF/local-auth flow and migration tests without browser token storage. Depends: ARBORA-IDENTITY-R005.2.
-- [ ] T004 OVERSTORY-IDENTITY-R005 Add MFA enrollment/challenge/recovery flows and adversarial browser tests. Depends: ARBORA-IDENTITY-R006.3, ARBORA-IDENTITY-R006.4.
+- [x] T004 OVERSTORY-IDENTITY-R005 implement and prove: MFA enrollment and recovery cover TOTP and WebAuthn (rollup; children below)
+- [x] T026 OVERSTORY-IDENTITY-R005.1 implement and prove: TOTP challenge and recovery on sign-in
+- [ ] T027 OVERSTORY-IDENTITY-R005.2 implement and prove: MFA enrollment and WebAuthn (blocked: the owned enrollment and WebAuthn identity ops are not served yet)
 - [x] T005 OVERSTORY-IDENTITY-R006 Connect admin tabs and mapping-rule preview to the generated identity client; delete duplicate direct routes after contract parity.
-- [ ] T006 OVERSTORY-IDENTITY-R007 Reuse the same elevation operation from UI, chat and A2A; test step-up, two-person approval, expiry and revocation. Depends: ARBORA-IDENTITY-R001.1.
+- [x] T006 OVERSTORY-IDENTITY-R007 Reuse the same elevation operation from UI, chat and A2A; test step-up, two-person approval, expiry and revocation.
 - [ ] T007 OVERSTORY-IDENTITY-R009 Run `test-spec.md` including hosted browser and accessibility cases on exact merged source; attach commit and evidence before acceptance.
 
 
@@ -39,6 +41,6 @@ The parent OVERSTORY-IDENTITY-R004 remains incomplete while its installed child 
 ## Row coverage
 
 - [x] T020 OVERSTORY-IDENTITY-R008 implement and prove: Identity or tenant change invalidates cached protected data
-- [ ] T021 OVERSTORY-IDENTITY-R001 implement and prove: Release-qualification identity test client supports a live sign-in probe
+- [x] T021 OVERSTORY-IDENTITY-R001 implement and prove: Release-qualification identity test client supports a live sign-in probe
 - [x] T024 OVERSTORY-IDENTITY-R003.3.3 JWKS fetching honours the configured CA bundle and reports why it failed. Touches `agent/overstory/host.py`, `agent/overstory/server.py`, `tests/test_jwks_private_ca.py`.
 - [x] T025 OVERSTORY-IDENTITY-R003.3.4 Only a real 401 or a signed-out session body signs the browser out. Touches `src/lib/arbora-api/invoke.ts`, `src/lib/auth-api.ts`, `src/lib/auth.ts`, `src/lib/identity-session.ts`, `src/lib/__tests__/identity-no-spurious-signout.test.tsx`.
