@@ -549,6 +549,43 @@ Decisions:
   (R-G10), budgets (R-G7) and license gate as launch families; the open
   catalog adds no new governance.
 
+#### 2026-11-24: The living-city amendment (R049–R058)
+
+The 2026-11-24 external review compared the PR against a
+living-simulation benchmark (diverse people, activity schedules,
+street life, atmosphere, lived-in detail). The extension catalog
+(R048.10–R048.17) covers the named building, road and vehicle
+families; the review's remaining gaps land as new rows — specified,
+not scheduled:
+
+| Review gap | Row |
+|---|---|
+| Diverse human character pack (variants, shared clip set) | R049 |
+| Time-of-day activity scheduling, occupancy-driven lights | R050 |
+| Civic anchors (city hall, courthouse, school, university, waste-recycling, substation) and street-life / micro-prop families (utility poles and boxes, meters, vending, bicycles, playground set, scaffold and crane) | R051 |
+| Tree species, seasonal palettes, deterministic wind sway | R052 |
+| Occupancy lights, vehicle lights, night glow, smoke, rain and puddles | R053 |
+| Seagulls, pets, vessels on real water routes, waterfront occupancy | R054 |
+| District soundscape layers and new vehicle event cues | R055 |
+| Density and economic tiers, corner lots, construction / run-down / upgraded states | R056 |
+| Lived-in clutter and micro-detail at per-district density | R057 |
+| Populated interiors consistent with exterior activity | R058 |
+
+Decisions:
+
+- **Spec first.** The rows land with planned test bindings; asset rows
+  follow the resource-batched Blender stages, simulation rows extend the
+  existing `sim.ts`, `traffic.ts`, `audio.ts` and `render3d/` modules.
+  No row reopens a shipped gate.
+- **Catalog domains, not new governance.** The new families ride the
+  existing extension catalog, budgets and license gate (R-G7, R-G10);
+  launch families `prop.shelter`, `prop.market-stall`, `prop.recreation`
+  (swing frame) and `prop.construction-zone` (cones and barriers) stay
+  covered, and `arch.bay-corner` already serves the corner frontages.
+- **Engine-side stays engine-side.** Scheduling, sound and weather are
+  simulation and renderer work; the pack supplies the geometry and
+  materials they animate.
+
 ### Rejected alternatives
 
 - **Server-side rendered frames (WebRTC/WebGPU stream):** server GPU cost

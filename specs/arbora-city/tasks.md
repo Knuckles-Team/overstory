@@ -106,6 +106,16 @@ Producer first: the fleet seam (R003) and the world producers (R002, R004, R005)
 - [ ] T099 [US5] OVERSTORY-CITY-R048.15 Author the advanced road class and grade-separation modules (4/6/8-lane highways and freeways, toll portals, country and dirt roads, one-way, two-lane, asymmetric, tree boulevards, bridges, viaducts, flyover ramps, double-stacked interchanges, rail track, runways).
 - [ ] T100 [US5] OVERSTORY-CITY-R048.16 Implement traffic control and real flow: stop/yield/signals, explicit lane management and deterministic queue buildup, dissipation and no-visible-reset vehicle flow under the frame budget.
 - [ ] T101 [US5] OVERSTORY-CITY-R048.17 Implement the multimodal route graph: train, bus, plane and walking edges over connected 3D corridors so NPC, AI and human characters reach destinations without leaving their corridor.
+- [ ] T102 [US5] OVERSTORY-CITY-R049 Author the diverse civilian character pack (at least twelve variants over the shared rig, full clip set) with catalog, license and QA admission.
+- [ ] T103 [US5] OVERSTORY-CITY-R050 Implement the activity scheduler: time-of-day placement by building function, occupancy-driven window emissives and outdoor density, deterministic under the seeded clock.
+- [ ] T104 [US5] OVERSTORY-CITY-R051 Author the civic anchors and street-life families (city hall, courthouse, school, university, waste-recycling, substation, utility poles and boxes, meters, vending, bicycles, playground set, scaffold and crane) with per-district density recipes.
+- [ ] T105 [US5] OVERSTORY-CITY-R052 Land vegetation variation (species, seasonal palettes) and deterministic wind motion with a low-tier static path.
+- [ ] T106 [US5] OVERSTORY-CITY-R053 Implement atmosphere, dynamic emissives and weather (occupancy lights, vehicle lights, night glow, smoke, rain and puddles) within the R028 budgets.
+- [ ] T107 [US5] OVERSTORY-CITY-R054 Implement fauna and water life: ambient birds and pets on corridor routes, vessels on real water routes, scheduled waterfront occupancy.
+- [ ] T108 [US5] OVERSTORY-CITY-R055 Extend the soundscape to district-based ambient layers and new vehicle event cues within the audio budget.
+- [ ] T109 [US5] OVERSTORY-CITY-R056 Implement density and economic tiers, corner-lot frontage variants and construction, run-down and upgraded building state variants.
+- [ ] T110 [US5] OVERSTORY-CITY-R057 Implement lived-in clutter and micro-detail density with pedestrian-clearance validation.
+- [ ] T111 [US5] OVERSTORY-CITY-R058 Resolve populated interiors from activity assignments, consistent with exterior activity, with full entry-path parity.
 
 ## Draft PR milestones
 
@@ -118,4 +128,5 @@ Producer first: the fleet seam (R003) and the world producers (R002, R004, R005)
 | R048.5, R048.9 | Seeded coastline and regional massing, dry-footprint checks and revised waterfront scenery | Drainage, navigable marine routes, access validation and revisioned growth replay |
 | R048.6 | Imported fixed browser viewpoints, adaptive quality baseline and idle scene-resource integrity coverage | Reviewed before/after views, hardware frame-time qualification and the active soak |
 | R048.10–R048.17 | Extension catalog scoped (2026-11-23): open catalog with nine asset domains, plus traffic flow and multimodal routes specified | Extension families authored in resource-batched stages with clean export QA; deterministic traffic buildup; per-modality route journeys |
+| R049–R058 | Living-city amendment scoped (2026-11-24 review): civilian population, activity scheduling, civic and street-life families, vegetation and wind, atmosphere and weather, fauna and water, soundscape, tiers and state variants, lived-in clutter, populated interiors | Specified; asset families in resource-batched stages, scheduler, soundscape and atmosphere in follow-on tasks |
 | R047 | Shared-state consumer contract drafted | Arbora and Medulla producers and two-viewer acceptance |

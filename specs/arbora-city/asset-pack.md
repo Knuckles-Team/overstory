@@ -35,7 +35,7 @@ Images are visual evidence. Author original meshes, textures, signs, brands, rec
 
 The [ecosystem landmark and road-led district contract](ecosystem-districts.md) adds capability-specific pieces and builds on the base catalog.
 
-The draft sets **66 reusable exterior module families** as the launch target. One numbered entry counts once. Colorways, LODs, arbitrary rotations, repeated placements and assembled presets do not add to the count. The launch catalog is a floor, not a cap: per the 2026-11-23 scope decision the catalog is open and grows with city need. Extension families are listed in the [extension catalog](#extension-catalog-2026-11-23-scope-expansion) and tracked under R048.10–R048.17.
+The draft sets **66 reusable exterior module families** as the launch target. One numbered entry counts once. Colorways, LODs, arbitrary rotations, repeated placements and assembled presets do not add to the count. The launch catalog is a floor, not a cap: per the 2026-11-23 scope decision the catalog is open and grows with city need. Extension families are listed in the [extension catalog](#extension-catalog-2026-11-23-scope-expansion) and tracked under R048.10–R048.17, R051 and R054.
 
 | IDs | Independently reusable families in ID order |
 | --- | --- |
@@ -61,14 +61,18 @@ The launch catalog is a floor, not a cap. The extension catalog below is open: f
 | Farming and settlement | `building.farm-barn` · `building.farm-house` · `building.farmers-market` · `landscape.orchard-row` · `building.house-suburban` · `landscape.rural-plot` |
 | Wild terrain | `landscape.wild-forest` · `landscape.wild-lake` · `landscape.wild-river` · `landscape.wild-desert` · `landscape.wild-jungle` · `landscape.recreational-lake` |
 | Transport fleet | `vehicle.fire-truck` · `vehicle.police-van` · `vehicle.police-suv` · `vehicle.police-helicopter` · `vehicle.hearse` · `vehicle.train-cargo` · `vehicle.train-passenger` · `vehicle.plane-small` · `vehicle.plane-medium` · `vehicle.plane-large` · `vehicle.ambulance`, `vehicle.taxi`, `vehicle.bus`, `vehicle.patrol` (covered) |
-| Advanced road classes | `road.highway-4` · `road.highway-6` · `road.highway-8` · `road.toll-portal` · `road.country-2` · `road.dirt-road` · `road.one-way-2` · `road.asymmetric-32` · `road.boulevard-tree` · `road.viaduct-elevated` · `road.flyover-ramp` · `road.interchange-double` · `road.rail-track` · `road.runway` |
+| Advanced road classes | `road.highway-4` · `road.highway-6` · `road.highway-8` · `road.toll-portal` · `road.country-2` · `road.dirt-road` · `road.one-way-2` · `road.asymmetric-32` · `road.boulevard-tree` · `road.viaduct-elevated` · `road.flyover-ramp` · `road.interchange-double` · `road.rail-track` · `road.runway` · `road.roundabout` |
 | Traffic control | `prop.yield-sign` · `prop.stop-sign`, `prop.traffic-signal` (covered) |
+| Civic and community anchors | `building.city-hall` · `building.courthouse` · `building.school` · `building.university` · `building.waste-recycling` · `building.substation` |
+| Street life and micro-props | `prop.utility-pole` · `prop.utility-box` · `prop.parking-meter` · `prop.vending-machine` · `prop.bicycle-parked` · `prop.playground-set` · `prop.scaffold-section` · `prop.construction-crane` |
+| Fauna | `prop.seagull` |
 
 Notes:
 
 - Wild lakes and rivers compose with the seeded hydrology (R048.5) as shoreline, bank, river-bend and vegetation-density modules, not opaque water volumes. Wild terrain stays outside the serviced basin; construction sites still require dry ground.
 - Trains and aircraft ride dedicated corridors (`road.rail-track`, `road.runway`, taxiway pads) declared in the route graph, not the lane graph.
 - Lane management, traffic-flow dynamics with buildup, and the multimodal NPC/AI/human route network (train, bus, plane, walking) are engine-side behavior owned by R048.16 and R048.17, not asset families; the pack supplies the signs, signals, lane geometry and corridors they run on.
+- The civic and street-life families (R051) complete the launch kit's street furniture: `prop.shelter`, `prop.market-stall`, `prop.recreation` (swing frame) and `prop.construction-zone` (cones and barriers) stay covered by launch families, and `arch.bay-corner` serves the corner frontages (R056). The civilian character pack (R049) extends `public/city-assets/characters/` and is not a kit family; building state variants (R056) are state channels over existing families, not new families.
 
 ## Asset and assembly contract
 
