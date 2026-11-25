@@ -781,3 +781,25 @@ stage17 public). The open catalog's weight crosses the launch-era 5 MB
 pinned budget, so R016 is amended: the full pinned set totals under 8 MB,
 with the character pins themselves staying under 0.5 MB. A new
 catalog-integrity test binds the catalog and the lock (R048.1).
+
+#### 2026-11-25: The fully procedural city engine (R059–R066)
+
+The 2026-11-24 request for a fully procedural, zone-based city engine
+lands as eight new rows on 2026-11-25 — specified, not scheduled.
+
+Rows: R059 fully procedural generation (no hard-coded or hard-placed
+assets; seeded environment, map, biome and terrain), R060 procedural
+networks (roads, rail, water routes and walking paths from the network
+solver), R061 density tiers (rural, suburban, city center) with
+zone-based building spawn, R062 nature-first placement with no overlap
+(nature displaced for infrastructure), R063 Blender-only asset hygiene,
+R064 route validation for car, plane, train and boat routes (refused,
+never patched), R065 the 120 FPS average / 60 FPS floor frame budget
+auditable in the debug view, and R066 engine-side dynamic night windows
+on occupied towers.
+
+They build on the procedural foundations already specified — R039 seeded
+growth, R041 generate-first, R048.8/R048.9 network and island generation,
+R050 activity scheduling, R053 emissives, R056 tiers — and the
+212-family Blender-authored catalog (R048.10–R048.15, R051) supplies the
+asset vocabulary the generator draws from.

@@ -118,6 +118,14 @@ Producer first: the fleet seam (R003) and the world producers (R002, R004, R005)
 - [ ] T111 [US5] OVERSTORY-CITY-R058 Resolve populated interiors from activity assignments, consistent with exterior activity, with full entry-path parity.
 - [ ] T112 [US5] OVERSTORY-CITY-R051 Author the park and education families (standard, child, nature, dog and skate parks; daycare, middle, high and community college) in resource-batched Blender stages with clean export QA.
 - [ ] T113 [US5] OVERSTORY-CITY-R051 Author the fountain, statue, monument and government families (five fountain styles, figure and group memorial, obelisk, war memorial, commemorative arch; post office, library, government office, civic center) in resource-batched Blender stages with clean export QA.
+- [ ] T114 [US5] OVERSTORY-CITY-R059 Implement fully procedural world generation: seeded environment, map, biome and terrain passes, with no hard-coded or hard-placed element.
+- [ ] T115 [US5] OVERSTORY-CITY-R060 Implement the procedural network solver for roads, rail, water routes and walking paths.
+- [ ] T116 [US5] OVERSTORY-CITY-R061 Implement the density-tier field (rural, suburban, city center) and zone-based building spawn from the catalog recipes.
+- [ ] T117 [US5] OVERSTORY-CITY-R062 Implement nature-first placement ordering and the no-overlap collision resolver with a full-manifest audit.
+- [ ] T118 [US5] OVERSTORY-CITY-R063 Enforce Blender-only asset hygiene: the load layer reads only the pinned, catalogued kit; no external or hard-coded assets.
+- [ ] T119 [US5] OVERSTORY-CITY-R064 Implement route validation for car, plane, train and boat routes with deterministic refusals.
+- [ ] T120 [US5] OVERSTORY-CITY-R065 Meet the 120 FPS average / 60 FPS floor frame budget with an auditable frame-budget monitor and adaptive quality ladder.
+- [ ] T121 [US5] OVERSTORY-CITY-R066 Implement dynamic night windows: engine-side per-window emissive resolution from the activity schedule.
 
 ## Draft PR milestones
 
@@ -131,4 +139,5 @@ Producer first: the fleet seam (R003) and the world producers (R002, R004, R005)
 | R048.6 | Imported fixed browser viewpoints, adaptive quality baseline and idle scene-resource integrity coverage | Reviewed before/after views, hardware frame-time qualification and the active soak |
 | R048.10–R048.17 | Extension catalog scoped (2026-11-23): open catalog with nine asset domains, plus traffic flow and multimodal routes specified | Extension families authored in resource-batched stages with clean export QA; deterministic traffic buildup; per-modality route journeys |
 | R049–R058 | Living-city amendment scoped (2026-11-24 review): civilian population, activity scheduling, civic and street-life families, vegetation and wind, atmosphere and weather, fauna and water, soundscape, tiers and state variants, lived-in clutter, populated interiors | Specified; asset families in resource-batched stages, scheduler, soundscape and atmosphere in follow-on tasks |
+| R059–R066 | Fully procedural city engine scoped (2026-11-25): seeded environment/map/biome/terrain, procedural networks, density tiers with zone-based spawn, nature-first no-overlap placement, Blender-only asset hygiene, car/plane/train/boat route validation, 120/60 FPS frame budget, engine-side dynamic night windows | Specified; implementation in follow-on tasks T114–T121 |
 | R047 | Shared-state consumer contract drafted | Arbora and Medulla producers and two-viewer acceptance |
