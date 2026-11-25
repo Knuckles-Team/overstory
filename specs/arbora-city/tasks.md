@@ -126,6 +126,17 @@ Producer first: the fleet seam (R003) and the world producers (R002, R004, R005)
 - [ ] T119 [US5] OVERSTORY-CITY-R064 Implement route validation for car, plane, train and boat routes with deterministic refusals.
 - [ ] T120 [US5] OVERSTORY-CITY-R065 Meet the 120 FPS average / 60 FPS floor frame budget with an auditable frame-budget monitor and adaptive quality ladder.
 - [ ] T121 [US5] OVERSTORY-CITY-R066 Implement dynamic night windows: engine-side per-window emissive resolution from the activity schedule.
+- [ ] T122 [US5] OVERSTORY-CITY-R063 Implement the runtime asset-provenance manifest and the live scene audit with the debug-surface display.
+- [ ] T123 [US5] OVERSTORY-CITY-R067 Rebuild the world renderer catalog-first: remove the launch-era generated passes; render landscape, network and buildings from catalog families in that order, with procedural coastline water.
+- [ ] T124 [US5] OVERSTORY-CITY-R068 Absorb the launch-era landmark and interior assets into the kit as refined Blender families and register them in the catalog.
+- [ ] T125 [US5] OVERSTORY-CITY-R069 Implement the city's economic loop: income and expense streams, budget and treasury, tax rates, deterministic under the seed.
+- [ ] T126 [US5] OVERSTORY-CITY-R070 Implement RCI demand curves and demand-gated, zoned building spawn.
+- [ ] T127 [US5] OVERSTORY-CITY-R071 Implement the population economy: growth, happiness, unemployment and education per district.
+- [ ] T128 [US5] OVERSTORY-CITY-R072 Implement land value and the RCI meter overlay in both views.
+- [ ] T129 [US5] OVERSTORY-CITY-R073 Implement service coverage and consumption with decay and recomputation on placement change.
+- [ ] T130 [US5] OVERSTORY-CITY-R074 Implement production, goods flow and logistics traffic over the validated routes.
+- [ ] T131 [US5] OVERSTORY-CITY-R075 Implement congestion state and its feedback into income and service reliability.
+- [ ] T132 [US5] OVERSTORY-CITY-R076 Implement intake, construction and maintenance costs with under-funding decay.
 
 ## Draft PR milestones
 
@@ -140,4 +151,6 @@ Producer first: the fleet seam (R003) and the world producers (R002, R004, R005)
 | R048.10–R048.17 | Extension catalog scoped (2026-11-23): open catalog with nine asset domains, plus traffic flow and multimodal routes specified | Extension families authored in resource-batched stages with clean export QA; deterministic traffic buildup; per-modality route journeys |
 | R049–R058 | Living-city amendment scoped (2026-11-24 review): civilian population, activity scheduling, civic and street-life families, vegetation and wind, atmosphere and weather, fauna and water, soundscape, tiers and state variants, lived-in clutter, populated interiors | Specified; R051's civic anchor, park/education and public families authored in stages 15–17 with clean export QA (T112/T113); civilian pack, scheduler, vegetation, atmosphere, fauna, soundscape, tiers and clutter remain in follow-on tasks |
 | R059–R066 | Fully procedural city engine scoped (2026-11-25): seeded environment/map/biome/terrain, procedural networks, density tiers with zone-based spawn, nature-first no-overlap placement, Blender-only asset hygiene, car/plane/train/boat route validation, 120/60 FPS frame budget, engine-side dynamic night windows | Specified; implementation in follow-on tasks T114–T121 |
+| R063, R067–R068 | Catalog-first world (2026-11-25 review of the PR captures): the hard-coded launch world is wiped; the world renders landscape → network → buildings from the catalog; launch landmark and interior assets are absorbed into the kit; every placed asset is provenance-audited | Specified; provenance system, catalog renderer and absorption in T122–T124 |
+| R069–R076 | City-builder economy scoped (2026-11-25 review): economic loop and treasury, RCI demand and zoning, population economy, land value and RCI meter, service coverage, production and logistics, congestion feedback, construction and maintenance costs | Specified; implementation in follow-on tasks T125–T132 |
 | R047 | Shared-state consumer contract drafted | Arbora and Medulla producers and two-viewer acceptance |

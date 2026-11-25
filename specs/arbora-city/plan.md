@@ -803,3 +803,38 @@ growth, R041 generate-first, R048.8/R048.9 network and island generation,
 R050 activity scheduling, R053 emissives, R056 tiers — and the
 212-family Blender-authored catalog (R048.10–R048.15, R051) supplies the
 asset vocabulary the generator draws from.
+
+#### 2026-11-25: Review — the hard-coded world is wiped; the world renders from the catalog
+
+The 2026-11-25 review of the PR's browser captures found that the
+rendered world was still the launch-era generated world — massing
+buildings with procedural facades, ribbon roads, painted water
+rectangles, generated street furniture — and that none of the 212
+catalog families appeared in any capture. The catalog had been
+authored, locked and QA'd, but the renderer was never rewired to use it.
+Decision: the hard-coded world is removed and the world renders
+catalog-first (R067) — the fully procedural landscape first (R059,
+R048.5), then the procedural network (R060) as catalog road and
+hydrology families, then buildings (R061) as catalog building families,
+with water as the continuous procedural coastline surface, never a
+painted rectangle. Launch building assets with lasting value — the
+seven core landmark silhouettes and the furnished landmark interiors —
+are absorbed into the kit as original, refined Blender families and
+rendered only from the catalog (R068). R063 gains live enforcement: the
+runtime records an asset-provenance manifest (family id, instance count,
+source stage per placed model), surfaces it in the debug view and the
+fidelity harness, and an audit of the rendered scene rejects any visible
+mesh that is neither a catalog family nor a declared exempt primitive.
+
+The same review asked that the city-builder systems — demand, zoning,
+taxes, budgets, service coverage, production and logistics, population,
+land value, congestion feedback, construction and maintenance costs —
+be scoped. They land as eight new rows, specified not scheduled: the
+economic loop (R069), demand and zoning (R070), the population economy
+(R071), land value and the RCI meter (R072), service coverage and
+consumption (R073), production and goods logistics (R074), traffic and
+economic feedback (R075), and intake, construction and maintenance
+costs (R076). The human character pack (R049), the activity scheduler
+(R050), real traffic (R048.16/R048.17), atmosphere (R053/R055) and
+street life and interiors (R057/R058) were already scoped by the
+living-city amendment and remain follow-on tasks.
