@@ -66,6 +66,11 @@ The launch catalog is a floor, not a cap. The extension catalog below is open: f
 | Civic and community anchors | `building.city-hall` · `building.courthouse` · `building.school` · `building.university` · `building.waste-recycling` · `building.substation` |
 | Street life and micro-props | `prop.utility-pole` · `prop.utility-box` · `prop.parking-meter` · `prop.vending-machine` · `prop.bicycle-parked` · `prop.playground-set` · `prop.scaffold-section` · `prop.construction-crane` |
 | Fauna | `prop.seagull` |
+| Parks and green space | `landscape.park-standard` · `landscape.park-child` · `landscape.park-nature` · `landscape.park-dog` · `landscape.park-skate` |
+| Education suite | `building.school-daycare` · `building.school-middle` · `building.school-high` · `building.school-community-college` (the `building.school` and `building.university` anchors above stay covered for the elementary and university scales) |
+| Public water features | `prop.fountain-bowl` · `prop.fountain-plaza` · `prop.fountain-wall` · `prop.fountain-column` · `prop.fountain-garden` |
+| Statues and monuments | `prop.statue-figure` · `prop.statue-memorial` · `prop.monument-obelisk` · `prop.monument-war` · `prop.monument-arch` |
+| Government and public services | `building.post-office` · `building.library` · `building.government-office` · `building.civic-center` (`building.police-station` and `building.firehouse` are covered by the infrastructure landmarks row, R048.10) |
 
 Notes:
 
@@ -73,6 +78,7 @@ Notes:
 - Trains and aircraft ride dedicated corridors (`road.rail-track`, `road.runway`, taxiway pads) declared in the route graph, not the lane graph.
 - Lane management, traffic-flow dynamics with buildup, and the multimodal NPC/AI/human route network (train, bus, plane, walking) are engine-side behavior owned by R048.16 and R048.17, not asset families; the pack supplies the signs, signals, lane geometry and corridors they run on.
 - The civic and street-life families (R051) complete the launch kit's street furniture: `prop.shelter`, `prop.market-stall`, `prop.recreation` (swing frame) and `prop.construction-zone` (cones and barriers) stay covered by launch families, and `arch.bay-corner` serves the corner frontages (R056). The civilian character pack (R049) extends `public/city-assets/characters/` and is not a kit family; building state variants (R056) are state channels over existing families, not new families.
+- The park, education, fountain, statue/monument and government families (R051) seat on lot, plaza and verge sockets like the other civic anchors: parks compose with the vegetation and hydrology modules (R048.13, R052), and their interactive spots (benches, playgrounds, fountains, gates) are the R050 schedule nodes where scheduled citizens gather.
 
 ## Asset and assembly contract
 

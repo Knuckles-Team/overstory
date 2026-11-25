@@ -764,3 +764,20 @@ land in this delivery with the R031–R033 rebuild: the host read first
 (T042), then the sim and the renderers (T043–T053). Verification evidence
 (tests, build chunk report, lockfile audit) is recorded per row in
 [checklists/requirements.md](checklists/requirements.md).
+
+#### 2026-11-25: The civic catalog extension (R051) and the pinned-weight budget (R016)
+
+The 2026-11-25 session extends the civic and community catalog with the
+remaining requested families: parks (standard, child, nature, dog, skate),
+the education suite (daycare, middle, high, community college — the school
+and university anchors stay covered), public water features (five fountain
+styles), statues and monuments (figure and group memorial, obelisk, war
+memorial, commemorative arch), and the government and public-services
+buildings (post office, library, government office, civic center — police
+station and firehouse stay with the R048.10 infrastructure landmarks).
+They scope under R051, not new rows; the extension catalog gains five
+domains and the authoring pipeline two stages (stage16 parks/education,
+stage17 public). The open catalog's weight crosses the launch-era 5 MB
+pinned budget, so R016 is amended: the full pinned set totals under 8 MB,
+with the character pins themselves staying under 0.5 MB. A new
+catalog-integrity test binds the catalog and the lock (R048.1).

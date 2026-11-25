@@ -116,6 +116,8 @@ Producer first: the fleet seam (R003) and the world producers (R002, R004, R005)
 - [ ] T109 [US5] OVERSTORY-CITY-R056 Implement density and economic tiers, corner-lot frontage variants and construction, run-down and upgraded building state variants.
 - [ ] T110 [US5] OVERSTORY-CITY-R057 Implement lived-in clutter and micro-detail density with pedestrian-clearance validation.
 - [ ] T111 [US5] OVERSTORY-CITY-R058 Resolve populated interiors from activity assignments, consistent with exterior activity, with full entry-path parity.
+- [ ] T112 [US5] OVERSTORY-CITY-R051 Author the park and education families (standard, child, nature, dog and skate parks; daycare, middle, high and community college) in resource-batched Blender stages with clean export QA.
+- [ ] T113 [US5] OVERSTORY-CITY-R051 Author the fountain, statue, monument and government families (five fountain styles, figure and group memorial, obelisk, war memorial, commemorative arch; post office, library, government office, civic center) in resource-batched Blender stages with clean export QA.
 
 ## Draft PR milestones
 
