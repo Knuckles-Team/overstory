@@ -838,3 +838,23 @@ costs (R076). The human character pack (R049), the activity scheduler
 (R050), real traffic (R048.16/R048.17), atmosphere (R053/R055) and
 street life and interiors (R057/R058) were already scoped by the
 living-city amendment and remain follow-on tasks.
+
+#### 2026-11-25 (late): The speed set extends to 0.5×–20× with slow motion
+
+The same review asked that the engine support speed-ups up to 20× and
+slow motion. R012 is amended in place: the speed control exposes the
+declared set 0.5×, 1×, 1.25×, 1.5×, 2×, 4×, 8×, 20× plus pause (the
+previous pause / 1× / 2× / 4× set is subsumed), `?speed=` accepts the
+same values, and the WebMCP speed tool carries the same set. Speed
+scales the in-game clock, the activity schedule and every action timer
+by the same factor; slow motion is simply 0.5× — a reduced rate in the
+same mode, not a separate feature. The engine holds every invariant at
+both extremes: the frame loop converts real elapsed time × speed ×
+timeScale into in-game time and executes it as a bounded number of
+fixed simulation sub-steps under a declared per-sub-step ceiling, so
+at 20× several sub-steps run per frame and the remainder accumulates —
+a dropped frame loses and gains no in-game time — which keeps
+per-step movement, scheduling and traffic integration inside the
+bounds the renderer and route rules already assume. A speed change is
+recorded as an operator action, so a replay produces the same in-game
+state regardless of the speed it ran at. Implementation lands in T133.

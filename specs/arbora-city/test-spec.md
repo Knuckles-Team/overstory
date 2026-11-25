@@ -61,9 +61,15 @@ Governing spec: [spec.md](spec.md).
     wakes; no new tasks start at night; the in-game clock runs at
     timeScale 144 (one day = ten real minutes at 1×); no character leaves
     walkable ground. Bound: `// spec: OVERSTORY-CITY-R009`.
-  - describe `speed and clock semantics (R012)`: speed scales the clock
-    and the action timers together; pause freezes both. Bound:
-    `// spec: OVERSTORY-CITY-R012`.
+  - describe `speed and clock semantics (R012)`: the declared speed set
+    (0.5×, 1×, 1.25×, 1.5×, 2×, 4×, 8×, 20×) and pause each scale the
+    clock and the action timers by exactly their factor; 0.5× slow
+    motion halves the rate in the same mode; a full day at 20×
+    completes with every invariant holding (no character leaves
+    walkable ground, no visible reset); the fixed sub-step accumulator
+    keeps in-game time exact across frames of varying length; a speed
+    change never alters the in-game state at a given in-game time.
+    Bound: `// spec: OVERSTORY-CITY-R012`.
   - describe `selection API (R011)`: selecting a character or building
     returns its record. Bound: `// spec: OVERSTORY-CITY-R011`.
   - describe `quiet and demo (R026)`: in quiet mode no task, wander or
@@ -132,8 +138,9 @@ Governing spec: [spec.md](spec.md).
     authority) and exposes the full renderer handle.
     Bound: `// spec: OVERSTORY-CITY-R015`.
 - `src/apps/city/__tests__/CityPage.test.tsx`
-  - describe `parseSpeedParam (R012)`: parses the accepted speeds and
-    defaults to 1×.
+  - describe `parseSpeedParam (R012)`: parses the full speed set —
+    0.5, 1, 1.25, 1.5, 2, 4, 8, 20 and pause (0) — and falls back to
+    1× when the value is absent or invalid.
   - describe `mode decision (R014)`: boots `LIVE` when the host serves
     the fleet; falls back to `SIMULATED` with a stated banner when the
     fleet read fails; verifies every pinned asset at startup (18 verified
