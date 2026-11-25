@@ -858,3 +858,22 @@ per-step movement, scheduling and traffic integration inside the
 bounds the renderer and route rules already assume. A speed change is
 recorded as an operator action, so a replay produces the same in-game
 state regardless of the speed it ran at. Implementation lands in T133.
+
+#### 2026-11-25 (later): The 2D map and the 3D scene are one world
+
+The same review asked that the 2D map and the 3D scene be fully 1:1
+synchronised — both projecting from the same underlying environment and
+map metadata — and that the engine run equally well in both. Two new
+rows: R077 makes the 2D schematic and the 3D scene two projections of
+the one world model (the seeded environment, the generated networks
+and every placed element with its live state). Neither view owns
+geometry or state of its own; every visible fact in either view derives
+from the shared model through the same encoding table, so the views can
+never disagree. The 2D view renders the full procedural world —
+landscape, biomes, water, network, placements — not a bare plot
+schematic, and a projection-parity audit proves the 1:1 content at any
+instant (matching entries, world coordinates and state encoding in
+both directions, identity preserved across a view switch). R078 holds
+the frame budget view-independent: the 120/60 bar of R065 applies
+whichever view is active, with per-view measurement in the debug view
+so the parity is auditable. Implementation lands in T134–T135.
