@@ -16,11 +16,12 @@ pitfall log — is
   buildings, furnished interiors, marine). Each exports a `SPECS` table of
   `(family-id, builder, category[, expect extents])` and one builder per
   family.
-- `stage09_infrastructure.py` … `stage16_parks_edu.py` — the extension
+- `stage09_infrastructure.py` … `stage17_public.py` — the extension
   catalog stages (R048.10–R048.17, R051): infrastructure landmarks,
   commerce and entertainment, industry/farming/skyscraper variance, wild
   terrain, transport fleet, advanced road classes, civic anchors and
-  street life, parks and education. Same contract as the launch stages.
+  street life, parks and education, public water features with statues,
+  monuments and government buildings. Same contract as the launch stages.
 - `run_batch.py` — the reusable batch runner: full scene clear, world/sun
   setup, build a slice of a stage's `SPECS`, shelf for review, purge, and
   dump a JSON QA report. Safe to call repeatedly across separate

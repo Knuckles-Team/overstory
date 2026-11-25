@@ -115,14 +115,15 @@ hard-coded guesses:
 ## 5. Original city asset kit (authored 2026-11-23, extended 2026-11-25; OVERSTORY-CITY-R048.1/R048.2/R048.4, R051)
 
 The asset kit under [`kit/`](kit/) is **original geometry**, not an external
-source: 198 families across eight categories (roads, street props,
+source: 212 families across eight categories (roads, street props,
 landscape, vehicles, architecture modules, buildings, furnished interior
 rooms, marine) authored in Blender through the blender-mcp pipeline in
 [`scripts/asset-kit/`](../../scripts/asset-kit/) — eight launch stages
-(stage01–stage08) and eight extension stages (stage09–stage16:
+(stage01–stage08) and nine extension stages (stage09–stage17:
 infrastructure landmarks, commerce, industry and skyscraper variance, wild
 terrain, transport fleet, advanced road classes, civic anchors and street
-life, parks and education) — per the [launch catalog and
+life, parks and education, public water features with statues, monuments
+and government buildings) — per the [launch catalog and
 authoring protocol](../../specs/arbora-city/asset-pack.md) (full playbook:
 `agent/overstory/skills/overstory-development/references/blender-asset-pipeline.md`).
 

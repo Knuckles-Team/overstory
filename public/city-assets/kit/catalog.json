@@ -367,6 +367,22 @@
    "source": "scripts/asset-kit/stage15_civic.py"
   },
   {
+   "id": "building.civic-center",
+   "file": "kit/building/building.civic-center.glb",
+   "category": "building",
+   "footprint": [
+    28.3,
+    20
+   ],
+   "height": 9.0,
+   "triangles": 380,
+   "materials": 9,
+   "bytes": 27892,
+   "sha256": "111aae9e64a7d2b6045e5f8f569acbc746fe625a5f2374053c8f812ceeba6e40",
+   "license": "CC0-1.0",
+   "source": "scripts/asset-kit/stage17_public.py"
+  },
+  {
    "id": "building.clinic",
    "file": "kit/building/building.clinic.glb",
    "category": "building",
@@ -607,6 +623,22 @@
    "source": "scripts/asset-kit/stage06_buildings.py"
   },
   {
+   "id": "building.government-office",
+   "file": "kit/building/building.government-office.glb",
+   "category": "building",
+   "footprint": [
+    20,
+    20
+   ],
+   "height": 11,
+   "triangles": 476,
+   "materials": 6,
+   "bytes": 30940,
+   "sha256": "36e0534de5df906d43d0f2aa335b833968e8d14c7e3fbe1f703a28b18e911c66",
+   "license": "CC0-1.0",
+   "source": "scripts/asset-kit/stage17_public.py"
+  },
+  {
    "id": "building.grocery",
    "file": "kit/building/building.grocery.glb",
    "category": "building",
@@ -685,6 +717,22 @@
    "sha256": "ec76bf69a0bff44c48bf7fb15b5d825c6f6b4a0e2b09c88da967ae29400665f3",
    "license": "CC0-1.0",
    "source": "scripts/asset-kit/stage11_industry.py"
+  },
+  {
+   "id": "building.library",
+   "file": "kit/building/building.library.glb",
+   "category": "building",
+   "footprint": [
+    20,
+    18
+   ],
+   "height": 8.75,
+   "triangles": 388,
+   "materials": 11,
+   "bytes": 29376,
+   "sha256": "d5c631db2eb9c5a0923cfa4907d784bfd12b6d3006d95caae98627bb75ba63e6",
+   "license": "CC0-1.0",
+   "source": "scripts/asset-kit/stage17_public.py"
   },
   {
    "id": "building.mall",
@@ -829,6 +877,22 @@
    "sha256": "f6aebfd16878852e6a72f7e3ae7588a209d5fccfed54188216f8ed9622a64c43",
    "license": "CC0-1.0",
    "source": "scripts/asset-kit/stage09_infrastructure.py"
+  },
+  {
+   "id": "building.post-office",
+   "file": "kit/building/building.post-office.glb",
+   "category": "building",
+   "footprint": [
+    20,
+    14
+   ],
+   "height": 7.95,
+   "triangles": 272,
+   "materials": 10,
+   "bytes": 22048,
+   "sha256": "00585566b4c2d68425500261026915fb39a2e3bdaa4ada18b98abb5af485c141",
+   "license": "CC0-1.0",
+   "source": "scripts/asset-kit/stage17_public.py"
   },
   {
    "id": "building.restaurant-row",
@@ -1999,6 +2063,86 @@
    "source": "scripts/asset-kit/stage02_props.py"
   },
   {
+   "id": "prop.fountain-bowl",
+   "file": "kit/prop/prop.fountain-bowl.glb",
+   "category": "prop",
+   "footprint": [
+    2.5,
+    2.5
+   ],
+   "height": 1.35,
+   "triangles": 150,
+   "materials": 2,
+   "bytes": 10324,
+   "sha256": "d779b41215069440c0223199a6da593f2db46a1d60014226ed0f41e711ff2fac",
+   "license": "CC0-1.0",
+   "source": "scripts/asset-kit/stage17_public.py"
+  },
+  {
+   "id": "prop.fountain-column",
+   "file": "kit/prop/prop.fountain-column.glb",
+   "category": "prop",
+   "footprint": [
+    4.29,
+    4.4
+   ],
+   "height": 6.58,
+   "triangles": 282,
+   "materials": 2,
+   "bytes": 16324,
+   "sha256": "fd7569781e5b406ef2765df31dfa510b42ba893308318087013e035e41a41395",
+   "license": "CC0-1.0",
+   "source": "scripts/asset-kit/stage17_public.py"
+  },
+  {
+   "id": "prop.fountain-garden",
+   "file": "kit/prop/prop.fountain-garden.glb",
+   "category": "prop",
+   "footprint": [
+    1.8,
+    1.4
+   ],
+   "height": 0.82,
+   "triangles": 96,
+   "materials": 4,
+   "bytes": 10556,
+   "sha256": "a3aae6ba91025181b14d4505a3e1a9a403b4dfe21bb736e1448a505801465783",
+   "license": "CC0-1.0",
+   "source": "scripts/asset-kit/stage17_public.py"
+  },
+  {
+   "id": "prop.fountain-plaza",
+   "file": "kit/prop/prop.fountain-plaza.glb",
+   "category": "prop",
+   "footprint": [
+    6.8,
+    6.8
+   ],
+   "height": 2.95,
+   "triangles": 278,
+   "materials": 2,
+   "bytes": 16016,
+   "sha256": "53d65353ce4ada155887e8aebc104e3b42902a56233edb743ff7d5254822e2f3",
+   "license": "CC0-1.0",
+   "source": "scripts/asset-kit/stage17_public.py"
+  },
+  {
+   "id": "prop.fountain-wall",
+   "file": "kit/prop/prop.fountain-wall.glb",
+   "category": "prop",
+   "footprint": [
+    4.5,
+    2.4
+   ],
+   "height": 2.6,
+   "triangles": 120,
+   "materials": 4,
+   "bytes": 10716,
+   "sha256": "1dd8f393ab076fbf811cebf9724ece0ed0145b0d0cab104139257dcbed93b3ed",
+   "license": "CC0-1.0",
+   "source": "scripts/asset-kit/stage17_public.py"
+  },
+  {
    "id": "prop.hydrant",
    "file": "kit/prop/prop.hydrant.glb",
    "category": "prop",
@@ -2029,6 +2173,54 @@
    "sha256": "b6043c0d799c11495d4b23e89259e55c48120486a8aa3466ec3fb4ef2fe22e95",
    "license": "CC0-1.0",
    "source": "scripts/asset-kit/stage02_props.py"
+  },
+  {
+   "id": "prop.monument-arch",
+   "file": "kit/prop/prop.monument-arch.glb",
+   "category": "prop",
+   "footprint": [
+    8.0,
+    3.4
+   ],
+   "height": 5.4,
+   "triangles": 120,
+   "materials": 4,
+   "bytes": 10512,
+   "sha256": "7710345512a062bdd3355d2c7c9fabacfc2adc105efa73767f331b4ce559f60b",
+   "license": "CC0-1.0",
+   "source": "scripts/asset-kit/stage17_public.py"
+  },
+  {
+   "id": "prop.monument-obelisk",
+   "file": "kit/prop/prop.monument-obelisk.glb",
+   "category": "prop",
+   "footprint": [
+    4.4,
+    4.4
+   ],
+   "height": 6.4,
+   "triangles": 54,
+   "materials": 3,
+   "bytes": 6328,
+   "sha256": "e361270d4207778b43b4f5128eda97965a23a4c2ac3bff89d82fd703eb7c576a",
+   "license": "CC0-1.0",
+   "source": "scripts/asset-kit/stage17_public.py"
+  },
+  {
+   "id": "prop.monument-war",
+   "file": "kit/prop/prop.monument-war.glb",
+   "category": "prop",
+   "footprint": [
+    3.2,
+    3.2
+   ],
+   "height": 4.0,
+   "triangles": 220,
+   "materials": 5,
+   "bytes": 17536,
+   "sha256": "3c527e3b122136dfeefbdddc8eefdfbb3263a1adfa6532425888e90fa94067af",
+   "license": "CC0-1.0",
+   "source": "scripts/asset-kit/stage17_public.py"
   },
   {
    "id": "prop.parking-meter",
@@ -2157,6 +2349,38 @@
    "sha256": "6886b568142ce4781f84c6f9032384f46251fa67d9e429974159d8f3f2486663",
    "license": "CC0-1.0",
    "source": "scripts/asset-kit/stage02_props.py"
+  },
+  {
+   "id": "prop.statue-figure",
+   "file": "kit/prop/prop.statue-figure.glb",
+   "category": "prop",
+   "footprint": [
+    1.7,
+    1.7
+   ],
+   "height": 2.91,
+   "triangles": 116,
+   "materials": 4,
+   "bytes": 10536,
+   "sha256": "13dac222ea2cde10127bf862d3d0feadba5d9b88a48e166d0d49e03d3435d971",
+   "license": "CC0-1.0",
+   "source": "scripts/asset-kit/stage17_public.py"
+  },
+  {
+   "id": "prop.statue-memorial",
+   "file": "kit/prop/prop.statue-memorial.glb",
+   "category": "prop",
+   "footprint": [
+    4.4,
+    3.0
+   ],
+   "height": 2.92,
+   "triangles": 276,
+   "materials": 4,
+   "bytes": 20080,
+   "sha256": "b4aadc61d640bf4089a934943fd128f6b169ffa91201cab290863821e22f0d29",
+   "license": "CC0-1.0",
+   "source": "scripts/asset-kit/stage17_public.py"
   },
   {
    "id": "prop.stop-sign",
