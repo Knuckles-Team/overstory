@@ -173,5 +173,5 @@ describe('city scene steady state', () => {
 
     expect(sceneResources(scene)).toEqual(before)
     buildings.dispose()
-  })
+  }, 30_000) // 36,000 scripted frame updates: explicit bound for loaded CI runners
 })

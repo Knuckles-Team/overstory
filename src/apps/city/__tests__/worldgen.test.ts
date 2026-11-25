@@ -26,6 +26,9 @@ import { BUILDING_POS, HOUSES, PLOTS, inWater } from '../core/layout'
 import { graphConnected, sampleRoadCurve } from '@/lib/scene3d/roads'
 
 describe('deterministic world generation', () => {
+  // Full island generation plus a pairwise no-overlap sweep over 103 sites:
+  // an explicit bound with margin for a loaded CI runner (the 5 s default
+  // was only ever met on fast dev machines).
   it('derives dry, nonoverlapping building sites and entrances from roads', () => {
     const seed = 42
     const graph = generateIslandRoads(seed, [])
@@ -49,7 +52,7 @@ describe('deterministic world generation', () => {
       expect(Math.hypot(site.roadX - site.entranceX, site.roadZ - site.entranceZ)).toBeGreaterThan(0)
       expect(sites.filter((other) => other !== site).every((other) => !rectsOverlap(site, other, 1))).toBe(true)
     }
-  })
+  }, 20_000)
   // spec: OVERSTORY-CITY-R048.9.1
   it('generates seed-specific vegetation on visible dry ground away from road and parcel footprints', () => {
     const graph = generateIslandRoads(48, [])
