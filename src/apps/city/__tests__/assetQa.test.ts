@@ -59,12 +59,16 @@ describe('asset QA budgets (R013/R028)', () => {
     expect(BUDGETS.assetTexturePx).toBe(2048)
   })
 
-  it('every pinned GLB clears the triangle, material and texture budgets (100/100)', () => {
+  it('every pinned GLB clears the triangle, material and texture budgets', () => {
     const raw = JSON.parse(readFileSync(join(PUBLIC_DIR, 'city-assets', 'assets.lock.json'), 'utf8')) as {
       files: Record<string, unknown>
     }
     const paths = Object.keys(raw.files)
-    expect(paths).toHaveLength(100)
+    for (const path of paths) {
+      expect(path, 'every pin lives under city-assets/').toMatch(/^city-assets\//)
+    }
+    expect(paths).toContain('city-assets/characters/robot-expressive.glb')
+    expect(paths).toContain('city-assets/marker-cube.glb')
     for (const path of paths) {
       const g = parseGlb(readFileSync(join(PUBLIC_DIR, path)))
       expect(trianglesOf(g), `${path} triangle budget`).toBeLessThanOrEqual(BUDGETS.assetTriangles)

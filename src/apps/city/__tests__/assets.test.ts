@@ -38,12 +38,12 @@ afterAll(() => {
 })
 
 describe('lockfile (R013)', () => {
-  it('pins exactly 2 files (the shared rig + the marker)', () => {
-    const paths = Object.keys(lock.files)
-    expect(paths).toHaveLength(2)
-    expect(paths).toContain('city-assets/characters/robot-expressive.glb')
-    expect(paths).toContain('city-assets/marker-cube.glb')
-    for (const p of paths) expect(p.startsWith('city-assets/')).toBe(true)
+  it('pins exactly 2 external files (the shared rig + the marker); the kit is tracked per catalog', () => {
+    const external = Object.keys(lock.files).filter((p) => !p.startsWith('city-assets/kit/'))
+    expect(external).toHaveLength(2)
+    expect(external).toContain('city-assets/characters/robot-expressive.glb')
+    expect(external).toContain('city-assets/marker-cube.glb')
+    for (const p of Object.keys(lock.files)) expect(p.startsWith('city-assets/')).toBe(true)
   })
 
   it('every pin carries a license inside the lockfile allowlist (R013 gate)', () => {
@@ -77,7 +77,7 @@ describe('lockfile (R013)', () => {
     expect(assetsLockSchema.safeParse(ok).success).toBe(true)
   })
 
-  it('verifies every pinned file: byte count and SHA-256 (2/2)', () => {
+  it('verifies every pinned file: byte count and SHA-256', () => {
     const bad: string[] = []
     let ok = 0
     for (const [path, spec] of Object.entries(lock.files)) {
@@ -91,12 +91,12 @@ describe('lockfile (R013)', () => {
       else ok++
     }
     expect(bad, bad.join('; ')).toHaveLength(0)
-    expect(ok).toBe(2)
+    expect(ok).toBe(Object.keys(lock.files).length)
   })
 
-  it('stays under the 5 MB budget (R016: pinned assets total under 5 MB)', () => {
+  it('stays under the 8 MB budget (R016, amended 2026-11-25: full pinned set under 8 MB)', () => {
     const total = Object.values(lock.files).reduce((sum, p) => sum + p.bytes, 0)
-    expect(total).toBeLessThan(5 * 1024 * 1024)
+    expect(total).toBeLessThan(8 * 1024 * 1024)
   })
 })
 

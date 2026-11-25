@@ -16,13 +16,32 @@ pitfall log — is
   buildings, furnished interiors, marine). Each exports a `SPECS` table of
   `(family-id, builder, category[, expect extents])` and one builder per
   family.
+- `stage09_infrastructure.py` … `stage16_parks_edu.py` — the extension
+  catalog stages (R048.10–R048.17, R051): infrastructure landmarks,
+  commerce and entertainment, industry/farming/skyscraper variance, wild
+  terrain, transport fleet, advanced road classes, civic anchors and
+  street life, parks and education. Same contract as the launch stages.
+- `run_batch.py` — the reusable batch runner: full scene clear, world/sun
+  setup, build a slice of a stage's `SPECS`, shelf for review, purge, and
+  dump a JSON QA report. Safe to call repeatedly across separate
+  `execute_blender_code` invocations.
+- `CONVENTIONS.md` — the hard-won kit conventions (part placement,
+  rotation gotchas, boolean cutter rules, expect guards, memory policy).
+  Read it before authoring a new stage.
+- `gen_packaging.py` — regenerates `public/city-assets/kit/catalog.json`
+  and the kit section of `assets.lock.json` from the files on disk
+  (digest, byte count, footprint, triangle and material counts per GLB,
+  source attribution from each stage's `SPECS` table). Run it after every
+  re-export; it prunes stale kit entries and keeps the external pins.
 - `blendermcp_startup.py` — start the blender-mcp addon server on
   127.0.0.1:9876 at Blender launch (Blender must run in GUI mode).
 
 Rebuilding: launch Blender in GUI mode with the startup script, connect the
-MCP server, then clear the scene, add the review sun, iterate each
-module's `SPECS` through `kitlib.family(fid, fn, cat, expect=...)`, add each
-result to the shelf, and review with multi-angle renders before dumping
-reports. `kitlib.OUT_ROOT` points at `public/city-assets/kit/`. Any change
-to shared code re-exports every family it touches; catalog digests and the
-asset lock are regenerated from the final files.
+MCP server, then drive `run_batch.run(stage_mod, start, end, tag)` for each
+batch (≤6 families per call on the reference machine), and review each
+stage's exported GLBs with multi-angle renders before dumping reports.
+`kitlib.OUT_ROOT` points at `public/city-assets/kit/`. Any change to shared
+code re-exports every family it touches; catalog digests and the asset lock
+are regenerated from the final files. The stage scripts plus `kitlib.py`
+are the full authoring recipe: a fresh Blender on any system reproduces the
+pack from them.

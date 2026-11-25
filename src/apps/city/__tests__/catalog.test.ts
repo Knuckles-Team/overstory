@@ -1,0 +1,105 @@
+/**
+ * @file catalog.test.ts
+ * @description Catalog/lock integrity for the original city kit
+ * (OVERSTORY-CITY-R048.1): every catalog entry matches its lock entry and
+ * its real file on disk (digest, byte count), every kit file in the lock
+ * has a catalog entry, the catalog covers exactly the GLBs under
+ * `public/city-assets/kit/`, and the catalog's measured costs stay inside
+ * the per-GLB QA budgets. The catalog is derived from the lock's kit
+ * section, so this test is the tripwire for a stale catalog or a lock
+ * entry that no file backs.
+ */
+// spec: OVERSTORY-CITY-R048.1, OVERSTORY-CITY-R048.10, OVERSTORY-CITY-R048.11, OVERSTORY-CITY-R048.12, OVERSTORY-CITY-R048.13, OVERSTORY-CITY-R048.14, OVERSTORY-CITY-R048.15, OVERSTORY-CITY-R051
+import { createHash } from 'node:crypto'
+import { readdirSync, readFileSync } from 'node:fs'
+import { join } from 'node:path'
+import { describe, expect, it } from 'vitest'
+import { BUDGETS } from '../core/budgets'
+
+const PUBLIC_DIR = join(__dirname, '..', '..', '..', '..', 'public')
+const KIT_DIR = join(PUBLIC_DIR, 'city-assets', 'kit')
+
+interface CatalogEntry {
+  id: string
+  file: string
+  category: string
+  footprint: [number, number]
+  height: number
+  triangles: number
+  materials: number
+  bytes: number
+  sha256: string
+  license: string
+  source: string
+}
+
+interface Catalog {
+  version: number
+  entries: CatalogEntry[]
+}
+
+const catalog = JSON.parse(readFileSync(join(KIT_DIR, 'catalog.json'), 'utf8')) as Catalog
+const lock = JSON.parse(readFileSync(join(PUBLIC_DIR, 'city-assets', 'assets.lock.json'), 'utf8')) as {
+  files: Record<string, { source_path: string; sha256: string; bytes: number; license: string }>
+}
+
+const kitLock = Object.fromEntries(Object.entries(lock.files).filter(([p]) => p.startsWith('city-assets/kit/')))
+
+/** The kit GLBs actually on disk, keyed by `city-assets/kit/<cat>/<id>.glb`. */
+function diskKitFiles(): Set<string> {
+  const out = new Set<string>()
+  for (const cat of readdirSync(KIT_DIR, { withFileTypes: true })) {
+    if (!cat.isDirectory()) continue
+    for (const f of readdirSync(join(KIT_DIR, cat.name))) {
+      if (f.endsWith('.glb')) out.add(`city-assets/kit/${cat.name}/${f}`)
+    }
+  }
+  return out
+}
+
+describe('catalog integrity (R048.1)', () => {
+  it('the catalog covers exactly the kit GLBs on disk', () => {
+    const onDisk = diskKitFiles()
+    const inCatalog = new Set(catalog.entries.map((e) => `city-assets/${e.file}`))
+    expect(catalog.entries, 'catalog has no duplicate ids').toHaveLength(
+      new Set(catalog.entries.map((e) => e.id)).size,
+    )
+    expect(inCatalog, 'catalog lists files that do not exist on disk').toEqual(onDisk)
+    expect(new Set(Object.keys(kitLock)), 'lock kit section differs from disk').toEqual(onDisk)
+  })
+
+  it('every catalog entry matches its lock entry and its real file', () => {
+    for (const entry of catalog.entries) {
+      const path = `city-assets/${entry.file}`
+      const spec = lock.files[path]
+      expect(spec, `${path}: missing from the lock`).toBeDefined()
+      expect(entry.sha256, `${path}: catalog digest differs from the lock`).toBe(spec.sha256)
+      expect(entry.bytes, `${path}: catalog byte count differs from the lock`).toBe(spec.bytes)
+      expect(entry.source, `${path}: catalog source`).toBe(spec.source_path)
+      expect(entry.license, `${path}: license`).toBe('CC0-1.0')
+
+      const buf = readFileSync(join(PUBLIC_DIR, 'city-assets', entry.file))
+      expect(buf.byteLength, `${path}: file size`).toBe(entry.bytes)
+      expect(createHash('sha256').update(buf).digest('hex'), `${path}: file digest`).toBe(entry.sha256)
+      expect(entry.file, `${path}: file path shape`).toBe(`kit/${entry.category}/${entry.id}.glb`)
+    }
+  })
+
+  it('every catalog entry states a positive footprint, height and provenance', () => {
+    for (const entry of catalog.entries) {
+      expect(entry.footprint[0], `${entry.id}: footprint x`).toBeGreaterThan(0)
+      expect(entry.footprint[1], `${entry.id}: footprint y`).toBeGreaterThan(0)
+      expect(entry.height, `${entry.id}: height`).toBeGreaterThan(0)
+      expect(entry.triangles, `${entry.id}: triangles`).toBeGreaterThan(0)
+      expect(entry.materials, `${entry.id}: materials`).toBeGreaterThan(0)
+      expect(entry.source, `${entry.id}: source`).toMatch(/^scripts\/asset-kit\/stage\d+_\w+\.py$/)
+    }
+  })
+
+  it('catalog-measured costs stay inside the per-GLB QA budgets', () => {
+    for (const entry of catalog.entries) {
+      expect(entry.triangles, `${entry.id}: triangle budget`).toBeLessThanOrEqual(BUDGETS.assetTriangles)
+      expect(entry.materials, `${entry.id}: material budget`).toBeLessThanOrEqual(BUDGETS.assetMaterials)
+    }
+  })
+})

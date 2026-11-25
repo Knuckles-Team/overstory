@@ -119,8 +119,8 @@
     },
     "city-assets/kit/arch/arch.roof-pitch.glb": {
       "source_path": "scripts/asset-kit/stage05_arch.py",
-      "sha256": "139d8a5663301b71c0eca735584da4686bbe4936289982a8607025fabc6ced63",
-      "bytes": 3976,
+      "sha256": "808fc16933e635d4140fd996c341db3c96a0be36247cabd6318172eeacc05606",
+      "bytes": 4272,
       "license": "CC0-1.0"
     },
     "city-assets/kit/arch/arch.rooftop-plant.glb": {
@@ -135,10 +135,40 @@
       "bytes": 2992,
       "license": "CC0-1.0"
     },
+    "city-assets/kit/building/building.airport-terminal.glb": {
+      "source_path": "scripts/asset-kit/stage09_infrastructure.py",
+      "sha256": "9c1f348cf687de0cb9a1fe896be4c51d21af26e88c12b2c22af979d6ab675894",
+      "bytes": 21912,
+      "license": "CC0-1.0"
+    },
     "city-assets/kit/building/building.apartment-rowhouse.glb": {
       "source_path": "scripts/asset-kit/stage06_buildings.py",
       "sha256": "69a86d1ee64acef085c10395aba40c9e7e2a1534cb95eea984f1ce5dbf697401",
       "bytes": 22012,
+      "license": "CC0-1.0"
+    },
+    "city-assets/kit/building/building.arcade.glb": {
+      "source_path": "scripts/asset-kit/stage10_commerce.py",
+      "sha256": "aa5a6972a377e1e7e153a788315f5b1ae1aba4a4f9868c66b93c903b3dd81ce3",
+      "bytes": 15976,
+      "license": "CC0-1.0"
+    },
+    "city-assets/kit/building/building.bus-station.glb": {
+      "source_path": "scripts/asset-kit/stage09_infrastructure.py",
+      "sha256": "9f6dffebce6abfe930ce29be423a741f1d4322df8e1dc0fa0e72f44a0e86a57c",
+      "bytes": 24452,
+      "license": "CC0-1.0"
+    },
+    "city-assets/kit/building/building.carnival-bigtop.glb": {
+      "source_path": "scripts/asset-kit/stage10_commerce.py",
+      "sha256": "d285fe9251434d7b0e02863c487006bf57ff59c29e5df74319f05ccb05243dfa",
+      "bytes": 21904,
+      "license": "CC0-1.0"
+    },
+    "city-assets/kit/building/building.city-hall.glb": {
+      "source_path": "scripts/asset-kit/stage15_civic.py",
+      "sha256": "4c0eb334559084e9d66b57419ee17f8ea9d15ddcc19e1edfa9029370cc5f613d",
+      "bytes": 41000,
       "license": "CC0-1.0"
     },
     "city-assets/kit/building/building.clinic.glb": {
@@ -147,10 +177,82 @@
       "bytes": 18216,
       "license": "CC0-1.0"
     },
+    "city-assets/kit/building/building.clothing-store.glb": {
+      "source_path": "scripts/asset-kit/stage10_commerce.py",
+      "sha256": "a27cdee1d72864453d21941e25db16cf56bf3bee43b4ef3220e8fd763109f94c",
+      "bytes": 12816,
+      "license": "CC0-1.0"
+    },
+    "city-assets/kit/building/building.coal-plant.glb": {
+      "source_path": "scripts/asset-kit/stage09_infrastructure.py",
+      "sha256": "63faa5f048edab950f7c29c3017cc5e5cfe8118e1fa3da393ac0fec50c956122",
+      "bytes": 20436,
+      "license": "CC0-1.0"
+    },
+    "city-assets/kit/building/building.courthouse.glb": {
+      "source_path": "scripts/asset-kit/stage15_civic.py",
+      "sha256": "a795c98c80725a83761e3dc13bb11e3bbbd0d6d6c7ad741d59a158cc01007e6b",
+      "bytes": 29112,
+      "license": "CC0-1.0"
+    },
+    "city-assets/kit/building/building.datacenter.glb": {
+      "source_path": "scripts/asset-kit/stage11_industry.py",
+      "sha256": "346cede675151eb0b74a90adc6631c14aaa44f4d917b4dda11bc57ac6815cf4b",
+      "bytes": 23992,
+      "license": "CC0-1.0"
+    },
+    "city-assets/kit/building/building.energy-plant.glb": {
+      "source_path": "scripts/asset-kit/stage09_infrastructure.py",
+      "sha256": "1eb101427439cf18cb477c99efe7d05efe34f4e64a7b344dedeeb87906aea04a",
+      "bytes": 33144,
+      "license": "CC0-1.0"
+    },
+    "city-assets/kit/building/building.farm-barn.glb": {
+      "source_path": "scripts/asset-kit/stage11_industry.py",
+      "sha256": "72e5f45951f4c8ba0116512fbe66984f57c438f15910bf93a4e2e6dfe451161c",
+      "bytes": 15624,
+      "license": "CC0-1.0"
+    },
+    "city-assets/kit/building/building.farm-house.glb": {
+      "source_path": "scripts/asset-kit/stage11_industry.py",
+      "sha256": "23a3fa95aeab41ae4a484b43f91b8905e12702b487f99e573c3040795cfa981a",
+      "bytes": 15620,
+      "license": "CC0-1.0"
+    },
+    "city-assets/kit/building/building.farmers-market.glb": {
+      "source_path": "scripts/asset-kit/stage11_industry.py",
+      "sha256": "21c1028525a9329658b87b46a26b229fde101a45fa4ec3d39f774a1456cedd2b",
+      "bytes": 34908,
+      "license": "CC0-1.0"
+    },
+    "city-assets/kit/building/building.fast-food.glb": {
+      "source_path": "scripts/asset-kit/stage10_commerce.py",
+      "sha256": "f47d23bb1e54c3005b1375a9e5989b77d4eb8fc2c176d51646be019a2a215277",
+      "bytes": 17936,
+      "license": "CC0-1.0"
+    },
+    "city-assets/kit/building/building.firehouse.glb": {
+      "source_path": "scripts/asset-kit/stage09_infrastructure.py",
+      "sha256": "e7073d166cc0ec1dcd867d0d73550bd6d3e0daaae71ed60323db55b442cb2946",
+      "bytes": 38516,
+      "license": "CC0-1.0"
+    },
     "city-assets/kit/building/building.fuel-station.glb": {
       "source_path": "scripts/asset-kit/stage06_buildings.py",
       "sha256": "82df44612c096f157d2dd995e446f549aecaf91dc77debd3e05f64758978a1e5",
       "bytes": 20168,
+      "license": "CC0-1.0"
+    },
+    "city-assets/kit/building/building.funeral-home.glb": {
+      "source_path": "scripts/asset-kit/stage09_infrastructure.py",
+      "sha256": "392b1fcdb510a85d3acdfb80daac960c022d6f3245b59d6d3084e3b3d2656564",
+      "bytes": 21920,
+      "license": "CC0-1.0"
+    },
+    "city-assets/kit/building/building.furniture-store.glb": {
+      "source_path": "scripts/asset-kit/stage10_commerce.py",
+      "sha256": "8fb2b62fd63fba61c16f0ec28eaa6da10ca9bbff90183274aedef42be06c6985",
+      "bytes": 13936,
       "license": "CC0-1.0"
     },
     "city-assets/kit/building/building.garage.glb": {
@@ -165,6 +267,12 @@
       "bytes": 21084,
       "license": "CC0-1.0"
     },
+    "city-assets/kit/building/building.hospital.glb": {
+      "source_path": "scripts/asset-kit/stage09_infrastructure.py",
+      "sha256": "b81bca9100be873255d70a20204adecb11f2e7c8d8c564d1474d5599a6c9374d",
+      "bytes": 43308,
+      "license": "CC0-1.0"
+    },
     "city-assets/kit/building/building.hotel.glb": {
       "source_path": "scripts/asset-kit/stage06_buildings.py",
       "sha256": "0433c28ba1abcc1dc8963c4e436bc0cda91cb0951861ba89a00aefe7f2220c01",
@@ -173,20 +281,116 @@
     },
     "city-assets/kit/building/building.house-detached.glb": {
       "source_path": "scripts/asset-kit/stage06_buildings.py",
-      "sha256": "76552a8a8fd55c11ffe6003c396cece8558ae19ee041ffe1de865b92aef6c9ac",
-      "bytes": 17484,
+      "sha256": "8cf818a3f9d911c517868a41fd61374adc9cc5f8e678d2bc54e22eb62b395e72",
+      "bytes": 17772,
+      "license": "CC0-1.0"
+    },
+    "city-assets/kit/building/building.house-suburban.glb": {
+      "source_path": "scripts/asset-kit/stage11_industry.py",
+      "sha256": "ec76bf69a0bff44c48bf7fb15b5d825c6f6b4a0e2b09c88da967ae29400665f3",
+      "bytes": 18720,
+      "license": "CC0-1.0"
+    },
+    "city-assets/kit/building/building.mall.glb": {
+      "source_path": "scripts/asset-kit/stage10_commerce.py",
+      "sha256": "b233eb1a0f9228331da0394688b96dfeb053de1e8ea07b7a752172ce80fe4bb7",
+      "bytes": 27432,
+      "license": "CC0-1.0"
+    },
+    "city-assets/kit/building/building.movie-theater.glb": {
+      "source_path": "scripts/asset-kit/stage10_commerce.py",
+      "sha256": "2c1505c066a27459b21e82bd0fd433ac4fe241838c5f0badbb8068db9ab7661e",
+      "bytes": 24456,
+      "license": "CC0-1.0"
+    },
+    "city-assets/kit/building/building.nuclear-plant.glb": {
+      "source_path": "scripts/asset-kit/stage09_infrastructure.py",
+      "sha256": "26159fed6977616c50196ab47527059be3089361853b9bdb874d9d790c6058b2",
+      "bytes": 35324,
+      "license": "CC0-1.0"
+    },
+    "city-assets/kit/building/building.office-campus.glb": {
+      "source_path": "scripts/asset-kit/stage11_industry.py",
+      "sha256": "311acd302d20500311167acf4579c411823b15e23899cf77f39c78a363cb1d31",
+      "bytes": 30736,
       "license": "CC0-1.0"
     },
     "city-assets/kit/building/building.office-tower.glb": {
       "source_path": "scripts/asset-kit/stage06_buildings.py",
-      "sha256": "948bc4ec77e57b3e06669100bb7751a24acef76ce5ea2755e19a2111a047c3f2",
-      "bytes": 19800,
+      "sha256": "71bad12e531af45a71e08e47f5d63410d94c516e42cc73d47a97bc153932a0f1",
+      "bytes": 43136,
+      "license": "CC0-1.0"
+    },
+    "city-assets/kit/building/building.oil-gas-plant.glb": {
+      "source_path": "scripts/asset-kit/stage11_industry.py",
+      "sha256": "e8be463b45db000958d443a6814462046188a8e3b2184ae0492381968c3f516e",
+      "bytes": 32120,
+      "license": "CC0-1.0"
+    },
+    "city-assets/kit/building/building.ore-plant.glb": {
+      "source_path": "scripts/asset-kit/stage11_industry.py",
+      "sha256": "0a378e89252b000276d501352a34fc3566ed201bac8e916df80fbac49dfe2b82",
+      "bytes": 20680,
+      "license": "CC0-1.0"
+    },
+    "city-assets/kit/building/building.pier-carnival.glb": {
+      "source_path": "scripts/asset-kit/stage10_commerce.py",
+      "sha256": "30a656c721ef4a7834006ab94ae1328a03c980f7ae1a08535bce111c81ee2b5e",
+      "bytes": 46668,
+      "license": "CC0-1.0"
+    },
+    "city-assets/kit/building/building.police-station.glb": {
+      "source_path": "scripts/asset-kit/stage09_infrastructure.py",
+      "sha256": "f6aebfd16878852e6a72f7e3ae7588a209d5fccfed54188216f8ed9622a64c43",
+      "bytes": 31804,
+      "license": "CC0-1.0"
+    },
+    "city-assets/kit/building/building.restaurant-row.glb": {
+      "source_path": "scripts/asset-kit/stage10_commerce.py",
+      "sha256": "e23f80e8c5c6f4db19dac10d214eaac2a10da8e573874fa4941939cd0cd156b0",
+      "bytes": 29028,
+      "license": "CC0-1.0"
+    },
+    "city-assets/kit/building/building.school.glb": {
+      "source_path": "scripts/asset-kit/stage15_civic.py",
+      "sha256": "530e8cd86a6ee46d73fa5b1937e73155763142996e4d9374b6b5eebf7826dc12",
+      "bytes": 20804,
+      "license": "CC0-1.0"
+    },
+    "city-assets/kit/building/building.school-community-college.glb": {
+      "source_path": "scripts/asset-kit/stage16_parks_edu.py",
+      "sha256": "392e7f60028c68db8a709f6ba2ecabfdfc83fadad9e16203a4d518bffcf75155",
+      "bytes": 69384,
+      "license": "CC0-1.0"
+    },
+    "city-assets/kit/building/building.school-daycare.glb": {
+      "source_path": "scripts/asset-kit/stage16_parks_edu.py",
+      "sha256": "e22e945ec17ae95044746a13e99d31149a7a7b52cea027e3ded00edd75761b3a",
+      "bytes": 32136,
+      "license": "CC0-1.0"
+    },
+    "city-assets/kit/building/building.school-high.glb": {
+      "source_path": "scripts/asset-kit/stage16_parks_edu.py",
+      "sha256": "b3e81dba52f4618e442ee5e5677ef50609e1c4aaa046941f285d1c2821c5560b",
+      "bytes": 67864,
+      "license": "CC0-1.0"
+    },
+    "city-assets/kit/building/building.school-middle.glb": {
+      "source_path": "scripts/asset-kit/stage16_parks_edu.py",
+      "sha256": "1f7e7047060428dd4d2343d1d8478ae1f6d55df0e354c278a5ff56c1ccff5924",
+      "bytes": 53824,
       "license": "CC0-1.0"
     },
     "city-assets/kit/building/building.security-station.glb": {
       "source_path": "scripts/asset-kit/stage06_buildings.py",
       "sha256": "5f636d4d0d03e51515bee73a18f36033ee78642f29937763033dc5d73bcf23c9",
       "bytes": 24016,
+      "license": "CC0-1.0"
+    },
+    "city-assets/kit/building/building.shipyard.glb": {
+      "source_path": "scripts/asset-kit/stage09_infrastructure.py",
+      "sha256": "760f5f59b25a8a763f5026bc2ae7e66ea913fb35d42adf6868972021c543bfd4",
+      "bytes": 20368,
       "license": "CC0-1.0"
     },
     "city-assets/kit/building/building.shop-bakery.glb": {
@@ -199,6 +403,90 @@
       "source_path": "scripts/asset-kit/stage06_buildings.py",
       "sha256": "f32cbd254f19892a178afac6f044df4c4ad3ad4c7121b293ab162c26bcaa8724",
       "bytes": 27456,
+      "license": "CC0-1.0"
+    },
+    "city-assets/kit/building/building.skyscraper-podium.glb": {
+      "source_path": "scripts/asset-kit/stage11_industry.py",
+      "sha256": "b21839380cbb29872e52a33a9c41dc65359ef7105fd09faaa559173b76ecc202",
+      "bytes": 89700,
+      "license": "CC0-1.0"
+    },
+    "city-assets/kit/building/building.skyscraper-setback.glb": {
+      "source_path": "scripts/asset-kit/stage11_industry.py",
+      "sha256": "20a49c6c3e9ab1db2f6d4457c43172e97a2b1537160702064a1e11ca95a2cde2",
+      "bytes": 154880,
+      "license": "CC0-1.0"
+    },
+    "city-assets/kit/building/building.skyscraper-slab.glb": {
+      "source_path": "scripts/asset-kit/stage11_industry.py",
+      "sha256": "aa8924984d88d48ffa14bd64e38305cd21e089ca57f1beec6fb23ef3df5047e1",
+      "bytes": 102616,
+      "license": "CC0-1.0"
+    },
+    "city-assets/kit/building/building.skyscraper-tapered.glb": {
+      "source_path": "scripts/asset-kit/stage11_industry.py",
+      "sha256": "7adde4b876925ff6d768db8a8b1b763384fa7735c988c46a1ac5f0d033a4e263",
+      "bytes": 185392,
+      "license": "CC0-1.0"
+    },
+    "city-assets/kit/building/building.skyscraper-twin.glb": {
+      "source_path": "scripts/asset-kit/stage11_industry.py",
+      "sha256": "e315c034dc7461350776bb63b9b3fd7733206d613a2c65e8ff0b0666b694aeb2",
+      "bytes": 131412,
+      "license": "CC0-1.0"
+    },
+    "city-assets/kit/building/building.stadium.glb": {
+      "source_path": "scripts/asset-kit/stage10_commerce.py",
+      "sha256": "223a4dab9e5a6770a4afc1bc4499b049e0d7a81a0bb83458bd17ac0db3a99340",
+      "bytes": 39424,
+      "license": "CC0-1.0"
+    },
+    "city-assets/kit/building/building.substation.glb": {
+      "source_path": "scripts/asset-kit/stage15_civic.py",
+      "sha256": "820cc3d99c2075addf5385bf81320bf680d8a8c38504e58d3e4ce003c6ec546a",
+      "bytes": 30900,
+      "license": "CC0-1.0"
+    },
+    "city-assets/kit/building/building.theme-park.glb": {
+      "source_path": "scripts/asset-kit/stage10_commerce.py",
+      "sha256": "c124831432d95c2d4b687656b7c39904723eb668380270f11beb5081e0ffa2b1",
+      "bytes": 56048,
+      "license": "CC0-1.0"
+    },
+    "city-assets/kit/building/building.train-station.glb": {
+      "source_path": "scripts/asset-kit/stage09_infrastructure.py",
+      "sha256": "8e7ae2ec0bf7c3a13efede2b9f0083fac2c06c4132fc1b09a0925c920b6aa325",
+      "bytes": 32376,
+      "license": "CC0-1.0"
+    },
+    "city-assets/kit/building/building.train-yard.glb": {
+      "source_path": "scripts/asset-kit/stage09_infrastructure.py",
+      "sha256": "59dc5972b477e41a3e64721269fc8dcc91e2156e53c6a8ee6a45442e6b9034d1",
+      "bytes": 46676,
+      "license": "CC0-1.0"
+    },
+    "city-assets/kit/building/building.university.glb": {
+      "source_path": "scripts/asset-kit/stage15_civic.py",
+      "sha256": "44aa34de0ba9930a738390d8c894c1ac79eee874998b72dedc9ace2aeaccbd2b",
+      "bytes": 37456,
+      "license": "CC0-1.0"
+    },
+    "city-assets/kit/building/building.warehouse.glb": {
+      "source_path": "scripts/asset-kit/stage11_industry.py",
+      "sha256": "1d642d4be217e2e4331851e8c3789beffda54322e60afd2db01d8ca7886ab549",
+      "bytes": 12852,
+      "license": "CC0-1.0"
+    },
+    "city-assets/kit/building/building.waste-recycling.glb": {
+      "source_path": "scripts/asset-kit/stage15_civic.py",
+      "sha256": "ca1c6332900d8fbfddeb8fb369f021e8ba23daafa3134c1f1e49ab5d214e5dd5",
+      "bytes": 16508,
+      "license": "CC0-1.0"
+    },
+    "city-assets/kit/building/building.water-works.glb": {
+      "source_path": "scripts/asset-kit/stage09_infrastructure.py",
+      "sha256": "fd90601e3b31ca87747feb4abfe24458970937e44d02960cb27832059579e2ea",
+      "bytes": 35304,
       "license": "CC0-1.0"
     },
     "city-assets/kit/building/building.waterfront-pavilion.glb": {
@@ -297,16 +585,70 @@
       "bytes": 20492,
       "license": "CC0-1.0"
     },
+    "city-assets/kit/landscape/landscape.mining-site.glb": {
+      "source_path": "scripts/asset-kit/stage11_industry.py",
+      "sha256": "04c7b7345124dd44ab973c9fb48ab7cb2dfc2207c66ea7584af405b4aaf9cf73",
+      "bytes": 17536,
+      "license": "CC0-1.0"
+    },
+    "city-assets/kit/landscape/landscape.orchard-row.glb": {
+      "source_path": "scripts/asset-kit/stage11_industry.py",
+      "sha256": "2a29abe365f0d8bce422f30d2975f8a5d57084bdda6e58bd55b2251ffab01ee5",
+      "bytes": 24744,
+      "license": "CC0-1.0"
+    },
     "city-assets/kit/landscape/landscape.palm.glb": {
       "source_path": "scripts/asset-kit/stage03_landscape.py",
       "sha256": "3f3bf4b16bc8b6f687948d033c8f08150a43d4c2282b3831e354f9d75dd01601",
       "bytes": 23724,
       "license": "CC0-1.0"
     },
+    "city-assets/kit/landscape/landscape.park-child.glb": {
+      "source_path": "scripts/asset-kit/stage16_parks_edu.py",
+      "sha256": "1c071757c8450deb92fb0e1e85fbd5faf6469aff1d1269773f92400c17ef08a7",
+      "bytes": 47096,
+      "license": "CC0-1.0"
+    },
+    "city-assets/kit/landscape/landscape.park-dog.glb": {
+      "source_path": "scripts/asset-kit/stage16_parks_edu.py",
+      "sha256": "14966e08e4a2add6741822ab1afd3986f5194e4328368c4106a23f116d0c61cf",
+      "bytes": 36716,
+      "license": "CC0-1.0"
+    },
+    "city-assets/kit/landscape/landscape.park-nature.glb": {
+      "source_path": "scripts/asset-kit/stage16_parks_edu.py",
+      "sha256": "5d438a220cbc65a62eac08c93cb8cdbfa3c0c265856f34dbbe1a06e130821919",
+      "bytes": 80432,
+      "license": "CC0-1.0"
+    },
+    "city-assets/kit/landscape/landscape.park-skate.glb": {
+      "source_path": "scripts/asset-kit/stage16_parks_edu.py",
+      "sha256": "da245cbdf03091cdd75eab10e586419a55e43ab7c34b37b75d6bdef58fd2585a",
+      "bytes": 31960,
+      "license": "CC0-1.0"
+    },
+    "city-assets/kit/landscape/landscape.park-standard.glb": {
+      "source_path": "scripts/asset-kit/stage16_parks_edu.py",
+      "sha256": "be7bb5535f7c18a30c88403e3d8c590a1c4d5217817966543c2e2f9ad56014f7",
+      "bytes": 60712,
+      "license": "CC0-1.0"
+    },
+    "city-assets/kit/landscape/landscape.recreational-lake.glb": {
+      "source_path": "scripts/asset-kit/stage12_wild.py",
+      "sha256": "c96b7f92136001ce3c8c38f1263fc59a4cdd625b689aeb674ee462a43023734f",
+      "bytes": 32856,
+      "license": "CC0-1.0"
+    },
     "city-assets/kit/landscape/landscape.reef-rocks.glb": {
       "source_path": "scripts/asset-kit/stage03_landscape.py",
       "sha256": "6b63ea7120ee66e8547393005148bd608b91ddb5b352dbb8cf710a4c2fbccb55",
       "bytes": 11196,
+      "license": "CC0-1.0"
+    },
+    "city-assets/kit/landscape/landscape.rural-plot.glb": {
+      "source_path": "scripts/asset-kit/stage11_industry.py",
+      "sha256": "d57500cc2737b88ca6a93a148ec0c03baf7a5d0df16d792771c9eaf9380ee39e",
+      "bytes": 24404,
       "license": "CC0-1.0"
     },
     "city-assets/kit/landscape/landscape.sand-dune.glb": {
@@ -319,6 +661,36 @@
       "source_path": "scripts/asset-kit/stage03_landscape.py",
       "sha256": "7de557377e706f08eb54512781f5e13f0d653d59a703b3f008bf89870ed17183",
       "bytes": 6640,
+      "license": "CC0-1.0"
+    },
+    "city-assets/kit/landscape/landscape.wild-desert.glb": {
+      "source_path": "scripts/asset-kit/stage12_wild.py",
+      "sha256": "9ce8c6a39ec4dce06749c0f3dbf66fb80ebddad628fdb8e6856486832f86ab5e",
+      "bytes": 26100,
+      "license": "CC0-1.0"
+    },
+    "city-assets/kit/landscape/landscape.wild-forest.glb": {
+      "source_path": "scripts/asset-kit/stage12_wild.py",
+      "sha256": "564f2d798ff64534c3e9fbfab20041b3e6451005b33f3c34aebfc159a150ba6f",
+      "bytes": 61800,
+      "license": "CC0-1.0"
+    },
+    "city-assets/kit/landscape/landscape.wild-jungle.glb": {
+      "source_path": "scripts/asset-kit/stage12_wild.py",
+      "sha256": "48de6a57bf835588212da60c3a2b5ecfd9aa957489c355b87ff8c9307cea4ee8",
+      "bytes": 71240,
+      "license": "CC0-1.0"
+    },
+    "city-assets/kit/landscape/landscape.wild-lake.glb": {
+      "source_path": "scripts/asset-kit/stage12_wild.py",
+      "sha256": "17a24abc3dedc7509a540db5125ad4125188700892cbac858e765e41082ff6f2",
+      "bytes": 31932,
+      "license": "CC0-1.0"
+    },
+    "city-assets/kit/landscape/landscape.wild-river.glb": {
+      "source_path": "scripts/asset-kit/stage12_wild.py",
+      "sha256": "38716e82ede425472d77c153c708c023efd16a64b3e3383d9f3f11dedf11d207",
+      "bytes": 40844,
       "license": "CC0-1.0"
     },
     "city-assets/kit/marine/marine.buoy.glb": {
@@ -363,6 +735,12 @@
       "bytes": 7276,
       "license": "CC0-1.0"
     },
+    "city-assets/kit/prop/prop.bicycle-parked.glb": {
+      "source_path": "scripts/asset-kit/stage15_civic.py",
+      "sha256": "33372e0f916f84b6fa5c3c04cc7ac278a0299bca4140e979829fda638f083a8a",
+      "bytes": 13816,
+      "license": "CC0-1.0"
+    },
     "city-assets/kit/prop/prop.billboard.glb": {
       "source_path": "scripts/asset-kit/stage02_props.py",
       "sha256": "637208c7ca3637f6b4b5cea3f1fb75c096f338266d67db1804d510991c4ddc5f",
@@ -385,6 +763,12 @@
       "source_path": "scripts/asset-kit/stage02_props.py",
       "sha256": "a49b728227533af1004d191defc109b365e637eaf0121e49d78623097472c94e",
       "bytes": 12172,
+      "license": "CC0-1.0"
+    },
+    "city-assets/kit/prop/prop.construction-crane.glb": {
+      "source_path": "scripts/asset-kit/stage15_civic.py",
+      "sha256": "ce94d41a19c5725e837dc6e9d8e40f19d9d2e568365c7189d9d07494065b3f9d",
+      "bytes": 31168,
       "license": "CC0-1.0"
     },
     "city-assets/kit/prop/prop.construction-zone.glb": {
@@ -411,10 +795,22 @@
       "bytes": 13344,
       "license": "CC0-1.0"
     },
+    "city-assets/kit/prop/prop.parking-meter.glb": {
+      "source_path": "scripts/asset-kit/stage15_civic.py",
+      "sha256": "ebb4e6e286bcec525dce090c806f681f209c8d7b15536b83f4c82ee2656be19e",
+      "bytes": 6252,
+      "license": "CC0-1.0"
+    },
     "city-assets/kit/prop/prop.planter.glb": {
       "source_path": "scripts/asset-kit/stage02_props.py",
       "sha256": "09d54d987c8c67796b6989f8418dab15fb1bbe051bd6e06feed4f626499fc83f",
       "bytes": 9196,
+      "license": "CC0-1.0"
+    },
+    "city-assets/kit/prop/prop.playground-set.glb": {
+      "source_path": "scripts/asset-kit/stage15_civic.py",
+      "sha256": "91faf4df542f7ba26fd4279bb3ca3e0755b7df43744f64f301c38cffaa0c660c",
+      "bytes": 23620,
       "license": "CC0-1.0"
     },
     "city-assets/kit/prop/prop.postbox.glb": {
@@ -427,6 +823,18 @@
       "source_path": "scripts/asset-kit/stage02_props.py",
       "sha256": "7fcd496948f6136c940ba7d92a83b6a5dfb3f5021f1fdf093ff7d74d4285b549",
       "bytes": 10504,
+      "license": "CC0-1.0"
+    },
+    "city-assets/kit/prop/prop.scaffold-section.glb": {
+      "source_path": "scripts/asset-kit/stage15_civic.py",
+      "sha256": "1ba415bba76709060f28024dcdb594407d9ef1eeade99f195913d6aead3977a1",
+      "bytes": 17056,
+      "license": "CC0-1.0"
+    },
+    "city-assets/kit/prop/prop.seagull.glb": {
+      "source_path": "scripts/asset-kit/stage15_civic.py",
+      "sha256": "64f6fc5df3610816dc7a0c095e9bf55a022f4e382b2d2263d25eeeedbcd06691",
+      "bytes": 13668,
       "license": "CC0-1.0"
     },
     "city-assets/kit/prop/prop.shelter.glb": {
@@ -453,16 +861,46 @@
       "bytes": 10948,
       "license": "CC0-1.0"
     },
+    "city-assets/kit/prop/prop.utility-box.glb": {
+      "source_path": "scripts/asset-kit/stage15_civic.py",
+      "sha256": "e6146d2b7d6c9ac92cee0393366667525d35d0fc622bbe57333a756e291eaeef",
+      "bytes": 8240,
+      "license": "CC0-1.0"
+    },
+    "city-assets/kit/prop/prop.utility-pole.glb": {
+      "source_path": "scripts/asset-kit/stage15_civic.py",
+      "sha256": "3820b830759858bae0b3a00a0e1bfa61b52f204f9e72ed9ce2061f5df104a4bb",
+      "bytes": 12536,
+      "license": "CC0-1.0"
+    },
+    "city-assets/kit/prop/prop.vending-machine.glb": {
+      "source_path": "scripts/asset-kit/stage15_civic.py",
+      "sha256": "6a4e095ed998e5a3503ba94862a7313dae1f44ab5981b2d3c1e0f5e5a621ce80",
+      "bytes": 14168,
+      "license": "CC0-1.0"
+    },
+    "city-assets/kit/prop/prop.yield-sign.glb": {
+      "source_path": "scripts/asset-kit/stage14_roads.py",
+      "sha256": "627898137846d2965af52b6bffe8b027817508ee012e18ca4e4f2dadd6481a18",
+      "bytes": 4172,
+      "license": "CC0-1.0"
+    },
     "city-assets/kit/road/road.abutment-support.glb": {
       "source_path": "scripts/asset-kit/stage01_roads.py",
       "sha256": "04cae4b606488fb279db6fc684d9db35e9a39b3c97c470c1da96c47b5fb1ed58",
       "bytes": 5492,
       "license": "CC0-1.0"
     },
+    "city-assets/kit/road/road.asymmetric-32.glb": {
+      "source_path": "scripts/asset-kit/stage14_roads.py",
+      "sha256": "413d77a07c00da9b17b545d2e0bd14c0e36bf9e08c89808fe193e6e754d2b42e",
+      "bytes": 10800,
+      "license": "CC0-1.0"
+    },
     "city-assets/kit/road/road.bend-90.glb": {
       "source_path": "scripts/asset-kit/stage01_roads.py",
-      "sha256": "d7dcd077c1fd4087c171e1846735c03a98b18378e9ca44890cec5a090e5bb9b3",
-      "bytes": 14408,
+      "sha256": "c5203dbdbac76afb5af6cbef076a10e3e8f5d46dc091dcd6dce282d36f83c0ed",
+      "bytes": 14560,
       "license": "CC0-1.0"
     },
     "city-assets/kit/road/road.boardwalk-pier.glb": {
@@ -471,10 +909,22 @@
       "bytes": 16108,
       "license": "CC0-1.0"
     },
+    "city-assets/kit/road/road.boulevard-tree.glb": {
+      "source_path": "scripts/asset-kit/stage14_roads.py",
+      "sha256": "0eebfa18544b0d37dca045153d2b4d4551fb53ac91689598294f979be1fc23ce",
+      "bytes": 19256,
+      "license": "CC0-1.0"
+    },
     "city-assets/kit/road/road.bridge-deck.glb": {
       "source_path": "scripts/asset-kit/stage01_roads.py",
       "sha256": "ab0ba9e8679bde887a8aec133e7520c55839d95536e5b5b1206ad1db89b2b215",
       "bytes": 7452,
+      "license": "CC0-1.0"
+    },
+    "city-assets/kit/road/road.country-2.glb": {
+      "source_path": "scripts/asset-kit/stage14_roads.py",
+      "sha256": "1f987ef6a5cb2671fba348b1389b57b40ef8245548f8d33a703c3a05b67145c4",
+      "bytes": 6936,
       "license": "CC0-1.0"
     },
     "city-assets/kit/road/road.cross-junction.glb": {
@@ -495,16 +945,58 @@
       "bytes": 2776,
       "license": "CC0-1.0"
     },
+    "city-assets/kit/road/road.dirt-road.glb": {
+      "source_path": "scripts/asset-kit/stage14_roads.py",
+      "sha256": "4038b663bd221376691a0a09726d5153c4eff24fc079c888b68bbc6a3adc5b26",
+      "bytes": 6092,
+      "license": "CC0-1.0"
+    },
     "city-assets/kit/road/road.end-cap.glb": {
       "source_path": "scripts/asset-kit/stage01_roads.py",
       "sha256": "ac761ab8c4d3fcbfc0a47996e47e4ef7d0825955c48db8f01be2c14edcdd0752",
       "bytes": 2812,
       "license": "CC0-1.0"
     },
+    "city-assets/kit/road/road.flyover-ramp.glb": {
+      "source_path": "scripts/asset-kit/stage14_roads.py",
+      "sha256": "03589d35b6d507c3d8a52a298b67b2e78c3d38b9697e938633fa48dcd8cb4986",
+      "bytes": 16292,
+      "license": "CC0-1.0"
+    },
+    "city-assets/kit/road/road.highway-4.glb": {
+      "source_path": "scripts/asset-kit/stage14_roads.py",
+      "sha256": "3d814ab3a14e8fe605a503b932d15b221c1a97407f01a5d44006534eaf17939d",
+      "bytes": 11444,
+      "license": "CC0-1.0"
+    },
+    "city-assets/kit/road/road.highway-6.glb": {
+      "source_path": "scripts/asset-kit/stage14_roads.py",
+      "sha256": "660498ca36549c9f371ac2ccbbe8ef105ceaffe56abccd2d1c1e09091ca4e94e",
+      "bytes": 13396,
+      "license": "CC0-1.0"
+    },
+    "city-assets/kit/road/road.highway-8.glb": {
+      "source_path": "scripts/asset-kit/stage14_roads.py",
+      "sha256": "156ae515e558d3ac623408ff5399275af4a99fc02f4a04a2ad9489badd065c57",
+      "bytes": 13276,
+      "license": "CC0-1.0"
+    },
+    "city-assets/kit/road/road.interchange-double.glb": {
+      "source_path": "scripts/asset-kit/stage14_roads.py",
+      "sha256": "db116a39368be0c93f2b440de9f364775f550377197392798c272587bc536453",
+      "bytes": 20444,
+      "license": "CC0-1.0"
+    },
     "city-assets/kit/road/road.manhole-drain.glb": {
       "source_path": "scripts/asset-kit/stage01_roads.py",
       "sha256": "76bf86145239da3f41a3add68b4c1ce35f9dbed784488eb0a8f0e38920561270",
       "bytes": 5200,
+      "license": "CC0-1.0"
+    },
+    "city-assets/kit/road/road.one-way-2.glb": {
+      "source_path": "scripts/asset-kit/stage14_roads.py",
+      "sha256": "ed307adaa0637d77be9dabc0476bb9ea2df99866f87b60d5fad2d3781a7a11c5",
+      "bytes": 10120,
       "license": "CC0-1.0"
     },
     "city-assets/kit/road/road.parapet-guardrail.glb": {
@@ -531,16 +1023,40 @@
       "bytes": 6948,
       "license": "CC0-1.0"
     },
+    "city-assets/kit/road/road.plaza-tile.glb": {
+      "source_path": "scripts/asset-kit/stage14_roads.py",
+      "sha256": "36e03414eca5c0dc50680579ab0f8067553738e9431e66c83194a87bef864002",
+      "bytes": 14756,
+      "license": "CC0-1.0"
+    },
     "city-assets/kit/road/road.quay-bank.glb": {
       "source_path": "scripts/asset-kit/stage01_roads.py",
       "sha256": "458249386035a684b631f8d37b9618e3ec1d83e80852f9a37a12844e891eca58",
       "bytes": 9156,
       "license": "CC0-1.0"
     },
+    "city-assets/kit/road/road.rail-track.glb": {
+      "source_path": "scripts/asset-kit/stage14_roads.py",
+      "sha256": "c074614308dac1390df05456de3643a2839f608b46e5596979a008e4dd5a86c3",
+      "bytes": 11532,
+      "license": "CC0-1.0"
+    },
     "city-assets/kit/road/road.ramp-tactile.glb": {
       "source_path": "scripts/asset-kit/stage01_roads.py",
       "sha256": "794d16a919708a565c06b17f3a8611aff7369975a1bc6f361c5087701d72aebc",
       "bytes": 20280,
+      "license": "CC0-1.0"
+    },
+    "city-assets/kit/road/road.roundabout.glb": {
+      "source_path": "scripts/asset-kit/stage14_roads.py",
+      "sha256": "6153f63a3ce71a66322362851b286e478f106be34e1c2281d5f0312f2fd3cd04",
+      "bytes": 35804,
+      "license": "CC0-1.0"
+    },
+    "city-assets/kit/road/road.runway.glb": {
+      "source_path": "scripts/asset-kit/stage14_roads.py",
+      "sha256": "7b7af9074d21a0b16fba6396bab904a91a18689c5cff04be627637807d9a4d65",
+      "bytes": 27784,
       "license": "CC0-1.0"
     },
     "city-assets/kit/road/road.sidewalk-corner.glb": {
@@ -567,10 +1083,22 @@
       "bytes": 6872,
       "license": "CC0-1.0"
     },
+    "city-assets/kit/road/road.toll-portal.glb": {
+      "source_path": "scripts/asset-kit/stage14_roads.py",
+      "sha256": "e0f85b5391dc6860c668e601f8005d2d08d9fd054b45dffde0138e8977346a57",
+      "bytes": 16064,
+      "license": "CC0-1.0"
+    },
+    "city-assets/kit/road/road.viaduct-elevated.glb": {
+      "source_path": "scripts/asset-kit/stage14_roads.py",
+      "sha256": "d814695f3b33577d48487b117bda0ad55b4bd37d79cfc1d903ee8a883061fdbe",
+      "bytes": 10336,
+      "license": "CC0-1.0"
+    },
     "city-assets/kit/road/road.width-transition.glb": {
       "source_path": "scripts/asset-kit/stage01_roads.py",
-      "sha256": "49fc45a76dd345235ee8ab7a9f263d551cc93e9c686ad84693b58d75cd77f3c8",
-      "bytes": 4972,
+      "sha256": "58b1afb7b5bc4d8c5ee9c6de02d65995b096c34f9f7241ff8448fc9c82116a5e",
+      "bytes": 5132,
       "license": "CC0-1.0"
     },
     "city-assets/kit/vehicle/vehicle.ambulance.glb": {
@@ -579,16 +1107,34 @@
       "bytes": 30172,
       "license": "CC0-1.0"
     },
+    "city-assets/kit/vehicle/vehicle.bicycle.glb": {
+      "source_path": "scripts/asset-kit/stage13_fleet.py",
+      "sha256": "32e3dc38eea836d8f18bccb1b851a5c01c748270610d842f151db3c8d3026abb",
+      "bytes": 12952,
+      "license": "CC0-1.0"
+    },
     "city-assets/kit/vehicle/vehicle.bus.glb": {
       "source_path": "scripts/asset-kit/stage04_vehicles.py",
       "sha256": "41db9be72fc936db3f21867cebf3c93a33d97445866ace05ac41c12e2d7ad11f",
       "bytes": 29092,
       "license": "CC0-1.0"
     },
+    "city-assets/kit/vehicle/vehicle.fire-truck.glb": {
+      "source_path": "scripts/asset-kit/stage13_fleet.py",
+      "sha256": "4e453b5d701d4b895b3f170f2a4e8907b57532ff544f3435cfba86b833a353a0",
+      "bytes": 39728,
+      "license": "CC0-1.0"
+    },
     "city-assets/kit/vehicle/vehicle.hatchback.glb": {
       "source_path": "scripts/asset-kit/stage04_vehicles.py",
       "sha256": "8dff292d199f85bcf224edc1d45fef3cfb048f995f57a7ce8b89c84959101da6",
       "bytes": 28368,
+      "license": "CC0-1.0"
+    },
+    "city-assets/kit/vehicle/vehicle.hearse.glb": {
+      "source_path": "scripts/asset-kit/stage13_fleet.py",
+      "sha256": "a982ee6e4df4995211e9260e882378d009414bd1bd69a81786125255620728e8",
+      "bytes": 26544,
       "license": "CC0-1.0"
     },
     "city-assets/kit/vehicle/vehicle.motorcycle.glb": {
@@ -603,6 +1149,42 @@
       "bytes": 31716,
       "license": "CC0-1.0"
     },
+    "city-assets/kit/vehicle/vehicle.plane-large.glb": {
+      "source_path": "scripts/asset-kit/stage13_fleet.py",
+      "sha256": "efd3f3afb3c1a2563d3d4bfcc7c2fd1a76e3f57625bb2d4eb1403fb710a4fbb9",
+      "bytes": 33020,
+      "license": "CC0-1.0"
+    },
+    "city-assets/kit/vehicle/vehicle.plane-medium.glb": {
+      "source_path": "scripts/asset-kit/stage13_fleet.py",
+      "sha256": "212b53189e989016a72a022755beb527c37cc149d77b596c114a41b2a24ff8d4",
+      "bytes": 29700,
+      "license": "CC0-1.0"
+    },
+    "city-assets/kit/vehicle/vehicle.plane-small.glb": {
+      "source_path": "scripts/asset-kit/stage13_fleet.py",
+      "sha256": "52674148fc19fe5fbbfd80c5b450f047786f39fd166797773650f758ac83905e",
+      "bytes": 22320,
+      "license": "CC0-1.0"
+    },
+    "city-assets/kit/vehicle/vehicle.police-helicopter.glb": {
+      "source_path": "scripts/asset-kit/stage13_fleet.py",
+      "sha256": "022a250cd30aeeb42d86cfc0bb8837c5526456e1b8bcf4b33f1a74c50b5d7451",
+      "bytes": 18780,
+      "license": "CC0-1.0"
+    },
+    "city-assets/kit/vehicle/vehicle.police-suv.glb": {
+      "source_path": "scripts/asset-kit/stage13_fleet.py",
+      "sha256": "1dac0a3ae46ae0532db815a277072cc85af10764a933366a2d7cc6f38d19cd20",
+      "bytes": 27084,
+      "license": "CC0-1.0"
+    },
+    "city-assets/kit/vehicle/vehicle.police-van.glb": {
+      "source_path": "scripts/asset-kit/stage13_fleet.py",
+      "sha256": "2bb9565883d772802f11ad6a8521d36ebe036a6c8ffde36a0e96a4aef8d2277f",
+      "bytes": 27884,
+      "license": "CC0-1.0"
+    },
     "city-assets/kit/vehicle/vehicle.sedan.glb": {
       "source_path": "scripts/asset-kit/stage04_vehicles.py",
       "sha256": "1e5af704df90520410163ab3e77ed0d93e9ce788e638f3b43b1f346646b5b63f",
@@ -615,10 +1197,28 @@
       "bytes": 29624,
       "license": "CC0-1.0"
     },
+    "city-assets/kit/vehicle/vehicle.train-cargo.glb": {
+      "source_path": "scripts/asset-kit/stage13_fleet.py",
+      "sha256": "6de8f6af3f2acc7d6bee0e149964e2ce8c1b7582026994c9ef0fbd618604c7fa",
+      "bytes": 22868,
+      "license": "CC0-1.0"
+    },
+    "city-assets/kit/vehicle/vehicle.train-passenger.glb": {
+      "source_path": "scripts/asset-kit/stage13_fleet.py",
+      "sha256": "8ae17bb6431ac93c921bd39880e123b3a6170d5eb9dd00c610e421629dc617be",
+      "bytes": 31252,
+      "license": "CC0-1.0"
+    },
     "city-assets/kit/vehicle/vehicle.truck.glb": {
       "source_path": "scripts/asset-kit/stage04_vehicles.py",
       "sha256": "3831b9900ca75c9f6ced7ac387a572b512a21c818ba12e2c62418c6c3aea46cd",
       "bytes": 29428,
+      "license": "CC0-1.0"
+    },
+    "city-assets/kit/vehicle/vehicle.truck-garbage.glb": {
+      "source_path": "scripts/asset-kit/stage13_fleet.py",
+      "sha256": "4f358c74691c6d42f2d98c557b5f8be7d5b48f16ad62b46651fbc8a4ed422fcc",
+      "bytes": 34808,
       "license": "CC0-1.0"
     },
     "city-assets/kit/vehicle/vehicle.van.glb": {

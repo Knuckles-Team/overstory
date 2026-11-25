@@ -21,11 +21,7 @@ import bpy
 import mathutils
 from mathutils import Color, Euler, Vector
 
-# The kit lives in the repository: <repo>/public/city-assets/kit. Resolve it
-# relative to this script so the pipeline runs from any checkout.
-OUT_ROOT = os.path.normpath(
-    os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "public", "city-assets", "kit")
-)
+OUT_ROOT = "/home/genius/Workspace/overstory-city-procedural-specs/public/city-assets/kit"
 
 # --- Caribbean coastal palette (spec asset-pack.md "Visual target").
 # Hex values are sRGB; converted to the linear space Blender's Principled
@@ -36,6 +32,7 @@ PALETTE = {
     "cream": "#f2ead6",
     "terracotta": "#bf5f3f",
     "timber": "#6d4a2f",
+    "timber_dark": "#54381f",
     "timber_light": "#a97c50",
     "asphalt": "#33363a",
     "asphalt_wet": "#26282c",
@@ -188,7 +185,7 @@ def ico(name, r, x=0.0, y=0.0, z=0.0, mat=None, detail=1):
     return obj
 
 
-def torus(name, R, r, x=0.0, y=0.0, z=0.0, mat=None, seg=10, rad=6):
+def torus(name, R, r, x=0.0, y=0.0, z=0.0, mat=None, seg=10, rad=6, rot=None):
     """Torus centred at (x, y, z), ring in the x/y plane."""
     bm = bmesh.new()
     ring = []
@@ -219,11 +216,14 @@ def torus(name, R, r, x=0.0, y=0.0, z=0.0, mat=None, seg=10, rad=6):
     bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
     obj = _new_obj(name, bm, mat)
     obj.location = (x, y, z)
+    if rot:
+        obj.rotation_euler = Euler(rot)
     return obj
 
 
 def prism(name, points, h, z=0.0, mat=None):
-    """Extruded polygon (points in x/y), base at z, mesh centred on the origin."""
+    """Extruded polygon (points in x/y), base at z, mesh centred in x/y on
+    the points' centroid (z runs 0..h in local space)."""
     bm = bmesh.new()
     c = sum((Vector((px, py)) for px, py in points), Vector((0.0, 0.0))) / len(points)
     verts = [bm.verts.new((px - c.x, py - c.y, 0.0)) for px, py in points]
@@ -233,7 +233,7 @@ def prism(name, points, h, z=0.0, mat=None):
     bmesh.ops.translate(bm, verts=up, vec=(0, 0, h))
     bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
     obj = _new_obj(name, bm, mat)
-    obj.location = (c.x, c.y, z + h / 2.0)
+    obj.location = (c.x, c.y, z)
     return obj
 
 

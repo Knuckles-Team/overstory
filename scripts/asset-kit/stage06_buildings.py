@@ -125,7 +125,7 @@ def house_detached(K):
     o.append(K.box("glass-side", 0.12, 0.9, 1.1, x=3.05, y=-0.8, z=2.2, mat=K.get_mat_glass("glass_dark")))
     # gable roof
     for s in (-1, 1):
-        o.append(K.box("slope", 6.4, 2.6, 0.1, y=s * 1.15, z=4.3, rot=(math.radians(s * 26), 0, 0),
+        o.append(K.box("slope", 6.4, 2.6, 0.1, y=s * 1.15, z=4.3, rot=(math.radians(-s * 26), 0, 0),
                        mat=K.get_mat("terracotta")))
     o.append(K.box("ridge", 6.4, 0.16, 0.16, z=4.95, mat=K.get_mat("terracotta")))
     # chimney
@@ -296,12 +296,20 @@ def hotel(K):
 
 
 def office_tower(K):
-    o = [K.box("core", 5.0, 4.0, 19.0, mat=K.get_mat("stone_pale"))]
-    # curtain-wall bands per floor
+    o = [K.box("core", 5.0, 4.0, 19.0, mat=K.get_mat("plaster_warm"))]
+    # small blue pane grid: one shared glass slot for the lit-window channel
     for f in range(6):
         z = 2.6 + f * 3.0
-        o.append(K.box("glass-band", 5.05, 4.05, 1.6, z=z, mat=K.get_mat_glass("glass_dark")))
-        o.append(K.box("spandrel", 5.1, 4.1, 1.3, z=z + 2.0, mat=K.get_mat("plaster_warm")))
+        for i in range(2):
+            p = -1.25 + i * 2.5
+            for s in (-1, 1):
+                o.append(K.box("pane", 1.25, 0.12, 1.5, x=p, y=s * 2.03, z=z,
+                               mat=K.get_mat_glass("glass_cool")))
+        for i in range(2):
+            p = -1.0 + i * 2.0
+            for s in (-1, 1):
+                o.append(K.box("pane", 0.12, 1.25, 1.5, x=s * 2.53, y=p, z=z,
+                               mat=K.get_mat_glass("glass_cool")))
     # parapet + mechanical room
     o.append(K.box("roof-slab", 5.05, 4.05, 0.15, z=19.0, mat=K.get_mat("stone_pale")))
     for (x, y, w, d) in [(-2.4, 0.0, 0.25, 4.05), (2.4, 0.0, 0.25, 4.05),

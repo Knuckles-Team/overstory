@@ -139,14 +139,14 @@ def roof_pitch(K):
     o = []
     for s in (-1, 1):
         o.append(K.box("slope", 4.0, 2.1, 0.1, y=s * 0.85, z=1.15,
-                       rot=(math.radians(s * 24), 0, 0), mat=K.get_mat("terracotta")))
+                       rot=(math.radians(-s * 24), 0, 0), mat=K.get_mat("terracotta")))
     # gable ends
     import bmesh
     for sx in (-1, 1):
         bm = bmesh.new()
         pts = [bm.verts.new((sx * 2.0, -1.6, 0.0)),
                bm.verts.new((sx * 2.0, 1.6, 0.0)),
-               bm.verts.new((sx * 2.0, 0.0, 1.2))]
+               bm.verts.new((sx * 2.0, 0.0, 1.62))]
         bm.faces.new(pts)
         me = bpy.data.meshes.new("gable")
         bm.to_mesh(me)
