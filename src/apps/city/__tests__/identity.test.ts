@@ -39,7 +39,10 @@ describe('identity', () => {
 
   it('flags the interim third-party rig for replacement by a generated rig', () => {
     const sources = readFileSync(join(ROOT, 'public/city-assets/SOURCES.md'), 'utf8').toLowerCase()
-    expect(Object.keys(lock.files).length).toBeLessThanOrEqual(2)
+    // The only non-kit pins are the shared character rig and the marker
+    // cube (R046/R063); the 212 original kit families are Blender-authored.
+    const nonKit = Object.keys(lock.files).filter((p) => !p.startsWith('city-assets/kit/'))
+    expect(nonKit).toHaveLength(2)
     expect(sources).toMatch(/interim|replace/)
   })
 })

@@ -21,7 +21,11 @@ import bpy
 import mathutils
 from mathutils import Color, Euler, Vector
 
-OUT_ROOT = "/home/genius/Workspace/overstory-city-procedural-specs/public/city-assets/kit"
+OUT_ROOT = os.environ.get(
+    "KIT_OUT_ROOT",
+    os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                 "..", "..", "public", "city-assets", "kit"),
+)
 
 # --- Caribbean coastal palette (spec asset-pack.md "Visual target").
 # Hex values are sRGB; converted to the linear space Blender's Principled

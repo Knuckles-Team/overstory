@@ -23,6 +23,7 @@ import { render, screen } from '@testing-library/react'
 import CityPage, { parseDemoParam, parseSpeedParam } from '../components/CityPage'
 import { init3D } from '../core/render3d'
 import { tickSim, world } from '../core/sim'
+import { bus } from '../core/events'
 import { TOUR_SESSION_KEY } from '../core/ui'
 import type { CityRenderer } from '../core/types'
 
@@ -239,16 +240,22 @@ describe('mode decision (R014)', () => {
     }
   })
 
-  it('verifies every pinned asset at startup (R013): the shared rig + marker verified, no failures', async () => {
+  it('verifies every pinned asset at startup (R013): every lockfile pin verified, no failures', async () => {
+    const lock = lockJson() as { files: Record<string, unknown> }
+    const pinCount = Object.keys(lock.files).length
+    const seen: string[] = []
+    const unsub = bus.subscribe((e) => {
+      seen.push(e.type)
+    })
     const view = await bootCity('live')
     try {
-      await vi.waitFor(() => {
-        const chips = Array.from(document.querySelectorAll('.feed-item .chip-evt')).map((el) => el.textContent)
-        expect(chips.filter((t) => t === 'asset.verified')).toHaveLength(2)
-      })
-      const chips = Array.from(document.querySelectorAll('.feed-item .chip-evt')).map((el) => el.textContent)
-      expect(chips.some((t) => t === 'asset.failed')).toBe(false)
+      // Boot awaits verification before it completes, so by here every pin
+      // has been fetched, hashed and matched against the lockfile. The bus
+      // is the authority — the visible feed is a capped, interleaved view.
+      expect(seen.filter((t) => t === 'asset.verified')).toHaveLength(pinCount)
+      expect(seen.some((t) => t === 'asset.failed')).toBe(false)
     } finally {
+      unsub()
       view.unmount()
     }
   })

@@ -790,6 +790,9 @@ export function buildCityCore(
       const glows = new THREE.InstancedMesh(lampGlowGeo, lampGlowMaterial, lamps.length)
       poles.name = 'generated-streetlights'
       glows.name = 'generated-streetlight-glows'
+      // The night halo is a declared marker (R012.2): an unlit ambience
+      // surface, not an authored PBR one.
+      glows.userData.marker = 'streetlight-glow'
       lamps.forEach((lamp, i) => {
         const y = visibleGroundHeight(lamp.x, lamp.z)
         civicTransform.position.set(lamp.x, y, lamp.z)

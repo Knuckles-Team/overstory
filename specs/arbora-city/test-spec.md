@@ -143,9 +143,10 @@ Governing spec: [spec.md](spec.md).
     1× when the value is absent or invalid.
   - describe `mode decision (R014)`: boots `LIVE` when the host serves
     the fleet; falls back to `SIMULATED` with a stated banner when the
-    fleet read fails; verifies every pinned asset at startup (18 verified
-    events, no failures); lists the connectors from the live fleet in
-    the onboard modal. Bound: `// spec: OVERSTORY-CITY-R014`.
+    fleet read fails; verifies every pinned asset at startup (one
+    verified event per lockfile pin on the event bus, no failures);
+    lists the connectors from the live fleet in the onboard modal.
+    Bound: `// spec: OVERSTORY-CITY-R014`.
   - describe `context loss (R015)`: a `webglcontextlost` that is not
     restored swaps the renderer to the 2D schematic — no dead canvas; a
     `webglcontextrestored` resumes the 3D renderer; both listeners are

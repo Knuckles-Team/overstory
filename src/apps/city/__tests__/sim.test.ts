@@ -420,6 +420,9 @@ describe('SC-003: construction and first visit (R008)', () => {
 })
 
 describe('day/night cycle (R009) — SC-005 full day at 4x', () => {
+  // A full-day soak: the ~2.5 minutes are in simulated wall time, but the
+  // soak still runs thousands of real simulation ticks, so it gets an
+  // explicit bound with margin for a loaded CI runner.
   it('runs a complete day at 4x in ~2.5 real minutes with all invariants holding', () => {
     boot()
     setActivity('demo') // continuous behaviour; the sleep/wake cycle itself is governed
@@ -451,7 +454,7 @@ describe('day/night cycle (R009) — SC-005 full day at 4x', () => {
     expect(world.characters.every((c) => c.context >= 0 && c.context <= 100)).toBe(true)
     // The whole day emitted only declared vocabulary.
     for (const type of types) expect(EVENT_TYPES).toContain(type)
-  })
+  }, 20_000)
 
   it('no new tasks start at night', () => {
     boot()
