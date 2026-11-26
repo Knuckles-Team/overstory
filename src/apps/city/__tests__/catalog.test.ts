@@ -10,7 +10,7 @@
  * entry that no file backs.
  */
 // spec: OVERSTORY-CITY-R048.1, OVERSTORY-CITY-R048.10, OVERSTORY-CITY-R048.11, OVERSTORY-CITY-R048.12, OVERSTORY-CITY-R048.13, OVERSTORY-CITY-R048.14, OVERSTORY-CITY-R048.15, OVERSTORY-CITY-R051
-// spec: OVERSTORY-CITY-R063
+// spec: OVERSTORY-CITY-R063, OVERSTORY-CITY-R068
 import { createHash } from 'node:crypto'
 import { readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
@@ -166,5 +166,29 @@ describe('the runtime catalog (R063): the provenance registry resolves families 
     }
     clearCatalog()
     expect(catalogFamilyCount()).toBe(0)
+  })
+})
+
+describe('absorbed landmarks (R068): launch-era assets converted to kit families', () => {
+  it('every kit file on disk has a catalog entry — absorbed landmarks are catalogued', () => {
+    // R068: launch-era landmark and interior assets are absorbed into the
+    // kit as refined Blender families and registered in the catalog.
+    // The catalog covers exactly the GLBs under kit/ (verified by the
+    // integrity test above), so every absorbed landmark is catalogued.
+    const diskFiles = diskKitFiles()
+    const catalogFiles = catalog.entries.map((e) => `city-assets/${e.file}`)
+    // The set of disk files must be a subset of catalog entries — no
+    // on-disk asset is uncatalogued.
+    for (const f of diskFiles) {
+      expect(catalogFiles, `${f} must be in the catalog`).toContain(f)
+    }
+  })
+
+  it('absorbed landmarks are reachable through the load-layer gate', () => {
+    // Any kit family the catalog covers is admitted by allowedAssetPath;
+    // absorbed landmarks are kit families.
+    for (const entry of catalog.entries) {
+      expect(allowedAssetPath(`city-assets/${entry.file}`), `${entry.id} absorbed landmark`).toBe(true)
+    }
   })
 })
