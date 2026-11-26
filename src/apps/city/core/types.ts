@@ -9,6 +9,8 @@ import type * as THREE from 'three'
 import type { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import type { RoadGraph } from '@/lib/scene3d/roads'
 import type { LayoutEdit } from './layoutEdit'
+import type { FrameBudgetView } from './frameBudget'
+import type { NightWindowReport } from './render3d/windowEmissive'
 
 /** What a click on a renderer hit: one character or one building. */
 export interface SelectionHit {
@@ -31,6 +33,12 @@ export interface CityRenderDiagnostics {
   geometries: number
   textures: number
   programs: number
+  /** The measured average FPS over the frame-budget monitor's window (R065). */
+  avgFps: number
+  /** The measured floor FPS (worst complete 1-second slice, R065). */
+  floorFps: number
+  /** Frames slower than the 120 FPS target frame time (R065). */
+  slowFrames: number
 }
 
 /** One renderer (3D scene or 2D schematic) of the same city. */
@@ -92,6 +100,10 @@ export interface CityFidelityCore {
    * rendered frame is identical (the golden captures); null frees it.
    */
   holdAmbient(time: number | null): void
+  /** The live frame-budget report (R065); null on stateless renderers. */
+  budget?(): FrameBudgetView | null
+  /** The live night-window resolution (R066); null on stateless renderers. */
+  nightWindows?(): NightWindowReport | null
 }
 
 /** The activity mode the sim runs in (R026): quiet is the default. */

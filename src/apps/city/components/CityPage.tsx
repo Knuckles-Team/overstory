@@ -637,8 +637,15 @@ export default function CityPage() {
         const fps = (meterFrames * 1000) / elapsed
         const belowBudget = fps < BUDGETS.fpsIntegrated
         meter.dataset.budget = belowBudget ? 'below' : 'met'
-        meter.textContent = `${fps.toFixed(1)} FPS · ${BUDGETS.fpsIntegrated} target · ${slowFrames} slow frames`
         const diag = renderer?.diagnostics?.()
+        // The frame-budget monitor (R065) is the auditable source: the debug
+        // view reports its measured average, floor and slow-frame count,
+        // falling back to the meter's own count without the 3D renderer
+        // (stateless renderers carry no budget fields).
+        const avg = diag && Number.isFinite(diag.avgFps) ? diag.avgFps : fps
+        const slow = diag && Number.isFinite(diag.slowFrames) ? diag.slowFrames : slowFrames
+        const floor = diag && Number.isFinite(diag.floorFps) ? ` · floor ${diag.floorFps}` : ''
+        meter.textContent = `${avg.toFixed(1)} FPS avg · ${BUDGETS.fpsIntegrated} target${floor} · ${slow} slow frames`
         const timing = sampledFrames
           ? `CPU avg: simulation ${(simulationMs / sampledFrames).toFixed(1)} ms, render submission ${(renderMs / sampledFrames).toFixed(1)} ms, UI ${(uiMs / sampledFrames).toFixed(1)} ms`
           : 'CPU timing unavailable'

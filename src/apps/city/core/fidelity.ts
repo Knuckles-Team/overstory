@@ -22,6 +22,8 @@ import {
 import { MIN_LABEL_FONT_PX, resolveLabelSet, type LabelCandidate } from '@/lib/scene3d/labels'
 import { HOUSES, PARKS, PLOTS, X_ROADS, Z_ROADS, BUILDING_POS } from './layout'
 import { mulberry32 } from './prng'
+import type { FrameBudgetView } from './frameBudget'
+import type { NightWindowReport } from './render3d/windowEmissive'
 import { dressingForPlot } from './render3d/buildings'
 import { collectLabelCandidates } from './render3d/labelLayer'
 import type { world as simWorld } from './sim'
@@ -125,6 +127,10 @@ export interface CityFidelityHandle {
   frameTime(samples: number): Promise<CityFidelityFrameTime>
   /** The WebGL renderer string (the harness uses it to declare the GPU tier). */
   gpu(): string
+  /** The live frame-budget report (R065); null while the 2D schematic is active. */
+  budget(): FrameBudgetView | null
+  /** The live night-window resolution (R066); null while the 2D schematic is active. */
+  nightWindows(): NightWindowReport | null
   dispose(): void
 }
 
@@ -207,6 +213,13 @@ export function installCityFidelity(deps: CityFidelityDeps): CityFidelityHandle 
 
   async function holdAt(clockS: number): Promise<void> {
     const offset = Math.max(0, clockS - BOOT_CLOCK_S)
+    // The replay lands its target clock in a single frame; the live simulation
+    // (which runs at `timeScale` in-game seconds per real second) would cross
+    // that exact clock before the settle poll can read it. Pausing holds the
+    // world on the landed frame — the hold — so the poll observes the exact
+    // clock deterministically. The caller resumes with `actions().speed` when
+    // it needs the city running again.
+    deps.actions().speed(0)
     deps.actions().scrub(offset)
     const target = (BOOT_CLOCK_S + offset) % DAY_S
     for (let i = 0; i < 400; i++) {
@@ -416,6 +429,16 @@ export function installCityFidelity(deps: CityFidelityDeps): CityFidelityHandle 
     return dbg ? String(gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL)) : 'unknown'
   }
 
+  /** The live frame-budget report (R065), read through the renderer's seam. */
+  function budget(): FrameBudgetView | null {
+    return deps.core()?.budget?.() ?? null
+  }
+
+  /** The live night-window resolution (R066), read through the renderer's seam. */
+  function nightWindows(): NightWindowReport | null {
+    return deps.core()?.nightWindows?.() ?? null
+  }
+
   function dispose(): void {
     if (typeof window !== 'undefined') window.__cityFidelity = undefined
   }
@@ -429,6 +452,8 @@ export function installCityFidelity(deps: CityFidelityDeps): CityFidelityHandle 
     frameDigest,
     frameTime,
     gpu,
+    budget,
+    nightWindows,
     dispose,
   }
   if (typeof window !== 'undefined' && import.meta.env.DEV) window.__cityFidelity = handle

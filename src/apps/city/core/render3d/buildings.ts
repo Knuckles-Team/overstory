@@ -12,7 +12,7 @@
  * the scaffold gated by phase. Colours that encode a fact come from the
  * one encoding table (R025).
  */
-// spec: OVERSTORY-CITY-R031, OVERSTORY-CITY-R025
+// spec: OVERSTORY-CITY-R031, OVERSTORY-CITY-R025, OVERSTORY-CITY-R066
 import * as THREE from 'three'
 import { SequenceRunner } from '@/lib/scene3d/sequences'
 import { ARCHITECTURE, buildingAsset, mulberry32, propAsset, type DistrictArchetype } from '@/lib/scene3d/generators'
@@ -23,6 +23,14 @@ import { encodingColor } from '../encoding'
 import { bus } from '../events'
 import { isMesh } from './scene'
 import { litWindowSheet, remapUVs, roofFlashSheet, trimSheetTexture } from './trimSheet'
+import {
+  buildingFunctionFor,
+  createWindowEmissive,
+  remapWindowUvForOccupancy,
+  type NightWindowReport,
+  type WindowEmissiveHandle,
+} from './windowEmissive'
+import { isScheduledNight } from '../activity'
 import type { world as SimWorld } from '../sim'
 
 export type World = typeof SimWorld
@@ -44,6 +52,8 @@ interface BuildingEntry {
   wallMat: THREE.MeshStandardMaterial | null
   /** Neutral glass material; the only building surface lit by live work. */
   windowMat?: THREE.MeshStandardMaterial | null
+  /** The window-emissive resolver (R066): per-window schedule occupancy. */
+  winEmissive?: WindowEmissiveHandle | null
   /** The kit's roof material — the 'error-flash' channel (R025). */
   roofMat: THREE.MeshStandardMaterial | null
   /** The archetype the kit was built with (R032: a district style change rebuilds it). */
@@ -197,6 +207,8 @@ export interface BuildingsApi {
   syncBuildings(): void
   /** One frame of building, plot and construction updates. */
   update(dtReal: number, timeAcc: number): void
+  /** The live night-window resolution over every kit building (R066). */
+  nightWindows(clockS: number): NightWindowReport
   /** Detach from the scene and release this layer's GPU resources. */
   dispose(): void
 }
@@ -315,6 +327,21 @@ export function createBuildings(
     // but never tints a complete glass/wall field into a toy-like role colour.
     const wallColor = paletteHex(ARCHETYPE_FINISH[archetype])
     wallMat.color.setHex(wallColor)
+    // The window bands become a per-building occupancy texture (R066): one
+    // row per storey, one column per facade bay, resolved from the activity
+    // schedule (R050) at frame rate. The UV remap pins each window panel to
+    // its own cell; one texture per building, created here once.
+    const baysX = Math.max(2, Math.round(b.w / 3))
+    const baysZ = Math.max(2, Math.round(b.d / 3))
+    remapWindowUvForOccupancy(windowGeo, { floors, floorH: floorHeight, baysX, baysZ, col: seed % 4 })
+    const winEmissive = createWindowEmissive({
+      seed,
+      fn: buildingFunctionFor(archetype),
+      floors,
+      cols: Math.max(baysX, baysZ),
+      color: encodingColor('lit-windows'),
+    })
+    windowMat.emissiveMap = winEmissive.texture
     const coreGeo = new THREE.BoxGeometry(
       Math.max(0.25, b.w - 0.16),
       Math.max(0.25, floors * floorHeight - 0.1),
@@ -358,6 +385,7 @@ export function createBuildings(
       mats: [coreMat, wallMat, windowMat, roofMat],
       wallMat,
       windowMat,
+      winEmissive,
       roofMat,
       archetype,
       doorMat: doorMatMesh,
@@ -387,6 +415,7 @@ export function createBuildings(
     old.wallGeo?.dispose()
     old.windowGeo?.dispose()
     old.roofGeo?.dispose()
+    old.winEmissive?.dispose()
     old.mats.forEach((m) => {
       m.dispose()
     })
@@ -836,7 +865,14 @@ export function createBuildings(
       if (entry.wallBoost) entry.wallBoost = Math.max(0, entry.wallBoost - dtReal)
       if (entry.windowMat) {
         const calls = inFlight.get(id) ?? 0
-        entry.windowMat.emissiveIntensity = Math.min(1.5, calls * 0.45) + (entry.wallBoost ?? 0) * 0.75
+        // The lit-windows channel (R025/R066): the per-window grid resolves
+        // from the activity schedule (R050) at frame rate, and the in-flight
+        // work lights its deterministic cells on top — a building with live
+        // work is never dark.
+        if (entry.winEmissive) entry.winEmissive.update(timeAcc, calls)
+        const scheduleGlow = entry.winEmissive?.anyLit ? 1 : 0
+        entry.windowMat.emissiveIntensity =
+          Math.max(scheduleGlow, Math.min(1.5, calls * 0.45)) + (entry.wallBoost ?? 0) * 0.75
       }
       // 'error-flash' channel (R025): while a recent error is fresh the roof
       // lights up in the table's red (the roof sheet is painted in it).
@@ -1033,6 +1069,27 @@ export function createBuildings(
     }
   }
 
+  /** The live night-window resolution (R066): every kit building's grid,
+   * resolved at the given clock, as per-floor occupancy and a fingerprint. */
+  function nightWindows(clockS: number): NightWindowReport {
+    const samples = []
+    for (const [id, entry] of buildingGroups) {
+      if (!entry.winEmissive || !entry.archetype) continue
+      const fn = buildingFunctionFor(entry.archetype)
+      const win = entry.winEmissive
+      samples.push({
+        id,
+        family: entry.archetype,
+        fn,
+        floors: win.floors,
+        cols: win.cols,
+        perFloor: [...win.perFloor],
+        fingerprint: win.fingerprint,
+      })
+    }
+    return { clockS, night: isScheduledNight(clockS), samples }
+  }
+
   function dispose(): void {
     unsubPulse()
     for (const pulse of pulses) {
@@ -1055,6 +1112,7 @@ export function createBuildings(
     const materials = new Set<THREE.Material>()
     for (const entry of buildingGroups.values()) {
       scene.remove(entry.group)
+      entry.winEmissive?.dispose()
       entry.group.traverse((object) => {
         if (!isMesh(object)) return
         geometries.add(object.geometry)
@@ -1075,5 +1133,5 @@ export function createBuildings(
     for (const texture of [trimTex, litSheet, roofSheet]) texture.dispose()
   }
 
-  return { syncBuildings, update, dispose }
+  return { syncBuildings, update, nightWindows, dispose }
 }

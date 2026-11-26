@@ -14,6 +14,8 @@ import { zoomBandFor } from '@/lib/scene3d/labels'
 import type { RoadGraph } from '@/lib/scene3d/roads'
 import { pinnedBytes } from './assets'
 import { allowedAssetPath, tagExempt } from './provenance'
+import { FrameBudgetMonitor, initialLadderState, stepQualityLadder, type FrameBudgetView } from './frameBudget'
+import type { TierName } from '@/lib/scene3d/tiers'
 import type { world as simWorld } from './sim'
 import { createCityScene } from './render3d/scene'
 import { createBuildings } from './render3d/buildings'
@@ -127,6 +129,13 @@ export async function init3D(
   // for an overlay while leaving the render loop allocation-light.
   let labelElapsed = 0
   const LABEL_REFRESH_S = 0.1
+  // The frame budget (R065): the monitor measures the frame interval —
+  // generation, simulation and rendering together — and the adaptive
+  // quality ladder preserves the 60 FPS floor over it.
+  const budgetMonitor = new FrameBudgetMonitor()
+  let ladder = initialLadderState(pipeline.tier)
+  let activeOverride: TierName | null = null
+  let lastFrameNow: number | null = null
   // The fidelity hold (R012.9): while set, every frame renders at the same
   // ambient time, so the golden viewpoints are identical on every run.
   let heldAmbientTime: number | null = null
@@ -137,6 +146,14 @@ export async function init3D(
   function render(dtReal: number): void {
     if (disposed || sceneCore.isLost()) return
     const frameStart = performance.now()
+    if (lastFrameNow !== null) {
+      // The interval since the previous frame is the budget's unit: the
+      // whole frame, simulation work included (R065). A gap over 200 ms is
+      // a hidden tab or a debugger pause, not a render-budget failure.
+      const interval = frameStart - lastFrameNow
+      if (interval < 200) budgetMonitor.record(interval)
+    }
+    lastFrameNow = frameStart
     controls.update()
     picking.tick(dtReal)
     const sceneClock = heldAmbientTime ?? world.clock
@@ -155,6 +172,20 @@ export async function init3D(
     // measured frame time drives the tier (p95 drop, R012.1).
     pipeline.renderFrame()
     pipeline.endFrame(performance.now() - frameStart)
+    // The adaptive quality ladder steps on the measured budget (R065): a
+    // sustained floor breach drops one tier, sustained target attainment
+    // promotes one — and at the top the override is released back to the
+    // measured selection. Both decisions need their own streak, so the
+    // ladder never flaps.
+    const { state, change } = stepQualityLadder(ladder, budgetMonitor.report())
+    if (state !== ladder) ladder = state
+    if (change === 'drop' || change === 'promote') {
+      activeOverride = ladder.tier
+      pipeline.setOverride(activeOverride)
+    } else if (change === 'release') {
+      activeOverride = null
+      pipeline.setOverride(null)
+    }
   }
 
   function dispose(): void {
@@ -169,6 +200,11 @@ export async function init3D(
   function onResize(w: number, h: number): void {
     viewport = { width: w, height: h }
     sceneCore.onResize(w, h)
+  }
+
+  /** The auditable frame-budget view (R065): measured figures plus the tier the ladder drives. */
+  function budgetView(): FrameBudgetView {
+    return { ...budgetMonitor.report(), tier: pipeline.tier, override: activeOverride }
   }
 
   return {
@@ -198,14 +234,22 @@ export async function init3D(
       camera.position.copy(controls.target).addScaledVector(direction, distance)
       controls.update()
     },
-    diagnostics: () => ({
-      tier: pipeline.tier,
-      drawCalls: renderer.info.render.calls,
-      triangles: renderer.info.render.triangles,
-      geometries: renderer.info.memory.geometries,
-      textures: renderer.info.memory.textures,
-      programs: renderer.info.programs?.length ?? 0,
-    }),
+    diagnostics: () => {
+      const report = budgetMonitor.report()
+      return {
+        tier: pipeline.tier,
+        drawCalls: renderer.info.render.calls,
+        triangles: renderer.info.render.triangles,
+        geometries: renderer.info.memory.geometries,
+        textures: renderer.info.memory.textures,
+        programs: renderer.info.programs?.length ?? 0,
+        // The debug view reports the monitor's measured figures (R028.1/R065):
+        // average, floor and slow frames over the trailing window.
+        avgFps: report.avgFps,
+        floorFps: report.floorFps,
+        slowFrames: report.slowFrames,
+      }
+    },
     say: (charId: string, text: string) => {
       characters.current.say(charId, text)
     },
@@ -227,12 +271,16 @@ export async function init3D(
     // The fidelity harness surface (R012.9): the live scene graph, the
     // camera and controls, and the ambient-time hold for deterministic
     // frames. The page installs the documented seam on top (fidelity.ts).
+    // R065/R066 extend it with the live frame-budget report and the
+    // night-window resolution the browser harness samples.
     fidelity: {
       scene,
       camera,
       controls,
       canvas: renderer.domElement,
       holdAmbient,
+      budget: budgetView,
+      nightWindows: () => buildings.nightWindows(heldAmbientTime ?? world.clock),
     },
   }
 }

@@ -143,6 +143,9 @@ describe('speed and demo URL params (R012/R026)', () => {
       geometries: 12,
       textures: 4,
       programs: 3,
+      avgFps: 58.4,
+      floorFps: 57,
+      slowFrames: 9,
     })
     vi.mocked(init3D).mockResolvedValue(renderer)
     const view = await bootCity('simulated', '/apps/city?debug=1')
