@@ -624,28 +624,32 @@ describe('speed and clock semantics (R012)', () => {
     expect(world.clock - clockBefore).toBeCloseTo(144 * STEP * 0.5 * 60)
   })
 
-  it('a full day at 20x completes with every invariant holding', () => {
-    boot()
-    setActivity('demo')
-    const dayStart = world.day
-    const clockStart = world.clock
-    const types = new Set<string>()
-    const unsub = bus.subscribe((e) => {
-      types.add(e.type)
-    })
-    let guard = 0
-    while ((world.day === dayStart || world.clock < clockStart) && guard++ < 30000) tick(4, 20)
-    unsub()
-    expect(world.day).toBeGreaterThan(dayStart)
-    // One in-game day at 1x is 600 real s (timeScale 144); at 20x that is 30.
-    expect(wall).toBeGreaterThan(25)
-    expect(wall).toBeLessThan(35)
-    // Nobody left the walkable ground; budgets stayed in range.
-    expect(world.characters.filter((c) => inWater(c.pos.x, c.pos.z))).toHaveLength(0)
-    expect(world.characters.every((c) => c.context >= 0 && c.context <= 100)).toBe(true)
-    // The whole day emitted only declared vocabulary.
-    for (const type of types) expect(EVENT_TYPES).toContain(type)
-  })
+  it(
+    'a full day at 20x completes with every invariant holding',
+    { timeout: 30_000 }, // the full-day soak takes real ticks; CI runners need the headroom
+    () => {
+      boot()
+      setActivity('demo')
+      const dayStart = world.day
+      const clockStart = world.clock
+      const types = new Set<string>()
+      const unsub = bus.subscribe((e) => {
+        types.add(e.type)
+      })
+      let guard = 0
+      while ((world.day === dayStart || world.clock < clockStart) && guard++ < 30000) tick(4, 20)
+      unsub()
+      expect(world.day).toBeGreaterThan(dayStart)
+      // One in-game day at 1x is 600 real s (timeScale 144); at 20x that is 30.
+      expect(wall).toBeGreaterThan(25)
+      expect(wall).toBeLessThan(35)
+      // Nobody left the walkable ground; budgets stayed in range.
+      expect(world.characters.filter((c) => inWater(c.pos.x, c.pos.z))).toHaveLength(0)
+      expect(world.characters.every((c) => c.context >= 0 && c.context <= 100)).toBe(true)
+      // The whole day emitted only declared vocabulary.
+      for (const type of types) expect(EVENT_TYPES).toContain(type)
+    },
+  )
 
   it('the sub-step accumulator keeps in-game time exact across frames of varying length (R012 amended)', () => {
     const sub = SIM_SUBSTEP_GAME_S
