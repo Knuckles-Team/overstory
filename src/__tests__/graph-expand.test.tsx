@@ -66,6 +66,21 @@ describe('graph expand', () => {
     expect(verdict.record.addedEdgeIds).toHaveLength(2)
   })
 
+  it('reads typed node_type and edge_type when the engine sends them', async () => {
+    const read = reader({
+      nodes: [{ id: 't1', node_type: 'Org', properties: {} }],
+      edges: [{ source: 'hub', target: 't1', edge_type: 'owns', properties: { relationship: 'ignored' } }],
+      hidden: [],
+      next_cursor: null,
+      truncated: false,
+      graph_revision: 1,
+    })
+    const verdict = await expandNode('hub', ctx(['hub']), read)
+    if (verdict.verdict !== 'expanded') throw new Error(verdict.verdict)
+    expect(verdict.nodes[0].labels).toEqual(['Org'])
+    expect(verdict.relationships).toEqual([{ source: 'hub', target: 't1', type: 'owns' }])
+  })
+
   it('test_collapse_keeps_nodes_with_other_edges_and_cluster_members_burst_out', async () => {
     const record = { origin: 'hub', addedNodeIds: ['a', 'b', 'c'], addedEdgeIds: [] }
     const edges = [

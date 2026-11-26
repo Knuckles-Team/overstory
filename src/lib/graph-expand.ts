@@ -64,8 +64,16 @@ export const edgeId = (source: string, target: string, type: string): string => 
 
 // Wire shapes of medulla's NeighborhoodResult (SubgraphNode, SubgraphEdge, HiddenCount).
 // The engine sends no edge type field: the relationship rides in the edge properties.
-const nodeSchema = z.object({ id: z.string().min(1), properties: z.unknown() })
-const edgeSchema = z.object({ source: z.string(), target: z.string(), properties: z.unknown() })
+// MEDULLA-DURABLE-KERNEL-R876.7 adds typed `node_type` to SubgraphNode and `edge_type` to SubgraphEdge.
+// Both are read when present. The properties reading below is the interim path: delete it once the pin
+// moves to an engine that sends the typed fields.
+const nodeSchema = z.object({ id: z.string().min(1), node_type: z.string().nullish(), properties: z.unknown() })
+const edgeSchema = z.object({
+  source: z.string(),
+  target: z.string(),
+  edge_type: z.string().nullish(),
+  properties: z.unknown(),
+})
 const neighborhoodSchema = z.object({
   nodes: z.array(nodeSchema),
   edges: z.array(edgeSchema),
@@ -80,13 +88,16 @@ const propsOf = (value: unknown): Record<string, unknown> =>
 
 function toGraphNode(n: z.infer<typeof nodeSchema>): GraphNode {
   const properties = propsOf(n.properties)
-  const type = typeof properties.node_type === 'string' ? properties.node_type : undefined
+  // R876.7 typed field first; properties only until the pin moves.
+  const type = n.node_type ?? (typeof properties.node_type === 'string' ? properties.node_type : undefined)
   return { id: n.id, labels: type ? [type] : [], properties }
 }
 
 function toRelationship(e: z.infer<typeof edgeSchema>): GraphRelationship {
   const p = propsOf(e.properties)
-  const type = typeof p.relationship === 'string' ? p.relationship : typeof p.type === 'string' ? p.type : '_'
+  // R876.7 typed field first; properties only until the pin moves.
+  const type =
+    e.edge_type ?? (typeof p.relationship === 'string' ? p.relationship : typeof p.type === 'string' ? p.type : '_')
   return { source: e.source, target: e.target, type }
 }
 
