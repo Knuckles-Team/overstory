@@ -5,7 +5,6 @@ import type {
   DecisionListRow,
   DecisionProvenance,
   DecisionRecord,
-  WhyNot,
 } from './decision-schemas'
 
 /**
@@ -23,7 +22,7 @@ import type {
  */
 
 export interface ListDecisionsOptions {
-  questionId?: string
+  questionKind?: string
   limit?: number
 }
 
@@ -46,14 +45,16 @@ export interface WhyNotOnDemandRequest {
  * callers render this beside the record, never into it.
  */
 export type WhyNotOutcome =
-  { kind: 'explained'; whyNot: WhyNot } | { kind: 'timeout' } | { kind: 'refused'; reason: string }
+  | { kind: 'explained'; verdict: string; reasons: { kind: string; detail: string }[] }
+  | { kind: 'timeout' }
+  | { kind: 'refused'; reason: string }
 
 export interface DecisionsTransport {
   /** Newest-first page of the caller's visible decision log. */
   listDecisions(options?: ListDecisionsOptions, signal?: AbortSignal): Promise<DecisionListRow[]>
   /** One committed decision record in full. */
   getDecision(recordId: string, signal?: AbortSignal): Promise<DecisionRecord>
-  /** The evaluations/resolutions logged against one record. */
+  /** What one record rested on: premises, facts and rules at the revision it used. */
   getDecisionProvenance(recordId: string, signal?: AbortSignal): Promise<DecisionProvenance>
   /** The observed per-option outcome aggregate (never a calibrated claim on its own). */
   getDecisionAggregate(options?: DecisionAggregateOptions, signal?: AbortSignal): Promise<DecisionAggregate>

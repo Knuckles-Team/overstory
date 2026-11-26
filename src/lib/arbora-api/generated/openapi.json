@@ -4,7 +4,7 @@
     "title": "Arbora API",
     "version": "v1"
   },
-  "x-registry-digest": "d57ef48778d81d084c8a4430a5dae9456541dca5f8a1df78e3e4991eb75b4681",
+  "x-registry-digest": "0e2f60e059f7604c7623d4f187e78789331b9652bb54966d7788b0549014d124",
   "paths": {
     "/api/v1/ops/access.check": {
       "post": {
@@ -100,7 +100,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "description": "One elevation as EG reports it, plus the time left for a countdown.",
+                  "description": "An elevation view plus the receipt of the write that produced it.",
                   "properties": {
                     "elevation_id": {
                       "title": "Elevation Id",
@@ -186,6 +186,9 @@
                       "default": false,
                       "title": "Own",
                       "type": "boolean"
+                    },
+                    "receipt": {
+                      "$ref": "#/components/schemas/access_elevation_approve__ElevationReceipt"
                     }
                   },
                   "required": [
@@ -197,9 +200,10 @@
                     "justification",
                     "request_digest",
                     "requested_at_ms",
-                    "revision"
+                    "revision",
+                    "receipt"
                   ],
-                  "title": "ElevationView",
+                  "title": "ElevationWriteResult",
                   "type": "object"
                 }
               }
@@ -310,7 +314,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "description": "One elevation as EG reports it, plus the time left for a countdown.",
+                  "description": "An elevation view plus the receipt of the write that produced it.",
                   "properties": {
                     "elevation_id": {
                       "title": "Elevation Id",
@@ -396,6 +400,9 @@
                       "default": false,
                       "title": "Own",
                       "type": "boolean"
+                    },
+                    "receipt": {
+                      "$ref": "#/components/schemas/access_elevation_request__ElevationReceipt"
                     }
                   },
                   "required": [
@@ -407,9 +414,10 @@
                     "justification",
                     "request_digest",
                     "requested_at_ms",
-                    "revision"
+                    "revision",
+                    "receipt"
                   ],
-                  "title": "ElevationView",
+                  "title": "ElevationWriteResult",
                   "type": "object"
                 }
               }
@@ -422,14 +430,8 @@
             "application/json": {
               "schema": {
                 "additionalProperties": false,
+                "description": "Ask for ``scopes`` for ``span_ms`` once a second identity approves.",
                 "properties": {
-                  "elevation_id": {
-                    "maxLength": 128,
-                    "minLength": 1,
-                    "pattern": "^[A-Za-z0-9_.:-]+$",
-                    "title": "Elevation Id",
-                    "type": "string"
-                  },
                   "scopes": {
                     "items": {
                       "$ref": "#/components/schemas/access_elevation_request__ElevationScope"
@@ -450,15 +452,29 @@
                     "minLength": 1,
                     "title": "Justification",
                     "type": "string"
+                  },
+                  "elevation_id": {
+                    "anyOf": [
+                      {
+                        "maxLength": 128,
+                        "minLength": 1,
+                        "pattern": "^[A-Za-z0-9_.:-]+$",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null,
+                    "title": "Elevation Id"
                   }
                 },
                 "required": [
-                  "elevation_id",
                   "scopes",
                   "span_ms",
                   "justification"
                 ],
-                "title": "ElevationAsk",
+                "title": "ElevationRequest",
                 "type": "object"
               }
             }
@@ -484,7 +500,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "description": "One elevation as EG reports it, plus the time left for a countdown.",
+                  "description": "An elevation view plus the receipt of the write that produced it.",
                   "properties": {
                     "elevation_id": {
                       "title": "Elevation Id",
@@ -570,6 +586,9 @@
                       "default": false,
                       "title": "Own",
                       "type": "boolean"
+                    },
+                    "receipt": {
+                      "$ref": "#/components/schemas/access_elevation_revoke__ElevationReceipt"
                     }
                   },
                   "required": [
@@ -581,9 +600,10 @@
                     "justification",
                     "request_digest",
                     "requested_at_ms",
-                    "revision"
+                    "revision",
+                    "receipt"
                   ],
-                  "title": "ElevationView",
+                  "title": "ElevationWriteResult",
                   "type": "object"
                 }
               }
@@ -1719,6 +1739,849 @@
         }
       }
     },
+    "/api/v1/ops/catalog.assets.browse": {
+      "post": {
+        "operationId": "catalog.assets.browse",
+        "summary": "Browse catalog assets by kind with kind counts",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "facets": {
+                      "items": {
+                        "$ref": "#/components/schemas/catalog_assets_browse__CatalogFacet"
+                      },
+                      "title": "Facets",
+                      "type": "array"
+                    },
+                    "items": {
+                      "items": {
+                        "$ref": "#/components/schemas/catalog_assets_browse__CatalogItem"
+                      },
+                      "title": "Items",
+                      "type": "array"
+                    },
+                    "next_cursor": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "default": null,
+                      "title": "Next Cursor"
+                    }
+                  },
+                  "required": [
+                    "facets",
+                    "items"
+                  ],
+                  "title": "CatalogBrowseResult",
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "kind": {
+                    "anyOf": [
+                      {
+                        "maxLength": 64,
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null,
+                    "title": "Kind"
+                  },
+                  "owner": {
+                    "anyOf": [
+                      {
+                        "maxLength": 256,
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null,
+                    "title": "Owner"
+                  },
+                  "limit": {
+                    "default": 50,
+                    "maximum": 200,
+                    "minimum": 1,
+                    "title": "Limit",
+                    "type": "integer"
+                  },
+                  "cursor": {
+                    "anyOf": [
+                      {
+                        "maxLength": 512,
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null,
+                    "title": "Cursor"
+                  }
+                },
+                "title": "CatalogBrowseParams",
+                "type": "object"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ops/catalog.assets.get": {
+      "post": {
+        "operationId": "catalog.assets.get",
+        "summary": "Read one catalog asset with owners, terms, lineage and ratings",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "asset_id": {
+                      "title": "Asset Id",
+                      "type": "string"
+                    },
+                    "kind": {
+                      "title": "Kind",
+                      "type": "string"
+                    },
+                    "name": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "default": null,
+                      "title": "Name"
+                    },
+                    "owners": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "title": "Owners",
+                      "type": "array"
+                    },
+                    "terms": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "title": "Terms",
+                      "type": "array"
+                    },
+                    "lineage": {
+                      "$ref": "#/components/schemas/catalog_assets_get__CatalogLineage"
+                    },
+                    "ratings": {
+                      "$ref": "#/components/schemas/catalog_assets_get__CatalogRatings"
+                    },
+                    "comments": {
+                      "items": {
+                        "$ref": "#/components/schemas/catalog_assets_get__CatalogComment"
+                      },
+                      "title": "Comments",
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "asset_id",
+                    "kind",
+                    "owners",
+                    "terms",
+                    "lineage",
+                    "ratings",
+                    "comments"
+                  ],
+                  "title": "CatalogAssetResult",
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "asset_id": {
+                    "maxLength": 512,
+                    "minLength": 1,
+                    "title": "Asset Id",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "asset_id"
+                ],
+                "title": "CatalogAssetParams",
+                "type": "object"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ops/catalog.assets.search": {
+      "post": {
+        "operationId": "catalog.assets.search",
+        "summary": "Search catalog assets with the engine's ranked index",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "items": {
+                      "items": {
+                        "$ref": "#/components/schemas/catalog_assets_search__CatalogItem"
+                      },
+                      "title": "Items",
+                      "type": "array"
+                    },
+                    "next_cursor": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "default": null,
+                      "title": "Next Cursor"
+                    }
+                  },
+                  "required": [
+                    "items"
+                  ],
+                  "title": "CatalogSearchResult",
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "text": {
+                    "maxLength": 1000,
+                    "minLength": 1,
+                    "title": "Text",
+                    "type": "string"
+                  },
+                  "kinds": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "maxItems": 32,
+                    "title": "Kinds",
+                    "type": "array"
+                  },
+                  "limit": {
+                    "default": 25,
+                    "maximum": 100,
+                    "minimum": 1,
+                    "title": "Limit",
+                    "type": "integer"
+                  },
+                  "cursor": {
+                    "anyOf": [
+                      {
+                        "maxLength": 512,
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null,
+                    "title": "Cursor"
+                  }
+                },
+                "required": [
+                  "text"
+                ],
+                "title": "CatalogSearchParams",
+                "type": "object"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ops/dashboard.access.get": {
+      "post": {
+        "operationId": "dashboard.access.get",
+        "summary": "Read the caller's role on a dashboard and its grants",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "title": "Id",
+                      "type": "string"
+                    },
+                    "owner": {
+                      "title": "Owner",
+                      "type": "string"
+                    },
+                    "role": {
+                      "enum": [
+                        "owner",
+                        "edit",
+                        "view"
+                      ],
+                      "title": "Role",
+                      "type": "string"
+                    },
+                    "grants": {
+                      "items": {
+                        "$ref": "#/components/schemas/dashboard_access_get__Grant"
+                      },
+                      "title": "Grants",
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "owner",
+                    "role",
+                    "grants"
+                  ],
+                  "title": "DashboardAccessResult",
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "id": {
+                    "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+                    "title": "Id",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id"
+                ],
+                "title": "DashboardRefParams",
+                "type": "object"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ops/dashboard.delete": {
+      "post": {
+        "operationId": "dashboard.delete",
+        "summary": "Delete a dashboard; the engine keeps the body for its retention",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "title": "Id",
+                      "type": "string"
+                    },
+                    "deleted": {
+                      "title": "Deleted",
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "deleted"
+                  ],
+                  "title": "DashboardDeleteResult",
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "id": {
+                    "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+                    "title": "Id",
+                    "type": "string"
+                  },
+                  "expected_revision": {
+                    "minimum": 0,
+                    "title": "Expected Revision",
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "id",
+                  "expected_revision"
+                ],
+                "title": "DashboardDeleteParams",
+                "type": "object"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ops/dashboard.get": {
+      "post": {
+        "operationId": "dashboard.get",
+        "summary": "Load one dashboard document with the caller's role",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "document": {
+                      "additionalProperties": true,
+                      "title": "Document",
+                      "type": "object"
+                    },
+                    "owner": {
+                      "title": "Owner",
+                      "type": "string"
+                    },
+                    "role": {
+                      "enum": [
+                        "owner",
+                        "edit",
+                        "view"
+                      ],
+                      "title": "Role",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "document",
+                    "owner",
+                    "role"
+                  ],
+                  "title": "DashboardGetResult",
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "id": {
+                    "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+                    "title": "Id",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id"
+                ],
+                "title": "DashboardRefParams",
+                "type": "object"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ops/dashboard.list": {
+      "post": {
+        "operationId": "dashboard.list",
+        "summary": "List the dashboards the caller owns or may read",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "items": {
+                      "items": {
+                        "$ref": "#/components/schemas/dashboard_list__DashboardEntry"
+                      },
+                      "title": "Items",
+                      "type": "array"
+                    },
+                    "next_cursor": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "default": null,
+                      "title": "Next Cursor"
+                    }
+                  },
+                  "required": [
+                    "items"
+                  ],
+                  "title": "DashboardListResult",
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "limit": {
+                    "default": 50,
+                    "maximum": 200,
+                    "minimum": 1,
+                    "title": "Limit",
+                    "type": "integer"
+                  },
+                  "cursor": {
+                    "anyOf": [
+                      {
+                        "maxLength": 512,
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null,
+                    "title": "Cursor"
+                  }
+                },
+                "title": "DashboardListParams",
+                "type": "object"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ops/dashboard.save": {
+      "post": {
+        "operationId": "dashboard.save",
+        "summary": "Save a dashboard document as a catalog asset",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "title": "Id",
+                      "type": "string"
+                    },
+                    "revision": {
+                      "title": "Revision",
+                      "type": "integer"
+                    },
+                    "owner": {
+                      "title": "Owner",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "revision",
+                    "owner"
+                  ],
+                  "title": "DashboardSaveResult",
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "document": {
+                    "$ref": "#/components/schemas/dashboard_save__DashboardDocument"
+                  },
+                  "expected_revision": {
+                    "anyOf": [
+                      {
+                        "minimum": 0,
+                        "type": "integer"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null,
+                    "title": "Expected Revision"
+                  }
+                },
+                "required": [
+                  "document"
+                ],
+                "title": "DashboardSaveParams",
+                "type": "object"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ops/dashboard.share": {
+      "post": {
+        "operationId": "dashboard.share",
+        "summary": "Grant or revoke view or edit access to a dashboard",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "title": "Id",
+                      "type": "string"
+                    },
+                    "grants": {
+                      "items": {
+                        "$ref": "#/components/schemas/dashboard_share__Grant"
+                      },
+                      "title": "Grants",
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "grants"
+                  ],
+                  "title": "DashboardShareResult",
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "id": {
+                    "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+                    "title": "Id",
+                    "type": "string"
+                  },
+                  "grantee": {
+                    "anyOf": [
+                      {
+                        "maxLength": 256,
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null,
+                    "title": "Grantee"
+                  },
+                  "group": {
+                    "anyOf": [
+                      {
+                        "maxLength": 256,
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null,
+                    "title": "Group"
+                  },
+                  "role": {
+                    "enum": [
+                      "view",
+                      "edit"
+                    ],
+                    "title": "Role",
+                    "type": "string"
+                  },
+                  "action": {
+                    "enum": [
+                      "grant",
+                      "revoke"
+                    ],
+                    "title": "Action",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "role",
+                  "action"
+                ],
+                "title": "DashboardShareParams",
+                "type": "object"
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/ops/decide.commit": {
       "post": {
         "operationId": "decide.commit",
@@ -1781,6 +2644,553 @@
                   "request"
                 ],
                 "title": "DecideCommitParams",
+                "type": "object"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ops/decision.list": {
+      "post": {
+        "operationId": "decision.list",
+        "summary": "Page the tenant's committed decisions, newest first",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "items": {
+                      "items": {
+                        "$ref": "#/components/schemas/decision_list__DecisionItem"
+                      },
+                      "title": "Items",
+                      "type": "array"
+                    },
+                    "next_cursor": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "default": null,
+                      "title": "Next Cursor"
+                    }
+                  },
+                  "required": [
+                    "items"
+                  ],
+                  "title": "DecisionListResult",
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "question_kind": {
+                    "anyOf": [
+                      {
+                        "maxLength": 64,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null,
+                    "title": "Question Kind"
+                  },
+                  "resolution_kind": {
+                    "anyOf": [
+                      {
+                        "maxLength": 64,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null,
+                    "title": "Resolution Kind"
+                  },
+                  "from": {
+                    "anyOf": [
+                      {
+                        "maxLength": 64,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null,
+                    "title": "From"
+                  },
+                  "to": {
+                    "anyOf": [
+                      {
+                        "maxLength": 64,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null,
+                    "title": "To"
+                  },
+                  "limit": {
+                    "default": 50,
+                    "maximum": 200,
+                    "minimum": 1,
+                    "title": "Limit",
+                    "type": "integer"
+                  },
+                  "cursor": {
+                    "anyOf": [
+                      {
+                        "maxLength": 512,
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null,
+                    "title": "Cursor"
+                  }
+                },
+                "title": "DecisionListParams",
+                "type": "object"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ops/decision.provenance.get": {
+      "post": {
+        "operationId": "decision.provenance.get",
+        "summary": "Read what one decision rested on, at the revision it used",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "decision_id": {
+                      "title": "Decision Id",
+                      "type": "string"
+                    },
+                    "record_digest": {
+                      "title": "Record Digest",
+                      "type": "string"
+                    },
+                    "premises": {
+                      "items": {
+                        "$ref": "#/components/schemas/decision_provenance_get__ProvenancePremise"
+                      },
+                      "title": "Premises",
+                      "type": "array"
+                    },
+                    "facts": {
+                      "items": {
+                        "$ref": "#/components/schemas/decision_provenance_get__ProvenanceFact"
+                      },
+                      "title": "Facts",
+                      "type": "array"
+                    },
+                    "rules": {
+                      "items": {
+                        "$ref": "#/components/schemas/decision_provenance_get__ProvenanceRule"
+                      },
+                      "title": "Rules",
+                      "type": "array"
+                    },
+                    "approver": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "default": null,
+                      "title": "Approver"
+                    },
+                    "inputs_state": {
+                      "title": "Inputs State",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "decision_id",
+                    "record_digest",
+                    "premises",
+                    "facts",
+                    "rules",
+                    "inputs_state"
+                  ],
+                  "title": "DecisionProvenanceResult",
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "decision_id": {
+                    "maxLength": 256,
+                    "minLength": 1,
+                    "title": "Decision Id",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "decision_id"
+                ],
+                "title": "DecisionRefParams",
+                "type": "object"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ops/decision.why_not": {
+      "post": {
+        "operationId": "decision.why_not",
+        "summary": "Explain why an option was not chosen, within a bounded budget",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "decision_id": {
+                      "title": "Decision Id",
+                      "type": "string"
+                    },
+                    "option_id": {
+                      "title": "Option Id",
+                      "type": "string"
+                    },
+                    "verdict": {
+                      "title": "Verdict",
+                      "type": "string"
+                    },
+                    "reasons": {
+                      "items": {
+                        "$ref": "#/components/schemas/decision_why_not__WhyNotReason"
+                      },
+                      "title": "Reasons",
+                      "type": "array"
+                    },
+                    "budget_used_ms": {
+                      "title": "Budget Used Ms",
+                      "type": "integer"
+                    },
+                    "budget_exhausted": {
+                      "title": "Budget Exhausted",
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "decision_id",
+                    "option_id",
+                    "verdict",
+                    "reasons",
+                    "budget_used_ms",
+                    "budget_exhausted"
+                  ],
+                  "title": "DecisionWhyNotResult",
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "decision_id": {
+                    "maxLength": 256,
+                    "minLength": 1,
+                    "title": "Decision Id",
+                    "type": "string"
+                  },
+                  "option_id": {
+                    "maxLength": 256,
+                    "minLength": 1,
+                    "title": "Option Id",
+                    "type": "string"
+                  },
+                  "budget_ms": {
+                    "anyOf": [
+                      {
+                        "minimum": 0,
+                        "type": "integer"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null,
+                    "title": "Budget Ms"
+                  }
+                },
+                "required": [
+                  "decision_id",
+                  "option_id"
+                ],
+                "title": "DecisionWhyNotParams",
+                "type": "object"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ops/development.proposal.list": {
+      "post": {
+        "operationId": "development.proposal.list",
+        "summary": "List a repository's proposals with kind, target, evidence and state",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "items": {
+                      "items": {
+                        "$ref": "#/components/schemas/development_proposal_list__ProposalEntry"
+                      },
+                      "title": "Items",
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "items"
+                  ],
+                  "title": "ProposalListResult",
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "repository": {
+                    "maxLength": 256,
+                    "minLength": 1,
+                    "title": "Repository",
+                    "type": "string"
+                  },
+                  "state": {
+                    "anyOf": [
+                      {
+                        "enum": [
+                          "open",
+                          "approved",
+                          "rejected",
+                          "landed"
+                        ],
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null,
+                    "title": "State"
+                  },
+                  "kind": {
+                    "anyOf": [
+                      {
+                        "maxLength": 64,
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null,
+                    "title": "Kind"
+                  }
+                },
+                "required": [
+                  "repository"
+                ],
+                "title": "ProposalListParams",
+                "type": "object"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ops/development.proposal.review": {
+      "post": {
+        "operationId": "development.proposal.review",
+        "summary": "Accept or reject one open proposal as the verified reviewer",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "title": "Id",
+                      "type": "string"
+                    },
+                    "state": {
+                      "enum": [
+                        "open",
+                        "approved",
+                        "rejected",
+                        "landed"
+                      ],
+                      "title": "State",
+                      "type": "string"
+                    },
+                    "pull_request": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "default": null,
+                      "title": "Pull Request"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "state"
+                  ],
+                  "title": "ProposalReviewResult",
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "proposal_id": {
+                    "maxLength": 256,
+                    "minLength": 1,
+                    "title": "Proposal Id",
+                    "type": "string"
+                  },
+                  "decision": {
+                    "enum": [
+                      "accept",
+                      "reject"
+                    ],
+                    "title": "Decision",
+                    "type": "string"
+                  },
+                  "reason": {
+                    "maxLength": 500,
+                    "minLength": 1,
+                    "title": "Reason",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "proposal_id",
+                  "decision",
+                  "reason"
+                ],
+                "title": "ProposalReviewParams",
                 "type": "object"
               }
             }
@@ -33970,6 +35380,64 @@
         }
       }
     },
+    "/api/v1/ops/fleet.connections.state": {
+      "post": {
+        "operationId": "fleet.connections.state",
+        "summary": "Show each running connector's connection state, without credentials",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "value": {
+                      "title": "Value"
+                    }
+                  },
+                  "required": [
+                    "value"
+                  ],
+                  "title": "FleetResult",
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "servers": {
+                    "default": [],
+                    "items": {
+                      "type": "string"
+                    },
+                    "maxItems": 64,
+                    "title": "Servers",
+                    "type": "array"
+                  }
+                },
+                "title": "FleetConnectionStateParams",
+                "type": "object"
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/ops/fleet.packs.status": {
       "post": {
         "operationId": "fleet.packs.status",
@@ -34752,6 +36220,2386 @@
                   "items"
                 ],
                 "title": "FleetPinParams",
+                "type": "object"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ops/identity.api_keys.revoke": {
+      "post": {
+        "operationId": "identity.api_keys.revoke",
+        "summary": "Revoke an API key",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "value": {
+                      "additionalProperties": true,
+                      "title": "Value",
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "value"
+                  ],
+                  "title": "Value",
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "key_id": {
+                    "maxLength": 256,
+                    "minLength": 1,
+                    "title": "Key Id",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "key_id"
+                ],
+                "title": "ApiKeyRevoke",
+                "type": "object"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ops/identity.audit.export": {
+      "post": {
+        "operationId": "identity.audit.export",
+        "summary": "Export identity audit events for a time range",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "value": {
+                      "additionalProperties": true,
+                      "title": "Value",
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "value"
+                  ],
+                  "title": "Value",
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "from": {
+                    "minimum": 0,
+                    "title": "From",
+                    "type": "integer"
+                  },
+                  "to": {
+                    "minimum": 0,
+                    "title": "To",
+                    "type": "integer"
+                  },
+                  "cursor": {
+                    "anyOf": [
+                      {
+                        "maxLength": 64,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null,
+                    "title": "Cursor"
+                  },
+                  "limit": {
+                    "default": 100,
+                    "maximum": 500,
+                    "minimum": 1,
+                    "title": "Limit",
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "from",
+                  "to"
+                ],
+                "title": "AuditExport",
+                "type": "object"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ops/identity.audit.list": {
+      "post": {
+        "operationId": "identity.audit.list",
+        "summary": "List identity audit events",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "value": {
+                      "additionalProperties": true,
+                      "title": "Value",
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "value"
+                  ],
+                  "title": "Value",
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "cursor": {
+                    "anyOf": [
+                      {
+                        "maxLength": 256,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null,
+                    "title": "Cursor"
+                  },
+                  "limit": {
+                    "default": 100,
+                    "maximum": 500,
+                    "minimum": 1,
+                    "title": "Limit",
+                    "type": "integer"
+                  }
+                },
+                "title": "PageParams",
+                "type": "object"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ops/identity.audit.verify": {
+      "post": {
+        "operationId": "identity.audit.verify",
+        "summary": "Verify the audit chain",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "value": {
+                      "additionalProperties": true,
+                      "title": "Value",
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "value"
+                  ],
+                  "title": "Value",
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {},
+                "title": "Empty",
+                "type": "object"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ops/identity.groups.list": {
+      "post": {
+        "operationId": "identity.groups.list",
+        "summary": "List groups",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "value": {
+                      "additionalProperties": true,
+                      "title": "Value",
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "value"
+                  ],
+                  "title": "Value",
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {},
+                "title": "Empty",
+                "type": "object"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ops/identity.groups.set_members": {
+      "post": {
+        "operationId": "identity.groups.set_members",
+        "summary": "Add and remove group members",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "value": {
+                      "additionalProperties": true,
+                      "title": "Value",
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "value"
+                  ],
+                  "title": "Value",
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "group_id": {
+                    "maxLength": 256,
+                    "minLength": 1,
+                    "title": "Group Id",
+                    "type": "string"
+                  },
+                  "add": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "maxItems": 500,
+                    "title": "Add",
+                    "type": "array"
+                  },
+                  "remove": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "maxItems": 500,
+                    "title": "Remove",
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "group_id"
+                ],
+                "title": "GroupMembers",
+                "type": "object"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ops/identity.groups.upsert": {
+      "post": {
+        "operationId": "identity.groups.upsert",
+        "summary": "Create or change a group",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "value": {
+                      "additionalProperties": true,
+                      "title": "Value",
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "value"
+                  ],
+                  "title": "Value",
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "group_id": {
+                    "maxLength": 256,
+                    "minLength": 1,
+                    "title": "Group Id",
+                    "type": "string"
+                  },
+                  "name": {
+                    "maxLength": 256,
+                    "minLength": 1,
+                    "title": "Name",
+                    "type": "string"
+                  },
+                  "roles": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "maxItems": 100,
+                    "title": "Roles",
+                    "type": "array"
+                  },
+                  "mfa_required": {
+                    "anyOf": [
+                      {
+                        "type": "boolean"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null,
+                    "title": "Mfa Required"
+                  }
+                },
+                "required": [
+                  "group_id",
+                  "name"
+                ],
+                "title": "GroupUpsert",
+                "type": "object"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ops/identity.mode.get": {
+      "post": {
+        "operationId": "identity.mode.get",
+        "summary": "Read the authentication mode",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "value": {
+                      "additionalProperties": true,
+                      "title": "Value",
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "value"
+                  ],
+                  "title": "Value",
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {},
+                "title": "Empty",
+                "type": "object"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ops/identity.mode.transition_step": {
+      "post": {
+        "operationId": "identity.mode.transition_step",
+        "summary": "Change the authentication mode",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "value": {
+                      "additionalProperties": true,
+                      "title": "Value",
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "value"
+                  ],
+                  "title": "Value",
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "to": {
+                    "enum": [
+                      "local",
+                      "external"
+                    ],
+                    "title": "To",
+                    "type": "string"
+                  },
+                  "expected_epoch": {
+                    "minimum": 0,
+                    "title": "Expected Epoch",
+                    "type": "integer"
+                  },
+                  "issuer_kid": {
+                    "maxLength": 256,
+                    "minLength": 1,
+                    "title": "Issuer Kid",
+                    "type": "string"
+                  },
+                  "ack": {
+                    "anyOf": [
+                      {
+                        "maxLength": 256,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null,
+                    "title": "Ack"
+                  },
+                  "local_fallback": {
+                    "anyOf": [
+                      {
+                        "maxLength": 64,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null,
+                    "title": "Local Fallback"
+                  }
+                },
+                "required": [
+                  "to",
+                  "expected_epoch",
+                  "issuer_kid"
+                ],
+                "title": "ModeTransition",
+                "type": "object"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ops/identity.policy.get": {
+      "post": {
+        "operationId": "identity.policy.get",
+        "summary": "Read the identity policy",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "value": {
+                      "additionalProperties": true,
+                      "title": "Value",
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "value"
+                  ],
+                  "title": "Value",
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {},
+                "title": "Empty",
+                "type": "object"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ops/identity.policy.set": {
+      "post": {
+        "operationId": "identity.policy.set",
+        "summary": "Change the identity policy",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "value": {
+                      "additionalProperties": true,
+                      "title": "Value",
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "value"
+                  ],
+                  "title": "Value",
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "expected_epoch": {
+                    "minimum": 0,
+                    "title": "Expected Epoch",
+                    "type": "integer"
+                  },
+                  "password_min_chars": {
+                    "anyOf": [
+                      {
+                        "maximum": 256,
+                        "minimum": 1,
+                        "type": "integer"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null,
+                    "title": "Password Min Chars"
+                  },
+                  "registration_policy": {
+                    "anyOf": [
+                      {
+                        "maxLength": 64,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null,
+                    "title": "Registration Policy"
+                  },
+                  "local_fallback": {
+                    "anyOf": [
+                      {
+                        "maxLength": 64,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null,
+                    "title": "Local Fallback"
+                  }
+                },
+                "required": [
+                  "expected_epoch"
+                ],
+                "title": "PolicySet",
+                "type": "object"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ops/identity.providers.delete": {
+      "post": {
+        "operationId": "identity.providers.delete",
+        "summary": "Delete an identity provider",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "value": {
+                      "additionalProperties": true,
+                      "title": "Value",
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "value"
+                  ],
+                  "title": "Value",
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "provider_id": {
+                    "maxLength": 128,
+                    "minLength": 1,
+                    "title": "Provider Id",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "provider_id"
+                ],
+                "title": "ProviderRef",
+                "type": "object"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ops/identity.providers.list": {
+      "post": {
+        "operationId": "identity.providers.list",
+        "summary": "List identity providers",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "value": {
+                      "additionalProperties": true,
+                      "title": "Value",
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "value"
+                  ],
+                  "title": "Value",
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {},
+                "title": "Empty",
+                "type": "object"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ops/identity.providers.mapping_dry_run": {
+      "post": {
+        "operationId": "identity.providers.mapping_dry_run",
+        "summary": "Preview the roles a provider's rules assign",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "value": {
+                      "additionalProperties": true,
+                      "title": "Value",
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "value"
+                  ],
+                  "title": "Value",
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "provider_id": {
+                    "maxLength": 128,
+                    "minLength": 1,
+                    "title": "Provider Id",
+                    "type": "string"
+                  },
+                  "claims": {
+                    "additionalProperties": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "maxProperties": 100,
+                    "title": "Claims",
+                    "type": "object"
+                  }
+                },
+                "required": [
+                  "provider_id",
+                  "claims"
+                ],
+                "title": "MappingDryRun",
+                "type": "object"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ops/identity.providers.upsert": {
+      "post": {
+        "operationId": "identity.providers.upsert",
+        "summary": "Create or change an identity provider",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "value": {
+                      "additionalProperties": true,
+                      "title": "Value",
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "value"
+                  ],
+                  "title": "Value",
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "provider_id": {
+                    "maxLength": 128,
+                    "minLength": 1,
+                    "title": "Provider Id",
+                    "type": "string"
+                  },
+                  "kind": {
+                    "enum": [
+                      "oidc",
+                      "saml",
+                      "ldap",
+                      "scim"
+                    ],
+                    "title": "Kind",
+                    "type": "string"
+                  },
+                  "display_name": {
+                    "maxLength": 256,
+                    "minLength": 1,
+                    "title": "Display Name",
+                    "type": "string"
+                  },
+                  "enabled": {
+                    "default": true,
+                    "title": "Enabled",
+                    "type": "boolean"
+                  },
+                  "config_json": {
+                    "default": "{}",
+                    "maxLength": 16384,
+                    "title": "Config Json",
+                    "type": "string"
+                  },
+                  "secret_ref": {
+                    "anyOf": [
+                      {
+                        "pattern": "^(env|openbao)://\\S+$",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null,
+                    "title": "Secret Ref"
+                  },
+                  "email_domains": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "maxItems": 100,
+                    "title": "Email Domains",
+                    "type": "array"
+                  },
+                  "jit_policy": {
+                    "default": "deny",
+                    "enum": [
+                      "deny",
+                      "create",
+                      "link_by_verified_email"
+                    ],
+                    "title": "Jit Policy",
+                    "type": "string"
+                  },
+                  "order": {
+                    "anyOf": [
+                      {
+                        "minimum": 0,
+                        "type": "integer"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null,
+                    "title": "Order"
+                  },
+                  "rules": {
+                    "items": {
+                      "$ref": "#/components/schemas/identity_providers_upsert__MappingRule"
+                    },
+                    "maxItems": 200,
+                    "title": "Rules",
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "provider_id",
+                  "kind",
+                  "display_name"
+                ],
+                "title": "ProviderUpsert",
+                "type": "object"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ops/identity.roles.assign": {
+      "post": {
+        "operationId": "identity.roles.assign",
+        "summary": "Assign a role to a user",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "value": {
+                      "additionalProperties": true,
+                      "title": "Value",
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "value"
+                  ],
+                  "title": "Value",
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "user_id": {
+                    "maxLength": 256,
+                    "minLength": 1,
+                    "title": "User Id",
+                    "type": "string"
+                  },
+                  "role_id": {
+                    "maxLength": 256,
+                    "minLength": 1,
+                    "title": "Role Id",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "user_id",
+                  "role_id"
+                ],
+                "title": "RoleChange",
+                "type": "object"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ops/identity.roles.list": {
+      "post": {
+        "operationId": "identity.roles.list",
+        "summary": "List roles",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "value": {
+                      "additionalProperties": true,
+                      "title": "Value",
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "value"
+                  ],
+                  "title": "Value",
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {},
+                "title": "Empty",
+                "type": "object"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ops/identity.roles.remove": {
+      "post": {
+        "operationId": "identity.roles.remove",
+        "summary": "Remove a role from a user",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "value": {
+                      "additionalProperties": true,
+                      "title": "Value",
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "value"
+                  ],
+                  "title": "Value",
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "user_id": {
+                    "maxLength": 256,
+                    "minLength": 1,
+                    "title": "User Id",
+                    "type": "string"
+                  },
+                  "role_id": {
+                    "maxLength": 256,
+                    "minLength": 1,
+                    "title": "Role Id",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "user_id",
+                  "role_id"
+                ],
+                "title": "RoleChange",
+                "type": "object"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ops/identity.roles.upsert": {
+      "post": {
+        "operationId": "identity.roles.upsert",
+        "summary": "Create or change a role and its scopes",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "value": {
+                      "additionalProperties": true,
+                      "title": "Value",
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "value"
+                  ],
+                  "title": "Value",
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "role": {
+                    "maxLength": 256,
+                    "minLength": 1,
+                    "title": "Role",
+                    "type": "string"
+                  },
+                  "scopes": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "maxItems": 200,
+                    "title": "Scopes",
+                    "type": "array"
+                  },
+                  "description": {
+                    "anyOf": [
+                      {
+                        "maxLength": 1024,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null,
+                    "title": "Description"
+                  }
+                },
+                "required": [
+                  "role"
+                ],
+                "title": "RoleUpsert",
+                "type": "object"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ops/identity.self.get": {
+      "post": {
+        "operationId": "identity.self.get",
+        "summary": "Read the caller's own identity record",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "value": {
+                      "additionalProperties": true,
+                      "title": "Value",
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "value"
+                  ],
+                  "title": "Value",
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {},
+                "title": "Empty",
+                "type": "object"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ops/identity.self.sessions.list": {
+      "post": {
+        "operationId": "identity.self.sessions.list",
+        "summary": "List the caller's own sessions",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "value": {
+                      "additionalProperties": true,
+                      "title": "Value",
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "value"
+                  ],
+                  "title": "Value",
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {},
+                "title": "Empty",
+                "type": "object"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ops/identity.service_accounts.create": {
+      "post": {
+        "operationId": "identity.service_accounts.create",
+        "summary": "Create a service account",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "value": {
+                      "additionalProperties": true,
+                      "title": "Value",
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "value"
+                  ],
+                  "title": "Value",
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "username": {
+                    "maxLength": 256,
+                    "minLength": 1,
+                    "title": "Username",
+                    "type": "string"
+                  },
+                  "display_name": {
+                    "anyOf": [
+                      {
+                        "maxLength": 256,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null,
+                    "title": "Display Name"
+                  },
+                  "roles": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "maxItems": 100,
+                    "title": "Roles",
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "username"
+                ],
+                "title": "ServiceAccountCreate",
+                "type": "object"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ops/identity.service_accounts.deprovision": {
+      "post": {
+        "operationId": "identity.service_accounts.deprovision",
+        "summary": "Deprovision a service account",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "value": {
+                      "additionalProperties": true,
+                      "title": "Value",
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "value"
+                  ],
+                  "title": "Value",
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "service_account_id": {
+                    "maxLength": 256,
+                    "minLength": 1,
+                    "title": "Service Account Id",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "service_account_id"
+                ],
+                "title": "ServiceAccountRef",
+                "type": "object"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ops/identity.service_accounts.disable": {
+      "post": {
+        "operationId": "identity.service_accounts.disable",
+        "summary": "Disable a service account",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "value": {
+                      "additionalProperties": true,
+                      "title": "Value",
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "value"
+                  ],
+                  "title": "Value",
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "service_account_id": {
+                    "maxLength": 256,
+                    "minLength": 1,
+                    "title": "Service Account Id",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "service_account_id"
+                ],
+                "title": "ServiceAccountRef",
+                "type": "object"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ops/identity.service_accounts.list": {
+      "post": {
+        "operationId": "identity.service_accounts.list",
+        "summary": "List service accounts",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "value": {
+                      "additionalProperties": true,
+                      "title": "Value",
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "value"
+                  ],
+                  "title": "Value",
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "cursor": {
+                    "anyOf": [
+                      {
+                        "maxLength": 256,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null,
+                    "title": "Cursor"
+                  },
+                  "limit": {
+                    "default": 100,
+                    "maximum": 500,
+                    "minimum": 1,
+                    "title": "Limit",
+                    "type": "integer"
+                  }
+                },
+                "title": "PageParams",
+                "type": "object"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ops/identity.sessions.list": {
+      "post": {
+        "operationId": "identity.sessions.list",
+        "summary": "List the sessions of a user",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "value": {
+                      "additionalProperties": true,
+                      "title": "Value",
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "value"
+                  ],
+                  "title": "Value",
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "user_id": {
+                    "maxLength": 256,
+                    "minLength": 1,
+                    "title": "User Id",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "user_id"
+                ],
+                "title": "UserRef",
+                "type": "object"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ops/identity.users.create": {
+      "post": {
+        "operationId": "identity.users.create",
+        "summary": "Create a user",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "value": {
+                      "additionalProperties": true,
+                      "title": "Value",
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "value"
+                  ],
+                  "title": "Value",
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "username": {
+                    "maxLength": 256,
+                    "minLength": 1,
+                    "title": "Username",
+                    "type": "string"
+                  },
+                  "display_name": {
+                    "anyOf": [
+                      {
+                        "maxLength": 256,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null,
+                    "title": "Display Name"
+                  },
+                  "email": {
+                    "anyOf": [
+                      {
+                        "maxLength": 320,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null,
+                    "title": "Email"
+                  },
+                  "roles": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "maxItems": 100,
+                    "title": "Roles",
+                    "type": "array"
+                  },
+                  "groups": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "maxItems": 100,
+                    "title": "Groups",
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "username"
+                ],
+                "title": "UserCreate",
+                "type": "object"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ops/identity.users.deprovision": {
+      "post": {
+        "operationId": "identity.users.deprovision",
+        "summary": "Remove a user's access and keep the audit trail",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "value": {
+                      "additionalProperties": true,
+                      "title": "Value",
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "value"
+                  ],
+                  "title": "Value",
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "user_id": {
+                    "maxLength": 256,
+                    "minLength": 1,
+                    "title": "User Id",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "user_id"
+                ],
+                "title": "UserRef",
+                "type": "object"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ops/identity.users.disable": {
+      "post": {
+        "operationId": "identity.users.disable",
+        "summary": "Disable a user and end their sessions",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "value": {
+                      "additionalProperties": true,
+                      "title": "Value",
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "value"
+                  ],
+                  "title": "Value",
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "user_id": {
+                    "maxLength": 256,
+                    "minLength": 1,
+                    "title": "User Id",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "user_id"
+                ],
+                "title": "UserRef",
+                "type": "object"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ops/identity.users.enable": {
+      "post": {
+        "operationId": "identity.users.enable",
+        "summary": "Enable a disabled user",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "value": {
+                      "additionalProperties": true,
+                      "title": "Value",
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "value"
+                  ],
+                  "title": "Value",
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "user_id": {
+                    "maxLength": 256,
+                    "minLength": 1,
+                    "title": "User Id",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "user_id"
+                ],
+                "title": "UserRef",
+                "type": "object"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ops/identity.users.force_logout": {
+      "post": {
+        "operationId": "identity.users.force_logout",
+        "summary": "End every session of a user",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "value": {
+                      "additionalProperties": true,
+                      "title": "Value",
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "value"
+                  ],
+                  "title": "Value",
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "user_id": {
+                    "maxLength": 256,
+                    "minLength": 1,
+                    "title": "User Id",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "user_id"
+                ],
+                "title": "UserRef",
+                "type": "object"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ops/identity.users.get": {
+      "post": {
+        "operationId": "identity.users.get",
+        "summary": "Read one user",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "value": {
+                      "additionalProperties": true,
+                      "title": "Value",
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "value"
+                  ],
+                  "title": "Value",
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "user_id": {
+                    "maxLength": 256,
+                    "minLength": 1,
+                    "title": "User Id",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "user_id"
+                ],
+                "title": "UserRef",
+                "type": "object"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ops/identity.users.list": {
+      "post": {
+        "operationId": "identity.users.list",
+        "summary": "List users, optionally filtered by text",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "value": {
+                      "additionalProperties": true,
+                      "title": "Value",
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "value"
+                  ],
+                  "title": "Value",
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "cursor": {
+                    "anyOf": [
+                      {
+                        "maxLength": 256,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null,
+                    "title": "Cursor"
+                  },
+                  "limit": {
+                    "default": 100,
+                    "maximum": 500,
+                    "minimum": 1,
+                    "title": "Limit",
+                    "type": "integer"
+                  },
+                  "query": {
+                    "anyOf": [
+                      {
+                        "maxLength": 256,
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null,
+                    "title": "Query"
+                  }
+                },
+                "title": "UsersList",
+                "type": "object"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ops/identity.users.unlock": {
+      "post": {
+        "operationId": "identity.users.unlock",
+        "summary": "Clear a user's sign-in lock",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "value": {
+                      "additionalProperties": true,
+                      "title": "Value",
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "value"
+                  ],
+                  "title": "Value",
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "user_id": {
+                    "maxLength": 256,
+                    "minLength": 1,
+                    "title": "User Id",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "user_id"
+                ],
+                "title": "UserRef",
                 "type": "object"
               }
             }
@@ -36387,6 +40235,75 @@
         }
       }
     },
+    "/api/v1/ops/models.get": {
+      "post": {
+        "operationId": "models.get",
+        "summary": "Read one model's editable fields and secret references",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "value": {
+                      "additionalProperties": true,
+                      "title": "Value",
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "value"
+                  ],
+                  "title": "ModelsGetResult",
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "description": "The id is a body field because real model ids contain ``/``.",
+                "properties": {
+                  "kind": {
+                    "maxLength": 32,
+                    "minLength": 1,
+                    "title": "Kind",
+                    "type": "string"
+                  },
+                  "model_id": {
+                    "maxLength": 256,
+                    "minLength": 1,
+                    "title": "Model Id",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "kind",
+                  "model_id"
+                ],
+                "title": "ModelsGetParams",
+                "type": "object"
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/ops/models.list": {
       "post": {
         "operationId": "models.list",
@@ -36963,6 +40880,204 @@
                 "additionalProperties": false,
                 "properties": {},
                 "title": "PolicyReadParams",
+                "type": "object"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ops/project.mode.get": {
+      "post": {
+        "operationId": "project.mode.get",
+        "summary": "Read a repository's mode: reference, development or evolving",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "repository": {
+                      "title": "Repository",
+                      "type": "string"
+                    },
+                    "mode": {
+                      "enum": [
+                        "reference",
+                        "development",
+                        "evolving"
+                      ],
+                      "title": "Mode",
+                      "type": "string"
+                    },
+                    "previous": {
+                      "anyOf": [
+                        {
+                          "enum": [
+                            "reference",
+                            "development",
+                            "evolving"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "default": null,
+                      "title": "Previous"
+                    }
+                  },
+                  "required": [
+                    "repository",
+                    "mode"
+                  ],
+                  "title": "ProjectModeResult",
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "repository": {
+                    "maxLength": 256,
+                    "minLength": 1,
+                    "title": "Repository",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "repository"
+                ],
+                "title": "ProjectModeGetParams",
+                "type": "object"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ops/project.mode.set": {
+      "post": {
+        "operationId": "project.mode.set",
+        "summary": "Change a repository's mode; only an undelegated person may, and that person is the approver",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "repository": {
+                      "title": "Repository",
+                      "type": "string"
+                    },
+                    "mode": {
+                      "enum": [
+                        "reference",
+                        "development",
+                        "evolving"
+                      ],
+                      "title": "Mode",
+                      "type": "string"
+                    },
+                    "previous": {
+                      "anyOf": [
+                        {
+                          "enum": [
+                            "reference",
+                            "development",
+                            "evolving"
+                          ],
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "default": null,
+                      "title": "Previous"
+                    }
+                  },
+                  "required": [
+                    "repository",
+                    "mode"
+                  ],
+                  "title": "ProjectModeResult",
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "repository": {
+                    "maxLength": 256,
+                    "minLength": 1,
+                    "title": "Repository",
+                    "type": "string"
+                  },
+                  "mode": {
+                    "enum": [
+                      "reference",
+                      "development",
+                      "evolving"
+                    ],
+                    "title": "Mode",
+                    "type": "string"
+                  },
+                  "reason": {
+                    "anyOf": [
+                      {
+                        "maxLength": 500,
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null,
+                    "title": "Reason"
+                  }
+                },
+                "required": [
+                  "repository",
+                  "mode"
+                ],
+                "title": "ProjectModeSetParams",
                 "type": "object"
               }
             }
@@ -38706,6 +42821,104 @@
         }
       }
     },
+    "/api/v1/ops/spec.query": {
+      "post": {
+        "operationId": "spec.query",
+        "summary": "Answer a competency question over the spec artifact graph",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "rows": {
+                      "items": {
+                        "additionalProperties": {
+                          "type": "string"
+                        },
+                        "type": "object"
+                      },
+                      "title": "Rows",
+                      "type": "array"
+                    },
+                    "digests": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "title": "Digests",
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "rows",
+                    "digests"
+                  ],
+                  "title": "SpecQueryResult",
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "question": {
+                    "enum": [
+                      "unreachable_requirements",
+                      "uncovered_code_items",
+                      "tasks_blocked_by_contract",
+                      "principles_at_risk",
+                      "changes_advancing_goal",
+                      "next_unblocked_task",
+                      "unbound_requirements",
+                      "deployment_of_requirement",
+                      "open_defects_in_release",
+                      "changesets_between_deployments"
+                    ],
+                    "title": "Question",
+                    "type": "string"
+                  },
+                  "subject": {
+                    "anyOf": [
+                      {
+                        "maxLength": 512,
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null,
+                    "title": "Subject"
+                  }
+                },
+                "required": [
+                  "question"
+                ],
+                "title": "SpecQueryParams",
+                "type": "object"
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/ops/swarm.topology.read": {
       "post": {
         "operationId": "swarm.topology.read",
@@ -39435,6 +43648,26 @@
       }
     },
     "schemas": {
+      "access_elevation_approve__ElevationReceipt": {
+        "additionalProperties": false,
+        "description": "What a write returns as proof: the audit event of the call and the digest.",
+        "properties": {
+          "audit_ref": {
+            "title": "Audit Ref",
+            "type": "string"
+          },
+          "request_digest": {
+            "title": "Request Digest",
+            "type": "string"
+          }
+        },
+        "required": [
+          "audit_ref",
+          "request_digest"
+        ],
+        "title": "ElevationReceipt",
+        "type": "object"
+      },
       "access_elevation_approve__ElevationScope": {
         "additionalProperties": false,
         "description": "One (graph, action) pair; the graph is a literal graph name.",
@@ -39590,6 +43823,26 @@
         "title": "ElevationView",
         "type": "object"
       },
+      "access_elevation_request__ElevationReceipt": {
+        "additionalProperties": false,
+        "description": "What a write returns as proof: the audit event of the call and the digest.",
+        "properties": {
+          "audit_ref": {
+            "title": "Audit Ref",
+            "type": "string"
+          },
+          "request_digest": {
+            "title": "Request Digest",
+            "type": "string"
+          }
+        },
+        "required": [
+          "audit_ref",
+          "request_digest"
+        ],
+        "title": "ElevationReceipt",
+        "type": "object"
+      },
       "access_elevation_request__ElevationScope": {
         "additionalProperties": false,
         "description": "One (graph, action) pair; the graph is a literal graph name.",
@@ -39614,6 +43867,26 @@
           "action"
         ],
         "title": "ElevationScope",
+        "type": "object"
+      },
+      "access_elevation_revoke__ElevationReceipt": {
+        "additionalProperties": false,
+        "description": "What a write returns as proof: the audit event of the call and the digest.",
+        "properties": {
+          "audit_ref": {
+            "title": "Audit Ref",
+            "type": "string"
+          },
+          "request_digest": {
+            "title": "Request Digest",
+            "type": "string"
+          }
+        },
+        "required": [
+          "audit_ref",
+          "request_digest"
+        ],
+        "title": "ElevationReceipt",
         "type": "object"
       },
       "access_elevation_revoke__ElevationScope": {
@@ -39773,6 +44046,792 @@
         ],
         "title": "ThrottleMode",
         "type": "string"
+      },
+      "catalog_assets_browse__CatalogFacet": {
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "kind",
+          "count"
+        ],
+        "title": "CatalogFacet",
+        "type": "object"
+      },
+      "catalog_assets_browse__CatalogItem": {
+        "additionalProperties": false,
+        "properties": {
+          "asset_id": {
+            "title": "Asset Id",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Name"
+          },
+          "owner": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Owner"
+          },
+          "score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Score"
+          }
+        },
+        "required": [
+          "asset_id",
+          "kind"
+        ],
+        "title": "CatalogItem",
+        "type": "object"
+      },
+      "catalog_assets_get__CatalogComment": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "author": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Author"
+          },
+          "at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "At"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "text"
+        ],
+        "title": "CatalogComment",
+        "type": "object"
+      },
+      "catalog_assets_get__CatalogLineage": {
+        "additionalProperties": false,
+        "properties": {
+          "upstream": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Upstream",
+            "type": "array"
+          },
+          "downstream": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Downstream",
+            "type": "array"
+          }
+        },
+        "required": [
+          "upstream",
+          "downstream"
+        ],
+        "title": "CatalogLineage",
+        "type": "object"
+      },
+      "catalog_assets_get__CatalogRatings": {
+        "additionalProperties": false,
+        "properties": {
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "mean": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Mean"
+          }
+        },
+        "required": [
+          "count"
+        ],
+        "title": "CatalogRatings",
+        "type": "object"
+      },
+      "catalog_assets_search__CatalogItem": {
+        "additionalProperties": false,
+        "properties": {
+          "asset_id": {
+            "title": "Asset Id",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Name"
+          },
+          "owner": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Owner"
+          },
+          "score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Score"
+          }
+        },
+        "required": [
+          "asset_id",
+          "kind"
+        ],
+        "title": "CatalogItem",
+        "type": "object"
+      },
+      "dashboard_access_get__Grant": {
+        "additionalProperties": false,
+        "properties": {
+          "principal_or_group": {
+            "title": "Principal Or Group",
+            "type": "string"
+          },
+          "role": {
+            "title": "Role",
+            "type": "string"
+          }
+        },
+        "required": [
+          "principal_or_group",
+          "role"
+        ],
+        "title": "Grant",
+        "type": "object"
+      },
+      "dashboard_list__DashboardEntry": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Title"
+          },
+          "owner": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Owner"
+          },
+          "role": {
+            "enum": [
+              "owner",
+              "shared"
+            ],
+            "title": "Role",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "role"
+        ],
+        "title": "DashboardEntry",
+        "type": "object"
+      },
+      "dashboard_save__DashboardDocument": {
+        "additionalProperties": false,
+        "description": "The document a client edits; ``id`` is minted on a first save without one.",
+        "properties": {
+          "schema_version": {
+            "const": 1,
+            "title": "Schema Version",
+            "type": "integer"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Id"
+          },
+          "title": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          },
+          "revision": {
+            "default": 0,
+            "minimum": 0,
+            "title": "Revision",
+            "type": "integer"
+          },
+          "params": {
+            "items": {
+              "$ref": "#/components/schemas/dashboard_save__DashboardParam"
+            },
+            "maxItems": 32,
+            "title": "Params",
+            "type": "array"
+          },
+          "panels": {
+            "items": {
+              "$ref": "#/components/schemas/dashboard_save__DashboardPanel"
+            },
+            "maxItems": 64,
+            "title": "Panels",
+            "type": "array"
+          }
+        },
+        "required": [
+          "schema_version",
+          "title"
+        ],
+        "title": "DashboardDocument",
+        "type": "object"
+      },
+      "dashboard_save__DashboardPanel": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+            "title": "Id",
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          },
+          "viz": {
+            "maxLength": 32,
+            "minLength": 1,
+            "title": "Viz",
+            "type": "string"
+          },
+          "query": {
+            "$ref": "#/components/schemas/dashboard_save__DashboardQuery"
+          },
+          "layout": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Layout",
+            "type": "object"
+          },
+          "options": {
+            "additionalProperties": true,
+            "title": "Options",
+            "type": "object"
+          },
+          "terms": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 64,
+            "title": "Terms",
+            "type": "array"
+          },
+          "concepts": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 64,
+            "title": "Concepts",
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "viz",
+          "query"
+        ],
+        "title": "DashboardPanel",
+        "type": "object"
+      },
+      "dashboard_save__DashboardParam": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "label": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Label",
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "text",
+              "number"
+            ],
+            "title": "Type",
+            "type": "string"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "title": "Value"
+          }
+        },
+        "required": [
+          "name",
+          "label",
+          "type",
+          "value"
+        ],
+        "title": "DashboardParam",
+        "type": "object"
+      },
+      "dashboard_save__DashboardQuery": {
+        "additionalProperties": false,
+        "description": "Query text, or a stored-query reference; a panel without one is invalid.",
+        "properties": {
+          "kind": {
+            "enum": [
+              "uql",
+              "stored"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "text": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Text"
+          },
+          "ref": {
+            "anyOf": [
+              {
+                "maxLength": 256,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Ref"
+          }
+        },
+        "required": [
+          "kind"
+        ],
+        "title": "DashboardQuery",
+        "type": "object"
+      },
+      "dashboard_share__Grant": {
+        "additionalProperties": false,
+        "properties": {
+          "principal_or_group": {
+            "title": "Principal Or Group",
+            "type": "string"
+          },
+          "role": {
+            "title": "Role",
+            "type": "string"
+          }
+        },
+        "required": [
+          "principal_or_group",
+          "role"
+        ],
+        "title": "Grant",
+        "type": "object"
+      },
+      "decision_list__DecisionItem": {
+        "additionalProperties": false,
+        "properties": {
+          "decision_id": {
+            "title": "Decision Id",
+            "type": "string"
+          },
+          "question_kind": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Question Kind"
+          },
+          "resolution_kind": {
+            "title": "Resolution Kind",
+            "type": "string"
+          },
+          "outcome": {
+            "default": null,
+            "title": "Outcome"
+          },
+          "decided_at": {
+            "title": "Decided At",
+            "type": "string"
+          },
+          "record_digest": {
+            "title": "Record Digest",
+            "type": "string"
+          },
+          "inputs_state": {
+            "title": "Inputs State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "decision_id",
+          "resolution_kind",
+          "decided_at",
+          "record_digest",
+          "inputs_state"
+        ],
+        "title": "DecisionItem",
+        "type": "object"
+      },
+      "decision_provenance_get__ProvenanceFact": {
+        "additionalProperties": false,
+        "properties": {
+          "node_id": {
+            "title": "Node Id",
+            "type": "string"
+          },
+          "revision": {
+            "title": "Revision",
+            "type": "integer"
+          },
+          "digest": {
+            "title": "Digest",
+            "type": "string"
+          }
+        },
+        "required": [
+          "node_id",
+          "revision",
+          "digest"
+        ],
+        "title": "ProvenanceFact",
+        "type": "object"
+      },
+      "decision_provenance_get__ProvenancePremise": {
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "ref": {
+            "title": "Ref",
+            "type": "string"
+          },
+          "class": {
+            "title": "Class"
+          }
+        },
+        "required": [
+          "kind",
+          "ref",
+          "class"
+        ],
+        "title": "ProvenancePremise",
+        "type": "object"
+      },
+      "decision_provenance_get__ProvenanceRule": {
+        "additionalProperties": false,
+        "properties": {
+          "rule_id": {
+            "title": "Rule Id",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          },
+          "digest": {
+            "title": "Digest",
+            "type": "string"
+          }
+        },
+        "required": [
+          "rule_id",
+          "version",
+          "digest"
+        ],
+        "title": "ProvenanceRule",
+        "type": "object"
+      },
+      "decision_why_not__WhyNotReason": {
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "detail": {
+            "title": "Detail",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "detail"
+        ],
+        "title": "WhyNotReason",
+        "type": "object"
+      },
+      "development_proposal_list__ProposalEntry": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "target": {
+            "title": "Target",
+            "type": "string"
+          },
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/development_proposal_list__ProposalEvidence"
+            },
+            "title": "Evidence",
+            "type": "array"
+          },
+          "state": {
+            "enum": [
+              "open",
+              "approved",
+              "rejected",
+              "landed"
+            ],
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "target",
+          "evidence",
+          "state"
+        ],
+        "title": "ProposalEntry",
+        "type": "object"
+      },
+      "development_proposal_list__ProposalEvidence": {
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "record_id": {
+            "title": "Record Id",
+            "type": "string"
+          },
+          "digest": {
+            "title": "Digest",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "record_id",
+          "digest"
+        ],
+        "title": "ProposalEvidence",
+        "type": "object"
+      },
+      "identity_providers_upsert__MappingRule": {
+        "additionalProperties": false,
+        "properties": {
+          "rule_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Rule Id",
+            "type": "string"
+          },
+          "claim_path": {
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "Claim Path",
+            "type": "string"
+          },
+          "match_kind": {
+            "enum": [
+              "equals",
+              "prefix",
+              "regex"
+            ],
+            "title": "Match Kind",
+            "type": "string"
+          },
+          "value": {
+            "maxLength": 256,
+            "title": "Value",
+            "type": "string"
+          },
+          "target": {
+            "maxLength": 256,
+            "pattern": "^(role|group):.+$",
+            "title": "Target",
+            "type": "string"
+          },
+          "privileged": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Privileged"
+          }
+        },
+        "required": [
+          "rule_id",
+          "claim_path",
+          "match_kind",
+          "value",
+          "target"
+        ],
+        "title": "MappingRule",
+        "type": "object"
       },
       "ops_backup__BackupReceipt": {
         "additionalProperties": false,

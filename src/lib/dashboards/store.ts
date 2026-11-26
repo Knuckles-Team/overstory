@@ -1,15 +1,15 @@
 /**
  * @file store.ts
- * @description Dashboard persistence (OVERSTORY-DASH-R011). Arbora's dashboard save
- * operations are not served yet (OVERSTORY-DASH-R010), so the interim store keeps
- * documents in browser local storage and reports every save as local and pending.
- * Storage failure never loses the in-memory document.
+ * @description Dashboard persistence (OVERSTORY-DASH-R011). This local store is the
+ * fallback beside the arbora store of OVERSTORY-DASH-R010 (`store-arbora.ts`): it keeps
+ * documents in browser local storage and reports every save as local and pending until
+ * arbora confirms. Storage failure never loses the in-memory document.
  */
 import { DashboardSchema, type Dashboard } from './model'
 
 export const STORAGE_KEY = 'overstory.dashboards.v1'
 
-export type SaveStatus = 'saved-locally-pending-arbora' | 'not-saved'
+export type SaveStatus = 'saved-locally-pending-arbora' | 'not-saved' | 'saved-to-arbora' | 'conflict'
 
 export interface SaveResult {
   status: SaveStatus
@@ -22,8 +22,7 @@ export interface DashboardStore {
   remove(id: string): SaveResult
 }
 
-export const LOCAL_PENDING_NOTICE =
-  'Saved in this browser only. Saving to arbora is pending: the arbora dashboard operations are not available yet.'
+export const LOCAL_PENDING_NOTICE = 'Saved in this browser only. Saving to arbora is pending.'
 
 function readAll(storage: Storage): Dashboard[] {
   try {

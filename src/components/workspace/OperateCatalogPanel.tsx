@@ -8,6 +8,7 @@ import { useWorkspaceCommands } from './WorkspaceCommands'
 import { loadedCatalogCommands } from './loaded-workspace-commands'
 import { CatalogNavigationLink, OperateComponentInspector } from './OperateComponentInspector'
 import { readOperateCatalog } from '@/lib/operate-catalog'
+import { mountedToolCount, readConnectionStates, type ConnectionStates } from '@/lib/arbora-api/connections'
 
 type Catalog = Awaited<ReturnType<typeof readOperateCatalog>>
 type RuntimeChildren = z.infer<typeof FleetStatusSchema>['value']['children']
@@ -32,6 +33,12 @@ export function OperateCatalogPanel({
   const catalog = useQuery({
     queryKey: ['operate-registration-catalog', generation],
     queryFn: ({ signal }) => readOperateCatalog(signal),
+    retry: false,
+    gcTime: 0,
+  })
+  const connections = useQuery({
+    queryKey: ['operate-connection-state', generation],
+    queryFn: ({ signal }) => readConnectionStates(signal),
     retry: false,
     gcTime: 0,
   })
@@ -82,6 +89,7 @@ export function OperateCatalogPanel({
           catalog={data}
           filter={filter}
           runtime={runtime}
+          connections={connections.isError ? ({ kind: 'error', code: 'UNREADABLE' } as const) : connections.data}
           state={state}
           role={role}
           heading={heading}
@@ -93,6 +101,7 @@ export function OperateCatalogPanel({
         disabled={catalog.isFetching}
         onClick={() => {
           void catalog.refetch()
+          void connections.refetch()
         }}
       >
         Refresh connector catalog
@@ -108,10 +117,12 @@ function CatalogServers({
   state,
   role,
   heading,
+  connections,
 }: {
   heading: RefObject<HTMLHeadingElement | null>
   catalog: Catalog
   runtime?: RuntimeChildren
+  connections?: ConnectionStates
   filter: string
 } & Navigation) {
   const { servers, components } = catalog
@@ -134,6 +145,7 @@ function CatalogServers({
           server={server}
           components={components}
           runtime={runtime}
+          connections={connections}
           state={state}
           role={role}
           heading={heading}
@@ -150,11 +162,13 @@ function CatalogConnector({
   state,
   role,
   heading,
+  connections,
 }: {
   heading: RefObject<HTMLHeadingElement | null>
   server: Catalog['servers'][number]
   components: Catalog['components']
   runtime?: RuntimeChildren
+  connections?: ConnectionStates
 } & Navigation) {
   const expanded = state.connector === server.server_id
   const next = { ...state, connector: expanded ? undefined : server.server_id, definition: undefined }
@@ -166,7 +180,7 @@ function CatalogConnector({
       <h3>{server.name}</h3>
       <p>Registration: {server.status}</p>
       <p>Catalog tools: {server.tool_count}</p>
-      <p>Provider connection: not reported by this catalog.</p>
+      <ProviderConnection name={server.name} connections={connections} />
       <CatalogNavigationLink state={next} role={role} expanded={expanded}>
         Inspect {server.name}
       </CatalogNavigationLink>
@@ -182,5 +196,25 @@ function CatalogConnector({
         />
       )}
     </article>
+  )
+}
+
+/** The connection state arbora reports for one connector, or the honest reason there is none. */
+function ProviderConnection({ name, connections }: { name: string; connections?: ConnectionStates }) {
+  if (!connections) return <p>Provider connection: not reported by this catalog.</p>
+  if (connections.kind === 'unavailable')
+    return <p>Provider connection: unavailable (arbora does not serve it yet).</p>
+  if (connections.kind === 'denied') return <p>Provider connection: not permitted for this account.</p>
+  if (connections.kind !== 'ready') return <p>Provider connection: could not be read.</p>
+  const row = connections.result.get(name)
+  if (!row) return <p>Provider connection: no running connector reported.</p>
+  const tools = mountedToolCount(row)
+  return (
+    <>
+      <p>Provider connection: {row.state ?? 'not reported'}</p>
+      {row.breaker !== undefined && <p>Circuit breaker: {row.breaker}</p>}
+      {row.restart_count !== undefined && <p>Restarts: {row.restart_count}</p>}
+      {tools !== null && <p>Mounted tools: {tools}</p>}
+    </>
   )
 }

@@ -3,7 +3,10 @@ import { useQuery } from '@tanstack/react-query'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { ServedState } from '@/components/served/ServedState'
 import { UnavailableNotice } from '@/components/ui/unavailable-notice'
+import { ArboraApiError } from '@/lib/arbora-api/invoke'
+import { classifyServedError } from '@/lib/arbora-api/served'
 import type { DecisionsTransport, WhyNotOutcome } from './decisions-transport'
 import type {
   CoverageDerivation,
@@ -12,7 +15,6 @@ import type {
   DecisionRecord,
   Elimination,
   PremiseRef,
-  ProvenanceRow,
   WhyNot,
 } from './decision-schemas'
 import { rawEntries, tagOf } from './decision-schemas'
@@ -262,7 +264,18 @@ const WHY_NOT_BUDGET_MS = 5_000
 function WhyNotOutcomeNotice({ outcome }: { outcome: WhyNotOutcome }) {
   if (outcome.kind === 'timeout') return <p role="alert">Explanation timed out within its solve budget.</p>
   if (outcome.kind === 'refused') return <p role="alert">Explanation refused: {outcome.reason}</p>
-  return <p role="status">{humanize(tagOf(outcome.whyNot.violation, 'violation'))}</p>
+  return (
+    <div role="status" className="text-xs">
+      <p>Verdict: {humanize(outcome.verdict)}</p>
+      <ul className="list-disc pl-4">
+        {outcome.reasons.map((reason, i) => (
+          <li key={`${reason.kind}-${i}`}>
+            {humanize(reason.kind)}: {reason.detail}
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
 }
 
 function WhyNotOnDemandAction({
@@ -350,41 +363,65 @@ function WhyNotSection({
   )
 }
 
-function ProvenanceRowLine({ row, kind }: { row: ProvenanceRow; kind: 'evaluation' | 'resolution' }) {
+function ProvenanceList({ title, rows }: { title: string; rows: { key: string; text: string; digest?: string }[] }) {
+  if (rows.length === 0) return null
   return (
-    <div className="flex flex-wrap items-center gap-2 py-1 text-[11px]">
-      <Badge variant="outline" className="text-[9px]">
-        {kind}
-      </Badge>
-      {row.class && <CategoryBadge value={row.class} />}
-      {row.resolver && <span className="text-muted-foreground">by {humanize(row.resolver)}</span>}
-      {row.option_id && <span className="font-mono">{row.option_id}</span>}
-      {row.producer && <span className="text-muted-foreground">producer {row.producer}</span>}
-      {row.success !== null && row.success !== undefined && (
-        <Badge variant={row.success ? 'secondary' : 'destructive'} className="text-[9px]">
-          {row.success ? 'success' : 'failure'}
-        </Badge>
-      )}
-      <span className="text-muted-foreground ml-auto">{formatEpochMs(row.recorded_at_ms)}</span>
+    <div className="py-1 text-[11px]">
+      <p className="font-semibold">
+        {title} ({rows.length})
+      </p>
+      <ul>
+        {rows.map((row) => (
+          <li key={row.key} className="flex flex-wrap gap-2">
+            <span className="font-mono">{row.text}</span>
+            {row.digest && <span className="text-muted-foreground">digest {row.digest}</span>}
+          </li>
+        ))}
+      </ul>
     </div>
   )
 }
 
-function ProvenanceSection({ provenance }: { provenance: DecisionProvenance | undefined }) {
-  const evaluations = provenance?.evaluations ?? []
-  const resolutions = provenance?.resolutions ?? []
-  if (evaluations.length === 0 && resolutions.length === 0) return null
+function ProvenanceSection({ provenance, error }: { provenance: DecisionProvenance | undefined; error: unknown }) {
+  const failure = error instanceof ArboraApiError ? classifyServedError(error) : null
+  const heading = (
+    <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">Provenance</h4>
+  )
+  if (failure && failure.kind !== 'ready')
+    return (
+      <section>
+        {heading}
+        <ServedState reply={failure} what="This decision's provenance" />
+      </section>
+    )
+  if (!provenance) return null
   return (
     <section>
-      <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">Provenance</h4>
-      <div>
-        {evaluations.map((row, i) => (
-          <ProvenanceRowLine key={`eval-${i}`} row={row} kind="evaluation" />
-        ))}
-        {resolutions.map((row, i) => (
-          <ProvenanceRowLine key={`res-${i}`} row={row} kind="resolution" />
-        ))}
-      </div>
+      {heading}
+      <p className="text-[11px] text-muted-foreground">
+        Inputs {humanize(provenance.inputs_state)}
+        {provenance.approver ? `, approved by ${provenance.approver}` : ''}
+      </p>
+      <ProvenanceList
+        title="Premises"
+        rows={provenance.premises.map((p) => ({ key: `${p.kind}-${p.ref}`, text: `${humanize(p.kind)} ${p.ref}` }))}
+      />
+      <ProvenanceList
+        title="Facts"
+        rows={provenance.facts.map((f) => ({
+          key: `${f.node_id}-${f.revision}`,
+          text: `${f.node_id} @ r${f.revision}`,
+          digest: f.digest,
+        }))}
+      />
+      <ProvenanceList
+        title="Rules"
+        rows={provenance.rules.map((r) => ({
+          key: `${r.rule_id}-${r.version}`,
+          text: `${r.rule_id} v${r.version}`,
+          digest: r.digest,
+        }))}
+      />
     </section>
   )
 }
@@ -446,7 +483,7 @@ export default function DecisionDetailPanel({
         <DerivationsSection derivations={record.derivations} />
         <EliminatedSection eliminated={record.eliminated} />
         <WhyNotSection whyNot={record.why_not} recordId={record.record_id} transport={transport} />
-        <ProvenanceSection provenance={provenanceQuery.data} />
+        <ProvenanceSection provenance={provenanceQuery.data} error={provenanceQuery.error} />
       </CardContent>
     </Card>
   )

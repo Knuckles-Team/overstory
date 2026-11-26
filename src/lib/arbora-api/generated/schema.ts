@@ -378,6 +378,159 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/ops/catalog.assets.browse": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Browse catalog assets by kind with kind counts */
+        post: operations["catalog.assets.browse"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/catalog.assets.get": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Read one catalog asset with owners, terms, lineage and ratings */
+        post: operations["catalog.assets.get"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/catalog.assets.search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Search catalog assets with the engine's ranked index */
+        post: operations["catalog.assets.search"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/dashboard.access.get": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Read the caller's role on a dashboard and its grants */
+        post: operations["dashboard.access.get"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/dashboard.delete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Delete a dashboard; the engine keeps the body for its retention */
+        post: operations["dashboard.delete"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/dashboard.get": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Load one dashboard document with the caller's role */
+        post: operations["dashboard.get"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/dashboard.list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** List the dashboards the caller owns or may read */
+        post: operations["dashboard.list"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/dashboard.save": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Save a dashboard document as a catalog asset */
+        post: operations["dashboard.save"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/dashboard.share": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Grant or revoke view or edit access to a dashboard */
+        post: operations["dashboard.share"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/ops/decide.commit": {
         parameters: {
             query?: never;
@@ -389,6 +542,91 @@ export interface paths {
         put?: never;
         /** Commit an agent decision through the service executor */
         post: operations["decide.commit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/decision.list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Page the tenant's committed decisions, newest first */
+        post: operations["decision.list"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/decision.provenance.get": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Read what one decision rested on, at the revision it used */
+        post: operations["decision.provenance.get"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/decision.why_not": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Explain why an option was not chosen, within a bounded budget */
+        post: operations["decision.why_not"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/development.proposal.list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** List a repository's proposals with kind, target, evidence and state */
+        post: operations["development.proposal.list"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/development.proposal.review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Accept or reject one open proposal as the verified reviewer */
+        post: operations["development.proposal.review"];
         delete?: never;
         options?: never;
         head?: never;
@@ -9184,6 +9422,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/ops/fleet.connections.state": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Show each running connector's connection state, without credentials */
+        post: operations["fleet.connections.state"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/ops/fleet.packs.status": {
         parameters: {
             query?: never;
@@ -9365,6 +9620,584 @@ export interface paths {
         put?: never;
         /** Unpin fleet items so they may be evicted again */
         post: operations["fleet.tools.unpin"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/identity.api_keys.revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Revoke an API key */
+        post: operations["identity.api_keys.revoke"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/identity.audit.export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Export identity audit events for a time range */
+        post: operations["identity.audit.export"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/identity.audit.list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** List identity audit events */
+        post: operations["identity.audit.list"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/identity.audit.verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Verify the audit chain */
+        post: operations["identity.audit.verify"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/identity.groups.list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** List groups */
+        post: operations["identity.groups.list"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/identity.groups.set_members": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add and remove group members */
+        post: operations["identity.groups.set_members"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/identity.groups.upsert": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create or change a group */
+        post: operations["identity.groups.upsert"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/identity.mode.get": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Read the authentication mode */
+        post: operations["identity.mode.get"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/identity.mode.transition_step": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Change the authentication mode */
+        post: operations["identity.mode.transition_step"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/identity.policy.get": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Read the identity policy */
+        post: operations["identity.policy.get"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/identity.policy.set": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Change the identity policy */
+        post: operations["identity.policy.set"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/identity.providers.delete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Delete an identity provider */
+        post: operations["identity.providers.delete"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/identity.providers.list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** List identity providers */
+        post: operations["identity.providers.list"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/identity.providers.mapping_dry_run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Preview the roles a provider's rules assign */
+        post: operations["identity.providers.mapping_dry_run"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/identity.providers.upsert": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create or change an identity provider */
+        post: operations["identity.providers.upsert"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/identity.roles.assign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Assign a role to a user */
+        post: operations["identity.roles.assign"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/identity.roles.list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** List roles */
+        post: operations["identity.roles.list"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/identity.roles.remove": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Remove a role from a user */
+        post: operations["identity.roles.remove"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/identity.roles.upsert": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create or change a role and its scopes */
+        post: operations["identity.roles.upsert"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/identity.self.get": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Read the caller's own identity record */
+        post: operations["identity.self.get"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/identity.self.sessions.list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** List the caller's own sessions */
+        post: operations["identity.self.sessions.list"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/identity.service_accounts.create": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create a service account */
+        post: operations["identity.service_accounts.create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/identity.service_accounts.deprovision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Deprovision a service account */
+        post: operations["identity.service_accounts.deprovision"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/identity.service_accounts.disable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Disable a service account */
+        post: operations["identity.service_accounts.disable"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/identity.service_accounts.list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** List service accounts */
+        post: operations["identity.service_accounts.list"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/identity.sessions.list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** List the sessions of a user */
+        post: operations["identity.sessions.list"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/identity.users.create": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create a user */
+        post: operations["identity.users.create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/identity.users.deprovision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Remove a user's access and keep the audit trail */
+        post: operations["identity.users.deprovision"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/identity.users.disable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Disable a user and end their sessions */
+        post: operations["identity.users.disable"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/identity.users.enable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Enable a disabled user */
+        post: operations["identity.users.enable"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/identity.users.force_logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** End every session of a user */
+        post: operations["identity.users.force_logout"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/identity.users.get": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Read one user */
+        post: operations["identity.users.get"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/identity.users.list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** List users, optionally filtered by text */
+        post: operations["identity.users.list"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/identity.users.unlock": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Clear a user's sign-in lock */
+        post: operations["identity.users.unlock"];
         delete?: never;
         options?: never;
         head?: never;
@@ -9728,6 +10561,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/ops/models.get": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Read one model's editable fields and secret references */
+        post: operations["models.get"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/ops/models.list": {
         parameters: {
             query?: never;
@@ -9892,6 +10742,40 @@ export interface paths {
         put?: never;
         /** Show this tenant's active policy state */
         post: operations["policy.read"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/project.mode.get": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Read a repository's mode: reference, development or evolving */
+        post: operations["project.mode.get"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/project.mode.set": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Change a repository's mode; only an undelegated person may, and that person is the approver */
+        post: operations["project.mode.set"];
         delete?: never;
         options?: never;
         head?: never;
@@ -10323,6 +11207,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/ops/spec.query": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Answer a competency question over the spec artifact graph */
+        post: operations["spec.query"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/ops/swarm.topology.read": {
         parameters: {
             query?: never;
@@ -10481,6 +11382,16 @@ export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
         /**
+         * ElevationReceipt
+         * @description What a write returns as proof: the audit event of the call and the digest.
+         */
+        access_elevation_approve__ElevationReceipt: {
+            /** Audit Ref */
+            audit_ref: string;
+            /** Request Digest */
+            request_digest: string;
+        };
+        /**
          * ElevationScope
          * @description One (graph, action) pair; the graph is a literal graph name.
          */
@@ -10556,6 +11467,16 @@ export interface components {
             own: boolean;
         };
         /**
+         * ElevationReceipt
+         * @description What a write returns as proof: the audit event of the call and the digest.
+         */
+        access_elevation_request__ElevationReceipt: {
+            /** Audit Ref */
+            audit_ref: string;
+            /** Request Digest */
+            request_digest: string;
+        };
+        /**
          * ElevationScope
          * @description One (graph, action) pair; the graph is a literal graph name.
          */
@@ -10567,6 +11488,16 @@ export interface components {
              * @enum {string}
              */
             action: "read" | "write";
+        };
+        /**
+         * ElevationReceipt
+         * @description What a write returns as proof: the audit event of the call and the digest.
+         */
+        access_elevation_revoke__ElevationReceipt: {
+            /** Audit Ref */
+            audit_ref: string;
+            /** Request Digest */
+            request_digest: string;
         };
         /**
          * ElevationScope
@@ -10649,6 +11580,312 @@ export interface components {
          * @enum {string}
          */
         capacity_throttle_set_mode__ThrottleMode: "observe" | "enforce";
+        /** CatalogFacet */
+        catalog_assets_browse__CatalogFacet: {
+            /** Kind */
+            kind: string;
+            /** Count */
+            count: number;
+        };
+        /** CatalogItem */
+        catalog_assets_browse__CatalogItem: {
+            /** Asset Id */
+            asset_id: string;
+            /** Kind */
+            kind: string;
+            /**
+             * Name
+             * @default null
+             */
+            name: string | null;
+            /**
+             * Owner
+             * @default null
+             */
+            owner: string | null;
+            /**
+             * Score
+             * @default null
+             */
+            score: number | null;
+        };
+        /** CatalogComment */
+        catalog_assets_get__CatalogComment: {
+            /** Id */
+            id: string;
+            /**
+             * Author
+             * @default null
+             */
+            author: string | null;
+            /**
+             * At
+             * @default null
+             */
+            at: string | null;
+            /** Text */
+            text: string;
+        };
+        /** CatalogLineage */
+        catalog_assets_get__CatalogLineage: {
+            /** Upstream */
+            upstream: string[];
+            /** Downstream */
+            downstream: string[];
+        };
+        /** CatalogRatings */
+        catalog_assets_get__CatalogRatings: {
+            /** Count */
+            count: number;
+            /**
+             * Mean
+             * @default null
+             */
+            mean: number | null;
+        };
+        /** CatalogItem */
+        catalog_assets_search__CatalogItem: {
+            /** Asset Id */
+            asset_id: string;
+            /** Kind */
+            kind: string;
+            /**
+             * Name
+             * @default null
+             */
+            name: string | null;
+            /**
+             * Owner
+             * @default null
+             */
+            owner: string | null;
+            /**
+             * Score
+             * @default null
+             */
+            score: number | null;
+        };
+        /** Grant */
+        dashboard_access_get__Grant: {
+            /** Principal Or Group */
+            principal_or_group: string;
+            /** Role */
+            role: string;
+        };
+        /** DashboardEntry */
+        dashboard_list__DashboardEntry: {
+            /** Id */
+            id: string;
+            /**
+             * Title
+             * @default null
+             */
+            title: string | null;
+            /**
+             * Owner
+             * @default null
+             */
+            owner: string | null;
+            /**
+             * Role
+             * @enum {string}
+             */
+            role: "owner" | "shared";
+        };
+        /**
+         * DashboardDocument
+         * @description The document a client edits; ``id`` is minted on a first save without one.
+         */
+        dashboard_save__DashboardDocument: {
+            /**
+             * Schema Version
+             * @constant
+             */
+            schema_version: 1;
+            /**
+             * Id
+             * @default null
+             */
+            id: string | null;
+            /** Title */
+            title: string;
+            /**
+             * Revision
+             * @default 0
+             */
+            revision: number;
+            /** Params */
+            params?: components["schemas"]["dashboard_save__DashboardParam"][];
+            /** Panels */
+            panels?: components["schemas"]["dashboard_save__DashboardPanel"][];
+        };
+        /** DashboardPanel */
+        dashboard_save__DashboardPanel: {
+            /** Id */
+            id: string;
+            /** Title */
+            title: string;
+            /** Viz */
+            viz: string;
+            query: components["schemas"]["dashboard_save__DashboardQuery"];
+            /** Layout */
+            layout?: {
+                [key: string]: number;
+            };
+            /** Options */
+            options?: {
+                [key: string]: unknown;
+            };
+            /** Terms */
+            terms?: string[];
+            /** Concepts */
+            concepts?: string[];
+        };
+        /** DashboardParam */
+        dashboard_save__DashboardParam: {
+            /** Name */
+            name: string;
+            /** Label */
+            label: string;
+            /**
+             * Type
+             * @enum {string}
+             */
+            type: "text" | "number";
+            /** Value */
+            value: string | number;
+        };
+        /**
+         * DashboardQuery
+         * @description Query text, or a stored-query reference; a panel without one is invalid.
+         */
+        dashboard_save__DashboardQuery: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "uql" | "stored";
+            /**
+             * Text
+             * @default null
+             */
+            text: string | null;
+            /**
+             * Ref
+             * @default null
+             */
+            ref: string | null;
+        };
+        /** Grant */
+        dashboard_share__Grant: {
+            /** Principal Or Group */
+            principal_or_group: string;
+            /** Role */
+            role: string;
+        };
+        /** DecisionItem */
+        decision_list__DecisionItem: {
+            /** Decision Id */
+            decision_id: string;
+            /**
+             * Question Kind
+             * @default null
+             */
+            question_kind: string | null;
+            /** Resolution Kind */
+            resolution_kind: string;
+            /**
+             * Outcome
+             * @default null
+             */
+            outcome: unknown;
+            /** Decided At */
+            decided_at: string;
+            /** Record Digest */
+            record_digest: string;
+            /** Inputs State */
+            inputs_state: string;
+        };
+        /** ProvenanceFact */
+        decision_provenance_get__ProvenanceFact: {
+            /** Node Id */
+            node_id: string;
+            /** Revision */
+            revision: number;
+            /** Digest */
+            digest: string;
+        };
+        /** ProvenancePremise */
+        decision_provenance_get__ProvenancePremise: {
+            /** Kind */
+            kind: string;
+            /** Ref */
+            ref: string;
+            /** Class */
+            class: unknown;
+        };
+        /** ProvenanceRule */
+        decision_provenance_get__ProvenanceRule: {
+            /** Rule Id */
+            rule_id: string;
+            /** Version */
+            version: number;
+            /** Digest */
+            digest: string;
+        };
+        /** WhyNotReason */
+        decision_why_not__WhyNotReason: {
+            /** Kind */
+            kind: string;
+            /** Detail */
+            detail: string;
+        };
+        /** ProposalEntry */
+        development_proposal_list__ProposalEntry: {
+            /** Id */
+            id: string;
+            /** Kind */
+            kind: string;
+            /** Target */
+            target: string;
+            /** Evidence */
+            evidence: components["schemas"]["development_proposal_list__ProposalEvidence"][];
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "open" | "approved" | "rejected" | "landed";
+        };
+        /** ProposalEvidence */
+        development_proposal_list__ProposalEvidence: {
+            /** Kind */
+            kind: string;
+            /** Record Id */
+            record_id: string;
+            /** Digest */
+            digest: string;
+        };
+        /** MappingRule */
+        identity_providers_upsert__MappingRule: {
+            /** Rule Id */
+            rule_id: string;
+            /** Claim Path */
+            claim_path: string;
+            /**
+             * Match Kind
+             * @enum {string}
+             */
+            match_kind: "equals" | "prefix" | "regex";
+            /** Value */
+            value: string;
+            /** Target */
+            target: string;
+            /**
+             * Privileged
+             * @default null
+             */
+            privileged: boolean | null;
+        };
         /**
          * BackupReceipt
          * @description One durable backup receipt; the store owns its exact shape.
@@ -10997,6 +12234,7 @@ export interface operations {
                          * @default false
                          */
                         own: boolean;
+                        receipt: components["schemas"]["access_elevation_approve__ElevationReceipt"];
                     };
                 };
             };
@@ -11039,14 +12277,17 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
-                    /** Elevation Id */
-                    elevation_id: string;
                     /** Scopes */
                     scopes: components["schemas"]["access_elevation_request__ElevationScope"][];
                     /** Span Ms */
                     span_ms: number;
                     /** Justification */
                     justification: string;
+                    /**
+                     * Elevation Id
+                     * @default null
+                     */
+                    elevation_id?: string | null;
                 };
             };
         };
@@ -11101,6 +12342,7 @@ export interface operations {
                          * @default false
                          */
                         own: boolean;
+                        receipt: components["schemas"]["access_elevation_request__ElevationReceipt"];
                     };
                 };
             };
@@ -11172,6 +12414,7 @@ export interface operations {
                          * @default false
                          */
                         own: boolean;
+                        receipt: components["schemas"]["access_elevation_revoke__ElevationReceipt"];
                     };
                 };
             };
@@ -11775,6 +13018,398 @@ export interface operations {
             };
         };
     };
+    "catalog.assets.browse": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /**
+                     * Kind
+                     * @default null
+                     */
+                    kind?: string | null;
+                    /**
+                     * Owner
+                     * @default null
+                     */
+                    owner?: string | null;
+                    /**
+                     * Limit
+                     * @default 50
+                     */
+                    limit?: number;
+                    /**
+                     * Cursor
+                     * @default null
+                     */
+                    cursor?: string | null;
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Facets */
+                        facets: components["schemas"]["catalog_assets_browse__CatalogFacet"][];
+                        /** Items */
+                        items: components["schemas"]["catalog_assets_browse__CatalogItem"][];
+                        /**
+                         * Next Cursor
+                         * @default null
+                         */
+                        next_cursor: string | null;
+                    };
+                };
+            };
+        };
+    };
+    "catalog.assets.get": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Asset Id */
+                    asset_id: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Asset Id */
+                        asset_id: string;
+                        /** Kind */
+                        kind: string;
+                        /**
+                         * Name
+                         * @default null
+                         */
+                        name: string | null;
+                        /** Owners */
+                        owners: string[];
+                        /** Terms */
+                        terms: string[];
+                        lineage: components["schemas"]["catalog_assets_get__CatalogLineage"];
+                        ratings: components["schemas"]["catalog_assets_get__CatalogRatings"];
+                        /** Comments */
+                        comments: components["schemas"]["catalog_assets_get__CatalogComment"][];
+                    };
+                };
+            };
+        };
+    };
+    "catalog.assets.search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Text */
+                    text: string;
+                    /** Kinds */
+                    kinds?: string[];
+                    /**
+                     * Limit
+                     * @default 25
+                     */
+                    limit?: number;
+                    /**
+                     * Cursor
+                     * @default null
+                     */
+                    cursor?: string | null;
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Items */
+                        items: components["schemas"]["catalog_assets_search__CatalogItem"][];
+                        /**
+                         * Next Cursor
+                         * @default null
+                         */
+                        next_cursor: string | null;
+                    };
+                };
+            };
+        };
+    };
+    "dashboard.access.get": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Id */
+                    id: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Id */
+                        id: string;
+                        /** Owner */
+                        owner: string;
+                        /**
+                         * Role
+                         * @enum {string}
+                         */
+                        role: "owner" | "edit" | "view";
+                        /** Grants */
+                        grants: components["schemas"]["dashboard_access_get__Grant"][];
+                    };
+                };
+            };
+        };
+    };
+    "dashboard.delete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Id */
+                    id: string;
+                    /** Expected Revision */
+                    expected_revision: number;
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Id */
+                        id: string;
+                        /** Deleted */
+                        deleted: boolean;
+                    };
+                };
+            };
+        };
+    };
+    "dashboard.get": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Id */
+                    id: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Document */
+                        document: {
+                            [key: string]: unknown;
+                        };
+                        /** Owner */
+                        owner: string;
+                        /**
+                         * Role
+                         * @enum {string}
+                         */
+                        role: "owner" | "edit" | "view";
+                    };
+                };
+            };
+        };
+    };
+    "dashboard.list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /**
+                     * Limit
+                     * @default 50
+                     */
+                    limit?: number;
+                    /**
+                     * Cursor
+                     * @default null
+                     */
+                    cursor?: string | null;
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Items */
+                        items: components["schemas"]["dashboard_list__DashboardEntry"][];
+                        /**
+                         * Next Cursor
+                         * @default null
+                         */
+                        next_cursor: string | null;
+                    };
+                };
+            };
+        };
+    };
+    "dashboard.save": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    document: components["schemas"]["dashboard_save__DashboardDocument"];
+                    /**
+                     * Expected Revision
+                     * @default null
+                     */
+                    expected_revision?: number | null;
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Id */
+                        id: string;
+                        /** Revision */
+                        revision: number;
+                        /** Owner */
+                        owner: string;
+                    };
+                };
+            };
+        };
+    };
+    "dashboard.share": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Id */
+                    id: string;
+                    /**
+                     * Grantee
+                     * @default null
+                     */
+                    grantee?: string | null;
+                    /**
+                     * Group
+                     * @default null
+                     */
+                    group?: string | null;
+                    /**
+                     * Role
+                     * @enum {string}
+                     */
+                    role: "view" | "edit";
+                    /**
+                     * Action
+                     * @enum {string}
+                     */
+                    action: "grant" | "revoke";
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Id */
+                        id: string;
+                        /** Grants */
+                        grants: components["schemas"]["dashboard_share__Grant"][];
+                    };
+                };
+            };
+        };
+    };
     "decide.commit": {
         parameters: {
             query?: never;
@@ -11808,6 +13443,248 @@ export interface operations {
                         provenance: {
                             [key: string]: string;
                         };
+                    };
+                };
+            };
+        };
+    };
+    "decision.list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /**
+                     * Question Kind
+                     * @default null
+                     */
+                    question_kind?: string | null;
+                    /**
+                     * Resolution Kind
+                     * @default null
+                     */
+                    resolution_kind?: string | null;
+                    /**
+                     * From
+                     * @default null
+                     */
+                    from?: string | null;
+                    /**
+                     * To
+                     * @default null
+                     */
+                    to?: string | null;
+                    /**
+                     * Limit
+                     * @default 50
+                     */
+                    limit?: number;
+                    /**
+                     * Cursor
+                     * @default null
+                     */
+                    cursor?: string | null;
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Items */
+                        items: components["schemas"]["decision_list__DecisionItem"][];
+                        /**
+                         * Next Cursor
+                         * @default null
+                         */
+                        next_cursor: string | null;
+                    };
+                };
+            };
+        };
+    };
+    "decision.provenance.get": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Decision Id */
+                    decision_id: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Decision Id */
+                        decision_id: string;
+                        /** Record Digest */
+                        record_digest: string;
+                        /** Premises */
+                        premises: components["schemas"]["decision_provenance_get__ProvenancePremise"][];
+                        /** Facts */
+                        facts: components["schemas"]["decision_provenance_get__ProvenanceFact"][];
+                        /** Rules */
+                        rules: components["schemas"]["decision_provenance_get__ProvenanceRule"][];
+                        /**
+                         * Approver
+                         * @default null
+                         */
+                        approver: string | null;
+                        /** Inputs State */
+                        inputs_state: string;
+                    };
+                };
+            };
+        };
+    };
+    "decision.why_not": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Decision Id */
+                    decision_id: string;
+                    /** Option Id */
+                    option_id: string;
+                    /**
+                     * Budget Ms
+                     * @default null
+                     */
+                    budget_ms?: number | null;
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Decision Id */
+                        decision_id: string;
+                        /** Option Id */
+                        option_id: string;
+                        /** Verdict */
+                        verdict: string;
+                        /** Reasons */
+                        reasons: components["schemas"]["decision_why_not__WhyNotReason"][];
+                        /** Budget Used Ms */
+                        budget_used_ms: number;
+                        /** Budget Exhausted */
+                        budget_exhausted: boolean;
+                    };
+                };
+            };
+        };
+    };
+    "development.proposal.list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Repository */
+                    repository: string;
+                    /**
+                     * State
+                     * @default null
+                     */
+                    state?: ("open" | "approved" | "rejected" | "landed") | null;
+                    /**
+                     * Kind
+                     * @default null
+                     */
+                    kind?: string | null;
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Items */
+                        items: components["schemas"]["development_proposal_list__ProposalEntry"][];
+                    };
+                };
+            };
+        };
+    };
+    "development.proposal.review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Proposal Id */
+                    proposal_id: string;
+                    /**
+                     * Decision
+                     * @enum {string}
+                     */
+                    decision: "accept" | "reject";
+                    /** Reason */
+                    reason: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Id */
+                        id: string;
+                        /**
+                         * State
+                         * @enum {string}
+                         */
+                        state: "open" | "approved" | "rejected" | "landed";
+                        /**
+                         * Pull Request
+                         * @default null
+                         */
+                        pull_request: string | null;
                     };
                 };
             };
@@ -27426,6 +29303,39 @@ export interface operations {
             };
         };
     };
+    "fleet.connections.state": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /**
+                     * Servers
+                     * @default []
+                     */
+                    servers?: string[];
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Value */
+                        value: unknown;
+                    };
+                };
+            };
+        };
+    };
     "fleet.packs.status": {
         parameters: {
             query?: never;
@@ -27857,6 +29767,1229 @@ export interface operations {
                     "application/json": {
                         /** Value */
                         value: unknown;
+                    };
+                };
+            };
+        };
+    };
+    "identity.api_keys.revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Key Id */
+                    key_id: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Value */
+                        value: {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    "identity.audit.export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** From */
+                    from: number;
+                    /** To */
+                    to: number;
+                    /**
+                     * Cursor
+                     * @default null
+                     */
+                    cursor?: string | null;
+                    /**
+                     * Limit
+                     * @default 100
+                     */
+                    limit?: number;
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Value */
+                        value: {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    "identity.audit.list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /**
+                     * Cursor
+                     * @default null
+                     */
+                    cursor?: string | null;
+                    /**
+                     * Limit
+                     * @default 100
+                     */
+                    limit?: number;
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Value */
+                        value: {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    "identity.audit.verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": Record<string, never>;
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Value */
+                        value: {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    "identity.groups.list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": Record<string, never>;
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Value */
+                        value: {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    "identity.groups.set_members": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Group Id */
+                    group_id: string;
+                    /** Add */
+                    add?: string[];
+                    /** Remove */
+                    remove?: string[];
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Value */
+                        value: {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    "identity.groups.upsert": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Group Id */
+                    group_id: string;
+                    /** Name */
+                    name: string;
+                    /** Roles */
+                    roles?: string[];
+                    /**
+                     * Mfa Required
+                     * @default null
+                     */
+                    mfa_required?: boolean | null;
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Value */
+                        value: {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    "identity.mode.get": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": Record<string, never>;
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Value */
+                        value: {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    "identity.mode.transition_step": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /**
+                     * To
+                     * @enum {string}
+                     */
+                    to: "local" | "external";
+                    /** Expected Epoch */
+                    expected_epoch: number;
+                    /** Issuer Kid */
+                    issuer_kid: string;
+                    /**
+                     * Ack
+                     * @default null
+                     */
+                    ack?: string | null;
+                    /**
+                     * Local Fallback
+                     * @default null
+                     */
+                    local_fallback?: string | null;
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Value */
+                        value: {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    "identity.policy.get": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": Record<string, never>;
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Value */
+                        value: {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    "identity.policy.set": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Expected Epoch */
+                    expected_epoch: number;
+                    /**
+                     * Password Min Chars
+                     * @default null
+                     */
+                    password_min_chars?: number | null;
+                    /**
+                     * Registration Policy
+                     * @default null
+                     */
+                    registration_policy?: string | null;
+                    /**
+                     * Local Fallback
+                     * @default null
+                     */
+                    local_fallback?: string | null;
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Value */
+                        value: {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    "identity.providers.delete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Provider Id */
+                    provider_id: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Value */
+                        value: {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    "identity.providers.list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": Record<string, never>;
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Value */
+                        value: {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    "identity.providers.mapping_dry_run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Provider Id */
+                    provider_id: string;
+                    /** Claims */
+                    claims: {
+                        [key: string]: string[];
+                    };
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Value */
+                        value: {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    "identity.providers.upsert": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Provider Id */
+                    provider_id: string;
+                    /**
+                     * Kind
+                     * @enum {string}
+                     */
+                    kind: "oidc" | "saml" | "ldap" | "scim";
+                    /** Display Name */
+                    display_name: string;
+                    /**
+                     * Enabled
+                     * @default true
+                     */
+                    enabled?: boolean;
+                    /**
+                     * Config Json
+                     * @default {}
+                     */
+                    config_json?: string;
+                    /**
+                     * Secret Ref
+                     * @default null
+                     */
+                    secret_ref?: string | null;
+                    /** Email Domains */
+                    email_domains?: string[];
+                    /**
+                     * Jit Policy
+                     * @default deny
+                     * @enum {string}
+                     */
+                    jit_policy?: "deny" | "create" | "link_by_verified_email";
+                    /**
+                     * Order
+                     * @default null
+                     */
+                    order?: number | null;
+                    /** Rules */
+                    rules?: components["schemas"]["identity_providers_upsert__MappingRule"][];
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Value */
+                        value: {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    "identity.roles.assign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** User Id */
+                    user_id: string;
+                    /** Role Id */
+                    role_id: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Value */
+                        value: {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    "identity.roles.list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": Record<string, never>;
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Value */
+                        value: {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    "identity.roles.remove": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** User Id */
+                    user_id: string;
+                    /** Role Id */
+                    role_id: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Value */
+                        value: {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    "identity.roles.upsert": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Role */
+                    role: string;
+                    /** Scopes */
+                    scopes?: string[];
+                    /**
+                     * Description
+                     * @default null
+                     */
+                    description?: string | null;
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Value */
+                        value: {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    "identity.self.get": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": Record<string, never>;
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Value */
+                        value: {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    "identity.self.sessions.list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": Record<string, never>;
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Value */
+                        value: {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    "identity.service_accounts.create": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Username */
+                    username: string;
+                    /**
+                     * Display Name
+                     * @default null
+                     */
+                    display_name?: string | null;
+                    /** Roles */
+                    roles?: string[];
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Value */
+                        value: {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    "identity.service_accounts.deprovision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Service Account Id */
+                    service_account_id: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Value */
+                        value: {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    "identity.service_accounts.disable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Service Account Id */
+                    service_account_id: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Value */
+                        value: {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    "identity.service_accounts.list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /**
+                     * Cursor
+                     * @default null
+                     */
+                    cursor?: string | null;
+                    /**
+                     * Limit
+                     * @default 100
+                     */
+                    limit?: number;
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Value */
+                        value: {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    "identity.sessions.list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** User Id */
+                    user_id: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Value */
+                        value: {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    "identity.users.create": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Username */
+                    username: string;
+                    /**
+                     * Display Name
+                     * @default null
+                     */
+                    display_name?: string | null;
+                    /**
+                     * Email
+                     * @default null
+                     */
+                    email?: string | null;
+                    /** Roles */
+                    roles?: string[];
+                    /** Groups */
+                    groups?: string[];
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Value */
+                        value: {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    "identity.users.deprovision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** User Id */
+                    user_id: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Value */
+                        value: {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    "identity.users.disable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** User Id */
+                    user_id: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Value */
+                        value: {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    "identity.users.enable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** User Id */
+                    user_id: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Value */
+                        value: {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    "identity.users.force_logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** User Id */
+                    user_id: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Value */
+                        value: {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    "identity.users.get": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** User Id */
+                    user_id: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Value */
+                        value: {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    "identity.users.list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /**
+                     * Cursor
+                     * @default null
+                     */
+                    cursor?: string | null;
+                    /**
+                     * Limit
+                     * @default 100
+                     */
+                    limit?: number;
+                    /**
+                     * Query
+                     * @default null
+                     */
+                    query?: string | null;
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Value */
+                        value: {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    "identity.users.unlock": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** User Id */
+                    user_id: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Value */
+                        value: {
+                            [key: string]: unknown;
+                        };
                     };
                 };
             };
@@ -28710,6 +31843,40 @@ export interface operations {
             };
         };
     };
+    "models.get": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Kind */
+                    kind: string;
+                    /** Model Id */
+                    model_id: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Value */
+                        value: {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+    };
     "models.list": {
         parameters: {
             query?: never;
@@ -29007,6 +32174,96 @@ export interface operations {
                         value: {
                             [key: string]: unknown;
                         };
+                    };
+                };
+            };
+        };
+    };
+    "project.mode.get": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Repository */
+                    repository: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Repository */
+                        repository: string;
+                        /**
+                         * Mode
+                         * @enum {string}
+                         */
+                        mode: "reference" | "development" | "evolving";
+                        /**
+                         * Previous
+                         * @default null
+                         */
+                        previous: ("reference" | "development" | "evolving") | null;
+                    };
+                };
+            };
+        };
+    };
+    "project.mode.set": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Repository */
+                    repository: string;
+                    /**
+                     * Mode
+                     * @enum {string}
+                     */
+                    mode: "reference" | "development" | "evolving";
+                    /**
+                     * Reason
+                     * @default null
+                     */
+                    reason?: string | null;
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Repository */
+                        repository: string;
+                        /**
+                         * Mode
+                         * @enum {string}
+                         */
+                        mode: "reference" | "development" | "evolving";
+                        /**
+                         * Previous
+                         * @default null
+                         */
+                        previous: ("reference" | "development" | "evolving") | null;
                     };
                 };
             };
@@ -29892,6 +33149,48 @@ export interface operations {
                         value: {
                             [key: string]: unknown;
                         };
+                    };
+                };
+            };
+        };
+    };
+    "spec.query": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /**
+                     * Question
+                     * @enum {string}
+                     */
+                    question: "unreachable_requirements" | "uncovered_code_items" | "tasks_blocked_by_contract" | "principles_at_risk" | "changes_advancing_goal" | "next_unblocked_task" | "unbound_requirements" | "deployment_of_requirement" | "open_defects_in_release" | "changesets_between_deployments";
+                    /**
+                     * Subject
+                     * @default null
+                     */
+                    subject?: string | null;
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Rows */
+                        rows: {
+                            [key: string]: string;
+                        }[];
+                        /** Digests */
+                        digests: string[];
                     };
                 };
             };

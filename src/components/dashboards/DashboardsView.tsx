@@ -6,7 +6,7 @@
  * person or the agent, lands in the activity log and can be undone.
  */
 import { useQuery } from '@tanstack/react-query'
-import { ArrowDown, ArrowUp, Pencil, Plus, RefreshCw, Redo2, Trash2, Undo2 } from 'lucide-react'
+import { ArrowDown, ArrowUp, Pencil, Plus, RefreshCw, Redo2, Share2, Trash2, Undo2 } from 'lucide-react'
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -24,9 +24,11 @@ import {
 } from '@/lib/dashboards/model'
 import { runPanelQuery } from '@/lib/dashboards/query'
 import { createDashboardTools } from '@/lib/dashboards/tools'
+import type { ArboraDashboardStore } from '@/lib/dashboards/store-arbora'
 import { useWebMcpToolSet } from '@/lib/webmcp/provider'
 import { ApprovalBanner, PanelForm, ParamsFieldset, type PanelDraft } from './DashboardParts'
 import { PanelBody } from './PanelBody'
+import { roleLabel, ShareDialog } from './ShareDialog'
 import { useDashboards } from './useDashboards'
 
 const INTERVALS = [
@@ -45,6 +47,7 @@ function PanelCard({
   intervalMs,
   canMoveUp,
   canMoveDown,
+  readOnly,
   onEdit,
   onRemove,
   onMove,
@@ -55,6 +58,7 @@ function PanelCard({
   intervalMs: number
   canMoveUp: boolean
   canMoveDown: boolean
+  readOnly: boolean
   onEdit: () => void
   onRemove: () => void
   onMove: (direction: -1 | 1) => void
@@ -77,45 +81,48 @@ function PanelCard({
         <h3 id={`panel-${panel.id}`} className="truncate text-sm font-medium">
           {panel.title}
         </h3>
-        <div className="flex shrink-0 gap-1">
-          <Button
-            size="icon"
-            variant="ghost"
-            aria-label={`Move ${panel.title} up`}
-            disabled={!canMoveUp}
-            onClick={() => {
-              onMove(-1)
-            }}
-          >
-            <ArrowUp />
-          </Button>
-          <Button
-            size="icon"
-            variant="ghost"
-            aria-label={`Move ${panel.title} down`}
-            disabled={!canMoveDown}
-            onClick={() => {
-              onMove(1)
-            }}
-          >
-            <ArrowDown />
-          </Button>
-          <Button size="icon" variant="ghost" aria-label={`Edit ${panel.title}`} onClick={onEdit}>
-            <Pencil />
-          </Button>
-          <Button size="icon" variant="ghost" aria-label={`Remove ${panel.title}`} onClick={onRemove}>
-            <Trash2 />
-          </Button>
-        </div>
+        {!readOnly && (
+          <div className="flex shrink-0 gap-1">
+            <Button
+              size="icon"
+              variant="ghost"
+              aria-label={`Move ${panel.title} up`}
+              disabled={!canMoveUp}
+              onClick={() => {
+                onMove(-1)
+              }}
+            >
+              <ArrowUp />
+            </Button>
+            <Button
+              size="icon"
+              variant="ghost"
+              aria-label={`Move ${panel.title} down`}
+              disabled={!canMoveDown}
+              onClick={() => {
+                onMove(1)
+              }}
+            >
+              <ArrowDown />
+            </Button>
+            <Button size="icon" variant="ghost" aria-label={`Edit ${panel.title}`} onClick={onEdit}>
+              <Pencil />
+            </Button>
+            <Button size="icon" variant="ghost" aria-label={`Remove ${panel.title}`} onClick={onRemove}>
+              <Trash2 />
+            </Button>
+          </div>
+        )}
       </header>
       <PanelBody panel={panel} outcome={query.data} loading={query.isLoading} />
     </section>
   )
 }
 
-export default function DashboardsView() {
-  const dash = useDashboards()
-  const { state, saved, saveResult, pending, controller } = dash
+export default function DashboardsView({ remote }: { remote?: ArboraDashboardStore } = {}) {
+  const dash = useDashboards(undefined, remote)
+  const { state, saved, saveResult, pending, controller, access, readOnly, remoteList } = dash
+  const [sharing, setSharing] = useState(false)
   const doc = state.doc
   const [draft, setDraft] = useState<PanelDraft | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -239,6 +246,37 @@ export default function DashboardsView() {
         </nav>
       )}
 
+      {remote && remoteList && remoteList.kind !== 'ready' && (
+        <p role="status" className="text-xs text-muted-foreground">
+          {remoteList.kind === 'unavailable'
+            ? 'Arbora dashboards are not served yet. Dashboards stay in this browser.'
+            : remoteList.kind === 'denied'
+              ? 'Arbora does not let this account list dashboards.'
+              : 'Arbora dashboards could not be listed.'}
+        </p>
+      )}
+      {remote &&
+        remoteList?.kind === 'ready' &&
+        remoteList.result.some((item) => !saved.some((d) => d.id === item.id)) && (
+          <nav aria-label="Dashboards in arbora" className="flex flex-wrap gap-2">
+            {remoteList.result
+              .filter((item) => !saved.some((d) => d.id === item.id))
+              .map((item) => (
+                <Button
+                  key={item.id}
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    void dash.openRemote(item.id)
+                  }}
+                >
+                  {item.title ?? item.id}
+                  {item.role === 'shared' ? ' (shared)' : ''}
+                </Button>
+              ))}
+          </nav>
+        )}
+
       {pending && <ApprovalBanner message={pending.message} ids={ids} denyRef={denyRef} onAnswer={dash.answer} />}
 
       {error && (
@@ -261,6 +299,7 @@ export default function DashboardsView() {
                 key={`${doc.id}-${String(doc.revision)}`}
                 defaultValue={doc.title}
                 maxLength={120}
+                disabled={readOnly}
                 onBlur={(e) => {
                   const v = e.target.value.trim()
                   if (v && v !== doc.title) userEdit('Renamed dashboard', (d) => renameDashboard(d, v))
@@ -272,7 +311,7 @@ export default function DashboardsView() {
               onClick={() => {
                 dash.undo()
               }}
-              disabled={state.past.length === 0}
+              disabled={readOnly || state.past.length === 0}
               aria-keyshortcuts="Control+Z"
             >
               <Undo2 /> Undo
@@ -282,7 +321,7 @@ export default function DashboardsView() {
               onClick={() => {
                 dash.redo()
               }}
-              disabled={state.future.length === 0}
+              disabled={readOnly || state.future.length === 0}
               aria-keyshortcuts="Control+Shift+Z"
             >
               <Redo2 /> Redo
@@ -312,18 +351,42 @@ export default function DashboardsView() {
                 ))}
               </select>
             </label>
-            <Button
-              onClick={() => {
-                setDraft(EMPTY_DRAFT)
-              }}
-            >
-              <Plus /> Add panel
-            </Button>
+            {!readOnly && (
+              <Button
+                onClick={() => {
+                  setDraft(EMPTY_DRAFT)
+                }}
+              >
+                <Plus /> Add panel
+              </Button>
+            )}
+            {remote && (
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setSharing(true)
+                }}
+              >
+                <Share2 /> Share
+              </Button>
+            )}
           </div>
+          {access.kind === 'ready' && (
+            <p className="text-xs text-muted-foreground" data-testid="dashboard-access">
+              Owner: <span className="font-mono">{access.owner}</span> · Your access: {roleLabel(access.role)}
+              {readOnly ? ' (read only)' : ''}
+            </p>
+          )}
+          {remote && access.kind === 'unavailable' && (
+            <p className="text-xs text-muted-foreground" data-testid="dashboard-access">
+              Ownership is unavailable: arbora does not report access for this dashboard.
+            </p>
+          )}
+          {remote && <ShareDialog store={remote} dashboardId={doc.id} open={sharing} onOpenChange={setSharing} />}
 
           <ParamsFieldset doc={doc} ids={ids} userEdit={userEdit} />
 
-          {draft && <PanelForm draft={draft} ids={ids} setDraft={setDraft} onSubmit={submitDraft} />}
+          {draft && !readOnly && <PanelForm draft={draft} ids={ids} setDraft={setDraft} onSubmit={submitDraft} />}
 
           {ordered.length === 0 ? (
             <p className="text-sm text-muted-foreground">
@@ -340,6 +403,7 @@ export default function DashboardsView() {
                   intervalMs={intervalMs}
                   canMoveUp={index > 0}
                   canMoveDown={index < ordered.length - 1}
+                  readOnly={readOnly}
                   onEdit={() => {
                     setDraft({
                       id: panel.id,
