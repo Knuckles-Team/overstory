@@ -1,10 +1,17 @@
 import { describe, expect, it } from 'vitest'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import {
+  auditManifest,
   clearPropPositions,
+  footprintClearsRoads,
   cityWorldSeed,
   clearsRoad,
   generateRegionalMassing,
   generateRegionalPlants,
+  generateWorld,
+  spawnZoneBuildings,
+  tierRecipeFor,
   islandSurfaceHeight,
   SEA_LEVEL_M,
   generateRegionalTiles,
@@ -26,6 +33,126 @@ import { BUILDING_POS, HOUSES, PLOTS, inWater } from '../core/layout'
 import { graphConnected, sampleRoadCurve } from '@/lib/scene3d/roads'
 
 describe('deterministic world generation', () => {
+  // spec: OVERSTORY-CITY-R059
+  it(
+    'seeds a complete world: environment, map and every placement trace to a generator rule',
+    { timeout: 30_000 },
+    () => {
+      const a = generateWorld(11)
+      const repeat = generateWorld(11)
+      const b = generateWorld(1234)
+      // A complete environment: the seeded coastline, the biome field and the
+      // hydrology are all present.
+      expect(a.environment.coastline).toHaveLength(72)
+      expect(a.environment.biomes).toHaveLength(81)
+      expect(a.environment.waterTiles.length).toBeGreaterThan(0)
+      // A complete map: every zone of the density field is present.
+      for (const zone of ['waterfront', 'civic-core', 'suburban', 'rural'] as const) {
+        expect(a.map.zoneCounts[zone], `zone ${zone}`).toBeGreaterThan(0)
+      }
+      // Every kind of placement is generated.
+      for (const kind of ['road', 'building', 'vegetation', 'prop'] as const) {
+        expect(
+          a.placements.some((p) => p.kind === kind),
+          `placements of kind ${kind}`,
+        ).toBe(true)
+      }
+      // No placed element traces to anything other than a generator rule.
+      expect(a.placements.length).toBeGreaterThan(100)
+      expect(a.placements.every((p) => p.rule.length > 0)).toBe(true)
+      expect(new Set(a.placements.map((p) => p.id)).size).toBe(a.placements.length)
+      // The same seed reproduces the identical manifest, bit for bit.
+      expect(repeat).toEqual(a)
+      // A different seed yields a different world, still complete.
+      expect(b).not.toEqual(a)
+      for (const zone of ['waterfront', 'civic-core', 'suburban', 'rural'] as const) {
+        expect(b.map.zoneCounts[zone], `zone ${zone}`).toBeGreaterThan(0)
+      }
+      for (const kind of ['road', 'building', 'vegetation', 'prop'] as const) {
+        expect(
+          b.placements.some((p) => p.kind === kind),
+          `placements of kind ${kind}`,
+        ).toBe(true)
+      }
+    },
+  )
+
+  // spec: OVERSTORY-CITY-R061
+  it('zones spawn catalog families at their tier density, height and program', { timeout: 30_000 }, () => {
+    const seed = 11
+    const spawns = spawnZoneBuildings(seed)
+    // The catalog is the vocabulary: load it from disk for the cross-check.
+    const catalog = JSON.parse(
+      readFileSync(join(__dirname, '..', '..', '..', '..', 'public', 'city-assets', 'kit', 'catalog.json'), 'utf8'),
+    ) as { entries: { id: string; footprint: [number, number]; height: number; category: string }[] }
+    const catalogById = new Map(catalog.entries.map((entry) => [entry.id, entry]))
+    // Every generated map carries at least one zone of each tier.
+    for (const tier of ['rural', 'suburban', 'city-center'] as const) {
+      expect(
+        spawns.some((spawn) => spawn.tier === tier),
+        `a zone of tier ${tier}`,
+      ).toBe(true)
+    }
+    // Spawn counts and heights follow the tier recipes; no zone spawns
+    // outside the catalog.
+    for (const spawn of spawns) {
+      const recipe = tierRecipeFor(spawn.zone)
+      expect(spawn.tier, `tier of ${spawn.id}`).toBe(recipe.tier)
+      expect(spawn.h, `height of ${spawn.id}`).toBeGreaterThanOrEqual(recipe.minH)
+      expect(spawn.h, `height of ${spawn.id}`).toBeLessThanOrEqual(recipe.maxH)
+      expect(
+        recipe.program.some((family) => family.id === spawn.familyId),
+        `program of ${spawn.id}`,
+      ).toBe(true)
+      const family = catalogById.get(spawn.familyId)
+      expect(family, `catalog family ${spawn.familyId}`).toBeDefined()
+      expect(family!.category).toBe('building')
+      expect(spawn.w).toBeCloseTo(family!.footprint[0], 3)
+      expect(spawn.d).toBeCloseTo(family!.footprint[1], 3)
+      expect(spawn.h).toBeCloseTo(family!.height, 3)
+    }
+    // Per-tile density: no tile spawns more than its recipe allows.
+    const counts = new Map<string, number>()
+    for (const spawn of spawns) {
+      const key = `${Math.round(spawn.x / 96)}:${Math.round(spawn.z / 96)}`
+      counts.set(key, (counts.get(key) ?? 0) + 1)
+    }
+    for (const [key, count] of counts) {
+      const [tx, tz] = key.split(':').map(Number)
+      const tile = generateRegionalTiles(seed).find((t) => t.x === tx * 96 && t.z === tz * 96)
+      expect(tile, `tile ${key}`).toBeDefined()
+      expect(count, `density of tile ${key}`).toBeLessThanOrEqual(tierRecipeFor(tile!.zone).perTile)
+    }
+    // Deterministic under the seed; a different seed differs.
+    expect(spawns).toEqual(spawnZoneBuildings(seed))
+    expect(spawnZoneBuildings(seed + 1)).not.toEqual(spawns)
+  })
+
+  // spec: OVERSTORY-CITY-R062
+  it(
+    'nature is placed first and the full-manifest audit finds no overlaps or wet footprints',
+    { timeout: 60_000 },
+    () => {
+      const seed = 11
+      const manifest = generateWorld(seed)
+      // The full-manifest sweep: zero overlapping footprints or envelopes
+      // between any two elements, roads meeting only at shared endpoints,
+      // and no dry infrastructure covering mapped water.
+      expect(auditManifest(seed, manifest)).toEqual([])
+      // A road crossing forest displaces the vegetation along its path:
+      // every surviving plant clears the road corridors.
+      const spans = manifest.placements
+        .filter((p) => p.kind === 'road')
+        .map((road) => ({ x1: road.x1!, z1: road.z1!, x2: road.x2!, z2: road.z2!, width: road.d }))
+      expect(spans.length).toBeGreaterThan(0)
+      for (const plant of manifest.placements.filter((p) => p.kind === 'vegetation')) {
+        expect(
+          footprintClearsRoads({ x: plant.x, z: plant.z, w: 4.4, d: 4.4 }, 0, spans, 0.25),
+          `plant ${plant.id} clears the roads`,
+        ).toBe(true)
+      }
+    },
+  )
   // Full island generation plus a pairwise no-overlap sweep over 103 sites:
   // an explicit bound with margin for a loaded CI runner (the 5 s default
   // was only ever met on fast dev machines).
