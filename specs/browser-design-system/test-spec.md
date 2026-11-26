@@ -408,7 +408,7 @@ These tests do not exist yet. Each row keeps its cited name until the test lands
 |---|---|---|---|
 | `e2e/workspace-density.spec.ts::remaining_surface_density` | OVERSTORY-DESIGN-R002.1.2 | Graph, editor, run, administration and authentication surfaces at the declared viewport matrix | Useful panes, readable text and no clipped content. |
 | `e2e/workspace-viewport.browser.ts::resize_device_continuity` | OVERSTORY-DESIGN-R004.2.2 | Resize, fold, keyboard and 200-percent zoom during stream and graph journeys | Draft, selection, history, progress and focus survive. |
-| `src/components/workspace/__tests__/WorkspaceWallpaper.test.tsx::wallpaper_evidence` | OVERSTORY-DESIGN-R005.3.2 | Evidence fixtures: missing, unknown, stale, duplicate, unrelated and out of order | Static scenery stays; no work or topology is invented. |
+| `src/components/workspace/__tests__/wallpaperEvidence.test.ts::wallpaper_evidence` | OVERSTORY-DESIGN-R005.3.2 | Evidence fixtures: missing, unknown, stale, duplicate, unrelated and out of order | Static scenery stays; no work or topology is invented. |
 | `e2e/performance-budget.spec.ts::performance_budget` | OVERSTORY-DESIGN-R010 | Declared reference device, network and fixture cardinality | INP, LCP, CLS and frame times stay inside the declared budgets. |
 | `e2e/scene-fidelity.browser.ts::golden_viewpoints_and_frame_time` (planned) | OVERSTORY-DESIGN-R012 | Every 3D surface on the release candidate | Every R012.x bound test passes. |
 | `src/lib/scene3d/__tests__/pipeline.test.ts::passes_per_tier` (planned) | OVERSTORY-DESIGN-R012.1 | Each quality tier | Exactly the declared passes run; the high tier binds shadows, ambient occlusion, bloom, tone mapping and the environment map. |

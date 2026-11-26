@@ -182,8 +182,8 @@ This bounded workflow does not complete the earlier design requirements.
 ## Canopy Glass continuation
 
 - [x] T039 OVERSTORY-DESIGN-R002.1.1 Define OVERSTORY-DESIGN-R002.1.1/R004.1.1/R005.2 and the original material, expanded-header, density, motion and fallback contract before runtime changes.
-- [ ] T040 OVERSTORY-DESIGN-R002.1.1 Implement shared token/material and compact/comfortable appearance behavior; qualify actual contrast, coarse-pointer sizing and storage fallback.
-- [ ] T041 OVERSTORY-DESIGN-R004.1.1 Implement full-width visible context/search/action rows and optional real detail; qualify resize, map sizing, focus, zoom and retained drafts.
+- [ ] T040 OVERSTORY-DESIGN-R002.1.1 Implement shared token/material and compact/comfortable appearance behavior; qualify actual contrast, coarse-pointer sizing and storage fallback. Progress: `e2e/shell-responsive.browser.ts` asserts every shared button and input keeps a 44 px target under a coarse pointer, and the denied-storage fallback is covered by `ThemeProvider.test.tsx`. Open: composited contrast evidence and compact/comfortable captures on the merged commit.
+- [ ] T041 OVERSTORY-DESIGN-R004.1.1 Implement full-width visible context/search/action rows and optional real detail; qualify resize, map sizing, focus, zoom and retained drafts. Progress: the 320 px context trail no longer runs under the assistant and appearance controls (`src/components/WorkspaceNavigation.tsx`); `e2e/responsive-header.browser.ts` fails on overlap at all six viewports and `e2e/shell-responsive.browser.ts` keeps a chat draft through resizing. Open: map sizing, focus and zoom qualification.
 - [ ] T042 OVERSTORY-DESIGN-R005.2 Implement interruptible state-linked motion and system/in-app reduced effects; qualify initial paint, repeated input, cancellation and idle behavior.
 - [ ] T043 OVERSTORY-DESIGN-R002.1.1 Record exact source, scoped validation results and reviewed rendered artifacts for `OVERSTORY-APPS-R049.2.1`. Never mark a planned browser test as passed.
 - [ ] T044 OVERSTORY-DESIGN-R002 Complete graph, editor, run, administration, authentication and remaining route theme/state/accessibility rollout.
@@ -217,7 +217,7 @@ Metadata guard tests preserve this distinction; they are not feature-acceptance 
 
 ## Context-aware wallpaper delivery
 
-- [ ] T053 OVERSTORY-DESIGN-R005.3 Add context/manual scene selection through the existing provider and shared frame. Qualify Canopy/Fluid first, then evidence-bound connector roots, harness trunk and knowledge branches/leaves.
+- [ ] T053 OVERSTORY-DESIGN-R005.3 Add context/manual scene selection through the existing provider and shared frame. Qualify Canopy/Fluid first, then evidence-bound connector roots, harness trunk and knowledge branches/leaves. Progress: the pure evidence gate `acceptWallpaperEvidence` (`src/components/workspace/wallpaperEvidence.ts`) refuses missing, unknown, unrelated, stale, future, duplicate and out-of-order records (`wallpaperEvidence.test.ts::wallpaper_evidence`). Open: no Arbora event or relationship read feeds it yet, so no scene consumes it.
 - [ ] T054 OVERSTORY-DESIGN-R005.4 Add wallpaper motion controls and lifecycle safeguards. Prove reduction, interruption, contrast and static fallback through real controls. Record exact-candidate R010 resource evidence without closing broader acceptance.
 - [ ] T055 OVERSTORY-DESIGN-R005.5 Add opt-in weather following and labelled manual previews after the scene proof. Qualify provider/location scope, freshness states and glass-safe effects. Keep default idle tests and all broader acceptance open.
 
