@@ -33,6 +33,7 @@ import {
 import { buildingAsset, propAsset } from '@/lib/scene3d/generators'
 import { ARCHETYPE_GUIDE, SCENE_COLORS } from '@/lib/scene3d/palette'
 import { BUILDING_POS, GROUND_SIZE, HOUSES, PLOTS, X_ROADS, Z_ROADS } from '../layout'
+import { tagExempt } from '../provenance'
 import {
   CITY_WORLD_SEED,
   generateRegionalMassing,
@@ -306,6 +307,9 @@ export function buildCityCore(
     new THREE.MeshStandardMaterial({ map: terrainTex, vertexColors: true, roughness: 1 }),
   )
   ground.receiveShadow = true
+  // Provenance (R063): the procedural landscape is the declared exempt
+  // primitive, not a catalog family — the audit accepts it under this tag.
+  tagExempt(ground, 'terrain')
   scene.add(ground)
   // Match the rendered triangle surface when anchoring distant vegetation.
   // The analytic height field can differ substantially between the 12.5 m
@@ -545,6 +549,10 @@ export function buildCityCore(
   // Keep sea between them: a full-plane ocean then surrounds the island
   // without flooding roads, sidewalks, or the live city basin.
   water.position.set(0, SEA_LEVEL_M, 0)
+  // The procedural water surface (ocean + river) is a declared exempt
+  // primitive (R063); the catalog renderer's shoreline dressing lands on top
+  // of it in the network pass.
+  tagExempt(water, 'water-surface')
   scene.add(water)
 
   // The river follows the same centreline and water mask used by placement.
@@ -554,6 +562,7 @@ export function buildCityCore(
     new THREE.MeshStandardMaterial({ map: waterTex, roughness: 0.24, metalness: 0.14 }),
   )
   river.name = 'generated-river'
+  tagExempt(river, 'water-surface')
   scene.add(river)
 
   // The continuous island shore replaces the old 900m-wide rectangular beach
@@ -564,6 +573,10 @@ export function buildCityCore(
     new THREE.MeshStandardMaterial({ map: terrainTex, vertexColors: true, roughness: 1 }),
   )
   coastline.receiveShadow = true
+  // The seeded coastline ribbon is landscape (pass 1 of the catalog-first
+  // assembly, R067): exempt terrain, dressed later by catalog shoreline
+  // families.
+  tagExempt(coastline, 'terrain')
   scene.add(coastline)
 
   // The island's water is part of the world, not a skybox.  A compact
@@ -1052,6 +1065,10 @@ export function createCityScene(container: HTMLElement, world: World, opts: City
       roughness: 1,
     }),
   )
+  // The sky domes (and the cloud cards) are the declared exempt 'sky'
+  // primitive (R063): no catalog family stands in for the sky.
+  tagExempt(dayDome, 'sky')
+  tagExempt(nightDome, 'sky')
   scene.add(dayDome, nightDome)
 
   // Low-cost layered cloud cards break the empty dome and give the bright

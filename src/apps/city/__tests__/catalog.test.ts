@@ -16,6 +16,7 @@ import { readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { BUDGETS } from '../core/budgets'
+import { catalogFamily, catalogFamilyCount, clearCatalog, setCatalog } from '../core/catalog'
 import { allowedAssetPath, EXEMPT_NONKIT_PINS } from '../core/provenance'
 
 const PUBLIC_DIR = join(__dirname, '..', '..', '..', '..', 'public')
@@ -144,5 +145,26 @@ describe('kit_only (R063)', () => {
     expect(allowedAssetPath('city-assets/characters/other-rig.glb')).toBe(false)
     expect(allowedAssetPath('https://example.com/model.glb')).toBe(false)
     expect(allowedAssetPath('city-assets/kit')).toBe(false)
+  })
+})
+
+describe('the runtime catalog (R063): the provenance registry resolves families by pinned path', () => {
+  it('setCatalog installs the pinned-path to family map and clearCatalog empties it', () => {
+    clearCatalog()
+    expect(catalogFamilyCount()).toBe(0)
+    setCatalog(catalog.entries.map((e) => ({ file: e.file, id: e.id, source: e.source })))
+    expect(catalogFamilyCount(), 'every kit family installed').toBe(catalog.entries.length)
+    for (const entry of catalog.entries) {
+      expect(catalogFamily(`city-assets/${entry.file}`), entry.id).toEqual({
+        id: entry.id,
+        source: entry.source,
+      })
+    }
+    // The two exempt non-kit pins have no catalog family.
+    for (const pin of EXEMPT_NONKIT_PINS) {
+      expect(catalogFamily(pin), pin).toBeNull()
+    }
+    clearCatalog()
+    expect(catalogFamilyCount()).toBe(0)
   })
 })

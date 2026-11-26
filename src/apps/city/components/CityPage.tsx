@@ -19,7 +19,9 @@ import { CityWebMcp } from './CityWebMcp'
 import { fetchCityFleet, fetchCityLayout, saveCityLayout } from '../api'
 import { FLEET_SNAPSHOT, fleetToConnectors, type FleetServer } from '../core/ecosystem'
 import { pinBytes } from '../core/assets'
+import { catalogFamilyCount, setCatalog } from '../core/catalog'
 import { BUDGETS } from '../core/budgets'
+import { auditScene, provenanceManifest } from '../core/provenance'
 import { AUDIO_OVERVIEW_HEIGHT, createAudioEngine } from '../core/audio'
 import { bus, makeEvent, setMode, setTimeSource } from '../core/events'
 import { derivedRoadGraph, nextDocument, validateEdit, type LayoutOverride } from '../core/layoutEdit'
@@ -42,7 +44,7 @@ import {
 } from '../core/sim'
 import { TOUR_SESSION_KEY, initUI, type CityUi } from '../core/ui'
 import type { CityActions, CityRenderer, CityUiElements, SelectionHit } from '../core/types'
-import { assetsLockSchema } from '../schemas'
+import { assetsLockSchema, catalogSchema } from '../schemas'
 import { installCityFidelity, type CityFidelityHandle } from '../core/fidelity'
 import type { CityToolController } from '../webmcp'
 import '../city.css'
@@ -130,7 +132,21 @@ async function verifyAssets(): Promise<void> {
     bus.emit(makeEvent('asset.failed', {}, 'SHA-256 verification unavailable in this environment'))
     return
   }
-  await Promise.all(paths.map((path, i) => verifyPinned(path, files[i])))
+  // The versioned catalog (R063): one fetch at startup installs the
+  // pinned-path → family map the provenance registry tags with; a missing or
+  // malformed catalog is a typed, visible failure, never a silent skip.
+  const catalogFetch = (async (): Promise<void> => {
+    try {
+      const json = (await (await fetch(`${ASSETS_BASE}/kit/catalog.json`)).json()) as unknown
+      const parsed = catalogSchema.safeParse(json)
+      if (!parsed.success) throw new Error('catalog shape invalid')
+      setCatalog(parsed.data.entries)
+    } catch (err) {
+      console.warn('[city] catalog unavailable:', err)
+      bus.emit(makeEvent('asset.failed', {}, `kit/catalog.json: ${String(err)}`))
+    }
+  })()
+  await Promise.all([catalogFetch, ...paths.map((path, i) => verifyPinned(path, files[i]))])
 }
 
 export default function CityPage() {
@@ -610,6 +626,7 @@ export default function CityPage() {
       let simulationMs = 0
       let renderMs = 0
       let uiMs = 0
+      let lastProvenanceAt = 0
       const targetFrameMs = Math.ceil((1000 / BUDGETS.fpsIntegrated) * 10) / 10
       const resetMeter = (): void => {
         meterLast = null
@@ -652,7 +669,19 @@ export default function CityPage() {
         const resources = diag
           ? ` · ${diag.tier} · ${diag.drawCalls} draw calls · ${diag.triangles} triangles · ${diag.geometries} geometries · ${diag.textures} textures · ${diag.programs} programs`
           : ''
-        meter.title = `${view.toUpperCase()} · ${belowBudget ? 'Below target' : 'Target met'} · ${timing}${resources} · CPU timings exclude GPU completion`
+        // The asset-provenance manifest (R063): every live catalog family and
+        // the count of visible meshes the scene audit cannot place. A full
+        // scene traversal is diagnostic work, so it runs at most every 5 s.
+        let provenance = ''
+        const scene = renderer?.fidelity?.scene
+        if (scene && now - lastProvenanceAt >= 5000) {
+          lastProvenanceAt = now
+          const manifest = provenanceManifest()
+          const placed = manifest.reduce((sum, r) => sum + r.instances, 0)
+          const issues = auditScene(scene).issues.length
+          provenance = ` · provenance: ${catalogFamilyCount()} catalogued · ${manifest.length} live families, ${placed} placed · ${issues} unplaced`
+        }
+        meter.title = `${view.toUpperCase()} · ${belowBudget ? 'Below target' : 'Target met'} · ${timing}${resources}${provenance} · CPU timings exclude GPU completion`
         meterStart = now
         meterFrames = 0
         slowFrames = 0

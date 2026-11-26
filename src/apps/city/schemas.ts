@@ -115,8 +115,22 @@ export const assetsLockSchema = z.object({
   license_allowlist: z.array(z.string().min(1)).min(1),
 })
 
+/** One kit family in the versioned catalog (catalog.json, R048.1/R063). */
+export const catalogEntrySchema = z.object({
+  file: z.string().min(1),
+  id: z.string().min(1),
+  source: z.string().min(1),
+})
+
+/** The runtime fields of catalog.json the provenance registry consumes. */
+export const catalogSchema = z.object({
+  entries: z.array(catalogEntrySchema),
+})
+
 export type FleetServer = z.infer<typeof fleetServerSchema>
 export type CityFleet = z.infer<typeof cityFleetSchema>
 export type CityStatus = z.infer<typeof cityStatusSchema>
 export type AssetsLockPin = z.infer<typeof assetsLockPinSchema>
 export type AssetsLock = z.infer<typeof assetsLockSchema>
+export type CatalogEntry = z.infer<typeof catalogEntrySchema>
+export type Catalog = z.infer<typeof catalogSchema>

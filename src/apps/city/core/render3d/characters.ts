@@ -22,6 +22,7 @@ import { SCENE_COLORS } from '@/lib/scene3d/palette'
 import type { GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { bus, makeEvent } from '../events'
 import { RIG_PATH, type RoleId } from '../ecosystem'
+import { tagExempt } from '../provenance'
 import { bubbleTexture } from './labels'
 import { isMesh } from './scene'
 import type { world as SimWorld } from '../sim'
@@ -208,6 +209,9 @@ export async function initCharacters(
       // keeps their untextured rig pieces and speech UI out of the city-kit
       // material audit, which governs architecture and public-realm surfaces.
       group.userData.marker = 'character-rig'
+      // Provenance (R063): the shared character rig is the declared non-kit
+      // pin — the scene audit accepts it under the exempt primitive tag.
+      tagExempt(group, 'character-rig')
 
       let distantMaterial = distantMaterials.get(ch.role)
       if (!distantMaterial) {

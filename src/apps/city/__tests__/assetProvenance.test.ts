@@ -16,6 +16,7 @@ import {
   EXEMPT_NONKIT_PINS,
   provenanceManifest,
   provenanceOf,
+  retirePlacement,
   tagExempt,
   tagPlacement,
 } from '../core/provenance'
@@ -88,6 +89,34 @@ describe('live_scene_audit (R063)', () => {
     hidden.visible = false
     scene.add(hidden)
     expect(auditScene(scene).clean).toBe(true)
+  })
+
+  it('retiring placements keeps the manifest counts live (the renderer disposes entries)', () => {
+    clearProvenance()
+    const scene = new THREE.Scene()
+    const a = new THREE.Group()
+    a.add(mesh('a-floor'))
+    tagPlacement(a, 'building.office-tower', 'scripts/asset-kit/stage02_civic.py')
+    const b = new THREE.Group()
+    b.add(mesh('b-floor'))
+    tagPlacement(b, 'building.office-tower', 'scripts/asset-kit/stage02_civic.py')
+    scene.add(a, b)
+
+    expect(provenanceManifest()[0].instances).toBe(2)
+    // The record drops by one per retired instance and vanishes at zero.
+    retirePlacement(b)
+    expect(provenanceManifest()).toEqual([
+      { familyId: 'building.office-tower', sourceStage: 'scripts/asset-kit/stage02_civic.py', instances: 1 },
+    ])
+    retirePlacement(a)
+    expect(provenanceManifest()).toEqual([])
+    // Retiring an untagged object is a no-op, not an error.
+    const loose = mesh('loose-mesh')
+    scene.add(loose)
+    expect(() => {
+      retirePlacement(loose)
+    }).not.toThrow()
+    expect(provenanceManifest()).toEqual([])
   })
 
   it('the exempt pin set is exactly the shared rig and the marker cube', () => {

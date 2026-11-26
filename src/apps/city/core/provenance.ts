@@ -63,6 +63,21 @@ export function tagPlacement(root: THREE.Object3D, familyId: string, sourceStage
   registry.set(familyId, record)
 }
 
+/**
+ * Retire one placed instance: the instance count drops by one (the record
+ * vanishes at zero), so the manifest counts only what the scene still
+ * carries. The tag itself stays on the (removed) object — the scene audit
+ * only ever sees live meshes.
+ */
+export function retirePlacement(root: THREE.Object3D): void {
+  const tag = provenanceOf(root)
+  if (!tag?.familyId) return
+  const record = registry.get(tag.familyId)
+  if (!record) return
+  record.instances = Math.max(0, record.instances - 1)
+  if (record.instances === 0) registry.delete(tag.familyId)
+}
+
 /** Tag an object as an exempt primitive (terrain, sky, water, rig, placeholder). */
 export function tagExempt(root: THREE.Object3D, kind: ExemptPrimitive): void {
   root.userData[PROVENANCE_KEY] = { exempt: kind }

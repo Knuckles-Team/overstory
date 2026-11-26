@@ -126,7 +126,7 @@ Producer first: the fleet seam (R003) and the world producers (R002, R004, R005)
 - [x] T119 [US5] OVERSTORY-CITY-R064 Implement route validation for car, plane, train and boat routes with deterministic refusals.
 - [x] T120 [US5] OVERSTORY-CITY-R065 Meet the 120 FPS average / 60 FPS floor frame budget with an auditable frame-budget monitor and adaptive quality ladder.
 - [x] T121 [US5] OVERSTORY-CITY-R066 Implement dynamic night windows: engine-side per-window emissive resolution from the activity schedule.
-- [ ] T122 [US5] OVERSTORY-CITY-R063 Implement the runtime asset-provenance manifest and the live scene audit with the debug-surface display.
+- [x] T122 [US5] OVERSTORY-CITY-R063 Implement the runtime asset-provenance manifest and the live scene audit with the debug-surface display.
 - [ ] T123 [US5] OVERSTORY-CITY-R067 Rebuild the world renderer catalog-first: remove the launch-era generated passes; render landscape, network and buildings from catalog families in that order, with procedural coastline water.
 - [ ] T124 [US5] OVERSTORY-CITY-R068 Absorb the launch-era landmark and interior assets into the kit as refined Blender families and register them in the catalog.
 - [ ] T125 [US5] OVERSTORY-CITY-R069 Implement the city's economic loop: income and expense streams, budget and treasury, tax rates, deterministic under the seed.

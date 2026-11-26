@@ -22,6 +22,7 @@ import {
 import { MIN_LABEL_FONT_PX, resolveLabelSet, type LabelCandidate } from '@/lib/scene3d/labels'
 import { HOUSES, PARKS, PLOTS, X_ROADS, Z_ROADS, BUILDING_POS } from './layout'
 import { mulberry32 } from './prng'
+import { auditScene, provenanceManifest, type ProvenanceRecord, type SceneAuditIssue } from './provenance'
 import type { FrameBudgetView } from './frameBudget'
 import type { NightWindowReport } from './render3d/windowEmissive'
 import { dressingForPlot } from './render3d/buildings'
@@ -89,7 +90,24 @@ export interface CityFidelityAudits {
   backgroundBlocks: string[]
   /** R012.7: the label set at the current camera. */
   labels: CityFidelityLabelAudit
+  /**
+   * R063: the asset-provenance manifest (every live catalog family with its
+   * instance count and source stage) plus the live scene audit. Joining
+   * `ok` once the catalog-first wipe (R067) removes the launch-era
+   * generated passes it reports.
+   */
+  provenance: CityFidelityProvenanceAudit
   ok: boolean
+}
+
+/** The live provenance audit over the rendered scene (R063). */
+export interface CityFidelityProvenanceAudit {
+  /** Clean when every visible mesh is a catalog family or a declared exempt primitive. */
+  clean: boolean
+  /** The unplaced meshes (launch-era generated geometry until R067). */
+  issues: SceneAuditIssue[]
+  /** Every live catalog family with its instance count and source stage. */
+  manifest: ProvenanceRecord[]
 }
 
 export interface CityFidelityFrameTime {
@@ -376,12 +394,25 @@ export function installCityFidelity(deps: CityFidelityDeps): CityFidelityHandle 
       underMinFont: visible.filter((l) => l.height < MIN_LABEL_FONT_PX).length,
     }
 
+    // R063: the live provenance manifest and the scene audit over the
+    // rendered graph — every visible mesh must be a catalog family or a
+    // declared exempt primitive. Not yet joined to `ok`: the launch-era
+    // generated passes it reports are removed by the catalog-first wipe
+    // (R067), which lands the audit clean.
+    const audit = auditScene(core.scene)
+    const provenance: CityFidelityProvenanceAudit = {
+      clean: audit.clean,
+      issues: audit.issues,
+      manifest: provenanceManifest(),
+    }
+
     return {
       material,
       density,
       sparseStreetEdges,
       backgroundBlocks,
       labels,
+      provenance,
       ok: material.ok && density.ok && sparseStreetEdges.length === 0 && overlaps === 0 && labels.underMinFont === 0,
     }
   }

@@ -14,10 +14,11 @@
  * asserting, then unmounts so the effect cleanup runs and no bus ring,
  * world state or in-flight boot leaks into the next test.
  */
-// spec: OVERSTORY-CITY-R012, OVERSTORY-CITY-R013, OVERSTORY-CITY-R014, OVERSTORY-CITY-R015, OVERSTORY-CITY-R018, OVERSTORY-CITY-R026, OVERSTORY-CITY-R027, OVERSTORY-CITY-R029, OVERSTORY-CITY-R030
+// spec: OVERSTORY-CITY-R012, OVERSTORY-CITY-R013, OVERSTORY-CITY-R014, OVERSTORY-CITY-R015, OVERSTORY-CITY-R018, OVERSTORY-CITY-R026, OVERSTORY-CITY-R027, OVERSTORY-CITY-R029, OVERSTORY-CITY-R030, OVERSTORY-CITY-R063
 import { readFileSync } from 'node:fs'
 import { webcrypto } from 'node:crypto'
 import { join } from 'node:path'
+import * as THREE from 'three'
 import { beforeAll, describe, expect, it, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import CityPage, { parseDemoParam, parseSpeedParam } from '../components/CityPage'
@@ -25,7 +26,9 @@ import { init3D } from '../core/render3d'
 import { SIM_SUBSTEP_GAME_S, tickSim, world } from '../core/sim'
 import { bus } from '../core/events'
 import { TOUR_SESSION_KEY } from '../core/ui'
-import type { CityRenderer } from '../core/types'
+import { catalogFamily, catalogFamilyCount } from '../core/catalog'
+import { clearProvenance, tagExempt, tagPlacement } from '../core/provenance'
+import type { CityFidelityCore, CityRenderer } from '../core/types'
 
 vi.mock('../core/render3d', () => ({ init3D: vi.fn() }))
 
@@ -33,6 +36,14 @@ const PUBLIC_DIR = join(__dirname, '..', '..', '..', '..', 'public')
 
 function lockJson(): Record<string, unknown> {
   return JSON.parse(readFileSync(join(PUBLIC_DIR, 'city-assets', 'assets.lock.json'), 'utf8')) as Record<
+    string,
+    unknown
+  >
+}
+
+/** The real versioned catalog on disk (the runtime catalog, R063). */
+function catalogJson(): Record<string, unknown> {
+  return JSON.parse(readFileSync(join(PUBLIC_DIR, 'city-assets', 'kit', 'catalog.json'), 'utf8')) as Record<
     string,
     unknown
   >
@@ -55,8 +66,12 @@ function fakeRenderer(): CityRenderer {
   }
 }
 
-/** Install the fetch double: fleet endpoint, lockfile (optionally mutated) and asset bytes. */
-function installFetch(mode: 'live' | 'simulated', lockOverride?: Record<string, unknown>): void {
+/** Install the fetch double: fleet endpoint, lockfile (optionally mutated), catalog and asset bytes. */
+function installFetch(
+  mode: 'live' | 'simulated',
+  lockOverride?: Record<string, unknown>,
+  catalogOverride?: unknown,
+): void {
   const lock = lockOverride ?? lockJson()
   global.fetch = vi.fn(async (input: RequestInfo | URL) => {
     const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url
@@ -86,6 +101,13 @@ function installFetch(mode: 'live' | 'simulated', lockOverride?: Record<string, 
     }
     if (url.startsWith('/city-assets/assets.lock.json')) {
       return { ok: true, status: 200, json: () => Promise.resolve(lock) } as unknown as Response
+    }
+    if (url.startsWith('/city-assets/kit/catalog.json')) {
+      return {
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve(catalogOverride ?? catalogJson()),
+      } as unknown as Response
     }
     if (url.startsWith('/city-assets/')) {
       const rel = url.replace(/^\/city-assets\//, '')
@@ -147,6 +169,19 @@ describe('speed and demo URL params (R012/R026)', () => {
       floorFps: 57,
       slowFrames: 9,
     })
+    // The provenance line (R063) walks the live scene: one catalog placement,
+    // one exempt primitive and one unplaced launch-era mesh.
+    clearProvenance()
+    const scene = new THREE.Scene()
+    const placed = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshBasicMaterial())
+    tagPlacement(placed, 'building.skyscraper-slab', 'scripts/asset-kit/stage06_buildings.py')
+    scene.add(placed)
+    const ground = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial())
+    tagExempt(ground, 'terrain')
+    scene.add(ground)
+    const rogue = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshBasicMaterial())
+    scene.add(rogue)
+    renderer.fidelity = { scene } as unknown as CityFidelityCore
     vi.mocked(init3D).mockResolvedValue(renderer)
     const view = await bootCity('simulated', '/apps/city?debug=1')
     try {
@@ -162,6 +197,12 @@ describe('speed and demo URL params (R012/R026)', () => {
       expect(meter.title).toContain('25 draw calls')
       expect(meter.title).toContain('12 geometries')
       expect(meter.title).toContain('CPU timings exclude GPU completion')
+      // The live provenance summary (R063): the installed catalog count,
+      // the live families with their placed instances, and the meshes the
+      // scene audit cannot place.
+      const catalogCount = (catalogJson() as { entries: unknown[] }).entries.length
+      expect(meter.title).toContain(`${catalogCount} catalogued`)
+      expect(meter.title).toContain('1 live families, 1 placed · 1 unplaced')
     } finally {
       view.unmount()
       raf.mockRestore()
@@ -354,6 +395,54 @@ describe('mode decision (R014)', () => {
       expect(names.some((n) => n.startsWith('Alpha'))).toBe(true)
       expect(names.some((n) => n.startsWith('Beta'))).toBe(true)
     } finally {
+      view.unmount()
+    }
+  })
+})
+
+describe('asset provenance (R063): the runtime records and surfaces the live manifest', () => {
+  it('installs the versioned catalog at startup: every kit family resolves by pinned path', async () => {
+    const entries = (catalogJson() as { entries: { id: string; file: string; source: string }[] }).entries
+    const view = await bootCity('simulated')
+    try {
+      expect(
+        (global.fetch as ReturnType<typeof vi.fn>).mock.calls.some(([u]) =>
+          String(u).includes('/city-assets/kit/catalog.json'),
+        ),
+        'the catalog is fetched at startup',
+      ).toBe(true)
+      expect(catalogFamilyCount(), 'the full family count is installed').toBe(entries.length)
+      for (const entry of entries.slice(0, 5)) {
+        expect(catalogFamily(`city-assets/${entry.file}`)).toEqual({ id: entry.id, source: entry.source })
+      }
+      // The two exempt non-kit pins carry no catalog family.
+      expect(catalogFamily('city-assets/characters/robot-expressive.glb')).toBeNull()
+      expect(catalogFamily('city-assets/marker-cube.glb')).toBeNull()
+    } finally {
+      view.unmount()
+    }
+  })
+
+  it('a malformed catalog is a typed, visible failure, never a silent skip', async () => {
+    installFetch('simulated', undefined, { entries: 'not-an-array' })
+    window.history.replaceState(null, '', '/apps/city')
+    const failures: string[] = []
+    const unsub = bus.subscribe((e) => {
+      if (e.type === 'asset.failed') failures.push(e.detail ?? '')
+    })
+    const view = render(<CityPage />)
+    try {
+      await vi.waitFor(
+        () => {
+          expect(document.querySelector('.city-booting')).toBeNull()
+        },
+        { timeout: 15_000 },
+      )
+      // The page still boots: the catalog failure is a visible event, not
+      // a silent skip and not a boot abort.
+      expect(failures.some((d) => d.includes('kit/catalog.json'))).toBe(true)
+    } finally {
+      unsub()
       view.unmount()
     }
   })
