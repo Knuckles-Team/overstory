@@ -33,16 +33,16 @@ No exact-head publication receipt is recorded.
 
 No task above names a requirement ID individually; together they must close every ID in [requirements.md](requirements.md) — `OVERSTORY-APPS-R038`, `OVERSTORY-APPS-R039`, `OVERSTORY-APPS-R040`, `OVERSTORY-APPS-R041`, `OVERSTORY-APPS-R042`, `OVERSTORY-APPS-R043`, `OVERSTORY-APPS-R044`, `OVERSTORY-APPS-R001`, `OVERSTORY-APPS-R002`, `OVERSTORY-APPS-R003`, `OVERSTORY-APPS-R004`.
 - [ ] T029 [US1] OVERSTORY-APPS-R005 Navigation and dashboards follow the signed-in user's role (rollup).
-- [ ] T030 [US1] OVERSTORY-APPS-R005.1 Nav entry declares a minimum role.
+- [x] T030 [US1] OVERSTORY-APPS-R005.1 Nav entry declares a minimum role.
 - [x] T031 [US1] OVERSTORY-APPS-R005.1.1 Registry role contract.
 - [x] T032 [US1] OVERSTORY-APPS-R005.1.2 Rendered role filtering.
 - [ ] T033 [US1] OVERSTORY-APPS-R005.2 Layout saved per user.
 - [x] T034 [US1] OVERSTORY-APPS-R005.3 Operate renders tiles for returned fleet children with source regression coverage. Each catalog connector shows the connection state `fleet.connections.state` serves, or says it is unavailable, denied or absent.
 - [x] T035 [US1] OVERSTORY-APPS-R005.4 One chat session list.
-- [ ] T036 [US1] OVERSTORY-APPS-R005.5 Every route renders.
+- [x] T036 [US1] OVERSTORY-APPS-R005.5 Every route renders.
 - [x] T037 [US1] OVERSTORY-APPS-R005.5.1 Census detects a throwing view.
 - [x] T038 [US1] OVERSTORY-APPS-R005.5.2 Complete route render acceptance.
-- [ ] T039 [US1] OVERSTORY-APPS-R005.6 Each view states its purpose.
+- [x] T039 [US1] OVERSTORY-APPS-R005.6 Each view states its purpose.
 - [x] T040 [US1] OVERSTORY-APPS-R005.6.1 Registry purpose copy.
 - [x] T041 [US1] OVERSTORY-APPS-R005.6.2 Rendered purpose visibility.
 - [ ] T042 [US1] OVERSTORY-APPS-R006 One panel relates goals, sessions and fleets (rollup).
