@@ -808,3 +808,34 @@ mutable parent storage alone is not a reason to require a new EG API.
 - `OVERSTORY-APPS-R037.4`: planned proof — Planned `e2e/design-agent-discovery-served.spec.ts::test_refusal`; the owning contract in plan.md and test-spec.md defines the served proof.
 - `OVERSTORY-APPS-R037.5`: planned proof — Planned `e2e/design-agent-discovery-served.spec.ts::test_evidence`; the owning contract in plan.md and test-spec.md defines the served proof.
 - `OVERSTORY-APPS-R037.6`: planned proof — Planned `e2e/design-agent-discovery-served.spec.ts::test_served_acceptance`; the owning contract in plan.md and test-spec.md defines the served proof.
+- `OVERSTORY-APPS-R030.10`: planned proof — `e2e/graph-motion-served.spec.ts::graph_motion_journey`.
+- `OVERSTORY-APPS-R030.10.1`: planned proof — `src/__tests__/graph-motion-types.test.ts::test_tuples_closed_and_sample_is_pure`.
+- `OVERSTORY-APPS-R030.10.2`: planned proof — `src/components/knowledge-graph/__tests__/useGraphMotion.test.tsx::test_positions_tween_over_frames_and_new_nodes_start_at_the_cause`.
+- `OVERSTORY-APPS-R030.10.3`: planned proof — `src/__tests__/graph-expand.test.tsx::test_click_reads_neighborhood_and_grows_staggered_with_badge`.
+- `OVERSTORY-APPS-R030.10.4`: planned proof — `src/__tests__/graph-expand.test.tsx::test_collapse_keeps_nodes_with_other_edges_and_cluster_members_burst_out`.
+- `OVERSTORY-APPS-R030.10.5`: planned proof — `src/components/knowledge-graph/__tests__/useGraphMotion.test.tsx::test_hover_and_select_fade_the_rest_and_cross_fade_between_nodes`.
+- `OVERSTORY-APPS-R030.10.6`: planned proof — `src/components/knowledge-graph/__tests__/useGraphMotion.test.tsx::test_interrupt_has_no_jump_and_reduced_motion_is_one_frame_with_live_region`.
+- `OVERSTORY-APPS-R030.10.7`: planned proof — `src/__tests__/graph-expand.test.tsx::test_refusals_leave_the_graph_unchanged_and_show_the_reason`.
+- `OVERSTORY-APPS-R030.10.8`: planned proof — `src/components/knowledge-graph/__tests__/useGraphMotion.test.tsx::test_metrics_recorded_and_snap_beyond_the_animated_cap`.
+- `OVERSTORY-APPS-R030.10.9`: planned proof — `e2e/graph-motion-served.spec.ts::click_hub_grows_over_frames_and_collapse_restores`.
+- `OVERSTORY-APPS-R030.11`: planned proof — `e2e/graph-semantics-served.spec.ts::class_colors_legend_and_toggle`.
+- `OVERSTORY-APPS-R030.11.1`: planned proof — `src/__tests__/graph-semantics.test.ts::test_slot_is_stable_depth_steps_lightness_and_unknown_is_neutral`.
+- `OVERSTORY-APPS-R030.11.2`: planned proof — `src/components/knowledge-graph/__tests__/graph-read-classes.test.ts::test_ancestry_cached_per_digest_and_style_applied`.
+- `OVERSTORY-APPS-R030.11.3`: planned proof — `src/components/knowledge-graph/__tests__/GraphLegend.test.tsx::test_toggle_isolate_and_accessible_names`.
+- `OVERSTORY-APPS-R030.11.4`: planned proof — `src/components/knowledge-graph/__tests__/graph-read-classes.test.ts::test_unavailable_schema_falls_back_without_invented_ancestry`.
+- `OVERSTORY-APPS-R030.11.5`: planned proof — `src/__tests__/graph-semantics.test.ts::test_contrast_and_vision_checks_pass_in_all_themes`.
+- `OVERSTORY-APPS-R030.11.6`: planned proof — `e2e/graph-semantics-served.spec.ts::legend_toggle_and_schema_unavailable`.
+- `OVERSTORY-APPS-R030.12`: planned proof — `e2e/graph-overlays-served.spec.ts::overlay_journey`.
+- `OVERSTORY-APPS-R030.12.1`: planned proof — `src/__tests__/graph-overlays.test.ts::test_tuples_closed_and_revision_change_marks_stale`.
+- `OVERSTORY-APPS-R030.12.2`: planned proof — `src/__tests__/graph-overlays.test.ts::test_community_and_pagerank_are_requested_and_mapped`.
+- `OVERSTORY-APPS-R030.12.3`: planned proof — `src/__tests__/graph-overlays.test.ts::test_path_reveals_edge_by_edge_and_no_path_is_shown`.
+- `OVERSTORY-APPS-R030.12.4`: planned proof — `src/__tests__/graph-overlays.test.ts::test_shape_rings_use_line_style_and_text`.
+- `OVERSTORY-APPS-R030.12.5`: planned proof — `src/__tests__/graph-overlays.test.ts::test_refusals_keep_the_prior_look_and_stale_chip_shows`.
+- `OVERSTORY-APPS-R030.12.6`: planned proof — `e2e/graph-overlays-served.spec.ts::each_overlay_matches_the_engine_answer`.
+- `OVERSTORY-APPS-R030.13`: planned proof — `e2e/graph-scale-served.spec.ts::fifty_thousand_node_journey`.
+- `OVERSTORY-APPS-R030.13.1`: planned proof — `src/__tests__/graph-budget.test.ts::test_limits_parse_and_missing_limit_makes_expansion_unavailable`.
+- `OVERSTORY-APPS-R030.13.2`: planned proof — `src/components/knowledge-graph/__tests__/GraphCanvas.scale.test.tsx::test_layout_runs_in_the_worker_and_labels_and_edges_thin_out`.
+- `OVERSTORY-APPS-R030.13.3`: planned proof — `src/components/knowledge-graph/__tests__/GraphCanvas.scale.test.tsx::test_large_graph_opens_clustered_and_preview_stays_selectable`.
+- `OVERSTORY-APPS-R030.13.4`: planned proof — `src/components/knowledge-graph/__tests__/GraphCanvas.scale.test.tsx::test_cluster_refusal_falls_back_with_reason`.
+- `OVERSTORY-APPS-R030.13.5`: planned proof — `e2e/graph-scale-served.spec.ts::report_records_the_five_measures`.
+- `OVERSTORY-APPS-R030.13.6`: planned proof — `e2e/graph-scale-served.spec.ts::clustered_start_expand_and_frame_target`.
