@@ -1,0 +1,10 @@
+{
+  "arbora": {
+    "repository": "https://github.com/Knuckles-Team/arbora",
+    "commit": "6f89805d2cd19d8c0f94b02f88a86eab83cd585f",
+    "note": "Newest arbora main that serves the development, decision and dashboard operations. No tagged release serves them yet; move this pin to the release that does."
+  },
+  "python": "3.14",
+  "arboraPort": 39100,
+  "enginePort": 39101
+}

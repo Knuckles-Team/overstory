@@ -39,21 +39,22 @@ describe('store_arbora', () => {
     expect(calls).toHaveLength(1)
   })
 
-  it('refuses a dashboard whose panels arbora cannot store, without calling arbora', async () => {
-    const calls = install([])
+  it('stores every panel query kind as data in the saved document', async () => {
+    const calls = install([servedOk({ id: 'ops', revision: 1, owner: 'alice' })])
     const store = createArboraStore()
-    const doc = addPanel(createDashboard('Ops', []), {
-      title: 'Ask',
-      viz: 'table',
-      query: JSON.stringify({ kind: 'nl', text: 'how many nodes' }),
-      options: {},
-    }).doc
-    const result = await store.save({
-      ...doc,
-      panels: doc.panels.map((p) => ({ ...p, query: { kind: 'nl' as const, text: 'how many nodes' } })),
-    })
-    expect(result.kind).toBe('unsupported')
-    expect(calls).toHaveLength(0)
+    const base = uqlDashboard()
+    const queries = [
+      { kind: 'nl' as const, text: 'how many nodes' },
+      { kind: 'fleet-call' as const, server: 'catalog', tool: 'search', arguments: { q: 'x' } },
+      { kind: 'eg-op' as const, op: 'eg.query.Uql', params: { text: 'MATCH (n) |> LIMIT 1' } },
+    ]
+    const doc = { ...base, panels: queries.map((query, i) => ({ ...base.panels[0], id: `p${i}`, query })) }
+    const result = await store.save(doc)
+    expect(result.kind).toBe('saved')
+    const sent = ((calls[0].body as { document: unknown }).document as { panels: { query: unknown }[] }).panels.map(
+      (p) => p.query,
+    )
+    expect(sent).toEqual(queries)
   })
 
   it('reports an unserved save as unavailable and keeps the local fallback pending', async () => {

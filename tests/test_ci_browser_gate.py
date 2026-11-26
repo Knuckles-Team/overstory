@@ -81,7 +81,15 @@ class BrowserGateTests(unittest.TestCase):
         self.assertEqual(gate['if'], 'always()')
         self.assertEqual(
             set(gate['needs']),
-            {'changes', 'hooks', 'tests', 'workspace-browser', 'backward-python', 'build'},
+            {
+                'changes',
+                'hooks',
+                'tests',
+                'workspace-browser',
+                'loopback-arbora',
+                'backward-python',
+                'build',
+            },
         )
         alias = self.jobs['gates']
         self.assertEqual(alias['if'], 'always()')
