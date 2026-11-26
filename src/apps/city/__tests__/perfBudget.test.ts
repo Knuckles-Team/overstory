@@ -9,7 +9,7 @@
  * scene-fidelity harness (R012.9) measures p95 frame time against, not
  * values this unit test can measure (jsdom cannot render frames).
  */
-// spec: OVERSTORY-CITY-R028
+// spec: OVERSTORY-CITY-R028, OVERSTORY-CITY-R028.2
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import * as THREE from 'three'
