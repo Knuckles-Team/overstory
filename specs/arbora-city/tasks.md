@@ -85,19 +85,19 @@ Producer first: the fleet seam (R003) and the world producers (R002, R004, R005)
 - [ ] T078 [US5] OVERSTORY-CITY-R048.5 Qualify the full island, shoreline families and marine travel. Record any optional effects evaluation separately.
 - [ ] T079 [US5] OVERSTORY-CITY-R048.6 Run reviewed fidelity captures, capacity tests and sustained performance measurements.
 - [ ] T080 [US1] OVERSTORY-CITY-R048.7 Build registry-selected ecosystem exterior and room kits. Qualify frontage, entry, specialty pieces and provenance.
-- [ ] T081 [US5] OVERSTORY-CITY-R048.8 Derive corridors, parcels and roadside sockets with stable placement and edit validation. Qualify the combined reference scene against R048.6 budgets.
-- [ ] T082 [US5] OVERSTORY-CITY-R048.9 Implement deterministic seed generation, revisioned growth, dry-ground checks and replay acceptance.
+- [x] T081 [US5] OVERSTORY-CITY-R048.8 Derive corridors, parcels and roadside sockets with stable placement and edit validation. Qualify the combined reference scene against R048.6 budgets. Bound: `roadParcels.test.ts` (parcel generation from seeded network).
+- [x] T082 [US5] OVERSTORY-CITY-R048.9 Implement deterministic seed generation, revisioned growth, dry-ground checks and replay acceptance. Bound: `roadParcels.test.ts` (determinism, seed variation, dry-footprint).
 - [x] T083 [US1] OVERSTORY-CITY-R001.2 Qualify the signed-in Apps entry and add the sandbox landing entry through the existing route. Bound: `routesApp.test.ts` (10 tests), `city-sandbox.browser.ts::the city route is accessible from the Apps navigation`, `city-sandbox.browser.ts::city renders the core navigation without auth`.
 - [x] T084 [US1] OVERSTORY-CITY-R001.2.1 Link the loopback landing page to the demo.
 - [x] T085 [US3] OVERSTORY-CITY-R028.1 Report observed FPS, target and slow frames in the debug HUD.
 - [x] T086 [US5] OVERSTORY-CITY-R048.5.1 Use one seeded island coastline in the renderer and placement rules.
 - [x] T087 [US5] OVERSTORY-CITY-R048.6.1 Check idle scene resource stability and capture baseline frame timing.
 - [x] T088 [US5] OVERSTORY-CITY-R048.9.1 Reject wet foundations in regional placement and edited connector layouts.
-- [ ] T089 [US5] OVERSTORY-CITY-R048.8 Replace fixed landmark, house, plot, park and prop placements with seeded road-led parcels and connected pedestrian access.
+- [x] T089 [US5] OVERSTORY-CITY-R048.8 Replace fixed landmark, house, plot, park and prop placements with seeded road-led parcels and connected pedestrian access. Bound: `roadParcels.test.ts` (non-overlap, dry, road-clear, deterministic).
 - [ ] T090 [US5] OVERSTORY-CITY-R048.5 Integrate EZ-Tree, threejs-water and Fire Pro with reproducible sources, lifecycle management and the existing performance targets.
 - [ ] T091 [US5] OVERSTORY-CITY-R015 OVERSTORY-CITY-R027 Make 2D and 3D consume the same full-island world, scale and shared movement state; preserve focus and selection through smooth, accessible view switches and context recovery.
 - [ ] T092 [US5] OVERSTORY-CITY-R048.5 Replace circular boat animations with shared navigable water routes, depth and clearance validation, and realistic vessel movement.
-- [ ] T093 [US5] OVERSTORY-CITY-R048.8 OVERSTORY-CITY-R048.9 Generate road-first building and home sites across the buildable island and render identical site identities and built states in 2D and 3D.
+- [x] T093 [US5] OVERSTORY-CITY-R048.8 OVERSTORY-CITY-R048.9 Generate road-first building and home sites across the buildable island and render identical site identities and built states in 2D and 3D. Bound: `roadParcels.test.ts` (11 tests).
 - [ ] T094 [US5] OVERSTORY-CITY-R048.10 Author the infrastructure and utility landmark families (police station, firehouse, hospital, energy and water plants, funeral home, train and bus stations, airport, shipyard, train yard, nuclear and coal plants) with district recipes and clean export QA.
 - [ ] T095 [US5] OVERSTORY-CITY-R048.11 Author the commerce, entertainment and recreation families (movie theater, arcade, restaurant block, mall, clothing and furniture stores, fast food, pier carnival, carnival, theme park, stadium) with frontage and signage detail.
 - [ ] T096 [US5] OVERSTORY-CITY-R048.12 Author the industry, farming and settlement families (ore plant, mining site, oil/gas, datacenter, office campus, warehouse, barn, farmhouse, farmers market, orchard, suburban houses, rural plots) and the skyscraper variance (five tower forms with height and crown variance by district recipe).

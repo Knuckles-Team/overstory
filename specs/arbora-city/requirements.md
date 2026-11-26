@@ -63,7 +63,7 @@
 
 | Requirement | Required behavior | Planned evidence |
 | --- | --- | --- |
-| `OVERSTORY-CITY-R048` | Deliver the procedural regional world. Rollup for R048.1 through R048.17 and the criteria below. | All child acceptance and the combined reference scene pass. |
+| `OVERSTORY-CITY-R048` | Deliver the procedural regional world. Rollup for R048.1 through R048.17 and the criteria below. Depends: OVERSTORY-CITY-R013, OVERSTORY-CITY-R024, OVERSTORY-CITY-R025, OVERSTORY-CITY-R028, OVERSTORY-CITY-R031, OVERSTORY-CITY-R032, OVERSTORY-CITY-R034, OVERSTORY-CITY-R036, OVERSTORY-CITY-R039, OVERSTORY-CITY-R040, OVERSTORY-CITY-R041, OVERSTORY-CITY-R046, OVERSTORY-CITY-R050. | All child acceptance and the combined reference scene pass. |
 
 The default 3D experience SHALL be a deterministic regional-world recipe, not a repeated test grid. One `worldSeed` produces terrain, hydrology, roads, parcels, zoning, vegetation, district massing and material variation. The recipe MUST preserve a flat serviced basin beneath the civic city, then form a regional landscape outside it; a city layout generator MUST reject invalid output before render.
 
