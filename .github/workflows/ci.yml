@@ -225,6 +225,50 @@ jobs:
           retention-days: 3
           if-no-files-found: ignore
 
+  loopback-arbora:
+    name: loopback-arbora
+    # Journeys that name a live loopback arbora run against the real arbora
+    # no-auth sandbox (arbora and its engine as local processes, from the commit
+    # pinned in e2e/fixtures/loopback-arbora/pin.json), never an in-process stand-in.
+    needs: [changes]
+    if: ${{ always() && (github.event_name != 'push' && (github.event_name != 'pull_request' || needs.changes.outputs.ui == 'true')) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install pnpm
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - name: Setup Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '22'
+      - name: Setup uv
+        uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+      - name: Install locked frontend dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Install Chromium and system dependencies
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Install the pinned arbora and its engine
+        run: scripts/loopback-arbora-venv.sh "$RUNNER_TEMP/loopback-arbora"
+      - name: Live journeys against the loopback arbora
+        id: loopback_journeys
+        env:
+          LOOPBACK_ARBORA_VENV: ${{ runner.temp }}/loopback-arbora
+        run: pnpm exec playwright test --config e2e/loopback-arbora.config.ts
+      - name: Preserve loopback journey evidence
+        if: ${{ always() && (steps.loopback_journeys.outcome == 'success' || steps.loopback_journeys.outcome == 'failure') }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: loopback-arbora-browser
+          path: test-results/loopback-arbora/
+          retention-days: 14
+          if-no-files-found: ignore
+
   tests:
     name: tests
     needs: [changes]
@@ -500,7 +544,7 @@ jobs:
   ci-required:
     name: CI required
     if: always()
-    needs: [changes, hooks, tests, workspace-browser, backward-python, build]
+    needs: [changes, hooks, tests, workspace-browser, loopback-arbora, backward-python, build]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:

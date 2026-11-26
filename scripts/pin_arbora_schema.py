@@ -29,6 +29,15 @@ def _safe(text: str) -> str:
 def _rewrite(node: Any, prefix: str) -> Any:
     if isinstance(node, dict):
         out = {k: _rewrite(v, prefix) for k, v in node.items() if k != '$defs'}
+        mapping = out.get('mapping')
+        if isinstance(mapping, dict) and 'propertyName' in out:
+            # A discriminator maps each tag to a schema by a bare reference string.
+            out['mapping'] = {
+                tag: f'#/components/schemas/{prefix}__{_safe(target[len("#/$defs/") :])}'
+                if isinstance(target, str) and target.startswith('#/$defs/')
+                else target
+                for tag, target in mapping.items()
+            }
         ref = out.get('$ref')
         if isinstance(ref, str) and ref.startswith('#/$defs/'):
             out['$ref'] = f'#/components/schemas/{prefix}__{_safe(ref[len("#/$defs/") :])}'

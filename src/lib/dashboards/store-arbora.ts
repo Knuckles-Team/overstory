@@ -60,7 +60,6 @@ export interface DashboardAccess {
 export type RemoteWrite =
   | { kind: 'saved'; id: string; revision: number; owner: string }
   | { kind: 'conflict' }
-  | { kind: 'unsupported'; detail: string }
   | { kind: 'unavailable' | 'denied' | 'error'; code: string }
 
 const CONFLICT_CODE = /CONFLICT|STALE|REVISION/
@@ -69,18 +68,13 @@ function isConflict(reply: ServedReply<unknown>): boolean {
   return reply.kind === 'error' && CONFLICT_CODE.test(reply.code)
 }
 
-/** Arbora stores a panel query as `uql` text or a stored reference; the other local kinds cannot be stored faithfully. */
-export function unsupportedQueryKinds(doc: Dashboard): string[] {
-  return [...new Set(doc.panels.filter((panel) => panel.query.kind !== 'uql').map((panel) => panel.query.kind))]
-}
-
+/** Arbora stores every panel query kind as data: `uql`, `nl`, `fleet-call` and `eg-op`. Saving runs nothing. */
 function toArboraPanel(panel: Panel) {
-  if (panel.query.kind !== 'uql') throw new Error('unsupported query kind')
   return {
     id: panel.id,
     title: panel.title,
     viz: panel.viz,
-    query: { kind: 'uql', text: panel.query.text },
+    query: panel.query,
     layout: panel.layout,
     options: panel.options,
   }
@@ -102,10 +96,9 @@ export function fromArboraDocument(raw: Record<string, unknown>): Dashboard | nu
   const panels = Array.isArray(raw.panels) ? raw.panels : []
   const mapped = panels.map((panel: unknown) => {
     const record = (typeof panel === 'object' && panel !== null ? panel : {}) as Record<string, unknown>
-    const query = record.query as { kind?: unknown; text?: unknown } | undefined
     // Terms and concepts are catalog annotations of the asset, not part of the drawn panel.
     const { terms: _terms, concepts: _concepts, ...drawn } = record
-    return { ...drawn, query: query?.kind === 'uql' ? { kind: 'uql', text: query.text } : query }
+    return drawn
   })
   const parsed = DashboardSchema.safeParse({ ...raw, panels: mapped })
   return parsed.success ? parsed.data : null
@@ -157,12 +150,6 @@ export function createArboraStore(): ArboraDashboardStore {
       return { kind: 'ready', result: { doc, owner: reply.result.owner, role: reply.result.role } }
     },
     async save(doc) {
-      const unsupported = unsupportedQueryKinds(doc)
-      if (unsupported.length > 0)
-        return {
-          kind: 'unsupported',
-          detail: `Arbora stores uql panels only; this dashboard has ${unsupported.join(', ')} panels.`,
-        }
       const expected = stored.get(doc.id) ?? 0
       const reply = await callServed(
         'dashboard.save',
@@ -216,8 +203,6 @@ export function describeRemoteWrite(write: RemoteWrite, localMessage: string): S
         status: 'conflict',
         message: 'Arbora holds a newer revision of this dashboard. Your change was not saved there; reload to merge.',
       }
-    case 'unsupported':
-      return { status: 'saved-locally-pending-arbora', message: `${write.detail} ${localMessage}` }
     case 'denied':
       return {
         status: 'saved-locally-pending-arbora',

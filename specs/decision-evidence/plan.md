@@ -58,6 +58,18 @@ Treat authorization refusal, absent record, unavailable evaluation, insufficient
 
 From a clone, run `pnpm install --frozen-lockfile`, `uv venv --python 3.12`, `uv pip install -e '.[test]'`, then `pnpm run dev:server` and `pnpm run dev`. A test Arbora base URL and OIDC test realm may be supplied through documented environment variables; unit/contract tests use checked-in synthetic fixtures and start without a shared deployment. The browser acceptance test provisions its own service/identity fixture or runs in hosted CI. See `test-spec.md` for exact gates.
 
+### Design answers
+
+The seven design answers:
+
+- **Owner.** Overstory owns the views and the journeys. Arbora owns the operations and the sandbox, and medulla owns the proposal, decision and spec reads.
+- **Cohesion.** The views live in `src/components/views/` and `src/components/decisions/`. The live journeys and their fixture live together under `e2e/`.
+- **Dependency direction.** Views depend on the shared `invoke` seam. The fixture depends on the pinned arbora and no source file depends on the fixture.
+- **Interface depth.** None. Every view reuses `invoke`, `callServed`, `StatusMessage` and `ServedState`.
+- **Special cases.** An unserved read is one labelled `unavailable` state, never an empty list.
+- **State.** Views hold no durable state. The proposal, mode and answer live in the engine behind arbora.
+- **Environment.** The sandbox ports, the venv path and the arbora commit come from `LOOPBACK_ARBORA_PORT`, `LOOPBACK_ENGINE_PORT`, `LOOPBACK_ARBORA_VENV` and `pin.json`.
+
 ### Development views
 
 The proposal view lists typed proposals through `ARBORA-OPS-R896.5`. An accept action asks arbora to open a pull request. The view shows the link and the gate state. It holds no other write path. The artifact view renders the answers of `ARBORA-OPS-R896.1` in the served order. The project view shows the mode and submits changes through `ARBORA-OPS-R896.2`. A change to `evolving` shows the pending operator approval. The control never approves itself.
@@ -84,3 +96,9 @@ The route in `src/App.tsx` renders a view in `src/components/views/`. The view c
 - `ARBORA-OPS-R896.2`: the project mode manage operation.
 - `ARBORA-OPS-R896.5`: the proposal list and decision operations.
 - `MEDULLA-SDLC-R017.2`: the proposal kinds.
+
+### Loopback arbora fixture
+
+Rows that name a live loopback arbora run against the real arbora no-auth sandbox. The fixture lives in `e2e/fixtures/loopback-arbora`. It starts the `medulla-server` binary from the engine wheel, then arbora in explicit no-auth mode, as local processes. The commit of arbora comes from `pin.json`, and `scripts/loopback-arbora-venv.sh` installs it. The CI job `loopback-arbora` runs `e2e/loopback-arbora.config.ts`. The app's own vite server proxies `/api` to arbora and removes the browser `Origin` header, because no-auth mode refuses browser origins. The page answers only `/auth/session` itself.
+
+The pinned engine does not serve `ProposalList` or `SpecQuestion`. The two reads answer `UNAVAILABLE`, and `e2e/loopback-decide.browser.ts` proves the labelled unavailable state. `OVERSTORY-DECIDE-R009.3` and `OVERSTORY-DECIDE-R010.2` need a journey that decides a proposal and follows a goal. They stay open until the pin moves to an engine that serves both reads. The no-auth sandbox has one anonymous tenant, so the second-tenant clause of R009.3 needs a tenant-aware sandbox from arbora.

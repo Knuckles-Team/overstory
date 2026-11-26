@@ -633,6 +633,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/ops/eg.cluster.BranchDiff": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** MEDULLA-BRANCH-MERGE-R006: the typed change feed between two versions of one branch chain, paged by branch.diff_page_size; reads the commit chain and writes nothing */
+        post: operations["eg.cluster.BranchDiff"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/eg.cluster.BranchReadAt": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** MEDULLA-BRANCH-MERGE-R006: the branch state as of one engine version on its chain; reads the commit chain and writes nothing */
+        post: operations["eg.cluster.BranchReadAt"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/eg.cluster.BranchWrite": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** MEDULLA-BRANCH-MERGE-R002: one mutation on the branch's own target graph, then one BranchCommit appended with the head advance in branch_registry.redb; main and sibling branches are never written */
+        post: operations["eg.cluster.BranchWrite"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/ops/eg.cluster.CancelRequest": {
         parameters: {
             query?: never;
@@ -1041,6 +1092,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/ops/eg.cluster.RegisterGraphView": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** MEDULLA-UNIFIED-DATA-PLANE-R038.6.3: opaque prepared/committed control receipt; source endpoints are not duplicated in the ledger */
+        post: operations["eg.cluster.RegisterGraphView"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/ops/eg.cluster.RegisterServer": {
         parameters: {
             query?: never;
@@ -1086,6 +1154,40 @@ export interface paths {
         put?: never;
         /** explicitly ephemeral process control; never acknowledges a user-data commit */
         post: operations["eg.cluster.Shutdown"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/eg.cluster.SubmitChangeset": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** MEDULLA-SCM-R002: one source changeset appended as the payload of one branch commit with the head advance in branch_registry.redb; blobs are verified before the append; every refusal leaves the chain unchanged */
+        post: operations["eg.cluster.SubmitChangeset"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/eg.compute.ArchitectureView": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** MEDULLA-CQ-ORCH-R010.3: derives the container view of one ingested repository from the caller's visible graph, with the snapshot revision and canonical digest; refusals VIEW_NO_SUPPORTING_SOURCE, VIEW_UNKNOWN_REPOSITORY, VIEW_STALE_REVISION, VIEW_TOO_LARGE; commits nothing */
+        post: operations["eg.compute.ArchitectureView"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1534,23 +1636,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/ops/eg.compute.FinanceAdfTest": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Finance Adf Test */
-        post: operations["eg.compute.FinanceAdfTest"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/ops/eg.compute.FinanceAlphaCombinationEngine": {
         parameters: {
             query?: never;
@@ -1653,23 +1738,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/ops/eg.compute.FinanceBrierScore": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Finance Brier Score */
-        post: operations["eg.compute.FinanceBrierScore"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/ops/eg.compute.FinanceCapitalRatios": {
         parameters: {
             query?: never;
@@ -1755,57 +1823,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/ops/eg.compute.FinanceDeflatedSharpe": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Finance Deflated Sharpe */
-        post: operations["eg.compute.FinanceDeflatedSharpe"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/ops/eg.compute.FinanceDetectRegimes": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Finance Detect Regimes */
-        post: operations["eg.compute.FinanceDetectRegimes"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/ops/eg.compute.FinanceDieboldMariano": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Finance Diebold Mariano */
-        post: operations["eg.compute.FinanceDieboldMariano"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/ops/eg.compute.FinanceDistributionShift": {
         parameters: {
             query?: never;
@@ -1851,23 +1868,6 @@ export interface paths {
         put?: never;
         /** Finance Drawdown Series */
         post: operations["eg.compute.FinanceDrawdownSeries"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/ops/eg.compute.FinanceEffectiveIndependentN": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Finance Effective Independent N */
-        post: operations["eg.compute.FinanceEffectiveIndependentN"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2055,91 +2055,6 @@ export interface paths {
         put?: never;
         /** Finance Hawkes Mle */
         post: operations["eg.compute.FinanceHawkesMle"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/ops/eg.compute.FinanceInformationCoefficient": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Finance Information Coefficient */
-        post: operations["eg.compute.FinanceInformationCoefficient"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/ops/eg.compute.FinanceInformationRatio": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Finance Information Ratio */
-        post: operations["eg.compute.FinanceInformationRatio"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/ops/eg.compute.FinanceKalmanBeta": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Finance Kalman Beta */
-        post: operations["eg.compute.FinanceKalmanBeta"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/ops/eg.compute.FinanceKalmanFilter1d": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Finance Kalman Filter1d */
-        post: operations["eg.compute.FinanceKalmanFilter1d"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/ops/eg.compute.FinanceKalmanVolatility": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Finance Kalman Volatility */
-        post: operations["eg.compute.FinanceKalmanVolatility"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2418,40 +2333,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/ops/eg.compute.FinanceOuCalibrate": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Finance Ou Calibrate */
-        post: operations["eg.compute.FinanceOuCalibrate"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/ops/eg.compute.FinanceOuOptimalThresholds": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Finance Ou Optimal Thresholds */
-        post: operations["eg.compute.FinanceOuOptimalThresholds"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/ops/eg.compute.FinancePairsSignal": {
         parameters: {
             query?: never;
@@ -2537,23 +2418,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/ops/eg.compute.FinanceProbabilityBacktestOverfit": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Finance Probability Backtest Overfit */
-        post: operations["eg.compute.FinanceProbabilityBacktestOverfit"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/ops/eg.compute.FinanceProfitAttribution": {
         parameters: {
             query?: never;
@@ -2565,23 +2429,6 @@ export interface paths {
         put?: never;
         /** Finance Profit Attribution */
         post: operations["eg.compute.FinanceProfitAttribution"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/ops/eg.compute.FinancePurgedCpcv": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Finance Purged Cpcv */
-        post: operations["eg.compute.FinancePurgedCpcv"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3438,6 +3285,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/ops/eg.compute.NumericEvaluate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** MEDULLA-FINANCE-PRIMITIVES-R002.2.5 served numeric kernel evaluation: 17 tagged ops over the shared kernels (rolling z-score, EWMA, skill and breadth, backtest validation, Kalman, OU, ADF, regime HMM); pure compute over what the request carries. */
+        post: operations["eg.compute.NumericEvaluate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/ops/eg.compute.PageRank": {
         parameters: {
             query?: never;
@@ -3602,6 +3466,57 @@ export interface paths {
         put?: never;
         /** MEDULLA-UNIFIED-DATA-PLANE-R700.3: submits against the registered ActionSpec and self-translates the applied effects and the ActionRun node into ONE BatchUpdate against the request graph through dispatch_graph_op */
         post: operations["eg.coordination.ActionSubmit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/eg.coordination.AssistantProfile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** MEDULLA-DECISION-ENGINE-R656.2, runtime-conditional: PutProfile and PutDocumentSet are gateway-routed and commit one node upsert under a compare-and-set on the stored revision; GetProfile, GetDocumentSet, ListProfiles and ListDocumentSets are tenant-bound reads that return only objects the caller may read */
+        post: operations["eg.coordination.AssistantProfile"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/eg.coordination.Batch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** MEDULLA-DURABLE-KERNEL-R871: up to 64 mixed node, memory and claim operations validated and access-checked first, then committed together as one durable record; each inner operation is also checked against its own method's scope */
+        post: operations["eg.coordination.Batch"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/eg.coordination.BeliefRevise": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** MEDULLA-DECISION-ENGINE-R700.3: revises the confidence of claims whose evidence changed, tracks contradictions and proposes retractions; the single writer of belief revisions, friction findings and contradiction records, committed to the native statecharts.redb store one per-graph belief-ledger transition per transaction. Local-only authority */
+        post: operations["eg.coordination.BeliefRevise"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3823,6 +3738,23 @@ export interface paths {
         put?: never;
         /** bounded tenant-scoped status with maintained counters */
         post: operations["eg.coordination.DevelopmentLaneStatus"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/eg.coordination.FeatureLedger": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** MEDULLA-DECISION-ENGINE-R707.3, runtime-conditional: Get is an authenticated tenant-bound read of ledger entries; Open, Plan and Close are the single writer of ledger state, committed to the native statecharts.redb store one tenant ledger write per transaction, with each entry's status moved only by the FeatureLedgerMachine and a stale expected revision refused. Local-only authority */
+        post: operations["eg.coordination.FeatureLedger"];
         delete?: never;
         options?: never;
         head?: never;
@@ -4186,6 +4118,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/ops/eg.coordination.Loops": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** MEDULLA-DECISION-ENGINE-R653.3, runtime-conditional: Get is an authenticated tenant-bound read of one loop with its evidence; Claim, Release, Beacon, FileGap, Offer, Settle, RecordSample, Ratchet and Mine are the single writer of loop state, committed to the native statecharts.redb store one instance transition per transaction. Local-only authority */
+        post: operations["eg.coordination.Loops"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/ops/eg.coordination.MarkWorkItemEffectStarted": {
         parameters: {
             query?: never;
@@ -4214,6 +4163,23 @@ export interface paths {
         put?: never;
         /** opaque native capability is retained in a private ledger and never projected */
         post: operations["eg.coordination.MintWorkItemClaimCapability"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/eg.coordination.ObservationState": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** MEDULLA-DECISION-ENGINE-R816, runtime-conditional: Put is gateway-routed and commits one observation record as the one AddNode upsert (a repeat of the same record is a no-op); Get is a tenant-bound graph read of one live record. The tenant is the verified request tenant; refusals VISUAL_STATE_STALE and VISUAL_STATE_CROSS_TENANT */
+        post: operations["eg.coordination.ObservationState"];
         delete?: never;
         options?: never;
         head?: never;
@@ -4611,6 +4577,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/ops/eg.coordination.TraceCritique": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** tenant-bound authorized page of a stored recursive trace with complete ancestry; content fields need trace:read-content */
+        post: operations["eg.coordination.TraceCritique"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/ops/eg.coordination.TransitionControlLease": {
         parameters: {
             query?: never;
@@ -4679,6 +4662,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/ops/eg.coordination.Usage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** MEDULLA-DECISION-ENGINE-R801.8: append writes the records, their day-bucket increments and one audit line in one agent_library.redb control-owner write transaction under the verified tenant; put_price validates the catalog and stores its entries; every refusal (USAGE_*, PRICE_WINDOW_OVERLAP) precedes any write. Local-only authority, refused in clustered mode */
+        post: operations["eg.coordination.Usage"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/ops/eg.coordination.VerifyWorkItemClaimCapability": {
         parameters: {
             query?: never;
@@ -4724,6 +4724,57 @@ export interface paths {
         put?: never;
         /** MEDULLA-DECISION-ENGINE-R166.3, runtime-conditional: Register is gateway-routed and commits one registration node as the one AddNode upsert (a repeat is a no-op); Read is a tenant-visible graph read by exact identity. Local-only authority, refused in clustered mode; refusals WORKFLOW_ID_MISSING, WORKFLOW_VERSION_MISSING, WORKFLOW_DIGEST_INVALID, WORKFLOW_IDENTITY_UNKNOWN, WORKFLOW_UNAUTHORIZED */
         post: operations["eg.coordination.WorkflowRegistry"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/eg.finance.FinanceAccountProject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Finance Account Project */
+        post: operations["eg.finance.FinanceAccountProject"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/eg.finance.RegimeForecast": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Regime Forecast */
+        post: operations["eg.finance.RegimeForecast"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/eg.finance.RegimeSizingInput": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Regime Sizing Input */
+        post: operations["eg.finance.RegimeSizingInput"];
         delete?: never;
         options?: never;
         head?: never;
@@ -4826,6 +4877,40 @@ export interface paths {
         put?: never;
         /** state-backed MutationBatch */
         post: operations["eg.graph.ApplyMutation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/eg.graph.ArchitectureModelExport": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** MEDULLA-CQ-ORCH-R705.6: the visible architecture nodes of the caller's tenant as one Open Exchange Format document with its document digest and canonical model digest; reads through the caller's graph view and writes nothing */
+        post: operations["eg.graph.ArchitectureModelExport"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/eg.graph.ArchitectureModelImport": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** MEDULLA-CQ-ORCH-R705.6: gateway-routed; parses one ArchiMate Open Exchange Format document, maps it onto the visible graph and commits the nodes and edges as one BatchUpdate; every imported node carries its identifier and the document digest; refusals ARCHIMATE_DOC_MALFORMED, ARCHIMATE_DOC_ENTITY_REFUSED, ARCHIMATE_DOC_TOO_LARGE, ARCHIMATE_NAMESPACE_UNKNOWN, ARCHIMATE_RELATIONSHIP_INVALID, ARCHIMATE_VERSION_MISMATCH write nothing. Local-only authority, refused in clustered mode */
+        post: operations["eg.graph.ArchitectureModelImport"];
         delete?: never;
         options?: never;
         head?: never;
@@ -5081,6 +5166,23 @@ export interface paths {
         put?: never;
         /** Discounted Return */
         post: operations["eg.graph.DiscountedReturn"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/eg.graph.DomainPack": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** MEDULLA-TYPED-PACKS-R097.700, runtime-conditional: preview evaluates a domain pack manifest (integrity digest, bounds, conformance cases) and returns the proposed entities and relationships; run commits them as one BatchUpdate through the gateway; refusals DOMAIN_PACK_INTEGRITY_MISMATCH, DOMAIN_PACK_INVALID, DOMAIN_PACK_CASE_FAILED. Local-only authority, refused in clustered mode */
+        post: operations["eg.graph.DomainPack"];
         delete?: never;
         options?: never;
         head?: never;
@@ -5631,6 +5733,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/ops/eg.graph.OpenGraphSnapshot": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** MEDULLA-DURABLE-KERNEL-R043.100.2: the digest of the caller's visible graph and the cursor that continues after it; the feed position is read before the graph, so later pages leave no gap; reads through the caller's graph view and writes nothing */
+        post: operations["eg.graph.OpenGraphSnapshot"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/ops/eg.graph.OutDegree": {
         parameters: {
             query?: never;
@@ -5682,6 +5801,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/ops/eg.graph.ReadGraphChanges": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** MEDULLA-DURABLE-KERNEL-R043.100.3: one page of committed graph changes visible to the caller after a tenant-bound cursor; refusals CURSOR_EXPIRED, AUTHORIZATION_CHANGED, GRAPH_INCARNATION_STALE; writes nothing */
+        post: operations["eg.graph.ReadGraphChanges"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/ops/eg.graph.ReadMemorySnapshot": {
         parameters: {
             query?: never;
@@ -5693,6 +5829,23 @@ export interface paths {
         put?: never;
         /** MEDULLA-DURABLE-KERNEL-R085.2 head or retained revision with its bytes */
         post: operations["eg.graph.ReadMemorySnapshot"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/eg.graph.ReadSpan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** MEDULLA-DECISION-ENGINE-R153: a bounded line range of one ingested text source, located through the table of contents SourceIngest stored for that document revision; every answer names the table digest and the source digest; reads through the caller's graph view and writes nothing */
+        post: operations["eg.graph.ReadSpan"];
         delete?: never;
         options?: never;
         head?: never;
@@ -5795,6 +5948,23 @@ export interface paths {
         put?: never;
         /** MEDULLA-FEDERATED-QUERY-R724, runtime-conditional: put is gateway-routed and commits one SchemaBoundary node of the verified tenant as the one AddNode upsert; list is an RLS-projected read of the boundaries the verified token scopes cover, with the total count only for audit:operator. Local-only authority, refused in clustered mode; refusals SCHEMA_BOUNDARY_INVALID, BOUNDARY_MAPPING_UNKNOWN */
         post: operations["eg.graph.SchemaProjections"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/eg.graph.SourceSync": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** MEDULLA-SRC-AUTH-R012.6: gateway-routed; reconciles one federated secondary class with the native graph (the system of record) over one completed foreign read: source-only changes and the sync state commit as one BatchUpdate, graph-side changes come back as outbound drafts the router queues as write-back proposals; refusals SYNC_SOURCE_NOT_SECONDARY, SYNC_NO_SYSTEM_OF_RECORD, SYNC_ADAPTER_MISSING, SYNC_DIRECTION_REFUSED write nothing. Local-only authority, refused in clustered mode */
+        post: operations["eg.graph.SourceSync"];
         delete?: never;
         options?: never;
         head?: never;
@@ -5965,6 +6135,40 @@ export interface paths {
         put?: never;
         /** Add Embedding */
         post: operations["eg.ingestion.AddEmbedding"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/eg.ingestion.DataPrepDeclarationRead": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** MEDULLA-INGEST-WORKER-R001.1008: reads one tenant's stored data-prep declaration of a capability under the caller's row authority; absent when none was declared, commits nothing */
+        post: operations["eg.ingestion.DataPrepDeclarationRead"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/eg.ingestion.DataPrepDeclare": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** MEDULLA-INGEST-WORKER-R001.1007..R001.1009: replaces one tenant's data-prep declaration (a declaration node and its declares_field edges) as one ChangeEnvelope; an equal content digest writes nothing. A value outside the grammar refuses DATA_PREP_DECLARATION_INVALID, more than 256 field references refuses DATA_PREP_DECLARATION_TOO_LARGE, and a refusal changes nothing */
+        post: operations["eg.ingestion.DataPrepDeclare"];
         delete?: never;
         options?: never;
         head?: never;
@@ -6158,6 +6362,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/ops/eg.ingestion.MeasureIngestThroughput": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** MEDULLA-REPO-INGEST-R006.1: the corpus's daily paper target measured over its :StageReceipt nodes; a paper counts once when all four stages completed in [window_end - 86400 s, window_end), retries add nothing, state is Unknown for a partial window or telemetry older than knob ingest.window_fresh_for, and below target the bottleneck stage is the one with the fewest distinct completions; read-only, commits nothing */
+        post: operations["eg.ingestion.MeasureIngestThroughput"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/ops/eg.ingestion.MeetingSummaryCommit": {
         parameters: {
             query?: never;
@@ -6260,6 +6481,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/ops/eg.ingestion.RecordDeployment": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** MEDULLA-SDLC-R002.3: records one rollout of an image -- resolves the release by image digest (unattributed when no release names it) and self-translates a Deployment node plus a deploys edge from its release into ONE BatchUpdate through dispatch_graph_op */
+        post: operations["eg.ingestion.RecordDeployment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/eg.ingestion.RecordRelease": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** MEDULLA-SDLC-R002.3: records one published release -- reads the request graph's RepositoryCommit chain and stored releases, then self-translates a sealed Release node plus a contains edge per changeset after the repository's previous release into ONE BatchUpdate through dispatch_graph_op; refusals RELEASE_HEAD_UNKNOWN (head not on the chain) and RELEASE_VERSION_TAKEN (a different release holds the repository and version); a stored release is sealed create-only (RELEASE_SEALED on an overwrite) */
+        post: operations["eg.ingestion.RecordRelease"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/eg.ingestion.SemanticEnrich": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** MEDULLA-DECISION-ENGINE-R614.3: one scheduled semantic enrichment of the request graph (capability card, proposal ranking, topic classification or property projection). Each request names the committed EnrichmentSchedule decision that chose its work id; without one it refuses ENRICHMENT_NOT_SCHEDULED. The writes commit as one ChangeEnvelope keyed by their digest, so a replay adds nothing */
+        post: operations["eg.ingestion.SemanticEnrich"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/ops/eg.ingestion.SemanticIndex": {
         parameters: {
             query?: never;
@@ -6339,6 +6611,23 @@ export interface paths {
         put?: never;
         /** EH-408/EH-409: reads the caller's tenant-scoped stored logs/metrics/spans over one window, binds them to the request graph's declared individuals (RLS-filtered reads), derives BehaviourObservation/HealthAnomaly/Incident/ConformanceViolation facts, and self-translates into ONE BatchUpdate (upsert, deterministic fact ids) against the request graph through dispatch_graph_op; a re-derivation is an idempotent upsert */
         post: operations["eg.ingestion.TelemetryDerive"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/eg.ingestion.VerifyIngestReadback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** MEDULLA-REPO-INGEST-R002.100: reads a write receipt's result ids under the caller principal, compares id, content digest and revision, and commits one ReadbackReceipt node when every id matches. Refuses READBACK_DENIED, READBACK_PARTIAL, READBACK_STALE or READBACK_MISMATCH and changes nothing */
+        post: operations["eg.ingestion.VerifyIngestReadback"];
         delete?: never;
         options?: never;
         head?: never;
@@ -7076,6 +7365,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/ops/eg.query.ApproveEntityLink": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** MEDULLA-UNIFIED-DATA-PLANE-R030.3: rebuilds the proposed link of two attached records from their nodes, refuses a pair that is not a Match (LINK_NOT_APPROVABLE) or a missing node (LINK_PROPOSAL_UNKNOWN), records the verified caller as approver and writes one owl:sameAs edge */
+        post: operations["eg.query.ApproveEntityLink"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/eg.query.CatalogUsage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** MEDULLA-UNIFIED-DATA-PLANE-R764.8: the top principals by reads of one asset (identities only with scope catalog:usage:principals) and its common joins and filters, from usage the engine recorded itself; refusals CATALOG_ASSET_NOT_FOUND, CATALOG_LIMIT_INVALID; read only */
+        post: operations["eg.query.CatalogUsage"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/ops/eg.query.CausalCounterfactual": {
         parameters: {
             query?: never;
@@ -7104,6 +7427,74 @@ export interface paths {
         put?: never;
         /** EPI-P3-3/P3-6 do-calculus intervention OR observational conditioning (selected by `mode`) over a request-carried SCM; handler additionally gated `epistemic-causal` */
         post: operations["eg.query.CausalEstimate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/eg.query.ColumnLineage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** MEDULLA-UNIFIED-DATA-PLANE-R763.2: derives column lineage edges (identity, expression, aggregate, filter_only) from one SQL query against a caller-supplied catalog on the shared parser; unresolved or ambiguous columns come back as typed gaps, never edges; refusals LINEAGE_SQL_TOO_LARGE, LINEAGE_SQL_UNPARSABLE, LINEAGE_SQL_NOT_A_QUERY; pure compute, commits nothing */
+        post: operations["eg.query.ColumnLineage"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/eg.query.ContextCompile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** MEDULLA-FEDERATED-QUERY-R650.3: compiles one context bundle for a query under a token budget; each item keeps the resolution a certified exact selection chose inside the budget, with a citation and proof edges; refusals CONTEXT_BUDGET_MISSING, CONTEXT_ITEM_COST_INVALID, CONTEXT_SCOPE_FOREIGN and the CONTEXT_PACKAGE_* codes; reads only rows the caller may read, commits nothing */
+        post: operations["eg.query.ContextCompile"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/eg.query.CorpusRetrieve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** MEDULLA-FEDERATED-QUERY-R653.3: one corpus read over the caller's projected core in a closed mode (grep, entity, session or lineage); a pattern that does not compile within the size limits is refused CORPUS_REGEX_TOO_COMPLEX; reads only rows the caller may read, commits nothing */
+        post: operations["eg.query.CorpusRetrieve"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/eg.query.CrossSourceQuestion": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** MEDULLA-CQ-XSRC-R008.4: plans one of the three cross-source questions over the graph's source-authority rows and returns the typed report (items, sources used, abstentions); an unknown question refuses CQ_XSRC_UNKNOWN_QUESTION; writes nothing */
+        post: operations["eg.query.CrossSourceQuestion"];
         delete?: never;
         options?: never;
         head?: never;
@@ -7155,6 +7546,40 @@ export interface paths {
         put?: never;
         /** EH-351: edge-native vector or BM25 search of the request graph; the caller's row-level security, the edge type and the property filters are applied inside the index walk, and edges come back as edges (endpoints and parallel-edge ordinal) */
         post: operations["eg.query.EdgeSearch"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/eg.query.EncodeDocument": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** MEDULLA-FEDERATED-QUERY-R039.2.5: splits one document's token ids into windows, encodes each window with one independent model call, averages the chunk vectors into one document vector and publishes it with its encoding receipt as the next vector generation; refusals ENCODE_OVERLAP_INVALID, ENCODE_POSITION_MODE_UNSUPPORTED, ENCODE_DIM_MISMATCH, ENCODE_NON_FINITE, ENCODE_BUDGET_EXHAUSTED, ENCODE_POLICY_STALE and NO_EMBEDDING write nothing */
+        post: operations["eg.query.EncodeDocument"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/eg.query.EncodedDocumentSearch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** MEDULLA-FEDERATED-QUERY-R039.2.5: ranks the caller's encoded documents by cosine against one query vector and returns each hit with its encoding receipt beside the policy digest and vector generation read; refuses ENCODE_POLICY_STALE before ranking; commits nothing */
+        post: operations["eg.query.EncodedDocumentSearch"];
         delete?: never;
         options?: never;
         head?: never;
@@ -7535,6 +7960,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/ops/eg.query.ProjectionRead": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** MEDULLA-UNIFIED-DATA-PLANE-R026.4.1: reads one table of a graph-backed relational projection through an approved, versioned mapping and binds the answer to the mapping revision, the graph revision and a result digest; refusals PROJECTION_MAPPING_UNAPPROVED, PROJECTION_MAPPING_STALE, PROJECTION_ACCESS_DENIED; writes nothing */
+        post: operations["eg.query.ProjectionRead"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/ops/eg.query.RankByProvenance": {
         parameters: {
             query?: never;
@@ -7586,6 +8028,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/ops/eg.query.ResolveViewportSelection": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** MEDULLA-FEDERATED-QUERY-R081.103.3: resolves one viewport selection token to at most 1000 raw points inside its pinned revisions; refusals VIEWPORT_INVALID, INDEX_UNAVAILABLE, STALE_SOURCE_REVISION, ACCESS_DENIED; commits nothing */
+        post: operations["eg.query.ResolveViewportSelection"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/eg.query.RetrievalRound": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** MEDULLA-FEDERATED-QUERY-R081.11: runs one retrieval round, a plan over the caller's projected snapshot and then the sufficiency part when the request carries one; refusals RETRIEVAL_CONTRACT_INVALID and the retrieval family codes; commits nothing */
+        post: operations["eg.query.RetrievalRound"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/ops/eg.query.SelectWebPages": {
         parameters: {
             query?: never;
@@ -7603,6 +8079,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/ops/eg.query.SourceCoverage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** MEDULLA-SRC-AUTH-R004.6.1: reports, for each class and facet within a hop budget of the named roots, the connected source that is authoritative, its lower-ranked alternates and the premises behind each verdict, plus the authority audit built from them; only the caller's own registered sources are connected; refusals SOURCE_COVERAGE_NO_CLASSES, SOURCE_COVERAGE_TOO_MANY_CLASSES, SOURCE_COVERAGE_HOP_BUDGET_INVALID; commits nothing */
+        post: operations["eg.query.SourceCoverage"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/ops/eg.query.StaleMaterializations": {
         parameters: {
             query?: never;
@@ -7614,6 +8107,40 @@ export interface paths {
         put?: never;
         /** bulk opaque stale references from the durable per-graph incremental reasoning authority */
         post: operations["eg.query.StaleMaterializations"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/eg.query.StoredQueryCall": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** MEDULLA-FEDERATED-QUERY-R708.2: binds typed arguments, runs the highest published version (or the named one) inside its share scope and returns rows with input generation, refresh time and staleness; a materialized result is rewritten when its refresh policy makes it due */
+        post: operations["eg.query.StoredQueryCall"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/eg.query.StoredQueryPut": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** MEDULLA-FEDERATED-QUERY-R708.3: publishes one immutable version of a stored query as a StoredQuery node stamped with the verified author; a write to a published version refuses STORED_QUERY_IMMUTABLE */
+        post: operations["eg.query.StoredQueryPut"];
         delete?: never;
         options?: never;
         head?: never;
@@ -7671,6 +8198,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/ops/eg.query.ViewportQuery": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** MEDULLA-FEDERATED-QUERY-R081.103.1: bins one indexed series for a viewport; the bin count and response bytes are capped whatever the source size; refusals VIEWPORT_INVALID, BYTE_CEILING_TOO_SMALL, VIEWPORT_CAP_EXCEEDED, INDEX_UNAVAILABLE, STALE_SOURCE_REVISION, ACCESS_DENIED; reads only the caller's series, commits nothing */
+        post: operations["eg.query.ViewportQuery"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/ops/eg.query.WhatChanged": {
         parameters: {
             query?: never;
@@ -7682,6 +8226,57 @@ export interface paths {
         put?: never;
         /** L53 (EPI-P3-5) bitemporal diff; handler additionally gated `epistemic-tms` */
         post: operations["eg.query.WhatChanged"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/eg.reasoning.ArgumentMapEvaluate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** computes the grounded or preferred extension of a stored map's Dung projection; stores nothing */
+        post: operations["eg.reasoning.ArgumentMapEvaluate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/eg.reasoning.ArgumentMapGet": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** reads a stored argument map back in interchange spelling */
+        post: operations["eg.reasoning.ArgumentMapGet"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/eg.reasoning.ArgumentMapPut": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** creates or replaces a stored argument map; the map must pass ArgumentMap::checked; one atomic batch through the mutation gateway */
+        post: operations["eg.reasoning.ArgumentMapPut"];
         delete?: never;
         options?: never;
         head?: never;
@@ -7714,7 +8309,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** X9. Gateway-routed exactly like IcvConfigure: every op attaches, replaces or detaches one keyed schema source through the graph commit kernel, so it is audited, emits CDC, and is recorded in the native Raft GraphState catalog */
+        /** X9. Gateway-routed exactly like IcvConfigure: every op attaches, replaces or detaches one keyed schema source through the graph commit kernel, so it is audited, emits CDC, and is recorded in the native Raft GraphState catalog. The op diff_ontology (MEDULLA-TYPED-PACKS-R804.3) is the one read: it returns the axiom diff and the impact of a candidate revision and installs and writes nothing */
         post: operations["eg.reasoning.GraphSchema"];
         delete?: never;
         options?: never;
@@ -7937,6 +8532,23 @@ export interface paths {
         put?: never;
         /** confused-deputy-safe executor re-check: would this principal's own request of read/write on the request graph be admitted now (the engine's isolation/RBAC decision). Answers only allowed yes/no for one principal on one graph the caller can itself read; never the identity or the policy */
         post: operations["eg.security.CheckAccess"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/eg.security.DescribeContract": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** MEDULLA-CONTRACT-R054: the served engine contract -- one bounded page of method descriptors in ascending id byte order (limit 1..=500, default 500; cursor is the last id of the previous page, at most 128 characters, page starts strictly after it) plus the scope registry on the first page only; every page carries the contract catalog digest so a client that sees it change between pages restarts; the scope registry is user-class contract:read; refusals DESCRIBE_CURSOR_INVALID (cursor over 128 characters) and DESCRIBE_LIMIT_INVALID (limit 0 or over 500) */
+        post: operations["eg.security.DescribeContract"];
         delete?: never;
         options?: never;
         head?: never;
@@ -8419,6 +9031,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/ops/eg.storage.ConceptLineage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** MEDULLA-DURABLE-KERNEL-R094.7: runtime-conditional like AgentComponent: Read is an authenticated tenant-bound snapshot; Claim and AddEdge commit concept id and lineage edge rows through the Agent Library ControlRedb mutation kernel into the same agent_library.redb owner */
+        post: operations["eg.storage.ConceptLineage"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/ops/eg.storage.ConnectorPack": {
         parameters: {
             query?: never;
@@ -8640,6 +9269,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/ops/eg.storage.RevisionProposalList": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** MEDULLA-DECISION-ENGINE-R817. Reads ONE tenant-bound agent_library.redb snapshot and pages the caller tenant's revision rows (subject kind, stage, digest, evaluation receipt id) in creation order; writes nothing; refusal PROPOSAL_CURSOR_INVALID */
+        post: operations["eg.storage.RevisionProposalList"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/ops/eg.storage.SqlSourceBatch": {
         parameters: {
             query?: never;
@@ -8719,6 +9365,23 @@ export interface paths {
         put?: never;
         /** EH-524 materialised derived series: one native MutationBatch in series.redb commits the derived points and the definition/checkpoint in the series metadata; idempotent for the same definition (a re-definition only catches up) */
         post: operations["eg.storage.TsDefineSeries"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/eg.storage.TsDefineStateSpace": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** R002.9 state-space series: one native MutationBatch in series.redb commits the filtered points and the model/checkpoint in the series metadata; idempotent for the same model (a re-definition only catches up) */
+        post: operations["eg.storage.TsDefineStateSpace"];
         delete?: never;
         options?: never;
         head?: never;
@@ -10986,6 +11649,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/ops/report.supply_chain_impact": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Report which services a supplier or vulnerability impacts */
+        post: operations["report.supply_chain_impact"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/ops/research.web": {
         parameters: {
             query?: never;
@@ -11727,7 +12407,8 @@ export interface components {
             title: string;
             /** Viz */
             viz: string;
-            query: components["schemas"]["dashboard_save__DashboardQuery"];
+            /** Query */
+            query: components["schemas"]["dashboard_save__UqlQuery"] | components["schemas"]["dashboard_save__NlQuery"] | components["schemas"]["dashboard_save__StoredQuery"] | components["schemas"]["dashboard_save__FleetCallQuery"] | components["schemas"]["dashboard_save__EngineOpQuery"];
             /** Layout */
             layout?: {
                 [key: string]: number;
@@ -11756,25 +12437,70 @@ export interface components {
             value: string | number;
         };
         /**
-         * DashboardQuery
-         * @description Query text, or a stored-query reference; a panel without one is invalid.
+         * EngineOpQuery
+         * @description One named engine query operation, stored as data; saving runs nothing.
          */
-        dashboard_save__DashboardQuery: {
+        dashboard_save__EngineOpQuery: {
             /**
-             * Kind
+             * @description discriminator enum property added by openapi-typescript
              * @enum {string}
              */
-            kind: "uql" | "stored";
+            kind: "eg-op";
+            /** Op */
+            op: string;
+            /** Params */
+            params?: {
+                [key: string]: unknown;
+            };
+        };
+        /**
+         * FleetCallQuery
+         * @description One fleet tool call, stored as data; saving runs nothing.
+         */
+        dashboard_save__FleetCallQuery: {
             /**
-             * Text
-             * @default null
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
              */
-            text: string | null;
+            kind: "fleet-call";
+            /** Server */
+            server: string;
+            /** Tool */
+            tool: string;
+            /** Arguments */
+            arguments?: {
+                [key: string]: unknown;
+            };
+        };
+        /** NlQuery */
+        dashboard_save__NlQuery: {
             /**
-             * Ref
-             * @default null
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
              */
-            ref: string | null;
+            kind: "nl";
+            /** Text */
+            text: string;
+        };
+        /** StoredQuery */
+        dashboard_save__StoredQuery: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "stored";
+            /** Ref */
+            ref: string;
+        };
+        /** UqlQuery */
+        dashboard_save__UqlQuery: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "uql";
+            /** Text */
+            text: string;
         };
         /** Grant */
         dashboard_share__Grant: {
@@ -11856,7 +12582,10 @@ export interface components {
              */
             state: "open" | "approved" | "rejected" | "landed";
         };
-        /** ProposalEvidence */
+        /**
+         * ProposalEvidence
+         * @description One piece of evidence; a gate result carries the engine's sealed verdict or null.
+         */
         development_proposal_list__ProposalEvidence: {
             /** Kind */
             kind: string;
@@ -11864,6 +12593,39 @@ export interface components {
             record_id: string;
             /** Digest */
             digest: string;
+            /**
+             * Gate Verdict
+             * @default null
+             */
+            gate_verdict: unknown | null;
+        };
+        /**
+         * ConnectionRow
+         * @description One running connector's connection state; no endpoint or credential is carried.
+         */
+        fleet_connections_state__ConnectionRow: {
+            /** Server */
+            server: string;
+            /**
+             * State
+             * @default null
+             */
+            state: string | null;
+            /**
+             * Breaker
+             * @default null
+             */
+            breaker: string | null;
+            /**
+             * Restart Count
+             * @default null
+             */
+            restart_count: number | null;
+            /**
+             * Mounted Tools
+             * @default null
+             */
+            mounted_tools: number | null;
         };
         /** MappingRule */
         identity_providers_upsert__MappingRule: {
@@ -13568,7 +14330,10 @@ export interface operations {
                 "application/json": {
                     /** Decision Id */
                     decision_id: string;
-                    /** Option Id */
+                    /**
+                     * Option Id
+                     * @description The engine's component id of the excluded option: the `component_id` its decision record names, in the engine's own id space. Arbora forwards it unchanged and maps no other id.
+                     */
                     option_id: string;
                     /**
                      * Budget Ms
@@ -13685,6 +14450,96 @@ export interface operations {
                          * @default null
                          */
                         pull_request: string | null;
+                    };
+                };
+            };
+        };
+    };
+    "eg.cluster.BranchDiff": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Path */
+                    path: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Path */
+                        path: string;
+                    };
+                };
+            };
+        };
+    };
+    "eg.cluster.BranchReadAt": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Path */
+                    path: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Path */
+                        path: string;
+                    };
+                };
+            };
+        };
+    };
+    "eg.cluster.BranchWrite": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Path */
+                    path: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Path */
+                        path: string;
                     };
                 };
             };
@@ -14410,6 +15265,36 @@ export interface operations {
             };
         };
     };
+    "eg.cluster.RegisterGraphView": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Path */
+                    path: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Path */
+                        path: string;
+                    };
+                };
+            };
+        };
+    };
     "eg.cluster.RegisterServer": {
         parameters: {
             query?: never;
@@ -14471,6 +15356,66 @@ export interface operations {
         };
     };
     "eg.cluster.Shutdown": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Path */
+                    path: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Path */
+                        path: string;
+                    };
+                };
+            };
+        };
+    };
+    "eg.cluster.SubmitChangeset": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Path */
+                    path: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Path */
+                        path: string;
+                    };
+                };
+            };
+        };
+    };
+    "eg.compute.ArchitectureView": {
         parameters: {
             query?: never;
             header?: never;
@@ -15280,36 +16225,6 @@ export interface operations {
             };
         };
     };
-    "eg.compute.FinanceAdfTest": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    /** Path */
-                    path: string;
-                };
-            };
-        };
-        responses: {
-            /** @description Operation result */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** Path */
-                        path: string;
-                    };
-                };
-            };
-        };
-    };
     "eg.compute.FinanceAlphaCombinationEngine": {
         parameters: {
             query?: never;
@@ -15490,36 +16405,6 @@ export interface operations {
             };
         };
     };
-    "eg.compute.FinanceBrierScore": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    /** Path */
-                    path: string;
-                };
-            };
-        };
-        responses: {
-            /** @description Operation result */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** Path */
-                        path: string;
-                    };
-                };
-            };
-        };
-    };
     "eg.compute.FinanceCapitalRatios": {
         parameters: {
             query?: never;
@@ -15670,96 +16555,6 @@ export interface operations {
             };
         };
     };
-    "eg.compute.FinanceDeflatedSharpe": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    /** Path */
-                    path: string;
-                };
-            };
-        };
-        responses: {
-            /** @description Operation result */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** Path */
-                        path: string;
-                    };
-                };
-            };
-        };
-    };
-    "eg.compute.FinanceDetectRegimes": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    /** Path */
-                    path: string;
-                };
-            };
-        };
-        responses: {
-            /** @description Operation result */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** Path */
-                        path: string;
-                    };
-                };
-            };
-        };
-    };
-    "eg.compute.FinanceDieboldMariano": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    /** Path */
-                    path: string;
-                };
-            };
-        };
-        responses: {
-            /** @description Operation result */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** Path */
-                        path: string;
-                    };
-                };
-            };
-        };
-    };
     "eg.compute.FinanceDistributionShift": {
         parameters: {
             query?: never;
@@ -15821,36 +16616,6 @@ export interface operations {
         };
     };
     "eg.compute.FinanceDrawdownSeries": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    /** Path */
-                    path: string;
-                };
-            };
-        };
-        responses: {
-            /** @description Operation result */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** Path */
-                        path: string;
-                    };
-                };
-            };
-        };
-    };
-    "eg.compute.FinanceEffectiveIndependentN": {
         parameters: {
             query?: never;
             header?: never;
@@ -16181,156 +16946,6 @@ export interface operations {
         };
     };
     "eg.compute.FinanceHawkesMle": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    /** Path */
-                    path: string;
-                };
-            };
-        };
-        responses: {
-            /** @description Operation result */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** Path */
-                        path: string;
-                    };
-                };
-            };
-        };
-    };
-    "eg.compute.FinanceInformationCoefficient": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    /** Path */
-                    path: string;
-                };
-            };
-        };
-        responses: {
-            /** @description Operation result */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** Path */
-                        path: string;
-                    };
-                };
-            };
-        };
-    };
-    "eg.compute.FinanceInformationRatio": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    /** Path */
-                    path: string;
-                };
-            };
-        };
-        responses: {
-            /** @description Operation result */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** Path */
-                        path: string;
-                    };
-                };
-            };
-        };
-    };
-    "eg.compute.FinanceKalmanBeta": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    /** Path */
-                    path: string;
-                };
-            };
-        };
-        responses: {
-            /** @description Operation result */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** Path */
-                        path: string;
-                    };
-                };
-            };
-        };
-    };
-    "eg.compute.FinanceKalmanFilter1d": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    /** Path */
-                    path: string;
-                };
-            };
-        };
-        responses: {
-            /** @description Operation result */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** Path */
-                        path: string;
-                    };
-                };
-            };
-        };
-    };
-    "eg.compute.FinanceKalmanVolatility": {
         parameters: {
             query?: never;
             header?: never;
@@ -16840,66 +17455,6 @@ export interface operations {
             };
         };
     };
-    "eg.compute.FinanceOuCalibrate": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    /** Path */
-                    path: string;
-                };
-            };
-        };
-        responses: {
-            /** @description Operation result */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** Path */
-                        path: string;
-                    };
-                };
-            };
-        };
-    };
-    "eg.compute.FinanceOuOptimalThresholds": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    /** Path */
-                    path: string;
-                };
-            };
-        };
-        responses: {
-            /** @description Operation result */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** Path */
-                        path: string;
-                    };
-                };
-            };
-        };
-    };
     "eg.compute.FinancePairsSignal": {
         parameters: {
             query?: never;
@@ -17050,67 +17605,7 @@ export interface operations {
             };
         };
     };
-    "eg.compute.FinanceProbabilityBacktestOverfit": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    /** Path */
-                    path: string;
-                };
-            };
-        };
-        responses: {
-            /** @description Operation result */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** Path */
-                        path: string;
-                    };
-                };
-            };
-        };
-    };
     "eg.compute.FinanceProfitAttribution": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    /** Path */
-                    path: string;
-                };
-            };
-        };
-        responses: {
-            /** @description Operation result */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** Path */
-                        path: string;
-                    };
-                };
-            };
-        };
-    };
-    "eg.compute.FinancePurgedCpcv": {
         parameters: {
             query?: never;
             header?: never;
@@ -18640,6 +19135,36 @@ export interface operations {
             };
         };
     };
+    "eg.compute.NumericEvaluate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Path */
+                    path: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Path */
+                        path: string;
+                    };
+                };
+            };
+        };
+    };
     "eg.compute.PageRank": {
         parameters: {
             query?: never;
@@ -18911,6 +19436,96 @@ export interface operations {
         };
     };
     "eg.coordination.ActionSubmit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Path */
+                    path: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Path */
+                        path: string;
+                    };
+                };
+            };
+        };
+    };
+    "eg.coordination.AssistantProfile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Path */
+                    path: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Path */
+                        path: string;
+                    };
+                };
+            };
+        };
+    };
+    "eg.coordination.Batch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Path */
+                    path: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Path */
+                        path: string;
+                    };
+                };
+            };
+        };
+    };
+    "eg.coordination.BeliefRevise": {
         parameters: {
             query?: never;
             header?: never;
@@ -19301,6 +19916,36 @@ export interface operations {
         };
     };
     "eg.coordination.DevelopmentLaneStatus": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Path */
+                    path: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Path */
+                        path: string;
+                    };
+                };
+            };
+        };
+    };
+    "eg.coordination.FeatureLedger": {
         parameters: {
             query?: never;
             header?: never;
@@ -19960,6 +20605,36 @@ export interface operations {
             };
         };
     };
+    "eg.coordination.Loops": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Path */
+                    path: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Path */
+                        path: string;
+                    };
+                };
+            };
+        };
+    };
     "eg.coordination.MarkWorkItemEffectStarted": {
         parameters: {
             query?: never;
@@ -19991,6 +20666,36 @@ export interface operations {
         };
     };
     "eg.coordination.MintWorkItemClaimCapability": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Path */
+                    path: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Path */
+                        path: string;
+                    };
+                };
+            };
+        };
+    };
+    "eg.coordination.ObservationState": {
         parameters: {
             query?: never;
             header?: never;
@@ -20710,6 +21415,36 @@ export interface operations {
             };
         };
     };
+    "eg.coordination.TraceCritique": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Path */
+                    path: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Path */
+                        path: string;
+                    };
+                };
+            };
+        };
+    };
     "eg.coordination.TransitionControlLease": {
         parameters: {
             query?: never;
@@ -20830,6 +21565,36 @@ export interface operations {
             };
         };
     };
+    "eg.coordination.Usage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Path */
+                    path: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Path */
+                        path: string;
+                    };
+                };
+            };
+        };
+    };
     "eg.coordination.VerifyWorkItemClaimCapability": {
         parameters: {
             query?: never;
@@ -20891,6 +21656,96 @@ export interface operations {
         };
     };
     "eg.coordination.WorkflowRegistry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Path */
+                    path: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Path */
+                        path: string;
+                    };
+                };
+            };
+        };
+    };
+    "eg.finance.FinanceAccountProject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Path */
+                    path: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Path */
+                        path: string;
+                    };
+                };
+            };
+        };
+    };
+    "eg.finance.RegimeForecast": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Path */
+                    path: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Path */
+                        path: string;
+                    };
+                };
+            };
+        };
+    };
+    "eg.finance.RegimeSizingInput": {
         parameters: {
             query?: never;
             header?: never;
@@ -21071,6 +21926,66 @@ export interface operations {
         };
     };
     "eg.graph.ApplyMutation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Path */
+                    path: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Path */
+                        path: string;
+                    };
+                };
+            };
+        };
+    };
+    "eg.graph.ArchitectureModelExport": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Path */
+                    path: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Path */
+                        path: string;
+                    };
+                };
+            };
+        };
+    };
+    "eg.graph.ArchitectureModelImport": {
         parameters: {
             query?: never;
             header?: never;
@@ -21521,6 +22436,36 @@ export interface operations {
         };
     };
     "eg.graph.DiscountedReturn": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Path */
+                    path: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Path */
+                        path: string;
+                    };
+                };
+            };
+        };
+    };
+    "eg.graph.DomainPack": {
         parameters: {
             query?: never;
             header?: never;
@@ -22510,6 +23455,36 @@ export interface operations {
             };
         };
     };
+    "eg.graph.OpenGraphSnapshot": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Path */
+                    path: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Path */
+                        path: string;
+                    };
+                };
+            };
+        };
+    };
     "eg.graph.OutDegree": {
         parameters: {
             query?: never;
@@ -22600,7 +23575,67 @@ export interface operations {
             };
         };
     };
+    "eg.graph.ReadGraphChanges": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Path */
+                    path: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Path */
+                        path: string;
+                    };
+                };
+            };
+        };
+    };
     "eg.graph.ReadMemorySnapshot": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Path */
+                    path: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Path */
+                        path: string;
+                    };
+                };
+            };
+        };
+    };
+    "eg.graph.ReadSpan": {
         parameters: {
             query?: never;
             header?: never;
@@ -22781,6 +23816,36 @@ export interface operations {
         };
     };
     "eg.graph.SchemaProjections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Path */
+                    path: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Path */
+                        path: string;
+                    };
+                };
+            };
+        };
+    };
+    "eg.graph.SourceSync": {
         parameters: {
             query?: never;
             header?: never;
@@ -23081,6 +24146,66 @@ export interface operations {
         };
     };
     "eg.ingestion.AddEmbedding": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Path */
+                    path: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Path */
+                        path: string;
+                    };
+                };
+            };
+        };
+    };
+    "eg.ingestion.DataPrepDeclarationRead": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Path */
+                    path: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Path */
+                        path: string;
+                    };
+                };
+            };
+        };
+    };
+    "eg.ingestion.DataPrepDeclare": {
         parameters: {
             query?: never;
             header?: never;
@@ -23440,6 +24565,36 @@ export interface operations {
             };
         };
     };
+    "eg.ingestion.MeasureIngestThroughput": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Path */
+                    path: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Path */
+                        path: string;
+                    };
+                };
+            };
+        };
+    };
     "eg.ingestion.MeetingSummaryCommit": {
         parameters: {
             query?: never;
@@ -23620,6 +24775,96 @@ export interface operations {
             };
         };
     };
+    "eg.ingestion.RecordDeployment": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Path */
+                    path: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Path */
+                        path: string;
+                    };
+                };
+            };
+        };
+    };
+    "eg.ingestion.RecordRelease": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Path */
+                    path: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Path */
+                        path: string;
+                    };
+                };
+            };
+        };
+    };
+    "eg.ingestion.SemanticEnrich": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Path */
+                    path: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Path */
+                        path: string;
+                    };
+                };
+            };
+        };
+    };
     "eg.ingestion.SemanticIndex": {
         parameters: {
             query?: never;
@@ -23741,6 +24986,36 @@ export interface operations {
         };
     };
     "eg.ingestion.TelemetryDerive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Path */
+                    path: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Path */
+                        path: string;
+                    };
+                };
+            };
+        };
+    };
+    "eg.ingestion.VerifyIngestReadback": {
         parameters: {
             query?: never;
             header?: never;
@@ -25060,6 +26335,66 @@ export interface operations {
             };
         };
     };
+    "eg.query.ApproveEntityLink": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Path */
+                    path: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Path */
+                        path: string;
+                    };
+                };
+            };
+        };
+    };
+    "eg.query.CatalogUsage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Path */
+                    path: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Path */
+                        path: string;
+                    };
+                };
+            };
+        };
+    };
     "eg.query.CausalCounterfactual": {
         parameters: {
             query?: never;
@@ -25091,6 +26426,126 @@ export interface operations {
         };
     };
     "eg.query.CausalEstimate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Path */
+                    path: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Path */
+                        path: string;
+                    };
+                };
+            };
+        };
+    };
+    "eg.query.ColumnLineage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Path */
+                    path: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Path */
+                        path: string;
+                    };
+                };
+            };
+        };
+    };
+    "eg.query.ContextCompile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Path */
+                    path: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Path */
+                        path: string;
+                    };
+                };
+            };
+        };
+    };
+    "eg.query.CorpusRetrieve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Path */
+                    path: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Path */
+                        path: string;
+                    };
+                };
+            };
+        };
+    };
+    "eg.query.CrossSourceQuestion": {
         parameters: {
             query?: never;
             header?: never;
@@ -25181,6 +26636,66 @@ export interface operations {
         };
     };
     "eg.query.EdgeSearch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Path */
+                    path: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Path */
+                        path: string;
+                    };
+                };
+            };
+        };
+    };
+    "eg.query.EncodeDocument": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Path */
+                    path: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Path */
+                        path: string;
+                    };
+                };
+            };
+        };
+    };
+    "eg.query.EncodedDocumentSearch": {
         parameters: {
             query?: never;
             header?: never;
@@ -25870,6 +27385,36 @@ export interface operations {
             };
         };
     };
+    "eg.query.ProjectionRead": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Path */
+                    path: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Path */
+                        path: string;
+                    };
+                };
+            };
+        };
+    };
     "eg.query.RankByProvenance": {
         parameters: {
             query?: never;
@@ -25960,6 +27505,66 @@ export interface operations {
             };
         };
     };
+    "eg.query.ResolveViewportSelection": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Path */
+                    path: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Path */
+                        path: string;
+                    };
+                };
+            };
+        };
+    };
+    "eg.query.RetrievalRound": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Path */
+                    path: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Path */
+                        path: string;
+                    };
+                };
+            };
+        };
+    };
     "eg.query.SelectWebPages": {
         parameters: {
             query?: never;
@@ -25990,7 +27595,97 @@ export interface operations {
             };
         };
     };
+    "eg.query.SourceCoverage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Path */
+                    path: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Path */
+                        path: string;
+                    };
+                };
+            };
+        };
+    };
     "eg.query.StaleMaterializations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Path */
+                    path: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Path */
+                        path: string;
+                    };
+                };
+            };
+        };
+    };
+    "eg.query.StoredQueryCall": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Path */
+                    path: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Path */
+                        path: string;
+                    };
+                };
+            };
+        };
+    };
+    "eg.query.StoredQueryPut": {
         parameters: {
             query?: never;
             header?: never;
@@ -26110,7 +27805,127 @@ export interface operations {
             };
         };
     };
+    "eg.query.ViewportQuery": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Path */
+                    path: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Path */
+                        path: string;
+                    };
+                };
+            };
+        };
+    };
     "eg.query.WhatChanged": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Path */
+                    path: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Path */
+                        path: string;
+                    };
+                };
+            };
+        };
+    };
+    "eg.reasoning.ArgumentMapEvaluate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Path */
+                    path: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Path */
+                        path: string;
+                    };
+                };
+            };
+        };
+    };
+    "eg.reasoning.ArgumentMapGet": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Path */
+                    path: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Path */
+                        path: string;
+                    };
+                };
+            };
+        };
+    };
+    "eg.reasoning.ArgumentMapPut": {
         parameters: {
             query?: never;
             header?: never;
@@ -26561,6 +28376,36 @@ export interface operations {
         };
     };
     "eg.security.CheckAccess": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Path */
+                    path: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Path */
+                        path: string;
+                    };
+                };
+            };
+        };
+    };
+    "eg.security.DescribeContract": {
         parameters: {
             query?: never;
             header?: never;
@@ -27430,6 +29275,36 @@ export interface operations {
             };
         };
     };
+    "eg.storage.ConceptLineage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Path */
+                    path: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Path */
+                        path: string;
+                    };
+                };
+            };
+        };
+    };
     "eg.storage.ConnectorPack": {
         parameters: {
             query?: never;
@@ -27820,6 +29695,36 @@ export interface operations {
             };
         };
     };
+    "eg.storage.RevisionProposalList": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Path */
+                    path: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Path */
+                        path: string;
+                    };
+                };
+            };
+        };
+    };
     "eg.storage.SqlSourceBatch": {
         parameters: {
             query?: never;
@@ -27941,6 +29846,36 @@ export interface operations {
         };
     };
     "eg.storage.TsDefineSeries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Path */
+                    path: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Path */
+                        path: string;
+                    };
+                };
+            };
+        };
+    };
+    "eg.storage.TsDefineStateSpace": {
         parameters: {
             query?: never;
             header?: never;
@@ -29329,8 +31264,8 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        /** Value */
-                        value: unknown;
+                        /** Connectors */
+                        connectors: components["schemas"]["fleet_connections_state__ConnectionRow"][];
                     };
                 };
             };
@@ -32659,6 +34594,42 @@ export interface operations {
                     "application/json": {
                         /** Path */
                         path: string;
+                    };
+                };
+            };
+        };
+    };
+    "report.supply_chain_impact": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Class Roots */
+                    class_roots: string[];
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Report */
+                        report: {
+                            [key: string]: unknown;
+                        };
+                        /** Sources Used */
+                        sources_used: unknown[];
+                        /** Abstentions */
+                        abstentions: unknown[];
                     };
                 };
             };
