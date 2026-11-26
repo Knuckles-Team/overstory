@@ -8,7 +8,6 @@ No exact-head publication receipt is recorded.
 - [x] T004 [US1] OVERSTORY-APPS-R038 Integrate Markets as first native consumer and add valid/invalid contributed-app fixtures.
 - [x] T005 [US1] OVERSTORY-APPS-R039 Perform atomic public-name package and consumer cutover; regenerate assets and digests; document browser migration. (OVERSTORY-APPS-R039, OVERSTORY-APPS-R043, OVERSTORY-APPS-R002's remaining theme-token/asset-regeneration surface, OVERSTORY-APPS-R003: source commit 677a27e0f701eca99cad20887a0b5c4b8ec9734e exists on local branch feat/eh427-retire-review-20260926 but conflicts heavily with main — rename touches package.json, pyproject.toml, uv.lock, pnpm-lock.yaml and deletes files main already restructured; needs a fresh, smaller port, not a direct cherry-pick. The operator has not yet confirmed this package-identity rename; do not attempt it without that confirmation.)
 - [ ] T006 [US1] OVERSTORY-APPS-R039 Run all test-spec gates, installed wheel and Pages build on exact commit; record consumer and publication evidence.
-- [ ] T007 [US1] OVERSTORY-APPS-R039 Review every requirement after attaching browser, package and public-site evidence.
 - [x] T008 [US1] OVERSTORY-APPS-R004 Run harness surface (rollup of 1 to 6)
 - [x] T009 [US1] OVERSTORY-APPS-R004.1 Run read goes through the arbora read operations.
 - [x] T010 [US1] OVERSTORY-APPS-R004.2 Applied harness configuration is shown.
@@ -22,14 +21,11 @@ No exact-head publication receipt is recorded.
 - [x] T018 [US1] OVERSTORY-APPS-R030.4 Show refusals on unauthorized edits.
 - [x] T019 [US1] OVERSTORY-APPS-R030.5 Semantic filters and persona modes.
 - [x] T020 [US1] OVERSTORY-APPS-R030.6 Edit log with verdicts.
-- [ ] T021 [US1] OVERSTORY-APPS-R030.7 Graph edit hot-path proof.
 - [ ] T022 [US1] OVERSTORY-APPS-R031.1 Memory file types.
-- [ ] T023 [US1] OVERSTORY-APPS-R031.2 Memory file operations.
 - [ ] T024 [US1] OVERSTORY-APPS-R031.3 Files tab in the memory view.
 - [ ] T025 [US1] OVERSTORY-APPS-R031.4 Authorized retained conflicts and head-free refusals.
 - [ ] T026 [US1] OVERSTORY-APPS-R031.5 Sync state labels.
 - [ ] T027 [US1] OVERSTORY-APPS-R031.6 Save evidence.
-- [ ] T028 [US1] OVERSTORY-APPS-R031.7 Memory files hot-path proof.
 
 No task above names a requirement ID individually; together they must close every ID in [requirements.md](requirements.md) — `OVERSTORY-APPS-R038`, `OVERSTORY-APPS-R039`, `OVERSTORY-APPS-R040`, `OVERSTORY-APPS-R041`, `OVERSTORY-APPS-R042`, `OVERSTORY-APPS-R043`, `OVERSTORY-APPS-R044`, `OVERSTORY-APPS-R001`, `OVERSTORY-APPS-R002`, `OVERSTORY-APPS-R003`, `OVERSTORY-APPS-R004`.
 - [ ] T029 [US1] OVERSTORY-APPS-R005 Navigation and dashboards follow the signed-in user's role (rollup).
@@ -132,18 +128,14 @@ Unchecked tasks remain open. Definitions alone do not establish runtime delivery
 - [ ] T119 [US1] OVERSTORY-APPS-R001.8.3 Implement and prove wiring for interactive code explanations.
 - [ ] T120 [US1] OVERSTORY-APPS-R001.8.4 Implement and prove refusal for interactive code explanations.
 - [ ] T121 [US1] OVERSTORY-APPS-R001.8.5 Implement and prove evidence for interactive code explanations.
-- [ ] T122 [US1] OVERSTORY-APPS-R001.8.6 Implement and prove served acceptance for interactive code explanations.
 <!-- /spec-definition-patch -->
 
 - [ ] T123 [US1] OVERSTORY-APPS-R001.8.6 Reconcile exact specialized producer requirements, operation IDs and schema revisions before marking any source input definition-complete.
-- [ ] T124 [US1] OVERSTORY-APPS-R004.8 Obtain owner-defined positive finite latency, layout and viewport bounds for R004.8, R030.8 and R001.2.
-- [ ] T125 [US1] OVERSTORY-APPS-R006.4 Bind R006.4 acceptance to every entry in the complete versioned supported-harness manifest.
 
 ## Responsive workspace extension: implementation and evidence open
 
 - [ ] T126 [US1] OVERSTORY-APPS-R045 Implement complete capability and leaf census. Run the planned acceptance in test-spec.md. Attach the exact merged revision and evidence. No runtime result is claimed by this specification.
 - [ ] T127 [US1] OVERSTORY-APPS-R046 Implement one semantic workspace navigation state. Run the planned acceptance in test-spec.md. Attach the exact merged revision and evidence. No runtime result is claimed by this specification.
-- [ ] T128 [US1] OVERSTORY-APPS-R047 Implement native webmcp action equivalence. Run the planned acceptance in test-spec.md. Attach the exact merged revision and evidence. No runtime result is claimed by this specification.
 - [ ] T129 [US1] OVERSTORY-APPS-R048 Implement webmcp lifecycle and authority preservation. Run the planned acceptance in test-spec.md. Attach the exact merged revision and evidence. No runtime result is claimed by this specification.
 - [ ] T130 [US1] OVERSTORY-APPS-R049 Implement preserve every feature through the arbora redesign. Run the planned acceptance in test-spec.md. Attach the exact merged revision and evidence. No runtime result is claimed by this specification.
 - [ ] T131 [US1] OVERSTORY-APPS-R050 Implement composed deployment and shared-backend acceptance. Run the planned acceptance in test-spec.md. Attach the exact merged revision and evidence. No runtime result is claimed by this specification.
@@ -155,24 +147,13 @@ Unchecked tasks remain open. Definitions alone do not establish runtime delivery
 
 ## Consolidated redesign delivery
 
-- [ ] T134 [US1] OVERSTORY-APPS-R049.1 Complete the destination-to-context migration matrix and classify every domain action.
-- [ ] T135 [US1] OVERSTORY-APPS-R049.1 Replace standalone layouts with contextual surfaces. Preserve compatible URLs and authorization.
-- [ ] T136 [US1] OVERSTORY-APPS-R049.1 Retire duplicate shells and redundant navigation after action and state parity tests pass.
-- [ ] T137 [US1] OVERSTORY-APPS-R049.2 Capture old task journeys and compare the actual three-context implementation.
-- [ ] T138 [US1] OVERSTORY-APPS-R049.2 Record navigation counts, scroll distances and viewport evidence. Keep failures and unfinished domains open.
 - [ ] T139 [US1] OVERSTORY-APPS-R049.1 Carry forward backend, safety, data and action tests. Replace page-layout assertions with consolidated workspace acceptance.
-- [ ] T140 [US1] OVERSTORY-APPS-R049.2 Stop cosmetic work on retired layouts. Test the new composition instead of matching old screenshots.
 
 - [ ] T141 [US1] OVERSTORY-APPS-R049.1.1 Bind retained Explore source tests and record their exact source revision and normal gate evidence.
-- [ ] T142 [US1] OVERSTORY-APPS-R049.1.2 Finish the destination migration and installed-browser capability matrix. Keep unfinished contexts and producer checks open.
 
-- [ ] T143 [US1] OVERSTORY-APPS-R049.1.3 Bind the retained Work source tests and preserve one existing Chat instance.
-- [ ] T144 [US1] OVERSTORY-APPS-R049.1.3 Check independent task/trace reads and typed navigation without claiming missing associations.
 - [ ] T145 [US1] OVERSTORY-APPS-R049.1.2 Qualify real producer associations and installed-browser lifecycle before claiming complete correlated Work investigation. Include the nested graph, public records and accessible deep-link journeys. Retain every earlier migration criterion.
 
-- [ ] T146 [US1] OVERSTORY-APPS-R049.1.4 Bind the retained read-only Operate discovery source and its focused tests.
 - [ ] T147 [US1] OVERSTORY-APPS-R049.1.4 Preserve filter focus, observed-admission isolation and partial catalog reporting.
-- [ ] T148 [US1] OVERSTORY-APPS-R049.1.2 Migrate connector configuration, host launch, containment, approvals, tool load/unload and execution with their actual upstream authority contracts. Qualify served discovery and native browser journeys separately.
 
 - [ ] T149 [US1] OVERSTORY-APPS-R049.1.5 Bind current-response task navigation without inferred trace relationships or execution authority.
 
@@ -181,7 +162,6 @@ Unchecked tasks remain open. Definitions alone do not establish runtime delivery
 ## Consent placement repair and remaining browser acceptance
 
 - [x] T151 [US1] OVERSTORY-APPS-R046.2.1 Repair consent prompt dismissal and management. Preserve explicit choice semantics and failed-storage denial through source regressions.
-- [ ] T152 [US1] OVERSTORY-APPS-R046.2.2 Complete every remaining R046.2 browser and all-leaf obligation. Include rendered consent clearance and mobile input journeys.
 
 - [ ] T153 [US1] OVERSTORY-APPS-R049.1.7 Bind integrated query/validation lens tests and preserve the existing maintainer boundary. Qualify real provider and browser behavior separately.
 
@@ -198,12 +178,10 @@ Unchecked tasks remain open. Definitions alone do not establish runtime delivery
 ## R048 hidden document source repair
 
 - [x] T158 [US1] OVERSTORY-APPS-R048 Validate hidden-document registration cleanup, late acknowledgements and fresh registrations on return. The 98 focused tests passed.
-- [ ] T159 [US1] OVERSTORY-APPS-R048 Keep native-browser qualification, full authority acceptance and in-flight cancellation open under R048.
 
 ## R048 cooperative execution source contract
 
 - [x] T160 [US1] OVERSTORY-APPS-R048 Validate caller cancellation and registration retirement through the mounted provider and shared tool factory. All 108 focused tests passed.
-- [ ] T161 [US1] OVERSTORY-APPS-R048 Qualify native-browser scheduling and served authority independently. Cooperative cancellation does not prove rollback or stop uncooperative handlers.
 
 ### R048 native replacement routing
 
@@ -230,7 +208,6 @@ Full R049.1.2 acceptance remains open, including other destinations, native cont
 - [x] T163 [US1] OVERSTORY-APPS-R048 Exercise generated default and prefixed script/style URLs (2 build tests).
 - [x] T164 [US1] OVERSTORY-APPS-R048 Run cold Work, Explore and Operate entries and reloads against the installed
   Arbora composer and production WebUI static mount (3 browser tests passed).
-- [ ] T165 [US1] OVERSTORY-APPS-R046.2.2 Complete R046.2.2 navigation and R050 provider acceptance independently.
 
 The production build/typecheck and strict documentation build passed. The served
 fixture used installed Arbora 0.1.7, Agent Utilities 3.1.0, SDK 0.2.2 and
@@ -259,17 +236,14 @@ This change grants no session, arms no browser and changes no production authori
 
 - [x] T166 [US1] OVERSTORY-APPS-R049.1.3 Check conversation response, admitted task, output and independent trace inspection with synthetic browser responses.
 - [x] T167 [US1] OVERSTORY-APPS-R049.1.3 Validate producer text artifacts and explicit references without inferring trace or conversation links.
-- [ ] T168 [US1] OVERSTORY-APPS-R049.1.2 Migrate supported authoring and other remaining Work capabilities with parity evidence.
 - [ ] T169 [US1] OVERSTORY-APPS-R004 Await authoritative current-plan and run-metrics bindings; task text does not replace these fields.
 - [ ] T170 [US1] OVERSTORY-APPS-R006.4 Await supported-harness discovery and indexed sessions; browser conversations do not replace this producer.
-- [ ] T171 [US1] OVERSTORY-APPS-R050 Qualify the composed served-provider journey and actual authorization boundaries.
 
 ## Loaded destination branch delivery
 
 - [x] T172 [US1] OVERSTORY-APPS-R050 Present the existing validated command catalog as native DOM branches and a flat searchable list.
 - [x] T173 [US1] OVERSTORY-APPS-R050 Nest only confirmed fleet capabilities and selected-trace nodes beneath their loaded parents.
 - [x] T174 [US1] OVERSTORY-APPS-R050 Restore breadcrumb focus, retain the branch while searching, and retire unavailable entries.
-- [ ] T175 [US1] OVERSTORY-APPS-R046.2.2 Complete OVERSTORY-APPS-R046.2.2 and OVERSTORY-DESIGN-R005.1 acceptance across deepest dynamic leaves, real touch, manual screen readers and installed providers.
 
 This bounded source implementation uses main `c5c8ce0a3b5b9a09f30c5f9098a83407be396c22`.
 Branch drill-in is instantaneous native DOM navigation, not camera animation.
@@ -301,7 +275,6 @@ The browser test writes these files into its configured output directory.
 
 - [x] T176 [US1] OVERSTORY-APPS-R049.1.2 Compose the existing admin prompt editor as a Work lens and preserve investigation context.
 - [x] T177 [US1] OVERSTORY-APPS-R049.1.3 Cover lens navigation, draft retention, owner retirement and explicit save with rendered source tests.
-- [ ] T178 [US1] OVERSTORY-APPS-R049.1.2 Qualify served-provider and native-browser prompt authoring, full editor-tool parity, and remaining Work authoring destinations.
 
 - [ ] T179 [US1] OVERSTORY-APPS-R046.2.2 R046.2.2, R047 and R049.1.2: qualify loaded catalog navigation with installed providers. Source tests and the synthetic Chromium catalog journey do not close complete migration or dynamic-leaf acceptance.
 
@@ -314,16 +287,11 @@ The browser test writes these files into its configured output directory.
 ### Flat dependency source slice
 
 - [x] T183 [US1] OVERSTORY-APPS-R049.1.13 Qualify the bounded inline view with mounted Work and adapter fixtures.
-- [ ] T184 [US1] OVERSTORY-APPS-R049.1.2 Keep actual browser, installed-provider and nested execution acceptance open after the source slice.
 
 ## Canopy Glass presentation continuation — 2026-10-24
 
 - [x] T185 [US1] OVERSTORY-APPS-R049.2.1 Specify OVERSTORY-APPS-R049.2.1 within the existing redesign owner and preserve all parent acceptance obligations.
-- [ ] T186 [US1] OVERSTORY-APPS-R049.2.1 Apply the shared full-width expanded shell and real Explore list/detail presentation without changing route, auth or WebMCP authority.
 - [ ] T187 [US1] OVERSTORY-APPS-R049.2.1 Qualify search, selection, detail tools, return, denial, retained state and focus with source tests and separately recorded rendered journeys.
-- [ ] T188 [US1] OVERSTORY-APPS-R049.2 Compare actual old/new tasks, navigation/scrolling effort and reviewed layout captures; the bounded presentation slice cannot close this row.
-- [ ] T189 [US1] OVERSTORY-APPS-R049.1.2 R049.1.2/R045/R046/R047/R048: Complete remaining migration, all-leaf navigation, mobile capability parity and native-tool/authority acceptance.
-- [ ] T190 [US1] OVERSTORY-APPS-R050 Qualify noauth, EG and OIDC with the installed producers independently; synthetic theme fixtures do not establish served acceptance.
 
 The first implementation covers shared chrome and existing Explore evidence only.
 Graph, editor, run, administration, authentication and other native surfaces still
@@ -336,16 +304,11 @@ promote a broad row from scoped tests or historical documentation screenshots.
   conversation does not reserve most of the center while selected-task details
   are squeezed into a narrow column. Preserve the mounted conversation, drafts,
   execution selection and safe disclosure behavior; do not manufacture content.
-- [ ] T192 [US1] OVERSTORY-APPS-R049.2 Complete Work and Operate composition and real wide, narrow,
-  low-height and ultrawide pixel review. A shared palette or the first Explore
-  list/detail journey does not complete the three-context redesign.
 
 ## Native workspace assistant continuation
 
 - [x] T193 [US1] OVERSTORY-APPS-R005.4 OVERSTORY-APPS-R005.4/R049.1.3: Replace the floating launcher/drawer with a visible native assistant using the same mounted Chat and canonical state.
-- [ ] T194 [US1] OVERSTORY-APPS-R049.2 Preserve dominant task width, expanded header and an accessible dock/composer across narrow and short layouts.
 - [x] T195 [US1] OVERSTORY-APPS-R049.1.3 Check unsent draft, live context, canonical streaming and owner retirement through source tests of the actual Chat seam. Add native dock focus and retained-shell regression tests.
-- [ ] T196 [US1] OVERSTORY-APPS-R049.1.2 OVERSTORY-APPS-R049.1.2/R047/R048/R050: Complete native browser co-navigation and installed-provider acceptance separately; a layout change cannot close these rows.
 
 Bounded source evidence: 409 tests across 40 component/Chat/WebMCP files passed
 with two workers. The default worker pool exhausted available process memory;
@@ -368,8 +331,6 @@ Metadata guard tests are not evidence that the remaining redesign is accepted.
 ### Native Explore sampled graph continuation
 
 - [ ] T198 [US1] OVERSTORY-APPS-R049.1.14 Qualify R049.1.14's direct read-only graph composition and retained state.
-- [ ] T199 [US1] OVERSTORY-APPS-R049.1.2 Retain R049.1.2's old-route adaptation, Cypher/MAGMA/editing migration and
-  served/browser full parity. Local GraphView edits are not engine write proof.
 
 Source qualification passed 121 scoped tests, TypeScript and the production build.
 The normal all-files run remains blocked by whole-repository ESLint termination.
@@ -378,8 +339,6 @@ Two bounded attempts received SIGKILL. Actual browser/provider acceptance remain
 ## Contextual Work workflow continuation
 
 - [x] T200 [US1] OVERSTORY-APPS-R049.1.15 Extract and qualify the retained administrator-only workflow plan editor within Work using mounted source fixtures.
-- [ ] T201 [US1] OVERSTORY-APPS-R049.1.2 OVERSTORY-APPS-R049.1.2/R047/R048: Complete workflow effect authority, full semantic-tool equivalence and served-provider acceptance separately.
-- [ ] T202 [US1] OVERSTORY-APPS-R049.1.2 OVERSTORY-DESIGN-R004.1.2/R004.2.2: Qualify actual narrow/short browser interaction and measured redesign acceptance; source layout rules are not pixel or accessibility evidence.
 
 The backend currently leaves Save/Run unavailable and does not implement the
 capabilities route. Keep in-memory edits explicitly unpersisted. Do not invent
