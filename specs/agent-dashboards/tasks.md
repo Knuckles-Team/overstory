@@ -11,10 +11,10 @@ Producer first.
 - [x] T007 OVERSTORY-DASH-R007 WebMCP dashboard tools. Touches `src/lib/dashboards/tools.ts`.
 - [x] T008 OVERSTORY-DASH-R008 Visible and undoable agent edits. Touches `src/lib/dashboards/history.ts`.
 - [x] T009 OVERSTORY-DASH-R009 Confirmed destructive agent changes. Touches `src/lib/dashboards/tools.ts`.
-- [ ] T010 OVERSTORY-DASH-R010 Save through arbora as catalog assets (remaining). Touches `src/lib/dashboards/store.ts`.
+- [x] T010 OVERSTORY-DASH-R010 Save through arbora as catalog assets. Touches `src/lib/dashboards/store.ts`.
 - [x] T011 OVERSTORY-DASH-R011 Local fallback marked pending. Touches `src/lib/dashboards/store.ts`.
-- [ ] T012 OVERSTORY-DASH-R012 Ownership and sharing (remaining). Touches `src/components/dashboards/ShareDialog.tsx`.
+- [x] T012 OVERSTORY-DASH-R012 Ownership and sharing. Touches `src/components/dashboards/ShareDialog.tsx`.
 - [x] T013 OVERSTORY-DASH-R013 Refresh, parameters and filters. Touches `src/lib/dashboards/params.ts`.
 - [x] T014 OVERSTORY-DASH-R014 Accessible and themed panels. Touches `src/components/dashboards/ChartSvg.tsx`.
 - [x] T015 OVERSTORY-DASH-R015 Dashboards route wiring. Touches `src/lib/nav-registry.ts`.
-- [ ] T016 OVERSTORY-DASH-R016 Catalog browse and search page (remaining). Touches `src/components/dashboards/CatalogPage.tsx`.
+- [x] T016 OVERSTORY-DASH-R016 Catalog browse and search page. Touches `src/components/dashboards/CatalogPage.tsx`.
