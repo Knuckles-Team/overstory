@@ -181,6 +181,14 @@ jobs:
         run: |
           pnpm exec playwright test --config e2e/strict-style-policy.config.ts
           pnpm exec playwright test --config e2e/responsive-route-matrix.config.ts
+      - name: Preserve design baseline screenshots and digest manifest
+        if: ${{ always() && steps.design_matrix.outcome != 'skipped' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: design-baseline
+          path: test-results/design-baseline/
+          retention-days: 30
+          if-no-files-found: error
       - name: Install pinned documentation image helper
         if: ${{ !cancelled() && steps.browser_dependencies.outcome == 'success' && steps.browser_engine.outcome == 'success' }}
         run: |

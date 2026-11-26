@@ -6,7 +6,12 @@ const root = fileURLToPath(new URL('..', import.meta.url))
 // The production bundle, served on its own port so it can run beside the style probe.
 export default defineConfig({
   testDir: '.',
-  testMatch: ['responsive-route-matrix.browser.ts', 'responsive-header.browser.ts', 'shell-responsive.browser.ts'],
+  testMatch: [
+    'responsive-route-matrix.browser.ts',
+    'responsive-header.browser.ts',
+    'shell-responsive.browser.ts',
+    'design-baseline.browser.ts',
+  ],
   workers: 1,
   reporter: 'list',
   timeout: 90_000,
