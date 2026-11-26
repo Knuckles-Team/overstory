@@ -369,7 +369,7 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({
         className="pointer-events-none absolute inset-0 h-full w-full"
       />
       {/* Polite live region: expand and collapse results stay available with motion off. */}
-      <div role="status" aria-live="polite" data-testid="graph-live-region" className="sr-only">
+      <div aria-live="polite" aria-atomic="true" data-testid="graph-live-region" className="sr-only">
         {scene.live}
       </div>
 
