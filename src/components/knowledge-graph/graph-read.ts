@@ -1,5 +1,8 @@
 import { z } from 'zod'
 import { fetchValidated, looseArray } from '@/lib/api-validation'
+import { invoke } from '@/lib/arbora-api/invoke'
+import { buildClassIndex, type ClassIndex, type SchemaTerm } from '@/lib/graph-semantics'
+import { isOperationAbsent } from '@/lib/graph-expand'
 import type { NodeTypeBreakdownData } from './NodeTypeBreakdown'
 
 import type { GraphNode, GraphRelationship } from './GraphAdapter'
@@ -83,3 +86,70 @@ export const readGraphRelationships = (signal?: AbortSignal) =>
   fetchValidated('/api/enhanced/graph/relationships', looseArray(graphRelationshipSchema), { signal })
 export const readGraphNodeTypes = (signal?: AbortSignal) =>
   fetchValidated('/api/enhanced/graph/node-types', nodeTypeBreakdownSchema, { signal })
+
+// ── Class ancestry for node color and shape (OVERSTORY-APPS-R030.11.2, .4) ─────────────────────
+export const CLASSES_OP = 'eg.reasoning.GraphSchemaClasses'
+export const CLASSES_UNAVAILABLE = 'Class hierarchy unavailable'
+
+export type ClassesState =
+  | { status: 'ready'; index: ClassIndex; digest: string }
+  | { status: 'unavailable'; notice: typeof CLASSES_UNAVAILABLE }
+
+const classesPageSchema = z
+  .object({
+    composed_digest: z.string(),
+    next_cursor: z.string().nullable().optional(),
+    terms: z.array(
+      z.object({ iri: z.string(), kind: z.string().optional(), local_name: z.string().optional() }).loose(),
+    ),
+  })
+  .loose()
+
+const CLASS_PAGE = 1000
+const MAX_CLASS_PAGES = 20
+const classesCache = new Map<string, ClassesState>()
+
+/** Forget what was read; the next read asks the engine again. */
+export function resetClassesCache(): void {
+  classesCache.clear()
+}
+
+/**
+ * Read the classes of the composed schema once per schema digest and build the ancestry map.
+ * `digest` names the schema the caller already knows; a read for a known digest is served from memory.
+ * A refused or absent read gives the unavailable state, and no ancestry is invented.
+ */
+export async function readGraphClasses(
+  signal?: AbortSignal,
+  digest = 'current',
+  read: typeof invoke = invoke,
+): Promise<ClassesState> {
+  const cached = classesCache.get(digest)
+  if (cached?.status === 'ready') return cached
+  try {
+    const terms: SchemaTerm[] = []
+    let cursor: string | undefined
+    let composed = ''
+    for (let page = 0; page < MAX_CLASS_PAGES; page++) {
+      const view = await read(
+        CLASSES_OP,
+        { kind: 'class', limit: CLASS_PAGE, ...(cursor ? { cursor } : {}) },
+        classesPageSchema,
+        { signal },
+      )
+      composed = view.composed_digest
+      terms.push(...(view.terms as SchemaTerm[]))
+      if (!view.next_cursor) break
+      cursor = view.next_cursor
+    }
+    const state: ClassesState = { status: 'ready', index: buildClassIndex(terms), digest: composed }
+    classesCache.set(digest, state)
+    classesCache.set(composed, state)
+    return state
+  } catch (error) {
+    if (signal?.aborted) throw error
+    if (isOperationAbsent(error) || error instanceof Error)
+      return { status: 'unavailable', notice: CLASSES_UNAVAILABLE }
+    throw error
+  }
+}
