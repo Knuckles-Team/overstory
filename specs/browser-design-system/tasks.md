@@ -3,11 +3,11 @@
 **States:** SPECIFIED → BUILDING → BUILT → ACCEPTED. Current: **SPECIFIED**; no full three-journey acceptance evidence is recorded.
 
 - [x] T001 OVERSTORY-DESIGN-R002 Inventory tokens and primitives on current main; publish the local token/interaction contract with light/dark values.
-- [ ] T002 OVERSTORY-DESIGN-R002 Build synthetic chat, Atlas and operational-form fixtures and capture baseline viewport matrix.
+- [ ] T002 OVERSTORY-DESIGN-R002 Build synthetic chat, Atlas and operational-form fixtures and capture baseline viewport matrix. Progress: `e2e/design-baseline.browser.ts` captures synthetic chat, Atlas and an operational form at the six viewports in light and dark, hashes each image into a manifest bound to the commit, and CI uploads it as the `design-baseline` artifact. Baseline captured on every run; the reviewed comparison stays manual.
 - [ ] T003 OVERSTORY-DESIGN-R002 Audit WCAG 2.2 AA, keyboard, screen reader, responsive and reduced-motion behavior; rank defects by user impact.
 - [ ] T004 OVERSTORY-DESIGN-R002 Repair defects by reusing existing components, including distinct repeated-filter labels and mobile wrapping.
-- [ ] T005 OVERSTORY-DESIGN-R002 Run tests/quality gates and capture after screenshots on exact commit; verify no telemetry, duplicate primitives or unlicensed text.
-- [ ] T006 OVERSTORY-DESIGN-R002 Attach merged commit, CI artifact digests and manual review, then mark ACCEPTED only if every listed test passes.
+- [ ] T005 OVERSTORY-DESIGN-R002 Run tests/quality gates and capture after screenshots on exact commit; verify no telemetry, duplicate primitives or unlicensed text. Progress: `e2e/design-baseline.browser.ts` captures synthetic chat, Atlas and an operational form at the six viewports in light and dark, hashes each image into a manifest bound to the commit, and CI uploads it as the `design-baseline` artifact. Open: the reviewed before/after comparison on the exact commit.
+- [ ] T006 OVERSTORY-DESIGN-R002 Attach merged commit, CI artifact digests and manual review, then mark ACCEPTED only if every listed test passes. Progress: the `design-baseline` CI artifact carries the commit and image digests; acceptance needs the merged-commit run and the manual review, so this row stays open.
 
 No task above names a requirement ID individually; together they must close every ID in [requirements.md](requirements.md) — `OVERSTORY-DESIGN-R001`, `OVERSTORY-DESIGN-R002`, `OVERSTORY-DESIGN-R003`, `OVERSTORY-DESIGN-R004`, `OVERSTORY-DESIGN-R005`, `OVERSTORY-DESIGN-R006`, `OVERSTORY-DESIGN-R007`, `OVERSTORY-DESIGN-R008`, `OVERSTORY-DESIGN-R009`.
 
@@ -29,7 +29,7 @@ No task above names a requirement ID individually; together they must close ever
 ## Responsive workspace extension: implementation and evidence open
 
 - [x] T016 OVERSTORY-DESIGN-R002.1 Add container-width panes and bounded reading widths to Work, Explore and Operate under OVERSTORY-DESIGN-R002.1. Add keyboard-operable optional context disclosures. This is partial delivery.
-- [ ] T017 OVERSTORY-DESIGN-R002.1 Complete screenshot/task review and attach merged-revision acceptance evidence.
+- [ ] T017 OVERSTORY-DESIGN-R002.1 Complete screenshot/task review and attach merged-revision acceptance evidence. Progress: `e2e/design-baseline.browser.ts` captures synthetic chat, Atlas and an operational form at the six viewports in light and dark, hashes each image into a manifest bound to the commit, and CI uploads it as the `design-baseline` artifact. Open: the reviewed screenshot and task review on the merged revision.
 - [ ] T018 OVERSTORY-DESIGN-R004.1 Implement full mobile and arbitrary-aspect feature parity. Run the planned acceptance in test-spec.md. Attach the exact merged revision and evidence. No runtime result is claimed by this specification. Progress: `e2e/responsive-route-matrix.browser.ts` runs every registered route across the six viewport shapes in the `workspace-browser` job; the desktop-only gate is removed from every route that passes it. `workspace.ide` stays gated (its embedded editor raises a page error in the synthetic fixture), so this row stays open. Progress: `e2e/responsive-route-matrix.browser.ts` runs every registered route across the six viewport shapes in the `workspace-browser` job; the desktop-only gate is removed from every route that passes it. `workspace.ide` stays gated (its embedded editor raises a page error in the synthetic fixture), so this row stays open.
 - [x] T019 OVERSTORY-DESIGN-R004.2 Add retained workspace visual-viewport sizing, safe-area padding and deferred focused-control reveal under OVERSTORY-DESIGN-R004.2. This is partial delivery.
 - [ ] T020 OVERSTORY-DESIGN-R004.2 Complete fold, native keyboard, 200-percent browser zoom, stream and graph acceptance. Attach the exact merged revision and evidence.
@@ -182,8 +182,8 @@ This bounded workflow does not complete the earlier design requirements.
 ## Canopy Glass continuation
 
 - [x] T039 OVERSTORY-DESIGN-R002.1.1 Define OVERSTORY-DESIGN-R002.1.1/R004.1.1/R005.2 and the original material, expanded-header, density, motion and fallback contract before runtime changes.
-- [ ] T040 OVERSTORY-DESIGN-R002.1.1 Implement shared token/material and compact/comfortable appearance behavior; qualify actual contrast, coarse-pointer sizing and storage fallback.
-- [ ] T041 OVERSTORY-DESIGN-R004.1.1 Implement full-width visible context/search/action rows and optional real detail; qualify resize, map sizing, focus, zoom and retained drafts.
+- [ ] T040 OVERSTORY-DESIGN-R002.1.1 Implement shared token/material and compact/comfortable appearance behavior; qualify actual contrast, coarse-pointer sizing and storage fallback. Progress: `e2e/shell-responsive.browser.ts` asserts every shared button and input keeps a 44 px target under a coarse pointer, and the denied-storage fallback is covered by `ThemeProvider.test.tsx`. Open: composited contrast evidence and compact/comfortable captures on the merged commit.
+- [ ] T041 OVERSTORY-DESIGN-R004.1.1 Implement full-width visible context/search/action rows and optional real detail; qualify resize, map sizing, focus, zoom and retained drafts. Progress: the 320 px context trail no longer runs under the assistant and appearance controls (`src/components/WorkspaceNavigation.tsx`); `e2e/responsive-header.browser.ts` fails on overlap at all six viewports and `e2e/shell-responsive.browser.ts` keeps a chat draft through resizing. Open: map sizing, focus and zoom qualification.
 - [ ] T042 OVERSTORY-DESIGN-R005.2 Implement interruptible state-linked motion and system/in-app reduced effects; qualify initial paint, repeated input, cancellation and idle behavior.
 - [ ] T043 OVERSTORY-DESIGN-R002.1.1 Record exact source, scoped validation results and reviewed rendered artifacts for `OVERSTORY-APPS-R049.2.1`. Never mark a planned browser test as passed.
 - [ ] T044 OVERSTORY-DESIGN-R002 Complete graph, editor, run, administration, authentication and remaining route theme/state/accessibility rollout.
@@ -217,7 +217,7 @@ Metadata guard tests preserve this distinction; they are not feature-acceptance 
 
 ## Context-aware wallpaper delivery
 
-- [ ] T053 OVERSTORY-DESIGN-R005.3 Add context/manual scene selection through the existing provider and shared frame. Qualify Canopy/Fluid first, then evidence-bound connector roots, harness trunk and knowledge branches/leaves.
+- [ ] T053 OVERSTORY-DESIGN-R005.3 Add context/manual scene selection through the existing provider and shared frame. Qualify Canopy/Fluid first, then evidence-bound connector roots, harness trunk and knowledge branches/leaves. Progress: the pure evidence gate `acceptWallpaperEvidence` (`src/components/workspace/wallpaperEvidence.ts`) refuses missing, unknown, unrelated, stale, future, duplicate and out-of-order records (`wallpaperEvidence.test.ts::wallpaper_evidence`). Open: no Arbora event or relationship read feeds it yet, so no scene consumes it.
 - [ ] T054 OVERSTORY-DESIGN-R005.4 Add wallpaper motion controls and lifecycle safeguards. Prove reduction, interruption, contrast and static fallback through real controls. Record exact-candidate R010 resource evidence without closing broader acceptance.
 - [ ] T055 OVERSTORY-DESIGN-R005.5 Add opt-in weather following and labelled manual previews after the scene proof. Qualify provider/location scope, freshness states and glass-safe effects. Keep default idle tests and all broader acceptance open.
 

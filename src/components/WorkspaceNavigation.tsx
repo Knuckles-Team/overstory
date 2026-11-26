@@ -62,7 +62,10 @@ export function WorkspaceNavigation({ route, currentRole }: { route: RouteDef; c
     <header className="relative z-20 shrink-0 border-b bg-background">
       <div className="flex min-h-12 min-w-0 flex-wrap items-center gap-1 px-2 sm:px-3">
         <SidebarTrigger className="min-h-11 min-w-11" />
-        <nav aria-label="Workspace context" className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 text-sm">
+        <nav
+          aria-label="Workspace context"
+          className="flex min-w-0 flex-[1_1_10rem] flex-wrap items-center gap-x-2 text-sm"
+        >
           <a
             id="workspace-home"
             href="/"
@@ -83,7 +86,7 @@ export function WorkspaceNavigation({ route, currentRole }: { route: RouteDef; c
           <span aria-hidden="true" className="text-muted-foreground">
             /
           </span>
-          <span aria-current="page" className="break-all font-medium">
+          <span aria-current="page" className="break-words font-medium">
             {route.label}
             {selectedReference ? ` / ${selectedReference}` : ''}
           </span>
