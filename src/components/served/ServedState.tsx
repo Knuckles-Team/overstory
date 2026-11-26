@@ -5,7 +5,7 @@
  * (OVERSTORY-DECIDE-R009.1, OVERSTORY-DECIDE-R010.1).
  */
 import { StatusMessage } from '@/components/ui/status-message'
-import type { ServedReply } from '@/lib/arbora-api/served'
+import { TRANSPORT_FAILURE, type ServedReply } from '@/lib/arbora-api/served'
 
 type NotReady = Exclude<ServedReply<unknown>, { kind: 'ready' }>
 
@@ -25,5 +25,7 @@ export function ServedState({ reply, what }: { reply: NotReady; what: string }) 
     return (
       <StatusMessage status="pending" label="Pending confirmation." detail={`${what} waits for a confirmation.`} />
     )
+  if (reply.code === TRANSPORT_FAILURE)
+    return <StatusMessage status="error" label="Transport failure." detail={`${what} could not be reached.`} />
   return <StatusMessage status="error" label="Error." detail={`${what} could not be read (${reply.code}).`} />
 }

@@ -86,6 +86,9 @@ export const responses = {
   '/api/v1/ops/fleet.status': operation({
     children: { catalog: { state: 'up', mounted_tools: 1 }, documents: { state: 'idle', mounted_tools: 0 } },
   }),
+  '/api/v1/ops/fleet.connections.state': operation({
+    connectors: [{ server: 'catalog', state: 'connected', breaker: 'closed', restart_count: 0, mounted_tools: 1 }],
+  }),
   '/api/v1/ops/fleet.catalog.list': operation({
     items: [
       {

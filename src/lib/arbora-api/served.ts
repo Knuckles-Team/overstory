@@ -16,6 +16,9 @@ export type ServedReply<T> =
   | { kind: 'pending'; code: string; planRef: string | null; consoleUrl: string | null }
   | { kind: 'error'; code: string }
 
+/** The code of a reply that never produced a valid answer: network failure or wrong shape. */
+export const TRANSPORT_FAILURE = 'TRANSPORT_FAILURE'
+
 const PLAN_REF = /^[A-Za-z0-9_-]{8,128}$/
 const UNAVAILABLE_CODES = new Set(['UNAVAILABLE', 'HTTP_UNAVAILABLE', 'UNKNOWN_OP', 'NOT_IMPLEMENTED'])
 const DENIED_CODES = new Set(['UNAUTHENTICATED', 'SUBJECT_ACCESS_DENIED', 'PRINCIPAL_NOT_ALLOWED', 'SCOPE_REQUIRED'])
@@ -47,6 +50,8 @@ export async function callServed<T>(
     return { kind: 'ready', result: await invoke(op, params, schema, options) }
   } catch (error) {
     if (error instanceof ArboraApiError) return classifyServedError(error)
-    throw error
+    if (error instanceof DOMException && error.name === 'AbortError') throw error
+    // A network failure or a reply of the wrong shape is a labelled state, never an unhandled rejection.
+    return { kind: 'error', code: TRANSPORT_FAILURE }
   }
 }
