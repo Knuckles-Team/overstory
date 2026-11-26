@@ -23,6 +23,7 @@ import { ApiError } from '@/lib/api-validation'
 import { runUql } from '@/lib/arbora-api/uql'
 import { searchRetrieval } from '@/lib/arbora-api/retrieval'
 import { GraphCanvas } from '../knowledge-graph/GraphCanvas'
+import { useGraphClasses } from '../knowledge-graph/useGraphClasses'
 import {
   readGraphStats,
   readGraphNodes,
@@ -294,6 +295,7 @@ function CanvasReady({
   selectedNode,
   onSelectNode,
 }: Omit<VisualizationCanvasAreaProps, 'activeTab'>) {
+  const classes = useGraphClasses(true)
   return (
     <>
       {loadStatus.kind === 'degraded' && (
@@ -325,6 +327,8 @@ function CanvasReady({
         onAddNode={onAddNode}
         selectedNodeExternally={selectedNode}
         onSelectNode={onSelectNode}
+        classes={classes}
+        totalNodes={isStatsUnreliable(loadStatus) ? undefined : stats.total_nodes}
       />
     </>
   )
