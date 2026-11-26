@@ -45,6 +45,8 @@ export interface NetworkEdge {
   rule: string
   /** For walk edges: the road edge the sidewalk is cut off from. */
   roadId?: string
+  /** For water edges: the channel depth in metres (R064). */
+  depthM?: number
 }
 
 export interface NetworkStation {
@@ -277,6 +279,9 @@ export function generateNetwork(seed = CITY_WORLD_SEED): NetworkManifest {
     if (!isRegionalWater(x, z, seed)) continue
     riverPoints.push({ x, z })
   }
+  // The river is a real channel: deep enough to navigate, but with a
+  // seeded shallow reach so depth matters (R064).
+  const riverDepth = mulberry32(seed ^ 0x72697665)
   for (let i = 0; i < riverPoints.length - 1; i++) {
     const a = riverPoints[i]
     const b = riverPoints[i + 1]
@@ -285,6 +290,9 @@ export function generateNetwork(seed = CITY_WORLD_SEED): NetworkManifest {
     const idB = `water-river:${i + 1}`
     nodes[idA] = { id: idA, x: a.x, z: a.z, level: NETWORK_LEVELS.water, elevation: -0.18 }
     if (!(idB in nodes)) nodes[idB] = { id: idB, x: b.x, z: b.z, level: NETWORK_LEVELS.water, elevation: -0.18 }
+    // A shallow reach in the middle of the channel: hulls deeper than
+    // 0.4 m cannot pass it.
+    const depthM = i === Math.floor(riverPoints.length / 2) ? 0.25 : 0.8 + riverDepth() * 0.4
     edges.push({
       id: `water-edge:${i}`,
       kind: 'water',
@@ -294,6 +302,7 @@ export function generateNetwork(seed = CITY_WORLD_SEED): NetworkManifest {
       width: 12,
       length: Math.hypot(b.x - a.x, b.z - a.z),
       rule: 'water:river-route',
+      depthM,
     })
   }
   const coastPoints: { x: number; z: number }[] = []
@@ -304,6 +313,8 @@ export function generateNetwork(seed = CITY_WORLD_SEED): NetworkManifest {
     if (!isRegionalWater(point.x, point.z, seed)) continue
     coastPoints.push(point)
   }
+  // The open coast is deep water: the coastal loop is navigable end to end.
+  const coastDepth = mulberry32(seed ^ 0x636f617374)
   for (let i = 0; i < coastPoints.length; i++) {
     const a = coastPoints[i]
     const b = coastPoints[(i + 1) % coastPoints.length]
@@ -320,6 +331,7 @@ export function generateNetwork(seed = CITY_WORLD_SEED): NetworkManifest {
       width: 14,
       length: Math.hypot(b.x - a.x, b.z - a.z),
       rule: 'water:coastal-route',
+      depthM: 2 + coastDepth() * 2,
     })
   }
   // A port station on the river bank inside the basin, seeded in position.
