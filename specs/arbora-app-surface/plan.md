@@ -1344,6 +1344,14 @@ do not introduce a competing renderer in this naming patch. This records a
 requested direction, not delivered zoom behavior or completed conversion.
 Outstanding R049.1.2 destination and native-provider acceptance remains open.
 
+### Rows gated on producer operations
+
+The full arbora registry at main commit 6f89805d holds 706 operations. It has no `preferences.*`, `sessions.*`, `goals.*` or `knowledge.*` operation. The rows below need an operation that the registry does not serve. Each shows an `unavailable` state and waits for its producer.
+
+`OVERSTORY-APPS-R005.2` needs a preference operation for the per-user layout. `OVERSTORY-APPS-R006`, `R006.1` to `R006.3` and `R006.4.1` to `R006.4.6` need session and goal operations. `OVERSTORY-APPS-R004.7.1` to `R004.7.6` need the proposal-to-run join, which `runs.get` alone does not return. `OVERSTORY-APPS-R004.9.1` and `OVERSTORY-APPS-R037.1` have no named operation. `OVERSTORY-APPS-R001.1` to `R001.8`, all six clauses of each, have no owner operation for the retrieval comparison, bounded chart, column vector, remote editor, transcript, bookmark, design artifact or code explanation reads. `OVERSTORY-APPS-R031.1` to `R031.7` need `memory.files.*`.
+
+The producers for `OVERSTORY-APPS-R004.8.1` to `R004.8.6` (`usage.read`) and `OVERSTORY-APPS-R030.8.1` to `R030.8.6` (`eg.graph.OpenGraphSnapshot`, `eg.graph.ReadGraphChanges`) are in the registry, so those rows are buildable. Each task row names exactly one requirement row. A second open task for the same row was merged into the kept one.
+
 ## Phase 2: Task approach
 
 Order the work producer first: the typed client and schemas, then the views, then the served acceptance rows (R030.7, R031.7). Rows on different files run in parallel. Each task line in tasks.md names one row, and a row stays SPECIFIED until its own served run passes.
