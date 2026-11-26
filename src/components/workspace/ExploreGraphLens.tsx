@@ -150,6 +150,10 @@ export function ExploreGraphLens({ state, role, active }: { state: ExploreLensSt
         {' · '}A bounded sample, not the complete graph or neighborhood.
       </p>
       {graph.denied && <p role="alert">Permission denied. Previously loaded graph data has been cleared.</p>}
+      {graph.live.phase === 'unavailable' && (
+        <p>Live updates unavailable: {graph.live.reason}. Use Refresh to read the current sample.</p>
+      )}
+      {graph.live.phase === 'revoked' && <p role="alert">Live updates stopped. Access to the graph was withdrawn.</p>}
       {graph.stats?.available === false && (
         <p role="alert">Graph totals are unavailable. This does not mean the sampled graph is empty.</p>
       )}
