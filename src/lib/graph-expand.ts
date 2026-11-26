@@ -20,7 +20,9 @@ export const NEIGHBORHOOD_DEPTH = 1
 
 export const EXPAND_REFUSAL_CODES = [
   'NEIGHBORHOOD_DEPTH_EXCEEDED',
+  'NEIGHBORHOOD_LIMIT_REQUIRED',
   'NEIGHBORHOOD_LIMIT_EXCEEDED',
+  'NEIGHBORHOOD_EXCLUDE_TOO_LARGE',
   'NEIGHBORHOOD_CURSOR_STALE',
   'NODE_NOT_FOUND',
 ] as const
@@ -28,7 +30,9 @@ export type ExpandRefusalCode = (typeof EXPAND_REFUSAL_CODES)[number]
 
 export const REFUSAL_REASONS: Record<ExpandRefusalCode, string> = {
   NEIGHBORHOOD_DEPTH_EXCEEDED: 'Depth limit exceeded',
+  NEIGHBORHOOD_LIMIT_REQUIRED: 'A neighbor limit is required',
   NEIGHBORHOOD_LIMIT_EXCEEDED: 'Neighbor limit exceeded',
+  NEIGHBORHOOD_EXCLUDE_TOO_LARGE: 'Too many visible nodes to exclude',
   NEIGHBORHOOD_CURSOR_STALE: 'The neighbor page expired',
   NODE_NOT_FOUND: 'Node not found',
 }
@@ -58,58 +62,36 @@ export type ExpandVerdict =
 
 export const edgeId = (source: string, target: string, type: string): string => `${source}|${type}|${target}`
 
-const nodeSchema = z
-  .object({
-    id: z.string().min(1),
-    labels: z.array(z.string()).optional(),
-    node_type: z.string().optional(),
-    properties: z.record(z.string(), z.unknown()).optional(),
-  })
-  .loose()
-const edgeSchema = z
-  .object({
-    source: z.string().optional(),
-    target: z.string().optional(),
-    src_id: z.string().optional(),
-    dst_id: z.string().optional(),
-    type: z.string().optional(),
-    relationship: z.string().optional(),
-  })
-  .loose()
-const hiddenSchema = z.union([
-  z.record(z.string(), z.number().int().nonnegative()),
-  z.array(z.object({ id: z.string(), count: z.number().int().nonnegative() })),
-])
-const neighborhoodSchema = z
-  .object({
-    nodes: z.array(nodeSchema),
-    edges: z.array(edgeSchema),
-    hidden: hiddenSchema.optional(),
-    hidden_counts: hiddenSchema.optional(),
-    cursor: z.string().nullable().optional(),
-  })
-  .loose()
+// Wire shapes of medulla's NeighborhoodResult (SubgraphNode, SubgraphEdge, HiddenCount).
+// The engine sends no edge type field: the relationship rides in the edge properties.
+const nodeSchema = z.object({ id: z.string().min(1), properties: z.unknown() })
+const edgeSchema = z.object({ source: z.string(), target: z.string(), properties: z.unknown() })
+const neighborhoodSchema = z.object({
+  nodes: z.array(nodeSchema),
+  edges: z.array(edgeSchema),
+  hidden: z.array(z.object({ node_id: z.string(), count: z.number().int().nonnegative() })),
+  next_cursor: z.string().nullable().optional(),
+  truncated: z.boolean(),
+  graph_revision: z.number().int().nonnegative(),
+})
+
+const propsOf = (value: unknown): Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value) ? (value as Record<string, unknown>) : {}
 
 function toGraphNode(n: z.infer<typeof nodeSchema>): GraphNode {
-  const type = n.node_type ?? n.labels?.[0]
-  return {
-    id: n.id,
-    labels: n.labels && n.labels.length > 0 ? n.labels : type ? [type] : [],
-    properties: n.properties ?? {},
-  }
+  const properties = propsOf(n.properties)
+  const type = typeof properties.node_type === 'string' ? properties.node_type : undefined
+  return { id: n.id, labels: type ? [type] : [], properties }
 }
 
-function toRelationship(e: z.infer<typeof edgeSchema>): GraphRelationship | null {
-  const source = e.source ?? e.src_id
-  const target = e.target ?? e.dst_id
-  if (!source || !target) return null
-  return { source, target, type: e.type ?? e.relationship ?? '_' }
+function toRelationship(e: z.infer<typeof edgeSchema>): GraphRelationship {
+  const p = propsOf(e.properties)
+  const type = typeof p.relationship === 'string' ? p.relationship : typeof p.type === 'string' ? p.type : '_'
+  return { source: e.source, target: e.target, type }
 }
 
-function hiddenRecord(value: z.infer<typeof hiddenSchema> | undefined): Record<string, number> {
-  if (!value) return {}
-  if (Array.isArray(value)) return Object.fromEntries(value.map((v) => [v.id, v.count]))
-  return value
+function hiddenRecord(value: { node_id: string; count: number }[]): Record<string, number> {
+  return Object.fromEntries(value.map((v) => [v.node_id, v.count]))
 }
 
 export function isOperationAbsent(error: unknown): boolean {
@@ -146,10 +128,15 @@ export async function expandNode(
   read: typeof invoke = invoke,
 ): Promise<ExpandVerdict> {
   if (ctx.budget.status === 'unavailable') return { verdict: 'unavailable', reason: GRAPH_LIMITS_UNAVAILABLE }
+  // The engine requires a total limit; it is the room the visible limit leaves.
+  const room = ctx.budget.budget.maxVisibleNodes - ctx.visibleIds.size
+  if (room <= 0) return { verdict: 'limit', reason: VISIBLE_LIMIT_REASON }
   const params = (cursor?: string): Record<string, unknown> => ({
     node_id: nodeId,
     depth: NEIGHBORHOOD_DEPTH,
+    edge_types: [],
     per_node_limit: NEIGHBORHOOD_PER_NODE_LIMIT,
+    total_limit: room,
     exclude: [...ctx.visibleIds],
     ...(cursor ? { cursor } : {}),
   })
@@ -174,7 +161,6 @@ export async function expandNode(
   const freshIds = new Set(fresh.map((n) => n.id))
   const relationships = result.edges
     .map(toRelationship)
-    .filter((e): e is GraphRelationship => e !== null)
     .filter(
       (e) =>
         (freshIds.has(e.source) || freshIds.has(e.target)) &&
@@ -190,7 +176,7 @@ export async function expandNode(
     },
     nodes: fresh,
     relationships,
-    hidden: hiddenRecord(result.hidden ?? result.hidden_counts),
+    hidden: hiddenRecord(result.hidden),
   }
 }
 
@@ -237,7 +223,7 @@ const clusterLevelSchema = z
 const clusterExpansionSchema = z
   .object({
     nodes: z.array(z.object({ id: z.string(), properties: z.unknown().optional() }).loose()),
-    edges: z.array(edgeSchema),
+    edges: z.array(z.object({ src_id: z.string(), dst_id: z.string(), type: z.string() })),
     child_clusters: z.array(clusterSummarySchema),
   })
   .loose()
@@ -313,7 +299,7 @@ export async function expandCluster(
   if (wouldExceedNodes(ctx.budget.budget, ctx.visibleIds.size, added.length)) {
     return { verdict: 'limit', reason: VISIBLE_LIMIT_REASON }
   }
-  const relationships = view.edges.map(toRelationship).filter((e): e is GraphRelationship => e !== null)
+  const relationships = view.edges.map((e) => ({ source: e.src_id, target: e.dst_id, type: e.type }))
   return {
     verdict: 'expanded',
     record: {

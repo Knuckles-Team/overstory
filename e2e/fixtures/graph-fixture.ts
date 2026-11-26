@@ -38,16 +38,18 @@ export const hubFixture = (neighbors: number) => {
   ]
   const returned = Array.from({ length: Math.min(25, neighbors) }, (_, i) => ({
     id: `nb${String(i)}`,
-    labels: ['Person'],
-    properties: { name: `Neighbor ${String(i)}` },
+    properties: { name: `Neighbor ${String(i)}`, node_type: 'Person' },
   }))
   return {
     nodes,
     edges,
     neighborhood: {
       nodes: returned,
-      edges: returned.map((n) => ({ source: 'hub', target: n.id, type: 'knows' })),
-      hidden: { hub: neighbors - returned.length },
+      edges: returned.map((n) => ({ source: 'hub', target: n.id, properties: { relationship: 'knows' } })),
+      hidden: [{ node_id: 'hub', count: neighbors - returned.length }],
+      next_cursor: null,
+      truncated: true,
+      graph_revision: 1,
     },
   }
 }

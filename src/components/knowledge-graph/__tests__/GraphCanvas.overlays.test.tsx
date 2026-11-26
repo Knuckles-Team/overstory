@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { GraphCanvas } from '../GraphCanvas'
 import type { GraphNode } from '../GraphAdapter'
-import { fakeArbora, fakeWorker } from './graph-scene-fixture'
+import { fakeArbora, fakeWorker, neighborhood } from './graph-scene-fixture'
 
 interface Probe {
   ids: () => string[]
@@ -46,7 +46,7 @@ describe('GraphCanvas overlays', () => {
     const arbora = fakeArbora({
       'eg.compute.CommunityDetection': () => ({ result: { communities: { a: 0, b: 0, c: 1 } } }),
       'eg.graph.GetNeighborhood': () => ({
-        result: { nodes: [{ id: 'd', labels: ['Thing'] }], edges: [{ source: 'c', target: 'd', type: 'r' }] },
+        result: neighborhood([{ id: 'd', node_type: 'Thing' }], [{ source: 'c', target: 'd', relationship: 'r' }]),
       }),
     })
     vi.stubGlobal('fetch', arbora.fn)

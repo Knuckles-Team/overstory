@@ -13,6 +13,14 @@ const ctx = (visible: string[], over: Partial<ExpandContext> = {}): ExpandContex
   ...over,
 })
 type Read = Parameters<typeof expandNode>[2]
+const wire = (ids: string[]) => ({
+  nodes: ids.map((id) => ({ id, properties: {} })),
+  edges: [],
+  hidden: [],
+  next_cursor: null,
+  truncated: false,
+  graph_revision: 1,
+})
 const reader = (result: unknown): Read =>
   vi.fn(async (_op: string, _params: Record<string, unknown>, schema: { parse: (v: unknown) => unknown }) =>
     schema.parse(result),
@@ -22,20 +30,26 @@ describe('graph expand', () => {
   it('test_click_reads_neighborhood_and_grows_staggered_with_badge', async () => {
     const read = reader({
       nodes: [
-        { id: 'n1', labels: ['Person'], properties: { name: 'One' } },
-        { id: 'n2', node_type: 'Org' },
-        { id: 'hub' },
+        { id: 'n1', properties: { name: 'One', node_type: 'Person' } },
+        { id: 'n2', properties: { node_type: 'Org' } },
+        { id: 'hub', properties: {} },
       ],
       edges: [
-        { source: 'hub', target: 'n1', type: 'knows' },
-        { src_id: 'n2', dst_id: 'hub', relationship: 'part_of' },
+        { source: 'hub', target: 'n1', properties: { relationship: 'knows' } },
+        { source: 'n2', target: 'hub', properties: { relationship: 'part_of' } },
       ],
-      hidden: { hub: 7, n1: 2 },
+      hidden: [
+        { node_id: 'hub', count: 7 },
+        { node_id: 'n1', count: 2 },
+      ],
+      next_cursor: null,
+      truncated: false,
+      graph_revision: 3,
     })
     const verdict = await expandNode('hub', ctx(['hub', 'x']), read)
     expect(read).toHaveBeenCalledWith(
       'eg.graph.GetNeighborhood',
-      { node_id: 'hub', depth: 1, per_node_limit: 25, exclude: ['hub', 'x'] },
+      { node_id: 'hub', depth: 1, edge_types: [], per_node_limit: 25, total_limit: 8, exclude: ['hub', 'x'] },
       expect.anything(),
       expect.anything(),
     )
@@ -106,7 +120,7 @@ describe('graph expand', () => {
     const limit = await expandNode(
       'hub',
       ctx(Array.from({ length: 9 }, (_, i) => `v${String(i)}`)),
-      reader({ nodes: [{ id: 'p' }, { id: 'q' }], edges: [] }),
+      reader(wire(['p', 'q'])),
     )
     expect(limit).toEqual({ verdict: 'limit', reason: 'Visible limit reached' })
     const refused = await expandNode(
@@ -130,7 +144,7 @@ describe('graph expand', () => {
     const noLimits = await expandNode(
       'hub',
       { visibleIds: new Set(['hub']), budget: readGraphBudget({}) },
-      reader({ nodes: [], edges: [] }),
+      reader(wire([])),
     )
     expect(noLimits).toEqual({ verdict: 'unavailable', reason: 'Graph limits unavailable' })
 
@@ -138,7 +152,7 @@ describe('graph expand', () => {
     const stale = vi
       .fn()
       .mockRejectedValueOnce(new ArboraApiError('NEIGHBORHOOD_CURSOR_STALE', 409, false, {}))
-      .mockResolvedValueOnce({ nodes: [{ id: 'z' }], edges: [] })
+      .mockResolvedValueOnce(wire(['z']))
     const retried = await expandNode('hub', ctx(['hub']), stale as unknown as Read)
     expect(stale).toHaveBeenCalledTimes(2)
     expect(retried.verdict).toBe('expanded')

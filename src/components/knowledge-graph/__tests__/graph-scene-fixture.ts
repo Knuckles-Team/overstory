@@ -78,3 +78,17 @@ export function fakeArbora(handlers: Record<string, OpHandler>) {
   })
   return { fn, calls }
 }
+
+/** A NeighborhoodResult as the engine sends it. */
+export const neighborhood = (
+  nodes: { id: string; node_type?: string; name?: string }[],
+  edges: { source: string; target: string; relationship: string }[],
+  hidden: { node_id: string; count: number }[] = [],
+) => ({
+  nodes: nodes.map((n) => ({ id: n.id, properties: { node_type: n.node_type, name: n.name } })),
+  edges: edges.map((e) => ({ source: e.source, target: e.target, properties: { relationship: e.relationship } })),
+  hidden,
+  next_cursor: null,
+  truncated: false,
+  graph_revision: 1,
+})

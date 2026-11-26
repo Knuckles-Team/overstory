@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { GraphCanvas } from '../GraphCanvas'
 import type { GraphNode } from '../GraphAdapter'
-import { fakeArbora, fakeWorker } from './graph-scene-fixture'
+import { fakeArbora, fakeWorker, neighborhood } from './graph-scene-fixture'
 
 interface Probe {
   ids: () => string[]
@@ -50,17 +50,17 @@ describe('GraphCanvas expand and collapse', () => {
   it('test_click_reads_neighborhood_and_grows_staggered_with_badge', async () => {
     const arbora = fakeArbora({
       'eg.graph.GetNeighborhood': () => ({
-        result: {
-          nodes: [
-            { id: 'n1', labels: ['Org'], properties: { name: 'One' } },
-            { id: 'n2', labels: ['Org'], properties: { name: 'Two' } },
+        result: neighborhood(
+          [
+            { id: 'n1', node_type: 'Org', name: 'One' },
+            { id: 'n2', node_type: 'Org', name: 'Two' },
           ],
-          edges: [
-            { source: 'hub', target: 'n1', type: 'owns' },
-            { source: 'hub', target: 'n2', type: 'owns' },
+          [
+            { source: 'hub', target: 'n1', relationship: 'owns' },
+            { source: 'hub', target: 'n2', relationship: 'owns' },
           ],
-          hidden: { hub: 4 },
-        },
+          [{ node_id: 'hub', count: 4 }],
+        ),
       }),
     })
     vi.stubGlobal('fetch', arbora.fn)
@@ -77,6 +77,8 @@ describe('GraphCanvas expand and collapse', () => {
       node_id: 'hub',
       depth: 1,
       per_node_limit: 25,
+      total_limit: 3,
+      edge_types: [],
       exclude: expect.arrayContaining(['hub', 'a']) as string[],
     })
     expect(screen.getByTestId('graph-live-region')).toHaveTextContent('Expanded Hub: 2 added, 4 hidden')
@@ -115,8 +117,8 @@ describe('GraphCanvas expand and collapse', () => {
   })
 
   it('refuses past the visible limit with its reason and shows not available when the operation is absent', async () => {
-    const nodes = Array.from({ length: 4 }, (_, i) => ({ id: `m${String(i)}`, labels: ['Org'], properties: {} }))
-    vi.stubGlobal('fetch', fakeArbora({ 'eg.graph.GetNeighborhood': () => ({ result: { nodes, edges: [] } }) }).fn)
+    const nodes = Array.from({ length: 4 }, (_, i) => ({ id: `m${String(i)}`, node_type: 'Org' }))
+    vi.stubGlobal('fetch', fakeArbora({ 'eg.graph.GetNeighborhood': () => ({ result: neighborhood(nodes, []) }) }).fn)
     const view = mount()
     await selectHub()
     fireEvent.click(await screen.findByTestId('graph-expand'))
