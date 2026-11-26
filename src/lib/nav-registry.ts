@@ -1044,6 +1044,7 @@ export const ROUTES: readonly RouteDef[] = [
     icon: ChevronsUp,
     minRole: 'admin',
     mobile: 'adapted',
+    actions: [{ id: 'admin.elevation.refresh', role: 'button', name: 'Refresh' }],
     element: lazy(() => import('@/components/views/ElevationView')),
   },
   {
