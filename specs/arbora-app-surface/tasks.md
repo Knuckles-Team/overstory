@@ -482,3 +482,34 @@ R005.4.1 local source work: delete obsolete request-mode controls and state; add
 - [ ] T264 [US1] OVERSTORY-APPS-R005.4.1 Requests without interaction modes.
 - [ ] T265 [US1] OVERSTORY-APPS-R052 The shared state-machine census runs in staged mode.
 - [x] T266 [US1] OVERSTORY-APPS-R053 Bind the delete-past-chat confirmation test to the existing sidebar delete flow.
+- [ ] T267 [US1] OVERSTORY-APPS-R030.10 Graph exploration animates every change of the visible set (rollup)
+- [ ] T268 [US1] OVERSTORY-APPS-R030.10.1 Model: the motion contract
+- [ ] T269 [US1] OVERSTORY-APPS-R030.10.2 Behavior: animated layout
+- [ ] T270 [US1] OVERSTORY-APPS-R030.10.3 Behavior: expand on click with animated growth
+- [ ] T271 [US1] OVERSTORY-APPS-R030.10.4 Behavior: collapse and cluster expansion
+- [ ] T272 [US1] OVERSTORY-APPS-R030.10.5 Behavior: focus and neighborhood transitions
+- [ ] T273 [US1] OVERSTORY-APPS-R030.10.6 Behavior: interruption, accessibility and reduced motion
+- [ ] T274 [US1] OVERSTORY-APPS-R030.10.7 Refusal
+- [ ] T275 [US1] OVERSTORY-APPS-R030.10.8 Evidence: frame timing and continuity
+- [ ] T276 [US1] OVERSTORY-APPS-R030.10.9 Hot-path proof
+- [ ] T277 [US1] OVERSTORY-APPS-R030.11 Nodes take their color and shape from their ontology class (rollup)
+- [ ] T278 [US1] OVERSTORY-APPS-R030.11.1 Model
+- [ ] T279 [US1] OVERSTORY-APPS-R030.11.2 Behavior: class ancestry from the engine
+- [ ] T280 [US1] OVERSTORY-APPS-R030.11.3 Wiring: legend and toggle
+- [ ] T281 [US1] OVERSTORY-APPS-R030.11.4 Refusal
+- [ ] T282 [US1] OVERSTORY-APPS-R030.11.5 Evidence: color is never the only channel
+- [ ] T283 [US1] OVERSTORY-APPS-R030.11.6 Hot-path proof
+- [ ] T284 [US1] OVERSTORY-APPS-R030.12 Analytic overlays come from the engine and animate in (rollup)
+- [ ] T285 [US1] OVERSTORY-APPS-R030.12.1 Model
+- [ ] T286 [US1] OVERSTORY-APPS-R030.12.2 Behavior: community and centrality
+- [ ] T287 [US1] OVERSTORY-APPS-R030.12.3 Behavior: path highlight with a traveling reveal
+- [ ] T288 [US1] OVERSTORY-APPS-R030.12.4 Behavior: shape validity ring
+- [ ] T289 [US1] OVERSTORY-APPS-R030.12.5 Refusal
+- [ ] T290 [US1] OVERSTORY-APPS-R030.12.6 Hot-path proof
+- [ ] T291 [US1] OVERSTORY-APPS-R030.13 Large graphs stay interactive (rollup)
+- [ ] T292 [US1] OVERSTORY-APPS-R030.13.1 Model: owner-published budgets
+- [ ] T293 [US1] OVERSTORY-APPS-R030.13.2 Behavior: worker layout and level of detail
+- [ ] T294 [US1] OVERSTORY-APPS-R030.13.3 Wiring: clustered start above the threshold
+- [ ] T295 [US1] OVERSTORY-APPS-R030.13.4 Refusal
+- [ ] T296 [US1] OVERSTORY-APPS-R030.13.5 Evidence: measured at scale
+- [ ] T297 [US1] OVERSTORY-APPS-R030.13.6 Hot-path proof

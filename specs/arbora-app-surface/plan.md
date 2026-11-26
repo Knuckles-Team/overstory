@@ -52,7 +52,12 @@ agent/overstory/server.py                    existing  serves packaged assets
 
 ## Phase 0: Research
 
-No unknowns that block a row. Each missing producer operation is listed under "Open definition prerequisites" in Phase 1 and is owned by the producer repository; this spec adds no research.md.
+Two unknowns were open for the graph rows `OVERSTORY-APPS-R030.10` to `R030.13`. Both are resolved and recorded in [research.md](research.md):
+
+1. How far a comparable graph viewer animates and where it computes. Resolved by a code study: it tweens only the camera and computes analytics in the browser. The rows animate every change and read analytics from the engine.
+2. Which engine read serves a bounded neighborhood. Resolved by a search of the medulla specs: none existed, so `MEDULLA-DURABLE-KERNEL-R876` adds it.
+
+No other unknown blocks a row. Each missing producer operation is listed under "Open definition prerequisites" in Phase 1 and is owned by the producer repository.
 
 ## Phase 1: Design
 
@@ -1369,3 +1374,7 @@ Entry point: the browser loads `App` (src/App.tsx:463), which renders the routes
 - Served run and graph operations: `ARBORA-OPS-R008`, `ARBORA-OPS-R009` and `ARBORA-OPS-R013`; contract in [contracts/arbora-served-operations.md](contracts/arbora-served-operations.md).
 - Graph edit write authority in the engine: `MEDULLA-DURABLE-KERNEL-R084.3` and `MEDULLA-DURABLE-KERNEL-R084.4`; contract in [contracts/engine-graph-edit.md](contracts/engine-graph-edit.md).
 - Versioned memory files: `MEDULLA-DURABLE-KERNEL-R085.1` and `ARBORA-OPS-R024.4.1`; contract in [contracts/memory-files.md](contracts/memory-files.md).
+
+### Graph motion, semantics and scale
+
+The graph view renders with a WebGL graph renderer over an in-memory graph model. `useGraphMotion` (R030.10) drives per-frame attribute updates from pure tween plans and runs the force layout in a worker. Click expands through `eg.graph.GetNeighborhood`. Clusters expand through `eg.compute.ClusterHierarchyExpand`. Colors and shapes come from the class ancestry read through `eg.reasoning.GraphSchemaClasses` (R030.11). Community, centrality, path and shape overlays are engine answers (R030.12). Budgets come from owner-published limits and large graphs open clustered (R030.13). Every datum reaches the browser through `POST /api/v1/ops/{op_id}`. The browser holds no engine client.
