@@ -1352,6 +1352,10 @@ The full arbora registry at main commit 6f89805d holds 706 operations. It has no
 
 The producers for `OVERSTORY-APPS-R004.8.1` to `R004.8.6` (`usage.read`) and `OVERSTORY-APPS-R030.8.1` to `R030.8.6` (`eg.graph.OpenGraphSnapshot`, `eg.graph.ReadGraphChanges`) are in the registry, so those rows are buildable. Each task row names exactly one requirement row. A second open task for the same row was merged into the kept one.
 
+### Amendment 2026-11-26: what `usage.read` and the change feed serve
+
+The registry at arbora main commit f6c8e762 holds 711 operations. `usage.read` serves one session's counts with their coverage and turn timings, and a tenant totals map. It serves no model, project or agent grouping, no cost, currency, watermark or latency limit, so `OVERSTORY-APPS-R004.8.1` to `.3`, `.5` and `.6` wait on those fields and `.4` is built over the session view. `eg.graph.OpenGraphSnapshot` and `eg.graph.ReadGraphChanges` serve the snapshot identity and the ordered events, so `OVERSTORY-APPS-R030.8.1` to `.4` are built in `src/lib/graph-changes.ts`. No operation publishes the owner latency and layout limits yet, so bounded live mode stays unavailable and `OVERSTORY-APPS-R030.8.5` and `.6` wait on that producer.
+
 ## Phase 2: Task approach
 
 Order the work producer first: the typed client and schemas, then the views, then the served acceptance rows (R030.7, R031.7). Rows on different files run in parallel. Each task line in tasks.md names one row, and a row stays SPECIFIED until its own served run passes.

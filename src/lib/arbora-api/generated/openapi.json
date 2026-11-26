@@ -4,7 +4,7 @@
     "title": "Arbora API",
     "version": "v1"
   },
-  "x-registry-digest": "df9355b44f4e530bafaa6cd3f44e9aef3ddb8cc9e3106e68e6687969ee6b0e23",
+  "x-registry-digest": "6a6110698e2eba2200e5f9b860c45896d3adf446eafa791eda5e53dd9f7f1cd7",
   "paths": {
     "/api/v1/ops/access.check": {
       "post": {
@@ -3005,6 +3005,173 @@
         }
       }
     },
+    "/api/v1/ops/deploy.placement.plan": {
+      "post": {
+        "operationId": "deploy.placement.plan",
+        "summary": "Ask the engine where a workload runs and what steps deploy it",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "decision": {
+                      "additionalProperties": true,
+                      "title": "Decision",
+                      "type": "object"
+                    },
+                    "target": {
+                      "title": "Target",
+                      "type": "string"
+                    },
+                    "assembly": {
+                      "additionalProperties": true,
+                      "title": "Assembly",
+                      "type": "object"
+                    },
+                    "steps": {
+                      "items": {
+                        "additionalProperties": true,
+                        "type": "object"
+                      },
+                      "title": "Steps",
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "decision",
+                    "target",
+                    "assembly",
+                    "steps"
+                  ],
+                  "title": "PlacementPlanResult",
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "workload_iri": {
+                    "maxLength": 2048,
+                    "minLength": 1,
+                    "title": "Workload Iri",
+                    "type": "string"
+                  },
+                  "cpu_millis": {
+                    "minimum": 0,
+                    "title": "Cpu Millis",
+                    "type": "integer"
+                  },
+                  "memory_bytes": {
+                    "minimum": 0,
+                    "title": "Memory Bytes",
+                    "type": "integer"
+                  },
+                  "replicas": {
+                    "minimum": 0,
+                    "title": "Replicas",
+                    "type": "integer"
+                  },
+                  "needs_persistent_volume": {
+                    "default": false,
+                    "title": "Needs Persistent Volume",
+                    "type": "boolean"
+                  },
+                  "requires_ha": {
+                    "default": false,
+                    "title": "Requires Ha",
+                    "type": "boolean"
+                  },
+                  "forbidden_targets": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "maxItems": 16,
+                    "title": "Forbidden Targets",
+                    "type": "array"
+                  },
+                  "max_relative_cost": {
+                    "anyOf": [
+                      {
+                        "minimum": 0,
+                        "type": "integer"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null,
+                    "title": "Max Relative Cost"
+                  },
+                  "capacity_cells": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "maxItems": 64,
+                    "title": "Capacity Cells",
+                    "type": "array"
+                  },
+                  "priority": {
+                    "default": "orchestration",
+                    "enum": [
+                      "interactive",
+                      "orchestration",
+                      "hydration",
+                      "background_ingestion"
+                    ],
+                    "title": "Priority",
+                    "type": "string"
+                  },
+                  "candidate_targets": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "maxItems": 16,
+                    "minItems": 1,
+                    "title": "Candidate Targets",
+                    "type": "array"
+                  },
+                  "components": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "maxItems": 64,
+                    "title": "Components",
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "workload_iri",
+                  "cpu_millis",
+                  "memory_bytes",
+                  "replicas",
+                  "candidate_targets"
+                ],
+                "title": "PlacementPlanParams",
+                "type": "object"
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/ops/development.proposal.list": {
       "post": {
         "operationId": "development.proposal.list",
@@ -3184,6 +3351,17 @@
                     "minLength": 1,
                     "title": "Reason",
                     "type": "string"
+                  },
+                  "pull_request": {
+                    "anyOf": [
+                      {
+                        "$ref": "#/components/schemas/development_proposal_review__PullRequestBranches"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null
                   }
                 },
                 "required": [
@@ -45028,6 +45206,440 @@
         }
       }
     },
+    "/api/v1/ops/skills.measures.read": {
+      "post": {
+        "operationId": "skills.measures.read",
+        "summary": "Read the twelve usage and quality measures of one skill",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "invocations": {
+                      "minimum": 0,
+                      "title": "Invocations",
+                      "type": "integer"
+                    },
+                    "distinct_users": {
+                      "minimum": 0,
+                      "title": "Distinct Users",
+                      "type": "integer"
+                    },
+                    "retained_users_ppm": {
+                      "minimum": 0,
+                      "title": "Retained Users Ppm",
+                      "type": "integer"
+                    },
+                    "agent_chosen_ppm": {
+                      "minimum": 0,
+                      "title": "Agent Chosen Ppm",
+                      "type": "integer"
+                    },
+                    "user_chosen_ppm": {
+                      "minimum": 0,
+                      "title": "User Chosen Ppm",
+                      "type": "integer"
+                    },
+                    "error_rate_ppm": {
+                      "minimum": 0,
+                      "title": "Error Rate Ppm",
+                      "type": "integer"
+                    },
+                    "latency_p50_ms": {
+                      "anyOf": [
+                        {
+                          "type": "integer"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "default": null,
+                      "title": "Latency P50 Ms"
+                    },
+                    "latency_p95_ms": {
+                      "anyOf": [
+                        {
+                          "type": "integer"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "default": null,
+                      "title": "Latency P95 Ms"
+                    },
+                    "cost_mean_micro_usd": {
+                      "anyOf": [
+                        {
+                          "type": "integer"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "default": null,
+                      "title": "Cost Mean Micro Usd"
+                    },
+                    "cost_p95_micro_usd": {
+                      "anyOf": [
+                        {
+                          "type": "integer"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "default": null,
+                      "title": "Cost P95 Micro Usd"
+                    },
+                    "eval_pass_rate_ppm": {
+                      "minimum": 0,
+                      "title": "Eval Pass Rate Ppm",
+                      "type": "integer"
+                    },
+                    "eval_runs": {
+                      "minimum": 0,
+                      "title": "Eval Runs",
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "invocations",
+                    "distinct_users",
+                    "retained_users_ppm",
+                    "agent_chosen_ppm",
+                    "user_chosen_ppm",
+                    "error_rate_ppm",
+                    "eval_pass_rate_ppm",
+                    "eval_runs"
+                  ],
+                  "title": "SkillMeasures",
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "start_ms": {
+                    "minimum": 0,
+                    "title": "Start Ms",
+                    "type": "integer"
+                  },
+                  "end_ms": {
+                    "minimum": 0,
+                    "title": "End Ms",
+                    "type": "integer"
+                  },
+                  "skill_ref": {
+                    "maxLength": 512,
+                    "minLength": 1,
+                    "title": "Skill Ref",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "start_ms",
+                  "end_ms",
+                  "skill_ref"
+                ],
+                "title": "MeasuresParams",
+                "type": "object"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ops/skills.peers.recommend": {
+      "post": {
+        "operationId": "skills.peers.recommend",
+        "summary": "Recommend skills the caller's cohort uses and the caller does not",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "skills": {
+                      "items": {
+                        "$ref": "#/components/schemas/skills_peers_recommend__PeerSkill"
+                      },
+                      "title": "Skills",
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "skills"
+                  ],
+                  "title": "PeersResult",
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "start_ms": {
+                    "minimum": 0,
+                    "title": "Start Ms",
+                    "type": "integer"
+                  },
+                  "end_ms": {
+                    "minimum": 0,
+                    "title": "End Ms",
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "start_ms",
+                  "end_ms"
+                ],
+                "title": "WindowParams",
+                "type": "object"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ops/skills.rank": {
+      "post": {
+        "operationId": "skills.rank",
+        "summary": "Rank skills by the engine's quality score over a window",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "skills": {
+                      "items": {
+                        "$ref": "#/components/schemas/skills_rank__RankedSkill"
+                      },
+                      "title": "Skills",
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "skills"
+                  ],
+                  "title": "RankResult",
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "start_ms": {
+                    "minimum": 0,
+                    "title": "Start Ms",
+                    "type": "integer"
+                  },
+                  "end_ms": {
+                    "minimum": 0,
+                    "title": "End Ms",
+                    "type": "integer"
+                  },
+                  "skill_refs": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "maxItems": 200,
+                    "title": "Skill Refs",
+                    "type": "array"
+                  },
+                  "limit": {
+                    "anyOf": [
+                      {
+                        "maximum": 200,
+                        "minimum": 1,
+                        "type": "integer"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null,
+                    "title": "Limit"
+                  }
+                },
+                "required": [
+                  "start_ms",
+                  "end_ms"
+                ],
+                "title": "RankParams",
+                "type": "object"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ops/skills.traces.by_eval": {
+      "post": {
+        "operationId": "skills.traces.by_eval",
+        "summary": "List the run traces of a skill by eval outcome",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "trace_ids": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "title": "Trace Ids",
+                      "type": "array"
+                    },
+                    "next_cursor": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "default": null,
+                      "title": "Next Cursor"
+                    }
+                  },
+                  "required": [
+                    "trace_ids"
+                  ],
+                  "title": "TracesResult",
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "skill_ref": {
+                    "maxLength": 512,
+                    "minLength": 1,
+                    "title": "Skill Ref",
+                    "type": "string"
+                  },
+                  "outcome": {
+                    "enum": [
+                      "pass",
+                      "fail",
+                      "unscored"
+                    ],
+                    "title": "Outcome",
+                    "type": "string"
+                  },
+                  "limit": {
+                    "anyOf": [
+                      {
+                        "maximum": 200,
+                        "minimum": 1,
+                        "type": "integer"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null,
+                    "title": "Limit"
+                  },
+                  "cursor": {
+                    "anyOf": [
+                      {
+                        "maxLength": 512,
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null,
+                    "title": "Cursor"
+                  }
+                },
+                "required": [
+                  "skill_ref",
+                  "outcome"
+                ],
+                "title": "TracesParams",
+                "type": "object"
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/ops/source.blame": {
       "post": {
         "operationId": "source.blame",
@@ -45391,7 +46003,12 @@
                       "unbound_requirements",
                       "deployment_of_requirement",
                       "open_defects_in_release",
-                      "changesets_between_deployments"
+                      "changesets_between_deployments",
+                      "task_context",
+                      "plan_section",
+                      "contract",
+                      "seam_routing",
+                      "plan_to_goal_phase"
                     ],
                     "title": "Question",
                     "type": "string"
@@ -45527,7 +46144,7 @@
     "/api/v1/ops/usage.read": {
       "post": {
         "operationId": "usage.read",
-        "summary": "Show this tenant's engine-sourced usage data",
+        "summary": "Show engine-sourced usage for this tenant or one session",
         "security": [
           {
             "bearerAuth": []
@@ -45545,14 +46162,30 @@
                   "additionalProperties": false,
                   "properties": {
                     "value": {
-                      "additionalProperties": true,
-                      "title": "Value",
-                      "type": "object"
+                      "anyOf": [
+                        {
+                          "additionalProperties": true,
+                          "type": "object"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "default": null,
+                      "title": "Value"
+                    },
+                    "session": {
+                      "anyOf": [
+                        {
+                          "$ref": "#/components/schemas/usage_read__SessionUsageView"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "default": null
                     }
                   },
-                  "required": [
-                    "value"
-                  ],
                   "title": "UsageReadResult",
                   "type": "object"
                 }
@@ -45566,7 +46199,22 @@
             "application/json": {
               "schema": {
                 "additionalProperties": false,
-                "properties": {},
+                "properties": {
+                  "context_id": {
+                    "anyOf": [
+                      {
+                        "maxLength": 128,
+                        "pattern": "^[A-Za-z0-9._:-]{1,128}$",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null,
+                    "title": "Context Id"
+                  }
+                },
                 "title": "UsageReadParams",
                 "type": "object"
               }
@@ -47395,6 +48043,30 @@
         "title": "ProposalEvidence",
         "type": "object"
       },
+      "development_proposal_review__PullRequestBranches": {
+        "additionalProperties": false,
+        "description": "The two branches of the pull request an acceptance opens; the engine resolves the rest.",
+        "properties": {
+          "head": {
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "Head",
+            "type": "string"
+          },
+          "base": {
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "Base",
+            "type": "string"
+          }
+        },
+        "required": [
+          "head",
+          "base"
+        ],
+        "title": "PullRequestBranches",
+        "type": "object"
+      },
       "fleet_connections_state__ConnectionRow": {
         "additionalProperties": false,
         "description": "One running connector's connection state; no endpoint or credential is carried.",
@@ -48015,6 +48687,178 @@
           "sequence"
         ],
         "title": "StepEvidence",
+        "type": "object"
+      },
+      "skills_peers_recommend__PeerSkill": {
+        "additionalProperties": false,
+        "properties": {
+          "skill_ref": {
+            "title": "Skill Ref",
+            "type": "string"
+          },
+          "cohort_users": {
+            "minimum": 0,
+            "title": "Cohort Users",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "skill_ref",
+          "cohort_users"
+        ],
+        "title": "PeerSkill",
+        "type": "object"
+      },
+      "skills_rank__RankedSkill": {
+        "additionalProperties": false,
+        "properties": {
+          "skill_ref": {
+            "title": "Skill Ref",
+            "type": "string"
+          },
+          "quality_ppm": {
+            "minimum": 0,
+            "title": "Quality Ppm",
+            "type": "integer"
+          },
+          "eval_runs": {
+            "minimum": 0,
+            "title": "Eval Runs",
+            "type": "integer"
+          },
+          "invocations": {
+            "minimum": 0,
+            "title": "Invocations",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "skill_ref",
+          "quality_ppm",
+          "eval_runs",
+          "invocations"
+        ],
+        "title": "RankedSkill",
+        "type": "object"
+      },
+      "usage_read__SessionUsageView": {
+        "additionalProperties": false,
+        "properties": {
+          "context_id": {
+            "title": "Context Id",
+            "type": "string"
+          },
+          "counts": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Counts",
+            "type": "object"
+          },
+          "count_coverage": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Count Coverage",
+            "type": "object"
+          },
+          "expected_runs": {
+            "minimum": 0,
+            "title": "Expected Runs",
+            "type": "integer"
+          },
+          "recorded_runs": {
+            "minimum": 0,
+            "title": "Recorded Runs",
+            "type": "integer"
+          },
+          "missing_runs": {
+            "minimum": 0,
+            "title": "Missing Runs",
+            "type": "integer"
+          },
+          "inventory_complete": {
+            "title": "Inventory Complete",
+            "type": "boolean"
+          },
+          "turn_timings": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/usage_read__TurnTiming"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Turn Timings"
+          },
+          "timing_refusal": {
+            "anyOf": [
+              {
+                "const": "TIMING_INVALID",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Timing Refusal"
+          }
+        },
+        "required": [
+          "context_id",
+          "counts",
+          "count_coverage",
+          "expected_runs",
+          "recorded_runs",
+          "missing_runs",
+          "inventory_complete"
+        ],
+        "title": "SessionUsageView",
+        "type": "object"
+      },
+      "usage_read__TurnTiming": {
+        "additionalProperties": false,
+        "description": "One measured turn phase; client elapsed time, never a provider rate.",
+        "properties": {
+          "run_id": {
+            "title": "Run Id",
+            "type": "string"
+          },
+          "turn_index": {
+            "minimum": 0,
+            "title": "Turn Index",
+            "type": "integer"
+          },
+          "phase": {
+            "enum": [
+              "request",
+              "run",
+              "queue",
+              "tool"
+            ],
+            "title": "Phase",
+            "type": "string"
+          },
+          "duration_ms": {
+            "maximum": 86400000,
+            "minimum": 0,
+            "title": "Duration Ms",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "run_id",
+          "turn_index",
+          "phase",
+          "duration_ms"
+        ],
+        "title": "TurnTiming",
         "type": "object"
       }
     }

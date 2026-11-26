@@ -38,20 +38,24 @@ test('artifact answer is labelled unavailable, never empty, when the engine does
 })
 
 // spec: OVERSTORY-DECIDE-R011
-test('project mode reads live and an anonymous change is refused, never self-approved', async ({ page }) => {
+test('project mode is labelled unavailable until the engine serves it, and an anonymous change is refused', async ({
+  page,
+}) => {
   const calls = recordOperations(page)
   await page.goto('/project-mode')
   await page.getByLabel('Repository').fill('org/repo')
   await page.getByRole('button', { name: 'Load' }).click()
-  await expect(page.getByText('reference', { exact: true }).first()).toBeVisible()
-  await page.locator('select', { hasText: 'evolving' }).selectOption('development')
-  await page.getByRole('button', { name: 'Change mode' }).click()
-  await expect(page.getByText('Denied. You may not read The mode change.')).toBeVisible()
-  const ops = Object.fromEntries(calls.filter((c) => c.op.startsWith('project.mode')).map((c) => [c.op, c]))
-  expect(ops['project.mode.get'].body).toMatchObject({
-    ok: true,
-    result: { repository: 'org/repo', mode: 'reference' },
+  await expect(page.getByText('The project mode is not served yet', { exact: false })).toBeVisible()
+  // Arbora reads the mode through the engine's ProjectModeGet; the pinned engine does not serve it yet.
+  await expect.poll(() => calls.find((call) => call.op === 'project.mode.get')?.status).toBe(503)
+  expect(calls.find((call) => call.op === 'project.mode.get')?.body).toMatchObject({
+    ok: false,
+    error: { code: 'UNAVAILABLE', source: 'arbora' },
   })
-  expect(ops['project.mode.set'].status).toBe(403)
-  expect(ops['project.mode.set'].body).toMatchObject({ error: { code: 'PRINCIPAL_NOT_ALLOWED' } })
+  // The change goes straight to arbora: an anonymous principal is refused, never self-approved.
+  const change = await page.request.post('/api/v1/ops/project.mode.set', {
+    data: { repository: 'org/repo', mode: 'development', reason: null },
+  })
+  expect(change.status()).toBe(403)
+  expect(await change.json()).toMatchObject({ error: { code: 'PRINCIPAL_NOT_ALLOWED' } })
 })

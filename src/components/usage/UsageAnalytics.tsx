@@ -15,6 +15,7 @@ import {
   UsageToolsPanel,
   UsageTracesPanel,
 } from './UsagePanels'
+import { ServedSessionUsage } from './ServedSessionUsage'
 
 function fieldText(fields: FormData, key: string): string | undefined {
   const value = fields.get(key)
@@ -189,7 +190,10 @@ export function UsageAnalytics({ identity, generation, state, onNavigate }: Usag
               ) : data.detail.isFetching || data.detail.isPending ? (
                 <p role="status">Awaiting selected session evidence…</p>
               ) : (
-                <UsageSessionPanel detail={data.detail.data} timeline={state.usageDetail === 'timeline'} />
+                <>
+                  <UsageSessionPanel detail={data.detail.data} timeline={state.usageDetail === 'timeline'} />
+                  {state.usageSession && <ServedSessionUsage contextId={state.usageSession} />}
+                </>
               )}
             </section>
           ) : (

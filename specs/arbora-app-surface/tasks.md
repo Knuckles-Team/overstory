@@ -70,13 +70,13 @@ Unchecked tasks remain open. Definitions alone do not establish runtime delivery
 - [ ] T061 [US1] OVERSTORY-APPS-R004.8.1 Implement and prove model for indexed usage analysis.
 - [ ] T062 [US1] OVERSTORY-APPS-R004.8.2 Implement and prove behavior for indexed usage analysis.
 - [ ] T063 [US1] OVERSTORY-APPS-R004.8.3 Implement and prove wiring for indexed usage analysis.
-- [ ] T064 [US1] OVERSTORY-APPS-R004.8.4 Implement and prove refusal for indexed usage analysis.
+- [x] T064 [US1] OVERSTORY-APPS-R004.8.4 Implement and prove refusal for indexed usage analysis.
 - [ ] T065 [US1] OVERSTORY-APPS-R004.8.5 Implement and prove evidence for indexed usage analysis.
 - [ ] T066 [US1] OVERSTORY-APPS-R004.8.6 Implement and prove served acceptance for indexed usage analysis.
-- [ ] T067 [US1] OVERSTORY-APPS-R030.8.1 Implement and prove model for live graph convergence.
-- [ ] T068 [US1] OVERSTORY-APPS-R030.8.2 Implement and prove behavior for live graph convergence.
-- [ ] T069 [US1] OVERSTORY-APPS-R030.8.3 Implement and prove wiring for live graph convergence.
-- [ ] T070 [US1] OVERSTORY-APPS-R030.8.4 Implement and prove refusal for live graph convergence.
+- [x] T067 [US1] OVERSTORY-APPS-R030.8.1 Implement and prove model for live graph convergence.
+- [x] T068 [US1] OVERSTORY-APPS-R030.8.2 Implement and prove behavior for live graph convergence.
+- [x] T069 [US1] OVERSTORY-APPS-R030.8.3 Implement and prove wiring for live graph convergence.
+- [x] T070 [US1] OVERSTORY-APPS-R030.8.4 Implement and prove refusal for live graph convergence.
 - [ ] T071 [US1] OVERSTORY-APPS-R030.8.5 Implement and prove evidence for live graph convergence.
 - [ ] T072 [US1] OVERSTORY-APPS-R030.8.6 Implement and prove served acceptance for live graph convergence.
 - [ ] T073 [US1] OVERSTORY-APPS-R001.1.1 Implement and prove model for retrieval quality comparison.

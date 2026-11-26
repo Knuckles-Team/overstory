@@ -599,6 +599,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/ops/deploy.placement.plan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Ask the engine where a workload runs and what steps deploy it */
+        post: operations["deploy.placement.plan"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/ops/development.proposal.list": {
         parameters: {
             query?: never;
@@ -11819,6 +11836,74 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/ops/skills.measures.read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Read the twelve usage and quality measures of one skill */
+        post: operations["skills.measures.read"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/skills.peers.recommend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Recommend skills the caller's cohort uses and the caller does not */
+        post: operations["skills.peers.recommend"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/skills.rank": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Rank skills by the engine's quality score over a window */
+        post: operations["skills.rank"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ops/skills.traces.by_eval": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** List the run traces of a skill by eval outcome */
+        post: operations["skills.traces.by_eval"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/ops/source.blame": {
         parameters: {
             query?: never;
@@ -11947,7 +12032,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Show this tenant's engine-sourced usage data */
+        /** Show engine-sourced usage for this tenant or one session */
         post: operations["usage.read"];
         delete?: never;
         options?: never;
@@ -12600,6 +12685,16 @@ export interface components {
             gate_verdict: unknown | null;
         };
         /**
+         * PullRequestBranches
+         * @description The two branches of the pull request an acceptance opens; the engine resolves the rest.
+         */
+        development_proposal_review__PullRequestBranches: {
+            /** Head */
+            head: string;
+            /** Base */
+            base: string;
+        };
+        /**
          * ConnectionRow
          * @description One running connector's connection state; no endpoint or credential is carried.
          */
@@ -12880,6 +12975,72 @@ export interface components {
             event_id: string;
             /** Sequence */
             sequence: number;
+        };
+        /** PeerSkill */
+        skills_peers_recommend__PeerSkill: {
+            /** Skill Ref */
+            skill_ref: string;
+            /** Cohort Users */
+            cohort_users: number;
+        };
+        /** RankedSkill */
+        skills_rank__RankedSkill: {
+            /** Skill Ref */
+            skill_ref: string;
+            /** Quality Ppm */
+            quality_ppm: number;
+            /** Eval Runs */
+            eval_runs: number;
+            /** Invocations */
+            invocations: number;
+        };
+        /** SessionUsageView */
+        usage_read__SessionUsageView: {
+            /** Context Id */
+            context_id: string;
+            /** Counts */
+            counts: {
+                [key: string]: number;
+            };
+            /** Count Coverage */
+            count_coverage: {
+                [key: string]: number;
+            };
+            /** Expected Runs */
+            expected_runs: number;
+            /** Recorded Runs */
+            recorded_runs: number;
+            /** Missing Runs */
+            missing_runs: number;
+            /** Inventory Complete */
+            inventory_complete: boolean;
+            /**
+             * Turn Timings
+             * @default null
+             */
+            turn_timings: components["schemas"]["usage_read__TurnTiming"][] | null;
+            /**
+             * Timing Refusal
+             * @default null
+             */
+            timing_refusal: "TIMING_INVALID" | null;
+        };
+        /**
+         * TurnTiming
+         * @description One measured turn phase; client elapsed time, never a provider rate.
+         */
+        usage_read__TurnTiming: {
+            /** Run Id */
+            run_id: string;
+            /** Turn Index */
+            turn_index: number;
+            /**
+             * Phase
+             * @enum {string}
+             */
+            phase: "request" | "run" | "queue" | "tool";
+            /** Duration Ms */
+            duration_ms: number;
         };
     };
     responses: never;
@@ -14368,6 +14529,83 @@ export interface operations {
             };
         };
     };
+    "deploy.placement.plan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Workload Iri */
+                    workload_iri: string;
+                    /** Cpu Millis */
+                    cpu_millis: number;
+                    /** Memory Bytes */
+                    memory_bytes: number;
+                    /** Replicas */
+                    replicas: number;
+                    /**
+                     * Needs Persistent Volume
+                     * @default false
+                     */
+                    needs_persistent_volume?: boolean;
+                    /**
+                     * Requires Ha
+                     * @default false
+                     */
+                    requires_ha?: boolean;
+                    /** Forbidden Targets */
+                    forbidden_targets?: string[];
+                    /**
+                     * Max Relative Cost
+                     * @default null
+                     */
+                    max_relative_cost?: number | null;
+                    /** Capacity Cells */
+                    capacity_cells?: string[];
+                    /**
+                     * Priority
+                     * @default orchestration
+                     * @enum {string}
+                     */
+                    priority?: "interactive" | "orchestration" | "hydration" | "background_ingestion";
+                    /** Candidate Targets */
+                    candidate_targets: string[];
+                    /** Components */
+                    components?: string[];
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Decision */
+                        decision: {
+                            [key: string]: unknown;
+                        };
+                        /** Target */
+                        target: string;
+                        /** Assembly */
+                        assembly: {
+                            [key: string]: unknown;
+                        };
+                        /** Steps */
+                        steps: {
+                            [key: string]: unknown;
+                        }[];
+                    };
+                };
+            };
+        };
+    };
     "development.proposal.list": {
         parameters: {
             query?: never;
@@ -14427,6 +14665,8 @@ export interface operations {
                     decision: "accept" | "reject";
                     /** Reason */
                     reason: string;
+                    /** @default null */
+                    pull_request?: components["schemas"]["development_proposal_review__PullRequestBranches"] | null;
                 };
             };
         };
@@ -34980,6 +35220,195 @@ export interface operations {
             };
         };
     };
+    "skills.measures.read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Start Ms */
+                    start_ms: number;
+                    /** End Ms */
+                    end_ms: number;
+                    /** Skill Ref */
+                    skill_ref: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Invocations */
+                        invocations: number;
+                        /** Distinct Users */
+                        distinct_users: number;
+                        /** Retained Users Ppm */
+                        retained_users_ppm: number;
+                        /** Agent Chosen Ppm */
+                        agent_chosen_ppm: number;
+                        /** User Chosen Ppm */
+                        user_chosen_ppm: number;
+                        /** Error Rate Ppm */
+                        error_rate_ppm: number;
+                        /**
+                         * Latency P50 Ms
+                         * @default null
+                         */
+                        latency_p50_ms: number | null;
+                        /**
+                         * Latency P95 Ms
+                         * @default null
+                         */
+                        latency_p95_ms: number | null;
+                        /**
+                         * Cost Mean Micro Usd
+                         * @default null
+                         */
+                        cost_mean_micro_usd: number | null;
+                        /**
+                         * Cost P95 Micro Usd
+                         * @default null
+                         */
+                        cost_p95_micro_usd: number | null;
+                        /** Eval Pass Rate Ppm */
+                        eval_pass_rate_ppm: number;
+                        /** Eval Runs */
+                        eval_runs: number;
+                    };
+                };
+            };
+        };
+    };
+    "skills.peers.recommend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Start Ms */
+                    start_ms: number;
+                    /** End Ms */
+                    end_ms: number;
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Skills */
+                        skills: components["schemas"]["skills_peers_recommend__PeerSkill"][];
+                    };
+                };
+            };
+        };
+    };
+    "skills.rank": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Start Ms */
+                    start_ms: number;
+                    /** End Ms */
+                    end_ms: number;
+                    /** Skill Refs */
+                    skill_refs?: string[];
+                    /**
+                     * Limit
+                     * @default null
+                     */
+                    limit?: number | null;
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Skills */
+                        skills: components["schemas"]["skills_rank__RankedSkill"][];
+                    };
+                };
+            };
+        };
+    };
+    "skills.traces.by_eval": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Skill Ref */
+                    skill_ref: string;
+                    /**
+                     * Outcome
+                     * @enum {string}
+                     */
+                    outcome: "pass" | "fail" | "unscored";
+                    /**
+                     * Limit
+                     * @default null
+                     */
+                    limit?: number | null;
+                    /**
+                     * Cursor
+                     * @default null
+                     */
+                    cursor?: string | null;
+                };
+            };
+        };
+        responses: {
+            /** @description Operation result */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Trace Ids */
+                        trace_ids: string[];
+                        /**
+                         * Next Cursor
+                         * @default null
+                         */
+                        next_cursor: string | null;
+                    };
+                };
+            };
+        };
+    };
     "source.blame": {
         parameters: {
             query?: never;
@@ -35139,7 +35568,7 @@ export interface operations {
                      * Question
                      * @enum {string}
                      */
-                    question: "unreachable_requirements" | "uncovered_code_items" | "tasks_blocked_by_contract" | "principles_at_risk" | "changes_advancing_goal" | "next_unblocked_task" | "unbound_requirements" | "deployment_of_requirement" | "open_defects_in_release" | "changesets_between_deployments";
+                    question: "unreachable_requirements" | "uncovered_code_items" | "tasks_blocked_by_contract" | "principles_at_risk" | "changes_advancing_goal" | "next_unblocked_task" | "unbound_requirements" | "deployment_of_requirement" | "open_defects_in_release" | "changesets_between_deployments" | "task_context" | "plan_section" | "contract" | "seam_routing" | "plan_to_goal_phase";
                     /**
                      * Subject
                      * @default null
@@ -35234,7 +35663,13 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": Record<string, never>;
+                "application/json": {
+                    /**
+                     * Context Id
+                     * @default null
+                     */
+                    context_id?: string | null;
+                };
             };
         };
         responses: {
@@ -35245,10 +35680,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        /** Value */
+                        /**
+                         * Value
+                         * @default null
+                         */
                         value: {
                             [key: string]: unknown;
-                        };
+                        } | null;
+                        /** @default null */
+                        session: components["schemas"]["usage_read__SessionUsageView"] | null;
                     };
                 };
             };
