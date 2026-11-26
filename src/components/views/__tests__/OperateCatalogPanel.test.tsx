@@ -24,7 +24,9 @@ function OperateCatalogPanel(props: Pick<ComponentProps<typeof CatalogPanel>, 'g
 
 let payload: unknown
 let refused = false
-const fetcher = vi.fn(async () => Response.json(payload, { status: refused ? 503 : 200 }))
+const fetcher = vi.fn<(input: RequestInfo | URL) => Promise<Response>>(async () =>
+  Response.json(payload, { status: refused ? 503 : 200 }),
+)
 beforeEach(() => {
   refused = false
   tools.clear()
@@ -58,7 +60,7 @@ it('renders the complete returned catalog without requiring a fleet process or t
   const records = within(await screen.findByRole('article', { name: 'Catalog connector records' }))
   expect(records.getByText('Registration: available')).toBeVisible()
   expect(records.getByText('Catalog tools: 0')).toBeVisible()
-  expect(records.getByText('Provider connection: not reported by this catalog.')).toBeVisible()
+  expect(records.getByText('Provider connection: could not be read.')).toBeVisible()
   expect(screen.getByRole('article', { name: 'Catalog connector archive' })).toHaveTextContent(
     'Registration: unavailable',
   )
@@ -325,3 +327,57 @@ it.each(['x'.repeat(257), 'unsafe\u0000identity', '\ud800'])(
     expect(screen.queryByRole('link', { name: 'tool: shared-name' })).not.toBeInTheDocument()
   },
 )
+
+// spec: OVERSTORY-APPS-R005.3
+function routeOps(connectionReply: { status: number; body: unknown }) {
+  fetcher.mockImplementation(async (input: RequestInfo | URL) => {
+    const url = String(input)
+    if (url.includes('/auth/session')) return Response.json({ authenticated: true, csrf_token: 'session-csrf' })
+    if (url.includes('/api/v1/ops/fleet.connections.state'))
+      return Response.json(connectionReply.body, { status: connectionReply.status })
+    return Response.json(payload)
+  })
+}
+
+it('shows the connection state arbora serves for each connector and labels one with no running child', async () => {
+  const meta = { registry_digest: 'registry-digest', api_version: 'v1' }
+  routeOps({
+    status: 200,
+    body: {
+      ok: true,
+      result: {
+        value: {
+          connectors: [
+            { server: 'records', state: 'connected', breaker: 'closed', restart_count: 2, mounted_tools: 4 },
+          ],
+        },
+      },
+      meta,
+    },
+  })
+  renderWithProviders(<OperateCatalogPanel generation="served" />)
+  const records = within(await screen.findByRole('article', { name: 'Catalog connector records' }))
+  expect(await records.findByText('Provider connection: connected')).toBeVisible()
+  expect(records.getByText('Circuit breaker: closed')).toBeVisible()
+  expect(records.getByText('Restarts: 2')).toBeVisible()
+  expect(records.getByText('Mounted tools: 4')).toBeVisible()
+  const archive = within(screen.getByRole('article', { name: 'Catalog connector archive' }))
+  expect(archive.getByText('Provider connection: no running connector reported.')).toBeVisible()
+})
+
+// spec: OVERSTORY-APPS-R005.3
+it('labels connection state unavailable when arbora does not serve it yet and invents no state', async () => {
+  const meta = { registry_digest: 'registry-digest', api_version: 'v1' }
+  routeOps({
+    status: 503,
+    body: {
+      ok: false,
+      error: { code: 'UNAVAILABLE', source: 'arbora', message: 'UNAVAILABLE', retryable: true, details: {} },
+      meta,
+    },
+  })
+  renderWithProviders(<OperateCatalogPanel generation="unavailable" />)
+  const records = within(await screen.findByRole('article', { name: 'Catalog connector records' }))
+  expect(await records.findByText(/Provider connection: unavailable/)).toBeVisible()
+  expect(records.queryByText(/connected/)).toBeNull()
+})

@@ -82,7 +82,14 @@ export const baseRecord: DecisionRecord = {
   record_digest: 'digest-record',
 }
 
-export const emptyProvenance: DecisionProvenance = { evaluations: [], resolutions: [] }
+export const emptyProvenance: DecisionProvenance = {
+  decision_id: 'rec-1',
+  record_digest: 'digest-record',
+  premises: [],
+  facts: [],
+  rules: [],
+  inputs_state: 'current',
+}
 
 export const baseAggregate: DecisionAggregate = {
   schema_version: 1,

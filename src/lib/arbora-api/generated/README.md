@@ -27,16 +27,17 @@ and the `identity.*` admin operations (ARBORA-IDENTITY-R018 is specified, not
 served). `runs.metrics` is not served yet. Consumers parse those results
 with strict zod schemas until arbora serves the typed shapes.
 
-## OVERSTORY-API-R001 / OVERSTORY-API-R007 finding
+## Served decision, catalog, dashboard, project and fleet reads
 
-There is no `decide.*` operation namespace. The real decision-related
-operations are `eg.query.Decide`, `eg.coordination.DecisionLog`,
-`eg.coordination.DecisionEval`, `eg.coordination.DecisionFit`, and
-`eg.storage.DecisionCommit` — each multiplexes several named actions in one
-operation (for example `DecisionLog` carries `get`/`aggregate`/`commit`/
-`evaluate`/`compact`/`learn`/`resolve`/`verify`, selected by a request field,
-not by separate operation ids). `arbora-decisions-transport.ts`'s
-`decide.records.*` / `decide.outcomes.aggregate` / `decide.receipts.*` ids
-predate this schema and do not match it; retargeting that file needs the
-real per-action request/result shapes, not a rename, and is tracked
-separately rather than patched here.
+The pin carries `decision.list`, `decision.provenance.get`, `decision.why_not`,
+`catalog.assets.*`, `dashboard.*`, `project.mode.*`,
+`development.proposal.*`, `spec.query` and `fleet.connections.state`. Each can
+answer `UNAVAILABLE` until the engine behind it is pinned; `callServed`
+(`../served.ts`) folds that and denied and pending-confirmation answers into
+labelled states so a view never shows invented data. `fleet.connections.state`
+types its result only as `{ value }`; the adapter in `../connections.ts`
+validates the rows. `preferences.*` is not in the pin yet.
+
+`DecisionLog.get`, `DecisionLog.aggregate` and `DecisionEval.*` stay
+`eg.coordination.*` operations with a placeholder body; their zod schemas are in
+`src/components/decisions/decision-schemas.ts`.

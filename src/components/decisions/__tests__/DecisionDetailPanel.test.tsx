@@ -29,7 +29,8 @@ describe('DecisionDetailPanel why-not on demand (OVERSTORY-DECIDE-R004)', () => 
     const transport = createFixtureTransport()
     transport.getWhyNotOnDemand.mockResolvedValue({
       kind: 'explained',
-      whyNot: { component_id: 'agent:reviewer', slot: 'writer', violation: { violation: 'capacity_exhausted' } },
+      verdict: 'eliminated',
+      reasons: [{ kind: 'capacity_exhausted', detail: 'no free writer slot' }],
     })
     const { user } = await renderWithDetail(transport)
 

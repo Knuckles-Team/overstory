@@ -132,23 +132,18 @@ export const decisionLogEntrySchema = z.object({
 })
 export type DecisionLogEntry = z.infer<typeof decisionLogEntrySchema>
 
-const provenanceRowSchema = z.object({
-  evaluation_id: z.string().nullable().optional(),
-  resolution_id: z.string().nullable().optional(),
-  option_id: z.string().nullable().optional(),
-  resolver: z.string().nullable().optional(),
-  class: z.string().nullable().optional(),
-  fidelity: z.string().nullable().optional(),
-  producer: z.string().nullable().optional(),
-  success: z.boolean().nullable().optional(),
-  recorded_at_ms: z.number().nullable().optional(),
-})
-export type ProvenanceRow = z.infer<typeof provenanceRowSchema>
-
-/** Every independent evaluation and abstention resolution logged against one record. */
+/**
+ * What one decision rested on, at the revision it used: the served
+ * `decision.provenance.get` result (ARBORA-OPS-R921).
+ */
 export const decisionProvenanceSchema = z.object({
-  evaluations: z.array(provenanceRowSchema),
-  resolutions: z.array(provenanceRowSchema),
+  decision_id: z.string(),
+  record_digest: z.string(),
+  premises: z.array(z.object({ kind: z.string(), ref: z.string(), class: z.unknown() })),
+  facts: z.array(z.object({ node_id: z.string(), revision: z.number(), digest: z.string() })),
+  rules: z.array(z.object({ rule_id: z.string(), version: z.number(), digest: z.string() })),
+  approver: z.string().nullable().optional(),
+  inputs_state: z.string(),
 })
 export type DecisionProvenance = z.infer<typeof decisionProvenanceSchema>
 
@@ -259,3 +254,30 @@ export function rawEntries(value: Record<string, unknown> | null | undefined, ta
     .filter(([key]) => key !== tag)
     .sort(([a], [b]) => a.localeCompare(b))
 }
+
+/** One row of the served `decision.list` page (ARBORA-OPS-R920). */
+export const servedDecisionListSchema = z.object({
+  items: z.array(
+    z.object({
+      decision_id: z.string().min(1),
+      question_kind: z.string().nullable().optional(),
+      resolution_kind: z.string(),
+      outcome: z.unknown().optional(),
+      decided_at: z.string(),
+      record_digest: z.string(),
+      inputs_state: z.string(),
+    }),
+  ),
+  next_cursor: z.string().nullable().optional(),
+})
+
+/** The served `decision.why_not` explanation, bounded by the caller's budget. */
+export const servedWhyNotSchema = z.object({
+  decision_id: z.string(),
+  option_id: z.string(),
+  verdict: z.string(),
+  reasons: z.array(z.object({ kind: z.string(), detail: z.string() })),
+  budget_used_ms: z.number(),
+  budget_exhausted: z.boolean(),
+})
+export type ServedWhyNot = z.infer<typeof servedWhyNotSchema>

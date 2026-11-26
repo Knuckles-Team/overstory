@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { screen, waitFor, within } from '@testing-library/react'
 import DecisionExplorerTab from '@/components/decisions/DecisionExplorerTab'
+import { ArboraApiError } from '@/lib/arbora-api/invoke'
 import { renderWithProviders } from '@/__tests__/fixtures'
 import { baseRecord, baseRow, createFixtureTransport, emptyProvenance } from './decisions-fixtures'
 
@@ -79,5 +80,44 @@ describe('DecisionExplorerTab', () => {
     })
     expect(row).toHaveAttribute('aria-pressed', 'true')
     expect(await screen.findByText('Decision')).toBeInTheDocument()
+  })
+
+  // spec: OVERSTORY-DECIDE-R002
+  it('labels a served-UNAVAILABLE decision log as unavailable, not as empty or as a network error', async () => {
+    const transport = createFixtureTransport()
+    transport.listDecisions.mockRejectedValue(new ArboraApiError('UNAVAILABLE', 503, true, {}))
+    renderWithProviders(<DecisionExplorerTab transport={transport} />)
+    expect(await screen.findByText('Unavailable.')).toBeInTheDocument()
+    expect(screen.queryByText(/no decisions recorded yet/i)).not.toBeInTheDocument()
+  })
+
+  // spec: OVERSTORY-DECIDE-R002
+  it('renders the served provenance (facts at revision, rules) and labels unavailable provenance', async () => {
+    const transport = createFixtureTransport()
+    transport.listDecisions.mockResolvedValue([baseRow])
+    transport.getDecision.mockResolvedValue(baseRecord)
+    transport.getDecisionProvenance.mockResolvedValue({
+      ...emptyProvenance,
+      premises: [{ kind: 'fact', ref: 'node:1', class: 'observed' }],
+      facts: [{ node_id: 'node:1', revision: 3, digest: 'sha256:bb' }],
+      rules: [{ rule_id: 'rule:cap', version: 2, digest: 'sha256:cc' }],
+      approver: 'alice',
+    })
+    const { user } = renderWithProviders(<DecisionExplorerTab transport={transport} />)
+    await user.click(await screen.findByRole('button', { name: /decision:abc123/i }))
+    expect(await screen.findByText('node:1 @ r3')).toBeInTheDocument()
+    expect(screen.getByText('rule:cap v2')).toBeInTheDocument()
+    expect(screen.getByText(/approved by alice/)).toBeInTheDocument()
+  })
+
+  // spec: OVERSTORY-DECIDE-R002
+  it('shows provenance as unavailable when decision.provenance.get is not served yet', async () => {
+    const transport = createFixtureTransport()
+    transport.listDecisions.mockResolvedValue([baseRow])
+    transport.getDecision.mockResolvedValue(baseRecord)
+    transport.getDecisionProvenance.mockRejectedValue(new ArboraApiError('UNAVAILABLE', 503, true, {}))
+    const { user } = renderWithProviders(<DecisionExplorerTab transport={transport} />)
+    await user.click(await screen.findByRole('button', { name: /decision:abc123/i }))
+    expect(await screen.findByText(/provenance is not served yet/i)).toBeInTheDocument()
   })
 })

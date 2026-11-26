@@ -5,7 +5,10 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { ServedState } from '@/components/served/ServedState'
 import { UnavailableNotice } from '@/components/ui/unavailable-notice'
+import { ArboraApiError } from '@/lib/arbora-api/invoke'
+import { classifyServedError } from '@/lib/arbora-api/served'
 import type { DecisionsTransport } from './decisions-transport'
 import type { DecisionListRow } from './decision-schemas'
 import { categoryTone, formatEpochMs, humanize, shortenId } from './decision-format'
@@ -64,23 +67,28 @@ function ListRow({
 function ListBody({
   rows,
   isLoading,
-  isError,
+  error,
   selectedId,
   onSelect,
 }: {
   rows: DecisionListRow[]
   isLoading: boolean
-  isError: boolean
+  error: unknown
   selectedId: string | null
   onSelect: (id: string) => void
 }) {
   if (isLoading) {
     return <div className="py-12 text-center text-sm text-muted-foreground">Loading decisions…</div>
   }
-  if (isError) {
+  if (error) {
+    const failure = error instanceof ArboraApiError ? classifyServedError(error) : null
     return (
       <div className="py-6">
-        <UnavailableNotice what="The decision log" />
+        {failure && failure.kind !== 'ready' ? (
+          <ServedState reply={failure} what="The decision log" />
+        ) : (
+          <UnavailableNotice what="The decision log" />
+        )}
       </div>
     )
   }
@@ -103,7 +111,7 @@ export default function DecisionExplorerTab({ transport }: { transport: Decision
 
   const listQuery = useQuery({
     queryKey: ['decisions', appliedFilter],
-    queryFn: ({ signal }) => transport.listDecisions({ questionId: appliedFilter || undefined }, signal),
+    queryFn: ({ signal }) => transport.listDecisions({ questionKind: appliedFilter || undefined }, signal),
   })
 
   return (
@@ -119,8 +127,8 @@ export default function DecisionExplorerTab({ transport }: { transport: Decision
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
             <Input
-              aria-label="Filter by question id"
-              placeholder="Filter by question id…"
+              aria-label="Filter by question kind"
+              placeholder="Filter by question kind…"
               value={questionFilter}
               onChange={(e) => {
                 setQuestionFilter(e.target.value)
@@ -146,7 +154,7 @@ export default function DecisionExplorerTab({ transport }: { transport: Decision
           <ListBody
             rows={listQuery.data ?? []}
             isLoading={listQuery.isLoading}
-            isError={listQuery.isError}
+            error={listQuery.error}
             selectedId={selectedId}
             onSelect={setSelectedId}
           />

@@ -1,10 +1,14 @@
 import { fetchAuthSession } from '@/lib/auth'
 import { ArboraApiError, invoke } from '@/lib/arbora-api/invoke'
+import { classifyServedError } from '@/lib/arbora-api/served'
 import {
   decisionAggregateSchema,
   decisionEvalReceiptPageSchema,
   decisionEvalTimelinePageSchema,
   decisionLogEntrySchema,
+  decisionProvenanceSchema,
+  servedDecisionListSchema,
+  servedWhyNotSchema,
 } from './decision-schemas'
 import type { DecisionAggregateOptions, DecisionsTransport, ListDecisionsOptions } from './decisions-transport'
 
@@ -19,17 +23,12 @@ import type { DecisionAggregateOptions, DecisionsTransport, ListDecisionsOptions
  * `eg.query.Decide` and `eg.storage.DecisionCommit` are single-shot. See
  * `specs/arbora-api-consumer/tasks.md` for the full action inventory.
  *
- * Two `DecisionsTransport` methods have **no corresponding Arbora
- * operation** today and must not fabricate one:
- * - `listDecisions`: no bulk decision-record enumeration exists anywhere in
- *   the `DecisionLog`/`Decide` surface (only single-record `get` and grouped
- *   `aggregate`). Refuses with `DECISION_LIST_UNAVAILABLE` until one ships.
- * - `getDecisionProvenance`: no dedicated provenance action exists either.
- *   A record's provenance (premises, inputs) is already embedded in the
- *   `DecisionLog.get` response; evaluations/resolutions are a different,
- *   not-yet-exposed read. Refuses with `DECISION_PROVENANCE_UNAVAILABLE`.
- * `getWhyNotOnDemand` (OVERSTORY-DECIDE-R004) likewise has no production operation pinned
- * yet, so it resolves `{ kind: 'refused' }` rather than guessing an op id.
+ * The list, provenance and why-not reads use the served `decision.list`,
+ * `decision.provenance.get` and `decision.why_not` operations (ARBORA-OPS-R920,
+ * R921). Each answers `UNAVAILABLE` until the engine behind it is pinned; that
+ * refusal propagates as an `ArboraApiError` for the view to label, and no row,
+ * premise or explanation is ever invented. One committed record still reads
+ * through `DecisionLog.get`.
  *
  * `eg.*` operations carry a placeholder `{"type":"object"}` schema in the
  * pinned OpenAPI document until arbora and medulla are built from
@@ -47,18 +46,28 @@ async function currentTenantId(): Promise<string> {
   return session.tenant
 }
 
-function unavailableError(code: string, operation: string): ArboraApiError {
-  return new ArboraApiError(code, 501, false, {
-    operation,
-    detail: 'No corresponding Arbora operation exists yet.',
-  })
-}
-
 const DEFAULT_PAGE_LIMIT = 50
 
 export const arboraDecisionsTransport: DecisionsTransport = {
-  listDecisions(_options?: ListDecisionsOptions, _signal?: AbortSignal) {
-    return Promise.reject(unavailableError('DECISION_LIST_UNAVAILABLE', 'listDecisions'))
+  async listDecisions(options?: ListDecisionsOptions, signal?: AbortSignal) {
+    const page = await invoke(
+      'decision.list',
+      { question_kind: options?.questionKind ?? null, limit: options?.limit ?? DEFAULT_PAGE_LIMIT },
+      servedDecisionListSchema,
+      { signal },
+    )
+    return page.items.map((item) => {
+      const decidedAt = Date.parse(item.decided_at)
+      return {
+        record_id: item.decision_id,
+        question_kind: item.question_kind ?? null,
+        resolution_kind: item.resolution_kind,
+        outcome: typeof item.outcome === 'string' ? item.outcome : null,
+        committed_at_ms: Number.isNaN(decidedAt) ? null : decidedAt,
+        policy_digest: item.record_digest,
+        evidence_class: item.inputs_state,
+      }
+    })
   },
   async getDecision(recordId: string, signal?: AbortSignal) {
     const tenantId = await currentTenantId()
@@ -71,8 +80,8 @@ export const arboraDecisionsTransport: DecisionsTransport = {
     if (!entry) throw new ArboraApiError('DECISION_RECORD_NOT_FOUND', 404, false, { record_id: recordId })
     return entry.record
   },
-  getDecisionProvenance(_recordId: string, _signal?: AbortSignal) {
-    return Promise.reject(unavailableError('DECISION_PROVENANCE_UNAVAILABLE', 'getDecisionProvenance'))
+  getDecisionProvenance(recordId: string, signal?: AbortSignal) {
+    return invoke('decision.provenance.get', { decision_id: recordId }, decisionProvenanceSchema, { signal })
   },
   async getDecisionAggregate(options?: DecisionAggregateOptions, signal?: AbortSignal) {
     const tenantId = await currentTenantId()
@@ -108,10 +117,20 @@ export const arboraDecisionsTransport: DecisionsTransport = {
       { signal },
     )
   },
-  getWhyNotOnDemand(_recordId, _request, _signal?: AbortSignal) {
-    return Promise.resolve({
-      kind: 'refused',
-      reason: 'Arbora does not yet expose a why-not-on-demand operation.',
-    })
+  async getWhyNotOnDemand(recordId, request, signal?: AbortSignal) {
+    try {
+      const answer = await invoke(
+        'decision.why_not',
+        { decision_id: recordId, option_id: request.componentId, budget_ms: request.budgetMs },
+        servedWhyNotSchema,
+        { signal },
+      )
+      if (answer.budget_exhausted) return { kind: 'timeout' }
+      return { kind: 'explained', verdict: answer.verdict, reasons: answer.reasons }
+    } catch (error) {
+      if (error instanceof ArboraApiError && classifyServedError(error).kind !== 'error')
+        return { kind: 'refused', reason: `Arbora did not answer (${error.code}).` }
+      throw error
+    }
   },
 }

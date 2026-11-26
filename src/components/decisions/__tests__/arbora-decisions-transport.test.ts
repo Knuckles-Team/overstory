@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { arboraDecisionsTransport } from '../arbora-decisions-transport'
 import { baseRecord } from './decisions-fixtures'
+import { servedOk, servedUnavailable } from '@/lib/arbora-api/__tests__/served-fixtures'
 
 /**
  * The real `DecisionsTransport` (requirement OVERSTORY-API-R001) against a
@@ -34,11 +35,43 @@ function stubReplies(...opReplies: { status: number; body: unknown }[]) {
 afterEach(() => vi.unstubAllGlobals())
 
 describe('arboraDecisionsTransport on the shared Arbora invoke adapter', () => {
-  it('has no bulk decision-record listing operation and refuses rather than fabricate one', async () => {
-    stubReplies()
-    await expect(arboraDecisionsTransport.listDecisions({ questionId: 'assemble' })).rejects.toThrow(
-      /DECISION_LIST_UNAVAILABLE/,
+  // spec: OVERSTORY-DECIDE-R002
+  it('lists decisions through the served decision.list and maps each row', async () => {
+    const fetcher = stubReplies(
+      servedOk({
+        items: [
+          {
+            decision_id: 'dec-1',
+            question_kind: 'assemble',
+            resolution_kind: 'solved',
+            outcome: 'option-a',
+            decided_at: '2026-11-20T10:00:00.000Z',
+            record_digest: 'sha256:aa',
+            inputs_state: 'current',
+          },
+        ],
+        next_cursor: null,
+      }),
     )
+    const rows = await arboraDecisionsTransport.listDecisions({ questionKind: 'assemble' })
+    expect(rows).toEqual([
+      expect.objectContaining({
+        record_id: 'dec-1',
+        question_kind: 'assemble',
+        resolution_kind: 'solved',
+        outcome: 'option-a',
+        committed_at_ms: Date.parse('2026-11-20T10:00:00.000Z'),
+      }),
+    ])
+    const opCall = fetcher.mock.calls.find(([input]) => input.toString().includes('/api/v1/ops/'))
+    expect(opCall?.[0]).toBe('/api/v1/ops/decision.list')
+    expect(JSON.parse(String((opCall?.[1] as RequestInit).body))).toEqual({ question_kind: 'assemble', limit: 50 })
+  })
+
+  // spec: OVERSTORY-DECIDE-R002
+  it('propagates the served UNAVAILABLE refusal of decision.list and invents no rows', async () => {
+    stubReplies(servedUnavailable())
+    await expect(arboraDecisionsTransport.listDecisions()).rejects.toMatchObject({ code: 'UNAVAILABLE' })
   })
 
   // spec: OVERSTORY-API-R001
@@ -83,11 +116,31 @@ describe('arboraDecisionsTransport on the shared Arbora invoke adapter', () => {
     await expect(arboraDecisionsTransport.getDecision(baseRecord.record_id)).rejects.toThrow()
   })
 
-  it('has no dedicated provenance operation and refuses rather than fabricate one', async () => {
-    stubReplies()
-    await expect(arboraDecisionsTransport.getDecisionProvenance(baseRecord.record_id)).rejects.toThrow(
-      /DECISION_PROVENANCE_UNAVAILABLE/,
+  // spec: OVERSTORY-DECIDE-R002
+  it('reads provenance through decision.provenance.get at the revision the decision used', async () => {
+    const fetcher = stubReplies(
+      servedOk({
+        decision_id: 'dec-1',
+        record_digest: 'sha256:aa',
+        premises: [{ kind: 'fact', ref: 'node:1', class: 'observed' }],
+        facts: [{ node_id: 'node:1', revision: 3, digest: 'sha256:bb' }],
+        rules: [{ rule_id: 'rule:cap', version: 2, digest: 'sha256:cc' }],
+        approver: null,
+        inputs_state: 'current',
+      }),
     )
+    const provenance = await arboraDecisionsTransport.getDecisionProvenance('dec-1')
+    expect(provenance.facts[0]).toEqual({ node_id: 'node:1', revision: 3, digest: 'sha256:bb' })
+    const opCall = fetcher.mock.calls.find(([input]) => input.toString().includes('/api/v1/ops/'))
+    expect(opCall?.[0]).toBe('/api/v1/ops/decision.provenance.get')
+  })
+
+  // spec: OVERSTORY-DECIDE-R002
+  it('propagates UNAVAILABLE from decision.provenance.get', async () => {
+    stubReplies(servedUnavailable())
+    await expect(arboraDecisionsTransport.getDecisionProvenance('dec-1')).rejects.toMatchObject({
+      code: 'UNAVAILABLE',
+    })
   })
 
   it('aggregates outcomes via DecisionLog.aggregate, nesting the request under the tenant window', async () => {
@@ -117,13 +170,64 @@ describe('arboraDecisionsTransport on the shared Arbora invoke adapter', () => {
     expect(opCall?.[1]).toEqual(expect.objectContaining({ body: expect.stringContaining('"op":"timeline"') }))
   })
 
-  it('refuses a why-not-on-demand request rather than fabricate an operation', async () => {
-    stubReplies()
-    const outcome = await arboraDecisionsTransport.getWhyNotOnDemand(baseRecord.record_id, {
+  // spec: OVERSTORY-DECIDE-R004
+  it('explains within budget through decision.why_not', async () => {
+    const fetcher = stubReplies(
+      servedOk({
+        decision_id: 'dec-1',
+        option_id: 'c1',
+        verdict: 'eliminated',
+        reasons: [{ kind: 'capacity', detail: 'no free slot' }],
+        budget_used_ms: 12,
+        budget_exhausted: false,
+      }),
+    )
+    const outcome = await arboraDecisionsTransport.getWhyNotOnDemand('dec-1', {
       componentId: 'c1',
       slot: 's1',
       budgetMs: 100,
     })
-    expect(outcome).toEqual({ kind: 'refused', reason: expect.stringContaining('does not yet expose') })
+    expect(outcome).toEqual({
+      kind: 'explained',
+      verdict: 'eliminated',
+      reasons: [{ kind: 'capacity', detail: 'no free slot' }],
+    })
+    const opCall = fetcher.mock.calls.find(([input]) => input.toString().includes('/api/v1/ops/'))
+    expect(JSON.parse(String((opCall?.[1] as RequestInit).body))).toEqual({
+      decision_id: 'dec-1',
+      option_id: 'c1',
+      budget_ms: 100,
+    })
+  })
+
+  // spec: OVERSTORY-DECIDE-R004
+  it('reports a timeout when the served budget was exhausted', async () => {
+    stubReplies(
+      servedOk({
+        decision_id: 'dec-1',
+        option_id: 'c1',
+        verdict: 'unknown',
+        reasons: [],
+        budget_used_ms: 100,
+        budget_exhausted: true,
+      }),
+    )
+    const outcome = await arboraDecisionsTransport.getWhyNotOnDemand('dec-1', {
+      componentId: 'c1',
+      slot: 's1',
+      budgetMs: 100,
+    })
+    expect(outcome).toEqual({ kind: 'timeout' })
+  })
+
+  // spec: OVERSTORY-DECIDE-R004
+  it('refuses honestly when decision.why_not is unavailable', async () => {
+    stubReplies(servedUnavailable())
+    const outcome = await arboraDecisionsTransport.getWhyNotOnDemand('dec-1', {
+      componentId: 'c1',
+      slot: 's1',
+      budgetMs: 100,
+    })
+    expect(outcome).toEqual({ kind: 'refused', reason: expect.stringContaining('UNAVAILABLE') })
   })
 })
