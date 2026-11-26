@@ -125,6 +125,8 @@ function verdictFromError(error: unknown): ExpandVerdict {
     const reason = (REFUSAL_REASONS as Record<string, string>)[error.code] ?? error.code
     return { verdict: 'refused', code: error.code, reason }
   }
+  // No browser session or no transport: the operation cannot be reached, and nothing changed.
+  if (error instanceof Error) return { verdict: 'unavailable', reason: error.message }
   throw error
 }
 
@@ -277,6 +279,7 @@ export async function readClusterLevel(
     if (signal?.aborted) throw error
     if (isOperationAbsent(error)) return { status: 'unavailable', reason: NOT_AVAILABLE }
     if (error instanceof ArboraApiError) return { status: 'refused', reason: error.code }
+    if (error instanceof Error) return { status: 'unavailable', reason: error.message }
     throw error
   }
 }

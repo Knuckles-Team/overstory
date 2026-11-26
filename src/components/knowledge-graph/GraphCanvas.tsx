@@ -1,15 +1,18 @@
-import React, { useEffect, useRef, useState } from 'react'
-import Sigma from 'sigma'
-import Graph from 'graphology'
-import forceAtlas2 from 'graphology-layout-forceatlas2'
-import type { SigmaNodeAttributes, SigmaEdgeAttributes, GraphNode, GraphRelationship } from './GraphAdapter'
-import { knowledgeGraphToGraphology } from './GraphAdapter'
+import React, { useEffect, useMemo, useState } from 'react'
+import type { GraphNode, GraphRelationship } from './GraphAdapter'
 import { GraphOverlayUI } from './GraphOverlayUI'
 import { GraphLegend } from './GraphLegend'
-import { GRAPH_ENGINE_RENDER_NODE_THRESHOLD, renderGraphNodesOnlyViaEngine } from './engineGraphRender'
+import { GraphOverlayMenu } from './GraphOverlayMenu'
+import { GraphNodeTable } from './GraphNodeTable'
+import { renderGraphNodesOnlyViaEngine } from './engineGraphRender'
 import { adaptVizResult } from '../views/dashboards/queries'
-import { pickReadableTextColor, resolveThemeColors, useIsDarkMode } from './theme-colors'
+import { resolveThemeColors, useIsDarkMode } from './theme-colors'
+import { useGraphScene } from './useGraphScene'
+import type { LayoutWorkerFactory } from './layout-client'
+import type { ClassesState } from './graph-read'
 import { AccessibleImage } from '@/components/ai-elements/image'
+import { STARTING_GRAPH_BUDGET, readGraphBudget, startsClustered, type GraphBudgetState } from '@/lib/graph-budget'
+import { readClusterLevel, type ClusterReadState } from '@/lib/graph-expand'
 
 interface GraphCanvasBaseProps {
   nodes: GraphNode[]
@@ -24,6 +27,17 @@ interface GraphCanvasBaseProps {
   expiredEdges?: ReadonlySet<string>
   /** Render color for expired edges (defaults to the design-system grey). */
   expiredEdgeColor?: string
+  /**
+   * How many nodes the whole graph holds. The loaded `nodes` are a bounded sample, so the clustered start
+   * is decided on this when it is known (OVERSTORY-APPS-R030.13.3).
+   */
+  totalNodes?: number
+  /** Owner-published limits (OVERSTORY-APPS-R030.13.1). Absent means the starting defaults. */
+  limits?: unknown
+  /** Test seam: a layout worker factory. The default is the bundled worker. */
+  layoutFactory?: LayoutWorkerFactory
+  /** Class hierarchy read by the explore hook. Null colors by the hash of the type string. */
+  classes?: ClassesState | null
 }
 
 /** Read-only consumers cannot provide mutation callbacks. Selection and camera remain available. */
@@ -40,90 +54,6 @@ type GraphCanvasProps = GraphCanvasBaseProps &
 
 /** Stable key for an edge, matching graphology's source/target ordering. */
 export const edgeKey = (source: string, target: string): string => `${source}|${target}`
-
-// Minimal shape of what sigma's hover-drawing function actually reads —
-// looser than sigma's own (unexported) `NodeHoverDrawingFunction` type so
-// this file doesn't need to reach into sigma's internal declaration paths.
-interface HoverDrawData {
-  x: number
-  y: number
-  size: number
-  label?: string | null
-}
-interface HoverDrawSettings {
-  labelSize: number
-  labelFont: string
-  labelWeight: string
-}
-
-/**
- * Themed replacement for sigma's built-in `drawDiscNodeHover`
- * (`sigma/dist/index-*.esm.js`), which hardcodes the hover box to a fixed
- * white fill (`context.fillStyle = "#FFF"`) — fine with black text in light
- * mode, but the previous canvas already forced light node-label text for
- * dark-mode legibility, so hovering a node in dark mode drew that same
- * light text on the ALWAYS-white hover box: invisible. This mirrors the
- * original's exact box geometry (pill for wide labels, disc otherwise) but
- * fills it with the current theme's card color and picks its own text color
- * against THAT fill, so hover stays readable in both themes independent of
- * the canvas-background label color used elsewhere.
- */
-function drawThemedNodeHover(
-  context: CanvasRenderingContext2D,
-  data: HoverDrawData,
-  settings: HoverDrawSettings,
-  isDark: boolean,
-): void {
-  const size = settings.labelSize
-  const font = settings.labelFont
-  const weight = settings.labelWeight
-  context.font = `${weight} ${String(size)}px ${font}`
-
-  const theme = resolveThemeColors(isDark)
-  const boxColor = theme.card
-  const textColor = pickReadableTextColor(boxColor)
-
-  context.fillStyle = boxColor
-  context.strokeStyle = theme.border
-  context.lineWidth = 1
-  context.shadowOffsetX = 0
-  context.shadowOffsetY = 0
-  context.shadowBlur = 8
-  context.shadowColor = isDark ? '#000000' : 'rgba(15, 23, 42, 0.35)'
-
-  const PADDING = 2
-  if (typeof data.label === 'string') {
-    const textWidth = context.measureText(data.label).width
-    const boxWidth = Math.round(textWidth + 5)
-    const boxHeight = Math.round(size + 2 * PADDING)
-    const radius = Math.max(data.size, size / 2) + PADDING
-    const angleRadian = Math.asin(boxHeight / 2 / radius)
-    const xDeltaCoord = Math.sqrt(Math.abs(Math.pow(radius, 2) - Math.pow(boxHeight / 2, 2)))
-    context.beginPath()
-    context.moveTo(data.x + xDeltaCoord, data.y + boxHeight / 2)
-    context.lineTo(data.x + radius + boxWidth, data.y + boxHeight / 2)
-    context.lineTo(data.x + radius + boxWidth, data.y - boxHeight / 2)
-    context.lineTo(data.x + xDeltaCoord, data.y - boxHeight / 2)
-    context.arc(data.x, data.y, radius, angleRadian, -angleRadian)
-    context.closePath()
-    context.fill()
-    context.stroke()
-  } else {
-    context.beginPath()
-    context.arc(data.x, data.y, data.size + PADDING, 0, Math.PI * 2)
-    context.closePath()
-    context.fill()
-    context.stroke()
-  }
-  context.shadowOffsetX = 0
-  context.shadowOffsetY = 0
-  context.shadowBlur = 0
-
-  if (data.label) {
-    context.fillStyle = textColor
-    context.fillText(data.label, data.x + data.size + 3, data.y + size / 3)
-  }
-}
 
 /**
  * Composite sigma's layered canvases (edges/nodes/labels/hovers/…, each a
@@ -163,16 +93,12 @@ export function compositeSigmaCanvasesToPngDataUrl(
 }
 
 // ── Renderer mode seam (D-VZ-1/GOC-88 KG-view adoption) ────────────────────
-// Below GRAPH_ENGINE_RENDER_NODE_THRESHOLD, sigma's client-side force layout
-// stays the default (full interactivity: hover/click/drag/select). Above it,
-// the client-side layout degrades the same way the engine's own layout
-// switches strategy, so the engine's at-scale render is RECOMMENDED — but
-// never silently substituted: today the engine can only render caller-
-// supplied graph nodes WITHOUT edges (see engineGraphRender.ts's module doc
-// for the confirmed wire-contract reason), so switching modes is an
-// explicit, visibly-labeled user action, never automatic. This is the seam
-// the interactive WebGPU render path (owned by another lane) plugs into.
-type RenderMode = 'interactive' | 'engine-preview'
+// Below the cluster threshold the interactive renderer is the default (hover/click/drag/select, animated
+// expand and collapse). Above it the view opens on the engine's cluster nodes and expands by cluster
+// (OVERSTORY-APPS-R030.13.3). When the engine refuses or cannot serve clusters, the view falls back to the
+// node-only engine preview and says why; a preview never looks like a complete graph, and switching to it
+// is also an explicit, visibly labeled user action from the toolbar.
+type RenderMode = 'interactive' | 'clustered' | 'engine-preview'
 
 type EnginePreviewState =
   | { status: 'idle' }
@@ -219,198 +145,55 @@ function useEnginePreview(nodeCount: number, effectiveMode: RenderMode) {
   return { enginePreview, runEnginePreview }
 }
 
-interface UseSigmaGraphParams {
-  nodes: GraphNode[]
-  relationships: GraphRelationship[]
-  effectiveMode: RenderMode
-  isDark: boolean
-  onSelectNode: (node: GraphNode | null) => void
-  expiredEdges?: ReadonlySet<string>
-  expiredEdgeColor: string
-}
-
-/**
- * Own the Sigma instance's full lifecycle: graph construction, sigma
- * construction/update, the edge-reducer/theme/expiry refs it reads live, and
- * the force-atlas2 layout pass. Same refs, same effects, same dependency
- * arrays as before this was a hook -- only where the state lives moved.
- */
-function useSigmaGraph({
-  nodes,
-  relationships,
-  effectiveMode,
-  isDark,
-  onSelectNode,
-  expiredEdges,
-  expiredEdgeColor,
-}: UseSigmaGraphParams) {
-  const containerRef = useRef<HTMLDivElement>(null)
-  const sigmaRef = useRef<Sigma<SigmaNodeAttributes, SigmaEdgeAttributes> | null>(null)
-  const [graph, setGraph] = useState<Graph<SigmaNodeAttributes, SigmaEdgeAttributes> | null>(null)
-  const [isLayoutRunning, setIsLayoutRunning] = useState(false)
-
-  // Keep the expired-edge set in a ref so the Sigma edge reducer (registered
-  // once at construction) always reads the latest scrubber position without
-  // re-creating the renderer.
-  const expiredEdgesRef = useRef<ReadonlySet<string> | undefined>(expiredEdges)
-  const expiredEdgeColorRef = useRef<string>(expiredEdgeColor)
-  expiredEdgesRef.current = expiredEdges
-  expiredEdgeColorRef.current = expiredEdgeColor
-
-  // Same ref pattern as expiredEdgesRef above: the hover renderer is
-  // registered once at Sigma construction, so it reads theme through a ref
-  // rather than closing over a stale `isDark` from its first render.
-  const isDarkRef = useRef<boolean>(isDark)
-  isDarkRef.current = isDark
-
-  // Initialize graph data — skipped in engine-preview mode: building the full
-  // graphology graph + running forceAtlas2 is exactly the client-side cost
-  // this mode exists to avoid for a graph too large to lay out interactively.
+/** The clustered start: one level of engine clusters, read only when the graph is above the threshold. */
+function useClusterStart(enabled: boolean): ClusterReadState | null {
+  const [state, setState] = useState<ClusterReadState | null>(null)
   useEffect(() => {
-    if (nodes.length === 0 || effectiveMode !== 'interactive') return
-    const newGraph = knowledgeGraphToGraphology(nodes, relationships, isDark)
-    setGraph(newGraph)
-    setIsLayoutRunning(true)
-  }, [nodes, relationships, effectiveMode, isDark])
-
-  // Initialize Sigma
-  useEffect(() => {
-    if (!containerRef.current || !graph) return
-
-    if (!sigmaRef.current) {
-      // Use any to bypass strict generic mismatch from Sigma.js v3
-      sigmaRef.current = new Sigma<SigmaNodeAttributes, SigmaEdgeAttributes>(graph, containerRef.current, {
-        renderEdgeLabels: true,
-        allowInvalidContainer: true,
-        // THE FIX for the reported defect: sigma's own default is
-        // `labelColor: { color: "#000" }` — pure black, unconditionally
-        // (`sigma/settings`'s `DEFAULT_SETTINGS`). `{ attribute: 'labelColor'
-        // }` makes it read each node's own `labelColor` attribute instead,
-        // which GraphAdapter's `knowledgeGraphToGraphology` always sets to a
-        // WCAG-AA color against the canvas background for the CURRENT theme
-        // (see that function's comment for why "canvas background" is the
-        // right target, not the node fill). `color` here is only the
-        // fallback for the one case a node's own attribute is somehow
-        // missing — resolved fresh so it still matches the initial theme.
-        labelColor: {
-          attribute: 'labelColor',
-          color: pickReadableTextColor(resolveThemeColors(isDarkRef.current).card),
-        },
-        // Sigma's built-in hover renderer hardcodes a white box — see
-        // `drawThemedNodeHover`'s doc comment above for why that breaks in
-        // dark mode. `isDarkRef` (not the `isDark` prop) so this stays live
-        // across theme toggles without re-constructing the Sigma instance.
-        defaultDrawNodeHover: (context, data, settings) => {
-          drawThemedNodeHover(context, data, settings, isDarkRef.current)
-        },
-        // Grey + thin edges that are expired at the current scrubber instant.
-        // D-WUI-6: this used to also set `type: 'dashed'`, but Sigma only
-        // renders edge types it has a registered WebGL program for (`line`/
-        // `arrow`/... via `settings.edgeProgramClasses`) — no `dashed`
-        // program is registered here, so `Sigma.render()` threw "could not
-        // find a suitable program for edge type \"dashed\"!" the instant any
-        // edge was actually marked expired (a real crash, not a test
-        // artifact — any AS OF query that expires at least one edge trips
-        // it). Color + a thinner stroke give the same "this edge is expired"
-        // signal without asserting an edge type the renderer can't draw.
-        edgeReducer: (edge, data) => {
-          const expired = expiredEdgesRef.current
-          if (!expired || expired.size === 0) return data
-          const g = sigmaRef.current?.getGraph()
-          if (!g) return data
-          const key = edgeKey(g.source(edge), g.target(edge))
-          if (expired.has(key)) {
-            return { ...data, color: expiredEdgeColorRef.current, size: Math.min(data.size, 1) }
-          }
-          return data
-        },
-      })
-
-      // Register click events
-      sigmaRef.current.on('clickNode', (e) => {
-        const nodeId = e.node
-        const nodeData = nodes.find((n) => n.id === nodeId)
-        if (nodeData) {
-          onSelectNode(nodeData)
-        }
-      })
-
-      sigmaRef.current.on('clickStage', () => {
-        onSelectNode(null)
-      })
-    } else {
-      sigmaRef.current.setGraph(graph)
+    if (!enabled) {
+      setState(null)
+      return
     }
-
+    const abort = new AbortController()
+    readClusterLevel(1, abort.signal)
+      .then((next) => {
+        if (!abort.signal.aborted) setState(next)
+      })
+      .catch(() => {
+        if (!abort.signal.aborted) setState({ status: 'unavailable', reason: 'not available' })
+      })
     return () => {
-      // Don't kill sigma on re-render, only on unmount
+      abort.abort()
     }
-  }, [graph, nodes, onSelectNode])
-
-  // Re-run the edge reducer when the expired-edge set changes (scrubber moved).
-  useEffect(() => {
-    if (sigmaRef.current) {
-      sigmaRef.current.refresh()
-    }
-  }, [expiredEdges, expiredEdgeColor])
-
-  // Keep the Sigma-instance-level label-color fallback in sync with the live
-  // theme too (belt-and-braces: every node's own `labelColor` attribute is
-  // already recomputed on theme change via the graph-rebuild effect above,
-  // so this only matters for the rare node missing that attribute).
-  // `defaultDrawNodeHover` doesn't need a matching update — it already reads
-  // theme live through `isDarkRef` on every hover paint.
-  useEffect(() => {
-    if (!sigmaRef.current) return
-    sigmaRef.current.setSetting('labelColor', {
-      attribute: 'labelColor',
-      color: pickReadableTextColor(resolveThemeColors(isDark).card),
-    })
-    sigmaRef.current.refresh()
-  }, [isDark])
-
-  // Cleanup Sigma entirely only when component unmounts
-  useEffect(() => {
-    return () => {
-      if (sigmaRef.current) {
-        sigmaRef.current.kill()
-        sigmaRef.current = null
-      }
-    }
-  }, [])
-
-  // Handle layout
-  useEffect(() => {
-    if (!graph || graph.order === 0) return
-
-    if (isLayoutRunning) {
-      // We run synchronous iterations for an initial spread
-      forceAtlas2.assign(graph, {
-        iterations: 150,
-        settings: forceAtlas2.inferSettings(graph),
-      })
-
-      setIsLayoutRunning(false)
-      if (sigmaRef.current) {
-        sigmaRef.current.refresh()
-      }
-    }
-  }, [graph, isLayoutRunning])
-
-  return { containerRef, sigmaRef, setIsLayoutRunning }
+  }, [enabled])
+  return state
 }
 
 interface EnginePreviewPaneProps {
   nodeCount: number
   enginePreview: EnginePreviewState
   onRunPreview: () => void
+  /** Why the clustered start was not used, when it was refused or unavailable. */
+  clusterReason?: string
 }
 
 /** The engine at-scale render mode's overlay: warning, trigger, and one state-typed result pane. */
-function EnginePreviewPane({ nodeCount, enginePreview, onRunPreview }: EnginePreviewPaneProps): React.ReactElement {
+function EnginePreviewPane({
+  nodeCount,
+  enginePreview,
+  onRunPreview,
+  clusterReason,
+}: EnginePreviewPaneProps): React.ReactElement {
   return (
     <div className="absolute inset-0 z-10 flex items-center justify-center p-6 bg-card">
       <div className="max-w-lg w-full space-y-3 text-sm">
+        {clusterReason ? (
+          <div
+            data-testid="graph-cluster-fallback"
+            className="rounded-md border border-amber-500/50 bg-amber-50/10 p-3 text-foreground"
+          >
+            The clustered start is not available ({clusterReason}), so this view shows the node-only engine preview.
+          </div>
+        ) : null}
         <div className="rounded-md border border-amber-500/50 bg-amber-50/10 p-3 flex items-start gap-2">
           <span aria-hidden className="mt-0.5">
             ⚠
@@ -489,43 +272,78 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({
   onSelectNode,
   expiredEdges,
   expiredEdgeColor = '#4b5563',
+  totalNodes,
+  limits,
+  layoutFactory,
+  classes = null,
 }) => {
   // Live theme: drives node/edge/label colors below and re-renders the
   // canvas the instant the user (or the system) toggles dark/light — see
   // theme-colors.ts's module doc for why sigma needs this pushed to it
   // explicitly (it draws on raw <canvas>, which can't see CSS variables).
   const isDark = useIsDarkMode()
+  const budget: GraphBudgetState = useMemo(() => readGraphBudget(limits), [limits])
 
-  const recommendedMode: RenderMode =
-    nodes.length > GRAPH_ENGINE_RENDER_NODE_THRESHOLD ? 'engine-preview' : 'interactive'
+  const wholeGraph = totalNodes ?? nodes.length
+  // The clustered start is decided on the size of the whole graph, so it needs that size: a caller that
+  // only holds a loaded sample keeps the node-only preview recommendation for a sample above the threshold.
+  const wantsClusters =
+    totalNodes !== undefined && budget.status === 'ready' && startsClustered(budget.budget, totalNodes)
+  const sampleTooLarge = nodes.length > STARTING_GRAPH_BUDGET.clusterThreshold
+  const recommendedMode: RenderMode = wantsClusters ? 'clustered' : sampleTooLarge ? 'engine-preview' : 'interactive'
   const [modeOverride, setModeOverride] = useState<'auto' | RenderMode>('auto')
-  const effectiveMode: RenderMode = modeOverride === 'auto' ? recommendedMode : modeOverride
+  const requestedMode: RenderMode = modeOverride === 'auto' ? recommendedMode : modeOverride
+  const clusterState = useClusterStart(requestedMode === 'clustered')
+  // Until the cluster read answers, nothing is drawn; a refusal or an absent operation falls back to the preview.
+  const clusterFailed = clusterState !== null && clusterState.status !== 'ready'
+  const effectiveMode: RenderMode = requestedMode === 'clustered' && clusterFailed ? 'engine-preview' : requestedMode
+  const clusterReason = requestedMode === 'clustered' && clusterFailed ? clusterState.reason : undefined
 
-  const { enginePreview, runEnginePreview } = useEnginePreview(nodes.length, effectiveMode)
+  const sceneNodes = effectiveMode === 'clustered' && clusterState?.status === 'ready' ? clusterState.nodes : nodes
+  const sceneRels =
+    effectiveMode === 'clustered' && clusterState?.status === 'ready' ? clusterState.relationships : relationships
 
-  const { containerRef, sigmaRef, setIsLayoutRunning } = useSigmaGraph({
-    nodes,
-    relationships,
-    effectiveMode,
+  const { enginePreview, runEnginePreview } = useEnginePreview(wholeGraph, effectiveMode)
+
+  const scene = useGraphScene({
+    nodes: sceneNodes,
+    relationships: sceneRels,
+    active: effectiveMode !== 'engine-preview',
     isDark,
+    classes,
+    budget,
+    selectedExternally: selectedNodeExternally ?? null,
     onSelectNode,
     expiredEdges,
     expiredEdgeColor,
+    layoutFactory,
+    clustered: effectiveMode === 'clustered',
   })
 
   const downloadPng = () => {
-    if (!sigmaRef.current) return
+    if (!scene.sigmaRef.current) return
     // Match the exported PNG's background to whatever the canvas is
     // actually showing right now (theme-resolved), not a permanently-dark
     // default — a light-mode export with a dark-navy background would look
     // broken next to the on-screen canvas.
-    const dataUrl = compositeSigmaCanvasesToPngDataUrl(sigmaRef.current.getCanvases(), resolveThemeColors(isDark).card)
+    const layers: Record<string, HTMLCanvasElement> = { ...scene.sigmaRef.current.getCanvases() }
+    if (scene.paintRef.current) layers.overlay = scene.paintRef.current
+    const dataUrl = compositeSigmaCanvasesToPngDataUrl(layers, resolveThemeColors(isDark).card)
     if (!dataUrl) return
     const link = document.createElement('a')
     link.href = dataUrl
     link.download = `graph-${String(Date.now())}.png`
     link.click()
   }
+
+  const noticeHere = scene.notice !== null && scene.notice.nodeId === scene.selectedId ? scene.notice : null
+  const selectedHasRecord = scene.selectedId !== null && scene.extra.records.has(scene.selectedId)
+  const modeLabel =
+    effectiveMode === 'interactive'
+      ? 'Renderer: Interactive (sigma)'
+      : effectiveMode === 'clustered'
+        ? 'Renderer: Clustered start (engine clusters)'
+        : 'Renderer: At-scale (engine) — node preview'
 
   return (
     // `bg-card` (not a hardcoded slate) — this is the fix for the reported
@@ -534,15 +352,29 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({
     // is computed against THIS token, so they stay legible regardless of
     // which theme is active.
     <div className="relative w-full h-full bg-card rounded-lg overflow-hidden z-0">
-      {/* The sigma container stays mounted in BOTH modes (never unmount/remount
+      {/* The sigma container stays mounted in ALL modes (never unmount/remount
           it — sigma's own ref would otherwise go stale) — it's simply given no
-          graph to attach to while in engine-preview mode (see the gated
-          "Initialize graph data" effect above), and visually covered by the
+          graph to attach to while in engine-preview mode, and visually covered by the
           engine-preview overlay below. */}
-      <div ref={containerRef} className="absolute inset-0 cursor-grab active:cursor-grabbing" />
+      <div
+        ref={scene.containerRef}
+        data-testid="graph-canvas"
+        className="absolute inset-0 cursor-grab active:cursor-grabbing"
+      />
+      {/* The one 2D layer above the renderer: badges, selection ring, shape rings and the path reveal. */}
+      <canvas
+        ref={scene.paintRef}
+        aria-hidden
+        data-testid="graph-paint-layer"
+        className="pointer-events-none absolute inset-0 h-full w-full"
+      />
+      {/* Polite live region: expand and collapse results stay available with motion off. */}
+      <div role="status" aria-live="polite" data-testid="graph-live-region" className="sr-only">
+        {scene.live}
+      </div>
 
-      {/* Renderer-mode badge + manual override — ALWAYS visible, in both
-          modes, so the active renderer is never ambiguous (silent switching
+      {/* Renderer-mode badge + manual override — ALWAYS visible, in every
+          mode, so the active renderer is never ambiguous (silent switching
           between two renderers with different capabilities is its own
           defect). */}
       <div className="absolute top-4 left-4 z-10 flex items-center gap-2">
@@ -550,19 +382,17 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({
           data-testid="graph-render-mode-badge"
           className="bg-slate-800/90 text-white text-xs px-2 py-1 rounded shadow"
         >
-          {effectiveMode === 'interactive'
-            ? 'Renderer: Interactive (sigma)'
-            : 'Renderer: At-scale (engine) — node preview'}
-          {modeOverride === 'auto' ? ` · ${String(nodes.length)} nodes` : ' · manual'}
+          {modeLabel}
+          {modeOverride === 'auto' ? ` · ${String(wholeGraph)} nodes` : ' · manual'}
         </span>
         <button
           data-testid="graph-render-mode-toggle"
           onClick={() => {
-            setModeOverride(effectiveMode === 'interactive' ? 'engine-preview' : 'interactive')
+            setModeOverride(effectiveMode === 'engine-preview' ? 'interactive' : 'engine-preview')
           }}
           className="bg-slate-800 text-white px-2 py-1 rounded shadow hover:bg-slate-700 text-xs"
         >
-          Switch to {effectiveMode === 'interactive' ? 'at-scale (engine)' : 'interactive'}
+          Switch to {effectiveMode === 'engine-preview' ? 'interactive' : 'at-scale (engine)'}
         </button>
         {modeOverride !== 'auto' ? (
           <button
@@ -576,22 +406,103 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({
         ) : null}
       </div>
 
-      {effectiveMode === 'interactive' ? (
+      {effectiveMode !== 'engine-preview' ? (
         <>
+          {classes?.status === 'unavailable' ? (
+            <p
+              data-testid="graph-classes-notice"
+              className="absolute left-4 top-24 z-10 rounded bg-amber-500/15 px-2 py-0.5 text-[11px] text-amber-700 dark:text-amber-300"
+            >
+              {classes.notice}
+            </p>
+          ) : null}
+          {budget.status === 'unavailable' ? (
+            <p
+              data-testid="graph-limits-notice"
+              className="absolute left-4 top-32 z-10 rounded bg-amber-500/15 px-2 py-0.5 text-[11px] text-amber-700 dark:text-amber-300"
+            >
+              {budget.notice}
+            </p>
+          ) : null}
+          {requestedMode === 'clustered' && clusterState === null ? (
+            <p className="absolute left-1/2 top-1/2 z-10 -translate-x-1/2 text-sm text-muted-foreground">
+              Reading clusters…
+            </p>
+          ) : null}
+
+          <GraphOverlayMenu
+            overlays={scene.overlays}
+            stale={scene.stale}
+            canFindPath={scene.selectedId !== null && scene.pathEnd !== null}
+            pathMessage={scene.pathMessage}
+            onRun={(kind) => {
+              void scene.runOverlayKind(kind)
+            }}
+            onClear={scene.clearOverlay}
+          />
+
+          {/* Per-node actions: the keyboard and pointer path to expand and collapse. */}
+          {scene.selectedId ? (
+            <div
+              role="group"
+              aria-label="Selected node actions"
+              data-testid="graph-node-actions"
+              className="absolute right-4 top-12 z-10 flex items-center gap-1 rounded-lg border border-border bg-card/90 p-1.5 text-xs shadow-lg backdrop-blur-sm"
+            >
+              <span className="max-w-[10rem] truncate px-1 font-medium text-foreground">
+                {scene.labelOf(scene.selectedId)}
+              </span>
+              <button
+                type="button"
+                data-testid="graph-expand"
+                onClick={() => {
+                  if (scene.selectedId) void scene.expand(scene.selectedId)
+                }}
+                className="rounded border border-border px-2 py-1 hover:bg-accent"
+              >
+                Expand
+              </button>
+              <button
+                type="button"
+                data-testid="graph-collapse"
+                disabled={!selectedHasRecord}
+                onClick={() => {
+                  if (scene.selectedId) scene.collapse(scene.selectedId)
+                }}
+                className="rounded border border-border px-2 py-1 hover:bg-accent disabled:opacity-50"
+              >
+                Collapse
+              </button>
+              {noticeHere ? (
+                <span
+                  data-testid="graph-expand-notice"
+                  role="status"
+                  className="px-1 text-amber-700 dark:text-amber-300"
+                >
+                  {noticeHere.text}
+                </span>
+              ) : null}
+            </div>
+          ) : scene.notice ? (
+            <span
+              data-testid="graph-expand-notice"
+              role="status"
+              className="absolute right-4 top-12 z-10 rounded bg-amber-500/15 px-2 py-1 text-xs text-amber-700 dark:text-amber-300"
+            >
+              {scene.notice.text}
+            </span>
+          ) : null}
+
           {/* HUD Controls */}
           <div className="absolute bottom-4 right-4 flex gap-2 z-10">
             <button
-              onClick={() => {
-                setIsLayoutRunning(true)
-              }}
+              onClick={scene.relayout}
               className="bg-slate-800 text-white px-4 py-2 rounded shadow hover:bg-slate-700 text-sm"
             >
               Untangle Graph
             </button>
             <button
-              onClick={() => {
-                if (sigmaRef.current) void sigmaRef.current.getCamera().animatedReset()
-              }}
+              onClick={scene.resetCamera}
               className="bg-slate-800 text-white px-4 py-2 rounded shadow hover:bg-slate-700 text-sm"
             >
               Reset View
@@ -604,7 +515,31 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({
             </button>
           </div>
 
-          <GraphLegend nodes={nodes} isDark={isDark} />
+          <GraphLegend
+            nodes={scene.displayNodes}
+            isDark={isDark}
+            classIndex={classes?.status === 'ready' ? classes.index : null}
+            hiddenClasses={scene.hiddenClasses}
+            isolated={scene.isolated}
+            onToggle={scene.toggleClass}
+            onIsolate={scene.isolateClass}
+          />
+
+          <GraphNodeTable
+            nodes={scene.displayNodes}
+            graph={scene.graph}
+            revision={scene.revision}
+            selectedId={scene.selectedId}
+            rings={null}
+            onSelect={(id) => {
+              scene.selectNode(id, true)
+            }}
+            onExpand={(id) => {
+              void scene.expand(id)
+            }}
+            onCollapse={scene.collapse}
+            canCollapse={(id) => scene.extra.records.has(id)}
+          />
 
           {!readOnly && onUpdateNode && (
             <GraphOverlayUI
@@ -626,8 +561,9 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({
         </>
       ) : (
         <EnginePreviewPane
-          nodeCount={nodes.length}
+          nodeCount={wholeGraph}
           enginePreview={enginePreview}
+          clusterReason={clusterReason}
           onRunPreview={() => {
             void runEnginePreview()
           }}

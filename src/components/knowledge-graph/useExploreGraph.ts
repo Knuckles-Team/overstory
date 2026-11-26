@@ -10,6 +10,7 @@ import {
   type GraphStats,
 } from './graph-read'
 import type { NodeTypeBreakdownData } from './NodeTypeBreakdown'
+import { useGraphClasses } from './useGraphClasses'
 
 interface GraphSnapshot {
   binding: string | null
@@ -37,6 +38,7 @@ export function useExploreGraph(active: boolean, type: string | null) {
   const [revision, setRevision] = useState(0)
   const [snapshot, setSnapshot] = useState<GraphSnapshot>(empty)
   const generation = useRef(0)
+  const classes = useGraphClasses(active)
   const binding = JSON.stringify([type, revision])
   useEffect(() => {
     const request = ++generation.current
@@ -78,6 +80,7 @@ export function useExploreGraph(active: boolean, type: string | null) {
   }, [active, type, binding])
   const token = generation.current
   return {
+    classes,
     ...(active && snapshot.binding === binding
       ? snapshot
       : { ...empty(), pending: active ? ['nodes', 'relationships', 'stats', 'breakdown'] : [] }),

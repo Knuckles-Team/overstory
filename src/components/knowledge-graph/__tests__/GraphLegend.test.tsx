@@ -1,7 +1,8 @@
-import { describe, it, expect } from 'vitest'
-import { render, screen } from '@testing-library/react'
+// spec: OVERSTORY-APPS-R030.11.3
+import { describe, it, expect, vi } from 'vitest'
+import { fireEvent, render, screen } from '@testing-library/react'
 import { GraphLegend } from '@/components/knowledge-graph/GraphLegend'
-import { nodeTypeColor } from '@/components/knowledge-graph/theme-colors'
+import { colorOf, styleForTypeString } from '@/lib/graph-semantics'
 import type { GraphNode } from '@/components/knowledge-graph/GraphAdapter'
 
 function node(id: string, nodeType: string): GraphNode {
@@ -62,17 +63,39 @@ describe('GraphLegend', () => {
     expect(screen.queryByTestId('graph-legend-other')).not.toBeInTheDocument()
   })
 
-  it('swatch colors match the SAME nodeTypeColor function the canvas uses (never drifts)', () => {
+  it('swatch colors match the SAME style function the canvas uses (never drifts)', () => {
     const nodes: GraphNode[] = [node('a', 'WorkItem')]
     render(<GraphLegend nodes={nodes} isDark />)
-    const swatch = screen.getByTestId('graph-legend').querySelector('span[style]')
-    expect(swatch).not.toBeNull()
-    const expected = nodeTypeColor('WorkItem', true)
-    // jsdom normalizes inline hex colors to rgb() in style serialization —
-    // compare via the DOM's own resolved style value rather than the raw hex.
+    const swatch = screen.getByTestId('graph-legend-swatch')
+    const expected = colorOf(styleForTypeString('WorkItem'), { isDark: true })
+    // jsdom normalizes inline hex colors to rgb() in style serialization.
     const probe = document.createElement('span')
-    probe.style.backgroundColor = expected
-    expect(swatch?.getAttribute('style')).toContain(probe.style.backgroundColor)
+    probe.style.color = expected
+    expect(swatch.getAttribute('style')).toContain(probe.style.color)
+    expect(swatch.querySelector('svg path')).not.toBeNull()
+  })
+
+  it('test_toggle_isolate_and_accessible_names', () => {
+    const nodes: GraphNode[] = [node('a', 'WorkItem'), node('b', 'WorkItem'), node('c', 'Concept')]
+    const onToggle = vi.fn()
+    const onIsolate = vi.fn()
+    render(
+      <GraphLegend
+        nodes={nodes}
+        isDark
+        onToggle={onToggle}
+        onIsolate={onIsolate}
+        hiddenClasses={new Set(['Concept'])}
+      />,
+    )
+    const work = screen.getByRole('button', { name: 'WorkItem, 2 nodes, shown' })
+    const concept = screen.getByRole('button', { name: 'Concept, 1 node, hidden' })
+    expect(concept).toHaveAttribute('aria-pressed', 'false')
+    fireEvent.click(work)
+    expect(onToggle).toHaveBeenCalledWith('WorkItem')
+    fireEvent.click(work, { altKey: true })
+    expect(onIsolate).toHaveBeenCalledWith('WorkItem')
+    expect(onToggle).toHaveBeenCalledTimes(1)
   })
 
   it('resolves node_type from properties.node_type, not just labels (falls back sanely)', () => {

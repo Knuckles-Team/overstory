@@ -102,7 +102,7 @@ export function slotOf(rootIri: string): number {
 }
 
 function localName(iri: string): string {
-  const cut = Math.max(iri.lastIndexOf('#'), iri.lastIndexOf('/'))
+  const cut = Math.max(iri.lastIndexOf('#'), iri.lastIndexOf('/'), iri.lastIndexOf(':'))
   return cut >= 0 && cut < iri.length - 1 ? iri.slice(cut + 1) : iri
 }
 
@@ -243,4 +243,24 @@ export function buildClassIndex(terms: readonly SchemaTerm[]): ClassIndex {
 export function classIriFor(type: string, index: ClassIndex): string | null {
   if (index.ancestry.has(type)) return type
   return index.byName.get(type) ?? null
+}
+
+/** `#rrggbb` to `rgba(r,g,b,a)`, the form the renderer parses for a faded node. A non-hex color is returned as is. */
+export function withAlpha(color: string, alpha: number): string {
+  const m = /^#([0-9a-f]{6})$/i.exec(color)
+  if (!m) return color
+  const n = parseInt(m[1], 16)
+  const a = Math.min(1, Math.max(0, alpha))
+  return `rgba(${String((n >> 16) & 255)},${String((n >> 8) & 255)},${String(n & 255)},${a.toFixed(3)})`
+}
+
+/** Linear mix of two `#rrggbb` colors; used to cross-fade an overlay color over the class color. */
+export function mixHex(from: string, to: string, t: number): string {
+  const a = /^#([0-9a-f]{6})$/i.exec(from)
+  const b = /^#([0-9a-f]{6})$/i.exec(to)
+  if (!a || !b) return t >= 0.5 ? to : from
+  const x = parseInt(a[1], 16)
+  const y = parseInt(b[1], 16)
+  const ch = (shift: number) => Math.round(((x >> shift) & 255) * (1 - t) + ((y >> shift) & 255) * t)
+  return `#${[16, 8, 0].map((s) => ch(s).toString(16).padStart(2, '0')).join('')}`
 }

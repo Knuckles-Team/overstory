@@ -182,6 +182,8 @@ export function ExploreGraphLens({ state, role, active }: { state: ExploreLensSt
                 relationships={graph.relationships}
                 selectedNodeExternally={selected ?? null}
                 onSelectNode={selectFromCanvas}
+                classes={graph.classes}
+                totalNodes={graph.stats && graph.stats.available !== false ? graph.stats.total_nodes : undefined}
               />
             </div>
           )}
