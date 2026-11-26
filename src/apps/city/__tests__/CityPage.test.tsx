@@ -22,7 +22,7 @@ import { beforeAll, describe, expect, it, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import CityPage, { parseDemoParam, parseSpeedParam } from '../components/CityPage'
 import { init3D } from '../core/render3d'
-import { tickSim, world } from '../core/sim'
+import { SIM_SUBSTEP_GAME_S, tickSim, world } from '../core/sim'
 import { bus } from '../core/events'
 import { TOUR_SESSION_KEY } from '../core/ui'
 import type { CityRenderer } from '../core/types'
@@ -164,14 +164,16 @@ describe('speed and demo URL params (R012/R026)', () => {
       raf.mockRestore()
     }
   })
-  it('parseSpeedParam: parses the accepted speeds and defaults to 1x', () => {
-    expect(parseSpeedParam('?speed=4')).toBe(4)
-    expect(parseSpeedParam('?speed=0')).toBe(0)
-    expect(parseSpeedParam('?speed=2')).toBe(2)
+  it('parseSpeedParam: parses the declared speed set and defaults to 1x', () => {
+    for (const s of [0, 0.5, 1, 1.25, 1.5, 2, 4, 8, 20]) {
+      expect(parseSpeedParam(`?speed=${s}`), `speed ${s}`).toBe(s)
+    }
     expect(parseSpeedParam('')).toBe(1)
     expect(parseSpeedParam('?speed=')).toBe(1)
     expect(parseSpeedParam('?speed=bogus')).toBe(1)
-    expect(parseSpeedParam('?speed=8')).toBe(1)
+    expect(parseSpeedParam('?speed=3')).toBe(1)
+    expect(parseSpeedParam('?speed=16')).toBe(1)
+    expect(parseSpeedParam('?speed=-2')).toBe(1)
   })
 
   it('parseDemoParam: ?demo=1|true boots labelled demo, absent or invalid boots quiet', () => {
@@ -181,6 +183,55 @@ describe('speed and demo URL params (R012/R026)', () => {
     expect(parseDemoParam('?demo=0')).toBe(false)
     expect(parseDemoParam('?demo=false')).toBe(false)
     expect(parseDemoParam('?demo=bogus')).toBe(false)
+  })
+
+  it('exposes the declared speed set as buttons (0.5x-20x plus pause, R012 amended)', async () => {
+    const view = await bootCity('simulated')
+    try {
+      const speeds = Array.from(document.querySelectorAll<HTMLButtonElement>('.speed-btn')).map((b) =>
+        Number(b.dataset.speed),
+      )
+      expect([...speeds].sort((a, b) => a - b)).toEqual([0, 0.5, 1, 1.25, 1.5, 2, 4, 8, 20])
+    } finally {
+      view.unmount()
+    }
+  })
+
+  it('the frame loop executes in-game time as fixed sub-steps at the selected speed (R012 amended)', async () => {
+    let frame: FrameRequestCallback | null = null
+    const raf = vi.spyOn(globalThis, 'requestAnimationFrame').mockImplementation((callback) => {
+      frame = callback
+      return 1
+    })
+    vi.mocked(init3D).mockResolvedValue(fakeRenderer())
+    const view = await bootCity('simulated', '/apps/city?speed=20')
+    try {
+      // Drive frames at a controlled cadence: 10 ms apart, so each frame
+      // feeds 0.01 * 144 * 20 = 28.8 in-game seconds at 20x.
+      let t = performance.now() + 100 // start clear of the mount instant
+      const step = (ms: number) => {
+        const callback = frame as FrameRequestCallback | null
+        if (!callback) throw new Error('city frame was not scheduled')
+        t += ms
+        callback(t)
+      }
+      // The first frame's dt includes the wall gap since mount (bounded by
+      // the 0.1 s clamp); after it the cadence is exact.
+      step(10)
+      const before = world.clock
+      for (let i = 0; i < 30; i++) step(10)
+      const advance = world.clock - before
+      // The advance is an exact multiple of the fixed sub-step (2 s). The
+      // controlled 30 frames feed 300 ms * 144 * 20 = 864 in-game seconds
+      // and the bounded first-frame carry at most 0.1 s * 144 * 20 more;
+      // at most one sub-step stays in the accumulator.
+      expect(advance / SIM_SUBSTEP_GAME_S - Math.round(advance / SIM_SUBSTEP_GAME_S)).toBeCloseTo(0, 12)
+      expect(advance).toBeGreaterThanOrEqual(864 - SIM_SUBSTEP_GAME_S)
+      expect(advance).toBeLessThanOrEqual(864 + 0.1 * 144 * 20 + SIM_SUBSTEP_GAME_S)
+    } finally {
+      view.unmount()
+      raf.mockRestore()
+    }
   })
 })
 

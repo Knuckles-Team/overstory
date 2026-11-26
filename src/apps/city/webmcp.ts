@@ -64,7 +64,17 @@ export interface CityToolController {
 
 // ---- Schemas -----------------------------------------------------------------
 
-const Speed = z.union([z.literal(0), z.literal(1), z.literal(2), z.literal(4)])
+const Speed = z.union([
+  z.literal(0),
+  z.literal(0.5),
+  z.literal(1),
+  z.literal(1.25),
+  z.literal(1.5),
+  z.literal(2),
+  z.literal(4),
+  z.literal(8),
+  z.literal(20),
+])
 const Rotation = z.union([z.literal(0), z.literal(90), z.literal(180), z.literal(270)])
 
 const Empty = z.object({}).strict()
@@ -235,7 +245,7 @@ export function createCityTools(controller: CityToolController): readonly WebMcp
     ),
     cityTool(
       'set-speed',
-      'Set the simulation speed: 0 (paused), 1, 2 or 4 times.',
+      'Set the simulation speed: 0 (paused), 0.5, 1, 1.25, 1.5, 2, 4, 8 or 20 times.',
       SpeedInput,
       Updated,
       ({ speed }) => {

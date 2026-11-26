@@ -314,6 +314,40 @@ export const TUNING = {
   approvalChance: 0.2,
 }
 
+/**
+ * Fixed simulation sub-step (R012, amended 2026-11-25): the frame loop
+ * advances the city in fixed in-game seconds bounded by this ceiling, so
+ * per-step movement, scheduling and traffic integration stay inside the
+ * bounds the renderer and route rules assume at any speed — at 20×
+ * several sub-steps run per frame.
+ */
+export const SIM_SUBSTEP_GAME_S = 2
+/**
+ * Per-frame sub-step cap: bounds per-frame simulation work. The remainder
+ * accumulates across frames, so a slow frame loses and gains no in-game
+ * time (R012, amended 2026-11-25).
+ */
+export const SIM_SUBSTEPS_PER_FRAME_MAX = 24
+
+/**
+ * Pure fixed sub-step accumulator (R012, amended 2026-11-25): the frame
+ * loop feeds in-game seconds (real dt × speed × timeScale) and releases
+ * them as a bounded number of fixed sub-steps. `pending` carries
+ * unexecuted in-game time across frames — a slow frame defers time, it
+ * never loses it — and the executed total is always an exact multiple of
+ * the sub-step.
+ */
+export function advanceSubSteps(
+  pendingGameS: number,
+  fedGameS: number,
+  subStepGameS: number,
+  maxPerFrame: number,
+): { run: number; pending: number } {
+  const total = pendingGameS + fedGameS
+  const run = Math.min(Math.floor(total / subStepGameS), maxPerFrame)
+  return { run, pending: total - run * subStepGameS }
+}
+
 // ---- The seeded PRNG (R014) -------------------------------------------------
 // The only randomness the simulation uses. Tests and the replay driver
 // replace it with an identically-seeded instance for exact sequences.

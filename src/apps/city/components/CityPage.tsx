@@ -27,12 +27,15 @@ import { init2D, supportsWebGL } from '../core/render2d'
 import { init3D } from '../core/render3d'
 import { replayRun } from '../core/replay'
 import {
+  advanceSubSteps,
   applyLayoutEdit,
   dispatchTask,
   initSim,
   onboardConnector,
   resetSim,
   setActivity as setSimActivity,
+  SIM_SUBSTEP_GAME_S,
+  SIM_SUBSTEPS_PER_FRAME_MAX,
   tickSim,
   world,
   type RecordedAction,
@@ -45,7 +48,7 @@ import type { CityToolController } from '../webmcp'
 import '../city.css'
 
 const ASSETS_BASE = '/city-assets'
-const SPEEDS = [0, 1, 2, 4] as const
+const SPEEDS = [0, 0.5, 1, 1.25, 1.5, 2, 4, 8, 20] as const
 
 /**
  * SubtleCrypto, or null when the environment lacks it (non-secure origins,
@@ -57,7 +60,7 @@ function subtleCrypto(): SubtleCrypto | null {
   return globalCrypto?.subtle ?? null
 }
 
-/** `?speed=0|1|2|4` sets the initial speed; absent or invalid boots at 1×. */
+/** `?speed=` sets the initial speed to any value in the declared set (R012, amended 2026-11-25); absent or invalid boots at 1×. */
 export function parseSpeedParam(search: string): number {
   const raw = new URLSearchParams(search).get('speed')
   if (!raw) return 1
@@ -284,6 +287,10 @@ export default function CityPage() {
     // golden-viewpoint harness can drive the page through its own seams.
     let fidelityHandle: CityFidelityHandle | null = null
     let speed = parseSpeedParam(window.location.search)
+    // R012 (amended 2026-11-25): unexecuted in-game time carried across
+    // frames — the sub-step accumulator keeps in-game time exact, so a
+    // slow frame loses and gains no in-game time.
+    let simAccum = 0
     // The active renderer view; the page owns it (R027).
     let view: '3d' | '2d' = '3d'
     // The paused 3D renderer kept while a WebGL context is lost (R015): the
@@ -656,7 +663,28 @@ export default function CityPage() {
           audio.update(renderer?.fidelity?.camera.position.y ?? AUDIO_OVERVIEW_HEIGHT, false)
         }
         let stageStart = meter ? performance.now() : 0
-        if (speed > 0) tickSim(dt * world.timeScale * speed, dt * speed, dt)
+        if (speed > 0) {
+          // R012 (amended 2026-11-25): convert real time × speed × timeScale
+          // into in-game time and execute it as fixed simulation sub-steps
+          // under the per-sub-step ceiling. At 20× several sub-steps run per
+          // frame; the capped remainder accumulates, so per-step movement,
+          // scheduling and traffic integration stay inside the bounds the
+          // renderer and route rules assume and no in-game time is lost.
+          const { run, pending } = advanceSubSteps(
+            simAccum,
+            dt * world.timeScale * speed,
+            SIM_SUBSTEP_GAME_S,
+            SIM_SUBSTEPS_PER_FRAME_MAX,
+          )
+          simAccum = pending
+          for (let i = 0; i < run; i++) {
+            tickSim(
+              SIM_SUBSTEP_GAME_S,
+              SIM_SUBSTEP_GAME_S / world.timeScale,
+              SIM_SUBSTEP_GAME_S / (world.timeScale * speed),
+            )
+          }
+        }
         if (meter) {
           const now = performance.now()
           simulationMs += now - stageStart
@@ -753,15 +781,11 @@ export default function CityPage() {
           </div>
         </div>
         <div ref={speedBarRef} className="speed">
-          <button type="button" className="speed-btn active" data-speed="1">
-            1×
-          </button>
-          <button type="button" className="speed-btn" data-speed="2">
-            2×
-          </button>
-          <button type="button" className="speed-btn" data-speed="4">
-            4×
-          </button>
+          {[0.5, 1, 1.25, 1.5, 2, 4, 8, 20].map((s) => (
+            <button key={s} type="button" className={s === 1 ? 'speed-btn active' : 'speed-btn'} data-speed={s}>
+              {s}×
+            </button>
+          ))}
           <button type="button" className="speed-btn" data-speed="0">
             Pause
           </button>
