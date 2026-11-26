@@ -281,6 +281,20 @@ export async function init3D(
       holdAmbient,
       budget: budgetView,
       nightWindows: () => buildings.nightWindows(heldAmbientTime ?? world.clock),
+      diagnostics: () => {
+        const report = budgetMonitor.report()
+        return {
+          tier: pipeline.tier,
+          drawCalls: renderer.info.render.calls,
+          triangles: renderer.info.memory.geometries,
+          geometries: renderer.info.memory.geometries,
+          textures: renderer.info.memory.textures,
+          programs: 0,
+          avgFps: report.avgFps,
+          floorFps: report.floorFps,
+          slowFrames: report.slowFrames,
+        }
+      },
     },
   }
 }

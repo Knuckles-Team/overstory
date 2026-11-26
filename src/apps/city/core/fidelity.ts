@@ -28,7 +28,7 @@ import type { NightWindowReport } from './render3d/windowEmissive'
 import { dressingForPlot } from './render3d/buildings'
 import { collectLabelCandidates } from './render3d/labelLayer'
 import type { world as simWorld } from './sim'
-import type { CityActions, CityFidelityCore } from './types'
+import type { CityActions, CityFidelityCore, CityRenderDiagnostics } from './types'
 
 /** The in-game boot clock: the city wakes at 09:00 (sim.ts). */
 const BOOT_CLOCK_S = 9 * 3600
@@ -149,6 +149,8 @@ export interface CityFidelityHandle {
   budget(): FrameBudgetView | null
   /** The live night-window resolution (R066); null while the 2D schematic is active. */
   nightWindows(): NightWindowReport | null
+  /** View-independent diagnostics: average FPS, floor FPS, slow frames (R078). */
+  diagnostics(): CityRenderDiagnostics | null
   dispose(): void
 }
 
@@ -470,6 +472,11 @@ export function installCityFidelity(deps: CityFidelityDeps): CityFidelityHandle 
     return deps.core()?.nightWindows?.() ?? null
   }
 
+  /** View-independent diagnostics: average FPS, floor FPS, slow frames (R078). */
+  function diagnostics(): CityRenderDiagnostics | null {
+    return deps.core()?.diagnostics?.() ?? null
+  }
+
   function dispose(): void {
     if (typeof window !== 'undefined') window.__cityFidelity = undefined
   }
@@ -485,6 +492,7 @@ export function installCityFidelity(deps: CityFidelityDeps): CityFidelityHandle 
     gpu,
     budget,
     nightWindows,
+    diagnostics,
     dispose,
   }
   if (typeof window !== 'undefined' && import.meta.env.DEV) window.__cityFidelity = handle

@@ -4,6 +4,7 @@
  * (OVERSTORY-CITY-R015). Same city graph, same characters, same events — a
  * view over the shared world state, never a second system.
  */
+// spec: OVERSTORY-CITY-R015, OVERSTORY-CITY-R027, OVERSTORY-CITY-R028.1, OVERSTORY-CITY-R065, OVERSTORY-CITY-R066, OVERSTORY-CITY-R077, OVERSTORY-CITY-R078
 import { GROUND_SIZE, PLOT_W } from './layout'
 import { encodingColor, stateColor } from './encoding'
 import { world as simWorld } from './sim'
@@ -11,6 +12,7 @@ import { isRegionalWater } from './worldgen'
 import { sampleRoadCurve, type RoadGraph } from '@/lib/scene3d/roads'
 import { sampleTrafficPose } from './render3d/traffic'
 import type { CityRenderer, CityViewport, SelectionHit } from './types'
+import { TARGET_FRAME_MS } from './frameBudget'
 
 /**
  * WebGL probe (OVERSTORY-CITY-R015): the page mounts the 3D scene only when
@@ -57,6 +59,17 @@ export function init2D(
   let panY = 0
   let panTX = 0
   let panTY = 0
+
+  let renderLastTime = performance.now()
+  // Frame-budget monitor for the 2D view (R065/R078).
+  const frames2d: { t: number; ms: number }[] = []
+  let clock2d = 0
+  function recordFrame2d(ms: number): void {
+    if (!Number.isFinite(ms) || ms < 0) return
+    clock2d += ms
+    frames2d.push({ t: clock2d, ms })
+    while (frames2d.length > 0 && clock2d - frames2d[0].t > 5000) frames2d.shift()
+  }
 
   function resize(): void {
     canvas.width = container.clientWidth * (window.devicePixelRatio || 1)
@@ -132,12 +145,17 @@ export function init2D(
   }
 
   function render(): void {
+    const now = performance.now()
+    const frameMs = now - renderLastTime
+    renderLastTime = now
+    recordFrame2d(frameMs)
+
     const dpr = window.devicePixelRatio || 1
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
     const W = canvas.width / dpr
     const H = canvas.height / dpr
-    const t = world.clock / 86400
-    const elev = Math.sin((t - 0.25) * Math.PI * 2)
+    const clock = world.clock / 86400
+    const elev = Math.sin((clock - 0.25) * Math.PI * 2)
     const night = Math.max(0, Math.min(1, (-elev + 0.06) * 3))
 
     ctx.fillStyle = '#3d7fb5'
@@ -425,6 +443,44 @@ export function init2D(
     overview,
     getViewport,
     setViewport,
+    view: '2d' as const,
+    /** Stateless renderer diagnostics (R028.1/R065/R078). */
+    diagnostics: () => {
+      // Compute a simple FPS report from the trailing window.
+      if (frames2d.length === 0)
+        return {
+          tier: 'low' as const,
+          drawCalls: 0,
+          triangles: 0,
+          geometries: 0,
+          textures: 0,
+          programs: 0,
+          avgFps: 0,
+          floorFps: 0,
+          slowFrames: 0,
+        }
+      const span = clock2d - frames2d[0].t
+      const slowFrames = frames2d.filter((f) => f.ms > TARGET_FRAME_MS).length
+      const slowFrames_ = slowFrames
+      const avgFps = frames2d.length / (span / 1000)
+      let floorFps = Infinity
+      for (let s = 0; s + 1000 <= span; s += 1000) {
+        const inSlice = frames2d.filter((f) => f.t - frames2d[0].t >= s && f.t - frames2d[0].t < s + 1000).length
+        floorFps = Math.min(floorFps, inSlice)
+      }
+      if (!Number.isFinite(floorFps)) floorFps = frames2d.length / Math.max(span / 1000, 1000 / 120)
+      return {
+        tier: 'low' as const,
+        drawCalls: 0,
+        triangles: 0,
+        geometries: 0,
+        textures: 0,
+        programs: 0,
+        avgFps,
+        floorFps,
+        slowFrames: slowFrames_,
+      }
+    },
     say: () => undefined,
     onResize: resize,
     setSelected: (hit) => {

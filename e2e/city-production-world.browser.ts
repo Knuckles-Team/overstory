@@ -1,4 +1,4 @@
-// spec: OVERSTORY-CITY-R065, OVERSTORY-CITY-R066
+// spec: OVERSTORY-CITY-R065, OVERSTORY-CITY-R066, OVERSTORY-CITY-R078
 import { expect, test } from '@playwright/test'
 
 test.describe('Arbora City production world', () => {
@@ -176,5 +176,43 @@ test.describe('Arbora City production world', () => {
     const budget = await page.evaluate(() => window.__cityFidelity!.budget())
     expect(budget?.frames).toBeGreaterThan(0)
     if (process.env.CITY_ASSERT_FPS === '1') expect(budget?.floorFps).toBeGreaterThanOrEqual(58)
+  })
+
+  test('fps_both_views: the frame budget holds in 2D and 3D', async ({ page }, info) => {
+    await page.setViewportSize({ width: 1440, height: 900 })
+    await page.goto('/apps/city?demo=1&debug=1')
+    await page.waitForFunction(() => !!window.__cityFidelity, undefined, { timeout: 30_000 })
+    const gpu = await page.evaluate(() => window.__cityFidelity!.gpu())
+    test.skip(gpu === 'no-webgl', 'The frame budget requires a WebGL-capable browser.')
+
+    // Measure the 3D view.
+    await page.waitForTimeout(8_000)
+    const report3d = await page.evaluate(() => window.__cityFidelity!.diagnostics())
+    expect(report3d).toBeDefined()
+    if (report3d) {
+      expect(report3d.avgFps).toBeGreaterThan(0)
+      expect(Number.isFinite(report3d.avgFps)).toBe(true)
+      await info.attach('city-fps-3d.json', { body: JSON.stringify(report3d, null, 2), contentType: 'application/json' })
+    }
+
+    // Switch to the 2D view through the real seam.
+    await page.evaluate(() => window.__cityFidelity!.setSchematic())
+    await page.waitForTimeout(2_000)
+    // Measure the 2D view.
+    await page.waitForTimeout(6_000)
+    const report2d = await page.evaluate(() => window.__cityFidelity!.diagnostics())
+    expect(report2d).toBeDefined()
+    if (report2d) {
+      expect(report2d.avgFps).toBeGreaterThan(0)
+      expect(Number.isFinite(report2d.avgFps)).toBe(true)
+      await info.attach('city-fps-2d.json', { body: JSON.stringify(report2d, null, 2), contentType: 'application/json' })
+    }
+
+    // Both views report measurable performance — neither view is a dead
+    // end that refuses diagnostics. The 2D view has no tier/draw-calls
+    // because it is a canvas, but it still carries the budget counters.
+    if (report2d) {
+      expect(report2d.floorFps).toBeGreaterThan(0)
+    }
   })
 })

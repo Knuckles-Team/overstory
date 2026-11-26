@@ -43,6 +43,8 @@ export interface CityRenderDiagnostics {
 
 /** One renderer (3D scene or 2D schematic) of the same city. */
 export interface CityRenderer {
+  /** The view identifier ('2d' or '3d'). */
+  view?: '2d'
   /** Draw one frame; `dtReal` is the real elapsed seconds. */
   render(dtReal: number): void
   /** Tear down all handles, listeners and GPU resources. */
@@ -104,6 +106,8 @@ export interface CityFidelityCore {
   budget?(): FrameBudgetView | null
   /** The live night-window resolution (R066); null on stateless renderers. */
   nightWindows?(): NightWindowReport | null
+  /** View-independent diagnostics: average FPS, floor FPS, slow frames (R078). */
+  diagnostics?(): CityRenderDiagnostics | null
 }
 
 /** The activity mode the sim runs in (R026): quiet is the default. */
