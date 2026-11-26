@@ -20,6 +20,7 @@ export const APP_ROUTES: readonly RouteDef[] = [
     minRole: 'user',
     capability: 'app:city',
     mobile: 'adapted',
+    actions: [],
     element: lazy(() => import('./components/CityPage')),
   },
 ]

@@ -15,7 +15,12 @@ export default defineConfig({
     cwd: root,
     command:
       'pnpm exec vite build --outDir node_modules/.cache/route-matrix-dist && node e2e/fixtures/strict-style/serve.mjs',
-    env: { STRICT_STYLE_DIST: 'node_modules/.cache/route-matrix-dist', STRICT_STYLE_PORT: '5208' },
+    env: {
+      STRICT_STYLE_DIST: 'node_modules/.cache/route-matrix-dist',
+      STRICT_STYLE_PORT: '5208',
+      // The IDE route embeds its origin, so the probe lists it as a deployment would.
+      STRICT_STYLE_FRAME_SOURCES: 'http://code.example',
+    },
     url: 'http://127.0.0.1:5208',
     reuseExistingServer: false,
     timeout: 240_000,

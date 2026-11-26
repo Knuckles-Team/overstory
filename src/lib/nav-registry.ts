@@ -134,6 +134,24 @@ export const SECTIONS: readonly SectionMeta[] = [
   { id: 'admin', label: 'Admin' },
 ]
 
+/** Accessible roles a declared route action may be reached by. */
+export type ActionControlRole = 'button' | 'tab' | 'textbox' | 'combobox' | 'slider' | 'link'
+
+/** A route-scoped action id: `<routeId>.<verb>`, never reused. */
+export type ActionId = `${string}.${string}`
+
+/**
+ * One primary action a route offers, declared in the registry (the source of truth) and
+ * located by its accessible role and name. The responsive route matrix asserts every
+ * declared control is visible and enabled at each viewport shape (OVERSTORY-DESIGN-R004.1).
+ */
+export interface RouteAction {
+  id: ActionId
+  role: ActionControlRole
+  /** Exact accessible name of the control. */
+  name: string
+}
+
 export interface RouteDef {
   /** Stable identifier, e.g. 'knowledge.graph'. Never reused, never renumbered. */
   id: string
@@ -163,6 +181,13 @@ export interface RouteDef {
   capability?: string
   element: LazyExoticComponent<ComponentType>
   mobile: 'full' | 'adapted' | 'unsupported'
+  /**
+   * The route's primary actions. Empty only for a route that forwards elsewhere
+   * (`redirects`), takes its data from the path (`:param`), is capability-gated, or
+   * renders no enabled control until its data source serves; the registry test keeps
+   * that list explicit.
+   */
+  actions: readonly RouteAction[]
   /** Optional route-specific overrides. `getRoutePageMetadata` fills safe defaults. */
   page?: Partial<RoutePageMetadata>
 }
@@ -178,6 +203,7 @@ export const ROUTES: readonly RouteDef[] = [
     icon: MessageCircle,
     minRole: 'reader',
     mobile: 'full',
+    actions: [{ id: 'chat.console.message-input', role: 'textbox', name: 'Message input' }],
     // ChatPanel is a persistent, prop-driven singleton (full-page on /chat, native dock
     // elsewhere) mounted once at the App shell rather than swapped in by route — see
     // App.tsx. This element exists so Chat is still a first-class registry entry for
@@ -212,6 +238,10 @@ export const ROUTES: readonly RouteDef[] = [
     // unscoped-by-owner filesystem surface.
     minRole: 'admin',
     mobile: 'adapted',
+    actions: [
+      { id: 'workspace.files.refresh', role: 'button', name: 'Refresh' },
+      { id: 'workspace.files.upload', role: 'button', name: 'Upload' },
+    ],
     element: lazy(() => import('@/components/views/FilesView')),
   },
   {
@@ -224,6 +254,7 @@ export const ROUTES: readonly RouteDef[] = [
     icon: LayoutDashboard,
     minRole: 'reader',
     mobile: 'adapted',
+    actions: [{ id: 'workspace.dashboards.create', role: 'button', name: 'Create' }],
     element: lazy(() => import('@/components/dashboards/DashboardsView')),
   },
   {
@@ -234,7 +265,8 @@ export const ROUTES: readonly RouteDef[] = [
     blurb: 'Edit your workspace in VS Code while the agent sees your open file and selection.',
     icon: Code2,
     minRole: 'user',
-    mobile: 'unsupported',
+    mobile: 'adapted',
+    actions: [{ id: 'workspace.ide.reload-the-ide-frame', role: 'button', name: 'Reload the IDE frame' }],
     element: lazy(() => import('@/components/views/WorkspaceIDEView')),
   },
   // -------------------------------------------------------- Control Plane
@@ -247,6 +279,7 @@ export const ROUTES: readonly RouteDef[] = [
     icon: Terminal,
     minRole: 'user',
     mobile: 'adapted',
+    actions: [{ id: 'control-plane.sessions.reload', role: 'button', name: 'Reload' }],
     element: lazy(() => import('@/components/views/SessionsView')),
   },
   {
@@ -261,6 +294,10 @@ export const ROUTES: readonly RouteDef[] = [
     // (`_ADMIN_ROUTE_PREFIXES`). Nav raised to match backend policy.
     minRole: 'admin',
     mobile: 'adapted',
+    actions: [
+      { id: 'control-plane.fleet.refresh', role: 'button', name: 'Refresh' },
+      { id: 'control-plane.fleet.domain-health', role: 'tab', name: 'Domain Health' },
+    ],
     element: lazy(() => import('@/components/views/FleetView')),
   },
   {
@@ -277,6 +314,9 @@ export const ROUTES: readonly RouteDef[] = [
     // than loosening the API.
     minRole: 'admin',
     mobile: 'adapted',
+    actions: [
+      { id: 'control-plane.goals.toggle-advanced-goal-options', role: 'button', name: 'Toggle advanced goal options' },
+    ],
     element: lazy(() => import('@/components/views/GoalsView')),
   },
   {
@@ -292,6 +332,7 @@ export const ROUTES: readonly RouteDef[] = [
     // control-plane.goals above. Nav raised to match policy.
     minRole: 'admin',
     mobile: 'adapted',
+    actions: [],
     element: lazy(() => import('@/components/views/WorkflowEditorView')),
   },
   {
@@ -307,6 +348,7 @@ export const ROUTES: readonly RouteDef[] = [
     // (`_ADMIN_ROUTE_PREFIXES`). Nav raised to match backend policy.
     minRole: 'admin',
     mobile: 'adapted',
+    actions: [],
     element: lazy(() => import('@/components/views/PromptsView')),
   },
   {
@@ -318,6 +360,10 @@ export const ROUTES: readonly RouteDef[] = [
     icon: Zap,
     minRole: 'maintainer',
     mobile: 'adapted',
+    actions: [
+      { id: 'control-plane.skills.search-catalog', role: 'textbox', name: 'Search catalog...' },
+      { id: 'control-plane.skills.add-mcp-server', role: 'button', name: 'Add MCP Server' },
+    ],
     element: lazy(() => import('@/components/views/SkillsView')),
   },
   {
@@ -332,6 +378,10 @@ export const ROUTES: readonly RouteDef[] = [
     // (`_ADMIN_ROUTE_PREFIXES`). Nav raised to match backend policy.
     minRole: 'admin',
     mobile: 'adapted',
+    actions: [
+      { id: 'control-plane.scheduler.week', role: 'tab', name: 'Week' },
+      { id: 'control-plane.scheduler.refresh', role: 'button', name: 'Refresh' },
+    ],
     element: lazy(() => import('@/components/views/SchedulingView')),
   },
   {
@@ -343,6 +393,7 @@ export const ROUTES: readonly RouteDef[] = [
     icon: ListTodo,
     minRole: 'maintainer',
     mobile: 'adapted',
+    actions: [{ id: 'control-plane.sdd.specifications', role: 'tab', name: 'Specifications' }],
     element: lazy(() => import('@/components/views/SDDView')),
   },
   {
@@ -355,6 +406,10 @@ export const ROUTES: readonly RouteDef[] = [
     icon: Bot,
     minRole: 'maintainer',
     mobile: 'adapted',
+    actions: [
+      { id: 'control-plane.agent-library.library', role: 'tab', name: 'Library' },
+      { id: 'control-plane.agent-library.compose-an-agent', role: 'tab', name: 'Compose an Agent' },
+    ],
     element: lazy(() => import('@/components/views/AgentLibraryView')),
   },
   {
@@ -367,6 +422,10 @@ export const ROUTES: readonly RouteDef[] = [
     icon: SlidersHorizontal,
     minRole: 'maintainer',
     mobile: 'adapted',
+    actions: [
+      { id: 'control-plane.llm-templates.new-template', role: 'button', name: 'New template' },
+      { id: 'control-plane.llm-templates.search-models', role: 'textbox', name: 'Search models' },
+    ],
     element: lazy(() => import('@/components/views/LLMTemplatesView')),
   },
   {
@@ -378,6 +437,9 @@ export const ROUTES: readonly RouteDef[] = [
     icon: AppWindow,
     minRole: 'user',
     mobile: 'adapted',
+    actions: [
+      { id: 'control-plane.mcp-apps.reload-mcp-tool-inventory', role: 'button', name: 'Reload MCP tool inventory' },
+    ],
     element: lazy(() => import('@/components/views/McpAppsView')),
   },
   {
@@ -390,6 +452,7 @@ export const ROUTES: readonly RouteDef[] = [
     icon: FileCheck2,
     minRole: 'reader',
     mobile: 'adapted',
+    actions: [],
     // Reads its `:planRef` from `window.location.pathname` itself (see the
     // file doc), so it needs no App.tsx param-passing special case.
     element: lazy(() => import('@/components/views/ConsoleConfirmView')),
@@ -404,6 +467,7 @@ export const ROUTES: readonly RouteDef[] = [
     icon: Compass,
     minRole: 'reader',
     mobile: 'adapted',
+    actions: [],
     redirects: [{ routeId: 'workspace.work-proof' }, { routeId: 'workspace.operate' }],
     element: lazy(() => import('@/components/workspace/WorkspaceEntry')),
   },
@@ -418,6 +482,7 @@ export const ROUTES: readonly RouteDef[] = [
     icon: Compass,
     minRole: 'reader',
     mobile: 'adapted',
+    actions: [{ id: 'workspace.operate.reprobe-readiness', role: 'button', name: 'Reprobe readiness' }],
     navigation: 'deep-link',
     element: lazy(() => import('@/components/workspace/OperateWorkspace')),
   },
@@ -430,6 +495,7 @@ export const ROUTES: readonly RouteDef[] = [
     icon: Compass,
     minRole: 'user',
     mobile: 'adapted',
+    actions: [{ id: 'workspace.work-proof.find-destination', role: 'button', name: 'Find destination' }],
     navigation: 'deep-link',
     element: lazy(() => import('@/components/workspace/WorkWorkspace')),
   },
@@ -443,6 +509,7 @@ export const ROUTES: readonly RouteDef[] = [
     icon: Compass,
     minRole: 'user',
     mobile: 'adapted',
+    actions: [{ id: 'workspace.explore-proof.search-knowledge', role: 'textbox', name: 'Search knowledge' }],
     element: lazy(() => import('@/components/workspace/ExploreQueryWorkspace')),
   },
   {
@@ -457,6 +524,7 @@ export const ROUTES: readonly RouteDef[] = [
     // The 3D renderer declines on a phone and says so; the table, JSON and 2D
     // renderers are usable, so the page as a whole adapts rather than being unusable.
     mobile: 'adapted',
+    actions: [{ id: 'knowledge.atlas.start-knowledge-graph', role: 'button', name: 'Knowledge Graph' }],
     element: lazy(() => import('@/components/views/AtlasView')),
   },
   {
@@ -470,6 +538,10 @@ export const ROUTES: readonly RouteDef[] = [
     icon: Network,
     minRole: 'reader',
     mobile: 'adapted',
+    actions: [
+      { id: 'knowledge.graph.visual-canvas', role: 'tab', name: 'Visual Canvas' },
+      { id: 'knowledge.graph.cypher-console', role: 'tab', name: 'Cypher Console' },
+    ],
     element: lazy(() => import('@/components/views/GraphView')),
   },
   {
@@ -483,6 +555,7 @@ export const ROUTES: readonly RouteDef[] = [
     icon: Boxes,
     minRole: 'reader',
     mobile: 'adapted',
+    actions: [{ id: 'knowledge.graph-3d.reload-the-3d-graph-data', role: 'button', name: 'Reload the 3D graph data' }],
     element: lazy(() => import('@/components/views/Graph3DView')),
   },
   {
@@ -496,6 +569,9 @@ export const ROUTES: readonly RouteDef[] = [
     icon: Layers,
     minRole: 'reader',
     mobile: 'adapted',
+    actions: [
+      { id: 'knowledge.graph-3d-lod.reload-the-lod-graph-data', role: 'button', name: 'Reload the LOD graph data' },
+    ],
     element: lazy(() => import('@/components/views/Graph3DLodView')),
   },
   {
@@ -509,6 +585,7 @@ export const ROUTES: readonly RouteDef[] = [
     icon: History,
     minRole: 'reader',
     mobile: 'adapted',
+    actions: [{ id: 'knowledge.temporal-graph.temporal-scrubber', role: 'slider', name: 'temporal-scrubber' }],
     element: lazy(() => import('@/components/views/TemporalGraphView')),
   },
   {
@@ -525,6 +602,10 @@ export const ROUTES: readonly RouteDef[] = [
     // (`_ADMIN_ROUTE_PREFIXES`). Nav raised to match backend policy.
     minRole: 'admin',
     mobile: 'adapted',
+    actions: [
+      { id: 'knowledge.code-graph.navigator', role: 'tab', name: 'Navigator' },
+      { id: 'knowledge.code-graph.call-graph', role: 'tab', name: 'Call Graph' },
+    ],
     element: lazy(() => import('@/components/views/CodeGraphView')),
   },
   {
@@ -538,6 +619,7 @@ export const ROUTES: readonly RouteDef[] = [
     icon: Zap,
     minRole: 'reader',
     mobile: 'adapted',
+    actions: [],
     element: lazy(() => import('@/components/views/VizDemoView')),
   },
   {
@@ -551,6 +633,7 @@ export const ROUTES: readonly RouteDef[] = [
     icon: Network,
     minRole: 'user',
     mobile: 'adapted',
+    actions: [{ id: 'knowledge.extraction.extract', role: 'button', name: 'Extract' }],
     element: lazy(() => import('@/components/views/ExtractionView')),
   },
   {
@@ -564,6 +647,10 @@ export const ROUTES: readonly RouteDef[] = [
     icon: Boxes,
     minRole: 'user',
     mobile: 'adapted',
+    actions: [
+      { id: 'knowledge.object-explorer.search-objects', role: 'textbox', name: 'Search objects' },
+      { id: 'knowledge.object-explorer.save-set', role: 'button', name: 'Save Set' },
+    ],
     element: lazy(() => import('@/components/views/ObjectExplorerView')),
   },
   {
@@ -576,6 +663,7 @@ export const ROUTES: readonly RouteDef[] = [
     icon: Boxes,
     minRole: 'reader',
     mobile: 'adapted',
+    actions: [],
     // Requires an `id` route param the generic zero-prop element cannot carry; the
     // router special-cases this path the same way it special-cases Chat (see App.tsx),
     // so this element is never mounted through the generic contract — the cast only
@@ -593,6 +681,7 @@ export const ROUTES: readonly RouteDef[] = [
     icon: Waypoints,
     minRole: 'user',
     mobile: 'adapted',
+    actions: [{ id: 'knowledge.vertex-explorer.load-object-set', role: 'button', name: 'Load Object Set' }],
     element: lazy(() => import('@/components/views/VertexView')),
   },
   {
@@ -606,6 +695,7 @@ export const ROUTES: readonly RouteDef[] = [
     icon: Shapes,
     minRole: 'reader',
     mobile: 'adapted',
+    actions: [{ id: 'knowledge.schema.import-export', role: 'button', name: 'Import / Export' }],
     element: lazy(() => import('@/components/views/SchemaView')),
   },
   {
@@ -619,6 +709,10 @@ export const ROUTES: readonly RouteDef[] = [
     icon: FileCheck2,
     minRole: 'maintainer',
     mobile: 'adapted',
+    actions: [
+      { id: 'knowledge.sparql.sparql', role: 'tab', name: 'SPARQL' },
+      { id: 'knowledge.sparql.run-query', role: 'button', name: 'Run Query' },
+    ],
     element: lazy(() => import('@/components/views/SparqlView')),
   },
   {
@@ -638,6 +732,10 @@ export const ROUTES: readonly RouteDef[] = [
     // correct on its own terms, not merely "no row-scoping exists yet".
     minRole: 'admin',
     mobile: 'adapted',
+    actions: [
+      { id: 'knowledge.cypher.run', role: 'button', name: 'Run' },
+      { id: 'knowledge.cypher.uql-query', role: 'textbox', name: 'UQL query' },
+    ],
     element: lazy(() => import('@/components/views/CypherReplView')),
   },
   {
@@ -651,6 +749,10 @@ export const ROUTES: readonly RouteDef[] = [
     icon: LibraryBig,
     minRole: 'user',
     mobile: 'adapted',
+    actions: [
+      { id: 'knowledge.catalogue.search', role: 'textbox', name: 'Search' },
+      { id: 'knowledge.catalogue.apply-filters', role: 'button', name: 'Apply filters' },
+    ],
     element: lazy(() => import('@/components/views/CatalogueView')),
   },
   {
@@ -664,6 +766,7 @@ export const ROUTES: readonly RouteDef[] = [
     icon: Compass,
     minRole: 'user',
     mobile: 'adapted',
+    actions: [{ id: 'knowledge.perspectives.run-query', role: 'button', name: 'Run Query' }],
     element: lazy(() => import('@/components/views/MagmaView')),
   },
   {
@@ -677,6 +780,7 @@ export const ROUTES: readonly RouteDef[] = [
     icon: Database,
     minRole: 'user',
     mobile: 'adapted',
+    actions: [{ id: 'knowledge.data-analyst.analyst', role: 'tab', name: 'Analyst' }],
     element: lazy(() => import('@/components/views/DataAnalystView')),
   },
   {
@@ -695,6 +799,7 @@ export const ROUTES: readonly RouteDef[] = [
     // ("this is a raw-SQL surface; do not give it to reader").
     minRole: 'admin',
     mobile: 'adapted',
+    actions: [],
     element: lazy(() => import('@/components/views/TableExplorerView')),
   },
   {
@@ -713,6 +818,10 @@ export const ROUTES: readonly RouteDef[] = [
     // page where every single call 403'd. Nav raised to match backend policy.
     minRole: 'admin',
     mobile: 'full',
+    actions: [
+      { id: 'knowledge.base.search-knowledge-bases', role: 'textbox', name: 'Search knowledge bases...' },
+      { id: 'knowledge.base.browse', role: 'tab', name: 'Browse' },
+    ],
     element: lazy(() => import('@/components/views/KnowledgeBaseView')),
   },
   {
@@ -726,6 +835,10 @@ export const ROUTES: readonly RouteDef[] = [
     icon: Brain,
     minRole: 'user',
     mobile: 'adapted',
+    actions: [
+      { id: 'knowledge.memories.add-memory', role: 'button', name: 'Add Memory' },
+      { id: 'knowledge.memories.browse', role: 'tab', name: 'Browse' },
+    ],
     element: lazy(() => import('@/components/views/MemoryView')),
   },
 
@@ -739,6 +852,10 @@ export const ROUTES: readonly RouteDef[] = [
     icon: LayoutDashboard,
     minRole: 'reader',
     mobile: 'full',
+    actions: [
+      { id: 'observability.dashboard.search-services', role: 'textbox', name: 'Search services...' },
+      { id: 'observability.dashboard.refresh-all', role: 'button', name: 'Refresh all' },
+    ],
     element: lazy(() => import('@/components/views/DashboardView')),
   },
   {
@@ -750,6 +867,10 @@ export const ROUTES: readonly RouteDef[] = [
     icon: LayoutDashboard,
     minRole: 'user',
     mobile: 'adapted',
+    actions: [
+      { id: 'observability.live-dashboards.refresh-all', role: 'button', name: 'Refresh all' },
+      { id: 'observability.live-dashboards.time-range', role: 'combobox', name: 'Time range' },
+    ],
     element: lazy(() => import('@/components/views/dashboards/LiveDashboardsView')),
   },
   {
@@ -762,6 +883,7 @@ export const ROUTES: readonly RouteDef[] = [
     icon: Scale,
     minRole: 'reader',
     mobile: 'adapted',
+    actions: [{ id: 'observability.decisions.explorer', role: 'tab', name: 'Explorer' }],
     element: lazy(() => import('@/components/views/DecisionsPage')),
   },
   {
@@ -773,6 +895,7 @@ export const ROUTES: readonly RouteDef[] = [
     icon: Gauge,
     minRole: 'reader',
     mobile: 'full',
+    actions: [{ id: 'observability.system-status.refresh', role: 'button', name: 'Refresh' }],
     element: lazy(() => import('@/components/views/SystemStatusView')),
   },
   {
@@ -784,6 +907,7 @@ export const ROUTES: readonly RouteDef[] = [
     icon: ShieldCheck,
     minRole: 'reader',
     mobile: 'full',
+    actions: [{ id: 'observability.arbora-readiness.reprobe-readiness', role: 'button', name: 'Reprobe readiness' }],
     element: lazy(() => import('@/components/views/ArboraReadinessView')),
   },
   {
@@ -795,6 +919,10 @@ export const ROUTES: readonly RouteDef[] = [
     icon: Activity,
     minRole: 'maintainer',
     mobile: 'adapted',
+    actions: [
+      { id: 'observability.observability.runs', role: 'tab', name: 'Runs' },
+      { id: 'observability.observability.run', role: 'button', name: 'Run' },
+    ],
     element: lazy(() => import('@/components/views/ObservabilityView')),
   },
   {
@@ -806,6 +934,7 @@ export const ROUTES: readonly RouteDef[] = [
     icon: Inbox,
     minRole: 'maintainer',
     mobile: 'adapted',
+    actions: [{ id: 'observability.broker.refresh', role: 'button', name: 'Refresh' }],
     element: lazy(() => import('@/components/views/BrokerView')),
   },
   {
@@ -818,6 +947,7 @@ export const ROUTES: readonly RouteDef[] = [
     icon: Coins,
     minRole: 'user',
     mobile: 'adapted',
+    actions: [],
     element: lazy(() => import('@/components/views/UsageView')),
   },
 
@@ -831,6 +961,7 @@ export const ROUTES: readonly RouteDef[] = [
     icon: Cpu,
     minRole: 'maintainer',
     mobile: 'adapted',
+    actions: [{ id: 'integrations.ecosystem.infrastructure-hub', role: 'button', name: 'Infrastructure Hub' }],
     element: lazy(() => import('@/components/views/EcosystemView')),
   },
   // GOC-25: single additive entry -- the dynamic, discovery-driven catalog
@@ -846,6 +977,7 @@ export const ROUTES: readonly RouteDef[] = [
     icon: Compass,
     minRole: 'user',
     mobile: 'adapted',
+    actions: [{ id: 'integrations.catalog.filter-integrations', role: 'textbox', name: 'Filter integrations' }],
     element: lazy(() => import('@/components/views/IntegrationsView')),
   },
 
@@ -859,6 +991,7 @@ export const ROUTES: readonly RouteDef[] = [
     icon: GraduationCap,
     minRole: 'reader',
     mobile: 'adapted',
+    actions: [{ id: 'documentation.learn.presentation-mode', role: 'button', name: 'Presentation mode' }],
     element: lazy(() => import('@/components/views/LearnView')),
   },
   {
@@ -870,6 +1003,7 @@ export const ROUTES: readonly RouteDef[] = [
     icon: BookOpen,
     minRole: 'reader',
     mobile: 'full',
+    actions: [{ id: 'documentation.docs.search-knowledge', role: 'textbox', name: 'Search knowledge...' }],
     element: lazy(() => import('@/components/views/KnowledgeView')),
   },
 
@@ -883,6 +1017,7 @@ export const ROUTES: readonly RouteDef[] = [
     icon: ShieldCheck,
     minRole: 'admin',
     mobile: 'adapted',
+    actions: [{ id: 'admin.console.users', role: 'tab', name: 'users' }],
     element: lazy(() => import('@/components/views/AdminView')),
   },
   {
@@ -894,6 +1029,10 @@ export const ROUTES: readonly RouteDef[] = [
     icon: Users,
     minRole: 'admin',
     mobile: 'adapted',
+    actions: [
+      { id: 'admin.users.refresh', role: 'button', name: 'Refresh' },
+      { id: 'admin.users.search-users', role: 'textbox', name: 'Search users' },
+    ],
     element: lazy(() => import('@/components/views/UserManagementView')),
   },
   {
@@ -921,6 +1060,10 @@ export const ROUTES: readonly RouteDef[] = [
     // nav section, only the role floor was wrong.
     minRole: 'admin',
     mobile: 'adapted',
+    actions: [
+      { id: 'admin.ops.pipeline', role: 'tab', name: 'Pipeline' },
+      { id: 'admin.ops.refresh', role: 'button', name: 'Refresh' },
+    ],
     element: lazy(() => import('@/components/views/OpsPanelView')),
   },
   {
@@ -932,6 +1075,7 @@ export const ROUTES: readonly RouteDef[] = [
     icon: Settings,
     minRole: 'admin',
     mobile: 'adapted',
+    actions: [{ id: 'admin.configuration.reload-engine', role: 'button', name: 'Reload Engine' }],
     element: lazy(() => import('@/components/views/ConfigurationView')),
   },
 
@@ -958,6 +1102,7 @@ export const PUBLIC_ROUTES: readonly RouteDef[] = [
     icon: BookOpen,
     minRole: 'reader',
     mobile: 'full',
+    actions: [{ id: 'public.thank-you.return-to-overstory', role: 'link', name: 'Return to Overstory' }],
     element: lazy(() => import('@/components/public/ThankYouPage')),
     page: {
       title: 'Thank you | Overstory',
@@ -980,6 +1125,7 @@ export const PUBLIC_ROUTES: readonly RouteDef[] = [
     icon: ShieldCheck,
     minRole: 'reader',
     mobile: 'full',
+    actions: [{ id: 'public.privacy.contact-the-service-owner', role: 'link', name: 'Contact the service owner' }],
     element: lazy(() => import('@/components/public/PrivacyPage')),
     page: {
       title: 'Privacy policy | Overstory',
@@ -1002,6 +1148,7 @@ export const PUBLIC_ROUTES: readonly RouteDef[] = [
     icon: FileCheck2,
     minRole: 'reader',
     mobile: 'full',
+    actions: [{ id: 'public.terms.contact-the-service-owner', role: 'link', name: 'Contact the service owner' }],
     element: lazy(() => import('@/components/public/TermsPage')),
     page: {
       title: 'Terms and conditions | Overstory',
@@ -1024,6 +1171,7 @@ export const PUBLIC_ROUTES: readonly RouteDef[] = [
     icon: MessageCircle,
     minRole: 'reader',
     mobile: 'full',
+    actions: [{ id: 'public.contact.open-overstory', role: 'link', name: 'Open Overstory' }],
     element: lazy(() => import('@/components/public/ContactPage')),
     page: {
       title: 'Contact | Overstory',
@@ -1049,6 +1197,7 @@ export const NOT_FOUND_ROUTE: RouteDef = {
   icon: Compass,
   minRole: 'reader',
   mobile: 'full',
+  actions: [],
   element: lazy(() => import('@/components/public/NotFoundPage')),
   page: {
     title: 'Page not found | Overstory',

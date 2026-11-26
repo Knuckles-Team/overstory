@@ -6,6 +6,11 @@ import type { Page } from '@playwright/test'
  * needs real data shows its own unavailable state instead of hanging.
  */
 export async function useSyntheticWorkspace(page: Page, options: { theme?: string } = {}) {
+  // The embedded IDE origin is not reachable offline; answer with an inert page so the frame
+  // does not become a browser error document.
+  await page.route('http://code.example/**', (route) =>
+    route.fulfill({ contentType: 'text/html', body: '<!doctype html><title>IDE</title><p>IDE stub</p>' }),
+  )
   await page.route('**/auth/session', (route) =>
     route.fulfill({
       json: {
