@@ -39,6 +39,7 @@ import {
 import { applyDocument, derivedRoadGraph, type LayoutOverride } from './layoutEdit'
 import { bus, makeEvent, type CityEvent } from './events'
 import { defaultPrng, type Prng } from './prng'
+import * as Economy from './economy'
 
 // ---- Agent state machine (R006) --------------------------------------------
 // One declared lifecycle the sim, the tests and the documentation all read.
@@ -411,6 +412,7 @@ const FIRST_VISIT_GRACE_S = 300 // real seconds before an owed first visit is dr
 const AUTO_TASK_MIN = 8
 const AUTO_TASK_MAX = 16 // real seconds between auto tasks
 let autoTaskTimer = 5 // first auto task shortly after boot
+let economyAccum = 0 // game seconds accumulated toward the next economic tick
 
 // ---- Buildings -------------------------------------------------------------
 
@@ -602,6 +604,9 @@ export function initSim(connectors: ConnectorDef[]): void {
   // edit replaces it with the overrides' graph.
   world.districtStyles = {}
   world.layoutDoc = null
+
+  // Initialise the economic engine (R069–R076).
+  Economy.initEconomy(defaultPrng())
 
   world.initialized = true
 }
@@ -1226,6 +1231,15 @@ export function tickSim(dtGame: number, dtReal: number, dtWall = dtReal): void {
     world.day++
   }
 
+  // Economic tick (R069–R076): every 300 in-game seconds.
+  if (Economy.isEconomyInitialised()) {
+    economyAccum += dtGame
+    if (economyAccum >= Economy.ECONOMY_TICK_GAME_S) {
+      economyAccum -= Economy.ECONOMY_TICK_GAME_S
+      Economy.tickEconomy()
+    }
+  }
+
   // Auto tasking (daytime only, bounded concurrency).
   autoTaskTimer -= dtReal
   if (autoTaskTimer <= 0) {
@@ -1335,5 +1349,7 @@ export function resetSim(): void {
   world.layoutDoc = null
   world.initialized = false
   autoTaskTimer = 5
+  economyAccum = 0
   taskSeq = 0
+  Economy.clearEconomy()
 }

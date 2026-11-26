@@ -32,6 +32,8 @@ export const EVENT_TYPES = [
   'asset.verified',
   'asset.failed',
   'mode.selected',
+  'economy',
+  'economy.construction',
 ] as const
 
 export type EventType = (typeof EVENT_TYPES)[number]
