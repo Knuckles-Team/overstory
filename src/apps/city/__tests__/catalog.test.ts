@@ -10,11 +10,13 @@
  * entry that no file backs.
  */
 // spec: OVERSTORY-CITY-R048.1, OVERSTORY-CITY-R048.10, OVERSTORY-CITY-R048.11, OVERSTORY-CITY-R048.12, OVERSTORY-CITY-R048.13, OVERSTORY-CITY-R048.14, OVERSTORY-CITY-R048.15, OVERSTORY-CITY-R051
+// spec: OVERSTORY-CITY-R063
 import { createHash } from 'node:crypto'
 import { readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { BUDGETS } from '../core/budgets'
+import { allowedAssetPath, EXEMPT_NONKIT_PINS } from '../core/provenance'
 
 const PUBLIC_DIR = join(__dirname, '..', '..', '..', '..', 'public')
 const KIT_DIR = join(PUBLIC_DIR, 'city-assets', 'kit')
@@ -101,5 +103,46 @@ describe('catalog integrity (R048.1)', () => {
       expect(entry.triangles, `${entry.id}: triangle budget`).toBeLessThanOrEqual(BUDGETS.assetTriangles)
       expect(entry.materials, `${entry.id}: material budget`).toBeLessThanOrEqual(BUDGETS.assetMaterials)
     }
+  })
+})
+
+describe('kit_only (R063)', () => {
+  it('every GLB the city loads is pinned in the lock with a matching digest', () => {
+    // The load layer serves only startup-verified pinned bytes, and the pins
+    // are exactly the lock files — verify every pin against disk, digest
+    // and byte count included.
+    for (const [path, spec] of Object.entries(lock.files)) {
+      const buf = readFileSync(join(PUBLIC_DIR, path))
+      expect(buf.byteLength, `${path}: pinned byte count`).toBe(spec.bytes)
+      expect(createHash('sha256').update(buf).digest('hex'), `${path}: pinned digest`).toBe(spec.sha256)
+    }
+  })
+
+  it('the non-kit pins are exactly the shared rig and the marker cube', () => {
+    const nonKit = Object.keys(lock.files).filter((p) => !p.startsWith('city-assets/kit/'))
+    expect(nonKit.sort()).toEqual(['city-assets/characters/robot-expressive.glb', 'city-assets/marker-cube.glb'])
+  })
+
+  it('catalog, lock and disk stay in integrity at the full family count', () => {
+    expect(catalog.entries, 'kit family count').toHaveLength(212)
+    expect(Object.keys(lock.files), 'total pinned count (212 kit + rig + marker cube)').toHaveLength(214)
+    const kitPins = Object.keys(lock.files).filter((p) => p.startsWith('city-assets/kit/'))
+    expect(new Set(kitPins), 'kit pins').toEqual(new Set(catalog.entries.map((e) => `city-assets/${e.file}`)))
+    expect(new Set(diskKitFiles()), 'kit files on disk').toEqual(new Set(kitPins))
+  })
+
+  it('the load-layer gate admits only kit families and the exempt pins', () => {
+    for (const entry of catalog.entries) {
+      expect(allowedAssetPath(`city-assets/${entry.file}`), `${entry.id}: catalog family loads`).toBe(true)
+    }
+    for (const pin of EXEMPT_NONKIT_PINS) {
+      expect(allowedAssetPath(pin), `${pin}: exempt pin loads`).toBe(true)
+    }
+    // Nothing else may load: external paths, other categories and hard-coded
+    // geometry all fail the gate.
+    expect(allowedAssetPath('city-assets/models/external.glb')).toBe(false)
+    expect(allowedAssetPath('city-assets/characters/other-rig.glb')).toBe(false)
+    expect(allowedAssetPath('https://example.com/model.glb')).toBe(false)
+    expect(allowedAssetPath('city-assets/kit')).toBe(false)
   })
 })

@@ -13,6 +13,7 @@ import { GLTFLoader, type GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { zoomBandFor } from '@/lib/scene3d/labels'
 import type { RoadGraph } from '@/lib/scene3d/roads'
 import { pinnedBytes } from './assets'
+import { allowedAssetPath, tagExempt } from './provenance'
 import type { world as simWorld } from './sim'
 import { createCityScene } from './render3d/scene'
 import { createBuildings } from './render3d/buildings'
@@ -43,11 +44,15 @@ export async function init3D(
 
   // Pinned GLBs are served only from the startup-verified byte cache, so
   // each pinned file is fetched exactly once and its bytes are the verified
-  // ones (OVERSTORY-CITY-R013). There is no render-time fetch fallback: an
-  // unverified pin is rejected at load and the character layer renders its
-  // labelled placeholder for it — an asset that failed verification never
-  // reaches the scene with unverified bytes.
+  // ones (OVERSTORY-CITY-R013). The path gate closes the set further
+  // (OVERSTORY-CITY-R063): only the catalogued kit and the two exempt
+  // non-kit pins may load — no external or hard-coded asset reaches the
+  // scene. There is no render-time fetch fallback: an unverified pin is
+  // rejected at load and the character layer renders its labelled
+  // placeholder for it — an asset that failed verification never reaches
+  // the scene with unverified bytes.
   function loadPinnedGLB(url: string): Promise<GLTF> {
+    if (!allowedAssetPath(url)) return Promise.reject(new Error(`asset outside the catalog and exempt pins: ${url}`))
     const cached = pinnedBytes(url)
     if (!cached) return Promise.reject(new Error(`pinned asset not verified at startup: ${url}`))
     return new Promise((resolve, reject) => {
@@ -87,6 +92,7 @@ export async function init3D(
       if (o instanceof THREE.Mesh) o.castShadow = true
     })
     markerRoot = mc.scene
+    tagExempt(markerRoot, 'construction-placeholder')
   } catch (err) {
     console.warn('[city] marker cube unavailable:', err)
   }
