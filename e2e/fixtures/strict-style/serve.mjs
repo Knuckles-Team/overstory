@@ -51,6 +51,13 @@ const types = {
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const directives = readDefaultPolicy(readFileSync(join(root, 'agent/overstory/server.py'), 'utf8'))
+  // A deployment that embeds the IDE lists its origin in the frame sources (the server's
+  // OVERSTORY_CSP_FRAME_SOURCES setting); this mirrors that for a probe.
+  const frameSources = process.env.STRICT_STYLE_FRAME_SOURCES
+  if (frameSources) {
+    const index = directives.findIndex((directive) => directive.startsWith('frame-src '))
+    if (index >= 0) directives[index] = `frame-src ${frameSources}`
+  }
   createServer((request, response) => {
     const path = normalize(decodeURIComponent(new URL(request.url ?? '/', 'http://x').pathname))
     let file = join(dist, path)

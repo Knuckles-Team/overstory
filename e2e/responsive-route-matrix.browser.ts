@@ -1,7 +1,7 @@
 // spec: OVERSTORY-DESIGN-R004.1
 // spec: OVERSTORY-DESIGN-R004.1.2
 import { readFileSync } from 'node:fs'
-import { expect, test } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
 import { useSyntheticWorkspace } from './fixtures/synthetic-workspace'
 
 /**
@@ -26,6 +26,8 @@ interface RouteRow {
   mobile: string
   label: string
   redirects: boolean
+  /** Declared in the registry (`actions`), the source of truth; this test only reads them. */
+  actions: { id: string; role: Parameters<Page['getByRole']>[0]; name: string }[]
 }
 
 function readRoutes(): RouteRow[] {
@@ -33,12 +35,24 @@ function readRoutes(): RouteRow[] {
   const start = source.indexOf('export const ROUTES')
   const end = source.indexOf('\n]\n', start)
   const rows: RouteRow[] = []
-  for (const block of source.slice(start, end).split(/\n  \{\n/).slice(1)) {
+  for (const block of source
+    .slice(start, end)
+    .split(/\n  \{\n/)
+    .slice(1)) {
     const id = /^\s{4}id: '([^']+)'/m.exec(block)?.[1]
     const path = /^\s{4}path: '([^']+)'/m.exec(block)?.[1]
     const label = /^\s{4}label: ['"](.+)['"],?$/m.exec(block)?.[1]
     const mobile = /^\s{4}mobile: '([^']+)'/m.exec(block)?.[1]
-    if (id && path && mobile && path !== '*') rows.push({ id, path, mobile, label: label ?? id, redirects: /^\s{4}redirects:/m.test(block) })
+    const declared = /^\s{4}actions: \[([\s\S]*?)\],?$/m.exec(block)?.[1] ?? ''
+    const actions = [...declared.matchAll(/\{\s*id: '([^']+)',\s*role: '([^']+)',\s*name: '([^']+)',?\s*\}/g)].map(
+      (m) => ({
+        id: m[1],
+        role: m[2] as RouteRow['actions'][number]['role'],
+        name: m[3],
+      }),
+    )
+    if (id && path && mobile && path !== '*')
+      rows.push({ id, path, mobile, label: label ?? id, redirects: /^\s{4}redirects:/m.test(block), actions })
   }
   return rows
 }
@@ -97,6 +111,12 @@ for (const route of ROUTES) {
         page.getByText(route.label).locator('visible=true').first(),
         `${route.id} renders no content at ${viewport.name}`,
       ).toBeVisible({ timeout: 25_000 })
+      // Every declared action's control is reachable: visible and enabled at this viewport.
+      for (const action of route.actions) {
+        const control = page.getByRole(action.role, { name: action.name, exact: true }).locator('visible=true').first()
+        await expect(control, `${action.id} is not visible at ${viewport.name}`).toBeVisible()
+        await expect(control, `${action.id} is not enabled at ${viewport.name}`).toBeEnabled()
+      }
     }
     // A route that is still gated has not passed the matrix, so its errors are logged, not asserted.
     if (route.mobile !== 'unsupported') expect(errors, `${route.id} raised page errors`).toEqual([])

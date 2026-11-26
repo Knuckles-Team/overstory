@@ -20,6 +20,7 @@ export const APP_ROUTES: readonly RouteDef[] = [
     minRole: 'user',
     capability: 'app:markets',
     mobile: 'adapted',
+    actions: [],
     element: lazy(() => import('./components/MarketsHome')),
   },
   {
@@ -33,6 +34,7 @@ export const APP_ROUTES: readonly RouteDef[] = [
     minRole: 'user',
     capability: 'app:markets',
     mobile: 'adapted',
+    actions: [],
     element: lazy(() => import('./components/MarketsNews')),
   },
   {
@@ -46,6 +48,7 @@ export const APP_ROUTES: readonly RouteDef[] = [
     minRole: 'user',
     capability: 'app:markets',
     mobile: 'adapted',
+    actions: [],
     element: lazy(() => import('./components/MarketsCalendar')),
   },
   {
@@ -59,6 +62,7 @@ export const APP_ROUTES: readonly RouteDef[] = [
     minRole: 'user',
     capability: 'app:markets',
     mobile: 'adapted',
+    actions: [],
     element: lazy(() => import('./components/MarketsPortfolio')),
   },
   {
@@ -72,6 +76,7 @@ export const APP_ROUTES: readonly RouteDef[] = [
     minRole: 'user',
     capability: 'app:markets',
     mobile: 'adapted',
+    actions: [],
     element: lazy(() => import('./components/MarketsMenu')),
   },
   {
@@ -85,6 +90,7 @@ export const APP_ROUTES: readonly RouteDef[] = [
     minRole: 'user',
     capability: 'app:markets',
     mobile: 'adapted',
+    actions: [],
     element: lazy(() => import('./components/ChartPage')),
   },
   {
@@ -98,6 +104,7 @@ export const APP_ROUTES: readonly RouteDef[] = [
     minRole: 'user',
     capability: 'app:markets',
     mobile: 'full',
+    actions: [],
     element: lazy(() => import('./components/SharePage')),
   },
 ]

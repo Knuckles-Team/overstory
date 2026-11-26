@@ -24,6 +24,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { api, type EditorContext } from '@/lib/api'
+import { createSafeStorage } from '@/lib/safe-storage'
 import { usePageContextPublisher, type PageContextContribution } from '@/lib/page-context'
 
 // The existing openvscode-server deployment (`services/code-server`,
@@ -34,6 +35,7 @@ const IDE_ORIGIN = import.meta.env.VITE_IDE_ORIGIN ?? 'http://code.example'
 const IDE_URL = `${IDE_ORIGIN}/?folder=/home/app`
 
 const EDITOR_CONTEXT_POLL_MS = 2000
+const LAST_FILE_KEY = 'overstory.ide.last-file'
 
 const EDITOR_ALLOWED_ACTIONS: PageContextContribution['allowedActions'] = [
   { id: 'read-open-file', label: 'Read the file currently open in the IDE', kind: 'read' },
@@ -72,6 +74,26 @@ function deriveEditorFilters(ctx: EditorContext | null): PageContextContribution
 export default function WorkspaceIDEView() {
   const [editorContext, setEditorContext] = useState<EditorContext | null>(null)
   const [reloadKey, setReloadKey] = useState(0)
+  // Storage may be denied (sandboxed or blocked-storage frames): fall back to memory and say so.
+  const storage = useMemo(() => createSafeStorage(), [])
+  // A deployment that has not listed the IDE origin in its frame policy blocks the frame.
+  const [frameBlocked, setFrameBlocked] = useState(false)
+  useEffect(() => {
+    const onViolation = (event: SecurityPolicyViolationEvent) => {
+      if (event.violatedDirective.startsWith('frame-src') || event.effectiveDirective === 'frame-src') {
+        setFrameBlocked(true)
+      }
+    }
+    document.addEventListener('securitypolicyviolation', onViolation)
+    return () => {
+      document.removeEventListener('securitypolicyviolation', onViolation)
+    }
+  }, [])
+  const [lastFile] = useState(() => storage.getItem(LAST_FILE_KEY))
+
+  useEffect(() => {
+    if (editorContext?.filePath) storage.setItem(LAST_FILE_KEY, editorContext.filePath)
+  }, [editorContext?.filePath, storage])
 
   useEffect(() => {
     let cancelled = false
@@ -120,9 +142,14 @@ export default function WorkspaceIDEView() {
                     {editorContext.dirty ? ' (unsaved changes)' : ''}
                   </>
                 ) : (
-                  'The agent will see the open file and selection once you pick one.'
+                  `${lastFile ? `Last opened: ${lastFile}. ` : ''}The agent will see the open file and selection once you pick one.`
                 )}
               </CardDescription>
+              {!storage.persistent && (
+                <p role="status" className="mt-1 text-xs text-muted-foreground">
+                  Browser storage is blocked here, so IDE settings won&apos;t persist after you reload.
+                </p>
+              )}
             </div>
             <div className="flex items-center gap-2 shrink-0">
               {editorContext?.diagnostics && editorContext.diagnostics.length > 0 && (
@@ -151,16 +178,23 @@ export default function WorkspaceIDEView() {
 
       <Card className="flex-1 overflow-hidden p-0">
         <CardContent className="p-0 h-full">
-          <iframe
-            key={reloadKey}
-            src={IDE_URL}
-            title="Workspace IDE"
-            className="w-full h-full border-0"
-            // openvscode-server's own CSP has no frame-ancestors/X-Frame-Options
-            // restriction, so this needs no `allow` beyond the workbench's own
-            // needs (clipboard for copy/paste across the frame boundary).
-            allow="clipboard-read; clipboard-write"
-          />
+          {frameBlocked ? (
+            <p role="status" className="p-4 text-sm text-muted-foreground">
+              This deployment&apos;s frame policy does not allow the embedded IDE. Use Open in new tab, or ask an
+              administrator to list the IDE origin in the frame sources.
+            </p>
+          ) : (
+            <iframe
+              key={reloadKey}
+              src={IDE_URL}
+              title="Workspace IDE"
+              className="w-full h-full border-0"
+              // openvscode-server's own CSP has no frame-ancestors/X-Frame-Options
+              // restriction, so this needs no `allow` beyond the workbench's own
+              // needs (clipboard for copy/paste across the frame boundary).
+              allow="clipboard-read; clipboard-write"
+            />
+          )}
         </CardContent>
       </Card>
     </div>
