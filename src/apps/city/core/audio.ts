@@ -1,6 +1,8 @@
 /**
  * @file audio.ts
- * @description Sound that changes with zoom (OVERSTORY-CITY-R042).
+ * @description Sound that changes with zoom (OVERSTORY-CITY-R042) and
+ * district-based ambient layers (OVERSTORY-CITY-R055).
+ * Ambience is synthesized live: filtered noise and low oscillators, no
  * Ambience is synthesized live: filtered noise and low oscillators, no
  * sample files. The mix crossfades by camera height: city hum and wind
  * from high above, birds, traffic and footsteps at street level, room tone
@@ -9,9 +11,13 @@
  * muted and begins only after a user gesture calls `enable()`. The mix is a
  * pure function of the camera, so it is tested without any audio hardware.
  */
+// spec: OVERSTORY-CITY-R042, OVERSTORY-CITY-R055
 import { mulberry32, DEFAULT_SEED, type Prng } from './prng'
 
 export type AudioLayer = 'city' | 'street' | 'room'
+
+/** District types for the R055 district-layer mix table. */
+export type DistrictType = 'residential' | 'commercial' | 'industrial' | 'park' | 'waterfront' | 'civic'
 
 /** Camera heights (metres) where the mix is fully city and fully street. */
 export const ZOOM_BANDS = { cityAbove: 60, streetBelow: 8 } as const
@@ -54,8 +60,26 @@ export function mixFor(cameraHeight: number, indoors: boolean): Record<string, n
   return out
 }
 
+/** R055: Per-source gain for a camera in a specific district. Combines the zoom-layer mix
+ * with the district-specific ambient table so each district type carries characteristic sounds.
+ * A small district perturbation (5%) is blended in without disrupting the zoom-layer balance. */
+export function mixForDistrict(
+  cameraHeight: number,
+  indoors: boolean,
+  district: DistrictType,
+): Record<string, number> {
+  const baseMix = mixFor(cameraHeight, indoors)
+  const districtMix = DISTRICT_MIX[district]
+  const out: Record<string, number> = { ...baseMix }
+  for (const s of SOURCES) {
+    const dWeight = districtMix[s] ?? 0
+    out[s] = baseMix[s] * 0.95 + dWeight * 0.05
+  }
+  return out
+}
+
 export interface Cue {
-  name: 'siren' | 'bell' | 'horn'
+  name: 'siren' | 'bell' | 'horn' | 'train' | 'aircraft'
   /** Note frequencies in Hz, played in order. */
   notes: readonly number[]
   /** Seconds per note. */
@@ -67,6 +91,10 @@ export const CUES: Readonly<Record<string, Cue | undefined>> = {
   'task.failed': { name: 'siren', notes: [660, 880, 660, 880], step: 0.35 },
   'task.done': { name: 'bell', notes: [1318], step: 0.6 },
   'ship.arrived': { name: 'horn', notes: [98, 98], step: 0.7 },
+  // R055: new vehicle event cues
+  'vehicle.train': { name: 'train', notes: [440, 440, 880], step: 0.25 },
+  'vehicle.aircraft': { name: 'aircraft', notes: [220, 330, 220], step: 0.4 },
+  'vessel.horn': { name: 'horn', notes: [78, 78, 156], step: 0.8 },
 }
 
 /** The slice of the Web Audio API the engine uses, so a test can fake it. */
@@ -115,6 +143,20 @@ const RECIPES: Readonly<Record<string, { osc?: number; noiseHz?: number; q?: num
   voices: { noiseHz: 600 },
 }
 
+// --- R055: District-based ambient layers ---
+/**
+ * Per-district ambient mix: each district type carries characteristic sounds.
+ * Values are source gain multipliers blended into the zoom-layer mix.
+ */
+export const DISTRICT_MIX: Readonly<Record<DistrictType, Readonly<Record<string, number>>>> = {
+  residential: { crowd: 0.6, voices: 0.5, birds: 0.3, traffic: 0.2, footsteps: 0.4, roomTone: 0.1 },
+  commercial: { crowd: 0.9, voices: 0.7, traffic: 0.6, footsteps: 0.5, roomTone: 0.2 },
+  industrial: { hum: 0.8, traffic: 0.7, wind: 0.3, roomTone: 0.1 },
+  park: { birds: 0.8, wind: 0.4, crowd: 0.2, footsteps: 0.3, roomTone: 0.05 },
+  waterfront: { surf: 0.8, birds: 0.5, wind: 0.3, traffic: 0.1, crowd: 0.3 },
+  civic: { crowd: 0.5, voices: 0.4, birds: 0.2, traffic: 0.3, roomTone: 0.15 },
+}
+
 /** The master gain when enabled; the whole mix stays well under clipping. */
 export const MASTER_GAIN = 0.25
 
@@ -123,6 +165,8 @@ export interface AudioEngine {
   enable(): Promise<void>
   disable(): void
   update(cameraHeight: number, indoors: boolean): void
+  /** R055: Update with a district type for ambient layer mixing. */
+  updateDistrict(district: DistrictType): void
   cue(eventType: string): Cue | null
   dispose(): void
 }
@@ -130,12 +174,14 @@ export interface AudioEngine {
 export function createAudioEngine(
   makeContext: () => AudioContextLike | null,
   prng: Prng = mulberry32(DEFAULT_SEED),
+  defaultDistrict: DistrictType = 'residential',
 ): AudioEngine {
   let ctx: AudioContextLike | null = null
   let master: GainLike | null = null
   const sources = new Map<string, GainLike>()
   let enabled = false
   let last = { height: 100, indoors: false }
+  let district = defaultDistrict
 
   function build(c: AudioContextLike): void {
     master = c.createGain()
@@ -174,7 +220,10 @@ export function createAudioEngine(
   function apply(): void {
     if (!ctx || !master) return
     master.gain.setTargetAtTime(enabled ? MASTER_GAIN : 0, ctx.currentTime, 0.3)
-    const mix = mixFor(last.height, last.indoors)
+    // R055: use district-aware mix when a district is set
+    const mix = district
+      ? mixForDistrict(last.height, last.indoors, district)
+      : mixFor(last.height, last.indoors)
     for (const [s, g] of sources) g.gain.setTargetAtTime(enabled ? mix[s] : 0, ctx.currentTime, 0.5)
   }
 
@@ -200,21 +249,61 @@ export function createAudioEngine(
       last = { height: cameraHeight, indoors }
       apply()
     },
+    updateDistrict(d) {
+      district = d
+      apply()
+    },
     cue(eventType) {
       const cue = CUES[eventType] ?? null
       if (!cue || !enabled || !ctx || !master) return cue && enabled ? cue : null
       const c = ctx
-      cue.notes.forEach((hz, i) => {
+      if (cue.name === 'train') {
+        // Train horn: rhythmic deep chug
+        cue.notes.forEach((hz, i) => {
+          const o = c.createOscillator()
+          o.type = 'square'
+          o.frequency.value = hz
+          const g = c.createGain()
+          g.gain.value = 0.2
+          const f = c.createBiquadFilter()
+          f.type = 'lowpass'
+          f.frequency.value = 800
+          o.connect(f)
+          f.connect(g)
+          g.connect(master!)
+          o.start(c.currentTime + i * cue.step)
+          o.stop(c.currentTime + (i + 1) * cue.step)
+        })
+      } else if (cue.name === 'aircraft') {
+        // Aircraft flyover: sweeping whine
         const o = c.createOscillator()
-        o.type = cue.name === 'horn' ? 'sawtooth' : 'sine'
-        o.frequency.value = hz
+        o.type = 'sawtooth'
+        o.frequency.setValueAtTime(220, c.currentTime)
+        o.frequency.linearRampToValueAtTime(880, c.currentTime + 0.6)
+        o.frequency.linearRampToValueAtTime(220, c.currentTime + 1.2)
         const g = c.createGain()
-        g.gain.value = 0.3
-        o.connect(g)
+        g.gain.value = 0.15
+        const f = c.createBiquadFilter()
+        f.type = 'bandpass'
+        f.frequency.value = 500
+        o.connect(f)
+        f.connect(g)
         g.connect(master!)
-        o.start(c.currentTime + i * cue.step)
-        o.stop(c.currentTime + (i + 1) * cue.step)
-      })
+        o.start()
+        o.stop(c.currentTime + 1.2)
+      } else {
+        cue.notes.forEach((hz, i) => {
+          const o = c.createOscillator()
+          o.type = cue.name === 'horn' ? 'sawtooth' : 'sine'
+          o.frequency.value = hz
+          const g = c.createGain()
+          g.gain.value = 0.3
+          o.connect(g)
+          g.connect(master!)
+          o.start(c.currentTime + i * cue.step)
+          o.stop(c.currentTime + (i + 1) * cue.step)
+        })
+      }
       return cue
     },
     dispose() {

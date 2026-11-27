@@ -1,3410 +1,3458 @@
 {
- "version": 1,
- "generated": "2026-11-25",
- "spec": "specs/arbora-city/asset-pack.md",
- "units": "metres",
- "up": "Y (glTF after Blender Z-up export)",
- "pivot": "bottom centre: origin at ground level, footprint centre",
- "forward": "vehicles face +Y in the glTF frame (Blender +Y authoring)",
- "textures": "none: flat palette materials, sRGB-to-linear baseColorFactor",
- "license": "CC0-1.0",
- "budgets": {
-  "triangles": 4000,
-  "materials": 16,
-  "texturePx": 2048
- },
- "entries": [
-  {
-   "id": "arch.awning",
-   "file": "kit/arch/arch.awning.glb",
-   "category": "arch",
-   "footprint": [
-    4.0,
-    1.716
-   ],
-   "height": 0.971,
-   "triangles": 108,
-   "materials": 3,
-   "bytes": 8172,
-   "sha256": "cab7a6aa9277f9306ead893dd0787411d1bca02d9f1cdf69242d552795fcffc7",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage05_arch.py"
-  },
-  {
-   "id": "arch.balcony",
-   "file": "kit/arch/arch.balcony.glb",
-   "category": "arch",
-   "footprint": [
-    1.8,
-    0.85
-   ],
-   "height": 2.1,
-   "triangles": 84,
-   "materials": 4,
-   "bytes": 7596,
-   "sha256": "d5377e5f7fb0bd94c81031c35289a882c8c549b74bd64439bf14c532865acc48",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage05_arch.py"
-  },
-  {
-   "id": "arch.bay-corner",
-   "file": "kit/arch/arch.bay-corner.glb",
-   "category": "arch",
-   "footprint": [
-    5.945,
-    4.255
-   ],
-   "height": 3.2,
-   "triangles": 180,
-   "materials": 4,
-   "bytes": 12968,
-   "sha256": "73ecff8f459bcaf8eb3acc84dca7aa7fb59d32b700b24ffdc6a8333720c73333",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage05_arch.py"
-  },
-  {
-   "id": "arch.bay-curtain",
-   "file": "kit/arch/arch.bay-curtain.glb",
-   "category": "arch",
-   "footprint": [
-    4.0,
-    0.39
-   ],
-   "height": 4.2,
-   "triangles": 72,
-   "materials": 4,
-   "bytes": 6940,
-   "sha256": "85f181fdf386d70f8387d2d4d7b2af6aab949ba720527d073bf8373cbd477121",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage05_arch.py"
-  },
-  {
-   "id": "arch.bay-roller",
-   "file": "kit/arch/arch.bay-roller.glb",
-   "category": "arch",
-   "footprint": [
-    4.0,
-    0.425
-   ],
-   "height": 3.5,
-   "triangles": 108,
-   "materials": 5,
-   "bytes": 9584,
-   "sha256": "38f734a58ffe061e23a8b6918579d958355931662df6c44b84d28b6fedbc7ab2",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage05_arch.py"
-  },
-  {
-   "id": "arch.bay-solid",
-   "file": "kit/arch/arch.bay-solid.glb",
-   "category": "arch",
-   "footprint": [
-    4.0,
-    0.3
-   ],
-   "height": 3.2,
-   "triangles": 48,
-   "materials": 2,
-   "bytes": 4428,
-   "sha256": "5a9e80cebf4a661d4672c521804e1b8b68da99c775ea921e09783150db69e480",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage05_arch.py"
-  },
-  {
-   "id": "arch.bay-storefront",
-   "file": "kit/arch/arch.bay-storefront.glb",
-   "category": "arch",
-   "footprint": [
-    4.0,
-    0.41
-   ],
-   "height": 3.5,
-   "triangles": 108,
-   "materials": 7,
-   "bytes": 10552,
-   "sha256": "31af264dd61ba4e4e3d92d0469c096e4a1bc105ec6d649a8d8fbd8ed5fddca0d",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage05_arch.py"
-  },
-  {
-   "id": "arch.bay-window",
-   "file": "kit/arch/arch.bay-window.glb",
-   "category": "arch",
-   "footprint": [
-    4.0,
-    0.43
-   ],
-   "height": 3.2,
-   "triangles": 144,
-   "materials": 4,
-   "bytes": 11236,
-   "sha256": "4d1acf2cf48d7ed769d0d777daf59280caa0ed611eaf4edf4a6c33454ddd4590",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage05_arch.py"
-  },
-  {
-   "id": "arch.cornice-band",
-   "file": "kit/arch/arch.cornice-band.glb",
-   "category": "arch",
-   "footprint": [
-    4.0,
-    0.35
-   ],
-   "height": 0.39,
-   "triangles": 120,
-   "materials": 2,
-   "bytes": 8348,
-   "sha256": "8f6c223d3354181ff7331966b19f4dc6bf00614a6084440d536fbd66e301b83f",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage05_arch.py"
-  },
-  {
-   "id": "arch.exterior-stair",
-   "file": "kit/arch/arch.exterior-stair.glb",
-   "category": "arch",
-   "footprint": [
-    1.4,
-    3.387
-   ],
-   "height": 2.436,
-   "triangles": 108,
-   "materials": 2,
-   "bytes": 7800,
-   "sha256": "602fb6ff305872d909dfc8b5fed384caf14382d9354ae49c94fcf705b7917404",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage05_arch.py"
-  },
-  {
-   "id": "arch.plinth",
-   "file": "kit/arch/arch.plinth.glb",
-   "category": "arch",
-   "footprint": [
-    4.1,
-    4.1
-   ],
-   "height": 0.62,
-   "triangles": 56,
-   "materials": 2,
-   "bytes": 5068,
-   "sha256": "e73d610c9e144e64c581c860d4a353c01b74eddb13bf549a139585855e5d24a2",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage05_arch.py"
-  },
-  {
-   "id": "arch.portal",
-   "file": "kit/arch/arch.portal.glb",
-   "category": "arch",
-   "footprint": [
-    2.9,
-    0.975
-   ],
-   "height": 3.0,
-   "triangles": 96,
-   "materials": 4,
-   "bytes": 8212,
-   "sha256": "04c46f630c7a16a8c68ec854fc0aa046b8a7da4cb3709d374471b8a2aa0618a1",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage05_arch.py"
-  },
-  {
-   "id": "arch.roof-flat",
-   "file": "kit/arch/arch.roof-flat.glb",
-   "category": "arch",
-   "footprint": [
-    4.06,
-    4.06
-   ],
-   "height": 0.76,
-   "triangles": 108,
-   "materials": 2,
-   "bytes": 7728,
-   "sha256": "21e97058e72579215b8c3c89b9f0ff53b9d07f5e0e53ed187948673ff52ef402",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage05_arch.py"
-  },
-  {
-   "id": "arch.roof-pitch",
-   "file": "kit/arch/arch.roof-pitch.glb",
-   "category": "arch",
-   "footprint": [
-    4.0,
-    3.659
-   ],
-   "height": 1.77,
-   "triangles": 38,
-   "materials": 2,
-   "bytes": 4272,
-   "sha256": "808fc16933e635d4140fd996c341db3c96a0be36247cabd6318172eeacc05606",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage05_arch.py"
-  },
-  {
-   "id": "arch.rooftop-plant",
-   "file": "kit/arch/arch.rooftop-plant.glb",
-   "category": "arch",
-   "footprint": [
-    4.019,
-    0.84
-   ],
-   "height": 1.4,
-   "triangles": 184,
-   "materials": 4,
-   "bytes": 12308,
-   "sha256": "d94ea2df5c0f39e1693085dc289f77ea2f12c495819515c6d533247c7210a823",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage05_arch.py"
-  },
-  {
-   "id": "arch.setback-adapter",
-   "file": "kit/arch/arch.setback-adapter.glb",
-   "category": "arch",
-   "footprint": [
-    2.1,
-    2.1
-   ],
-   "height": 0.38,
-   "triangles": 24,
-   "materials": 2,
-   "bytes": 2992,
-   "sha256": "196c298809ad522f2632a18ccbe91fa32b0fd11ce000d4d801aea9d1ffce68a1",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage05_arch.py"
-  },
-  {
-   "id": "building.airport-terminal",
-   "file": "kit/building/building.airport-terminal.glb",
-   "category": "building",
-   "footprint": [
-    29.5,
-    14.073
-   ],
-   "height": 9.75,
-   "triangles": 316,
-   "materials": 7,
-   "bytes": 21912,
-   "sha256": "9c1f348cf687de0cb9a1fe896be4c51d21af26e88c12b2c22af979d6ab675894",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage09_infrastructure.py"
-  },
-  {
-   "id": "building.apartment-rowhouse",
-   "file": "kit/building/building.apartment-rowhouse.glb",
-   "category": "building",
-   "footprint": [
-    4.135,
-    5.03
-   ],
-   "height": 11.15,
-   "triangles": 300,
-   "materials": 8,
-   "bytes": 22012,
-   "sha256": "69a86d1ee64acef085c10395aba40c9e7e2a1534cb95eea984f1ce5dbf697401",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage06_buildings.py"
-  },
-  {
-   "id": "building.arcade",
-   "file": "kit/building/building.arcade.glb",
-   "category": "building",
-   "footprint": [
-    12.6,
-    11.98
-   ],
-   "height": 6.75,
-   "triangles": 200,
-   "materials": 8,
-   "bytes": 15976,
-   "sha256": "aa5a6972a377e1e7e153a788315f5b1ae1aba4a4f9868c66b93c903b3dd81ce3",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage10_commerce.py"
-  },
-  {
-   "id": "building.bus-station",
-   "file": "kit/building/building.bus-station.glb",
-   "category": "building",
-   "footprint": [
-    20.6,
-    15.3
-   ],
-   "height": 5.35,
-   "triangles": 336,
-   "materials": 10,
-   "bytes": 24452,
-   "sha256": "9f6dffebce6abfe930ce29be423a741f1d4322df8e1dc0fa0e72f44a0e86a57c",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage09_infrastructure.py"
-  },
-  {
-   "id": "building.carnival-bigtop",
-   "file": "kit/building/building.carnival-bigtop.glb",
-   "category": "building",
-   "footprint": [
-    20.6,
-    20.6
-   ],
-   "height": 10.9,
-   "triangles": 330,
-   "materials": 7,
-   "bytes": 21904,
-   "sha256": "d285fe9251434d7b0e02863c487006bf57ff59c29e5df74319f05ccb05243dfa",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage10_commerce.py"
-  },
-  {
-   "id": "building.city-hall",
-   "file": "kit/building/building.city-hall.glb",
-   "category": "building",
-   "footprint": [
-    24.0,
-    18.5
-   ],
-   "height": 13.1,
-   "triangles": 680,
-   "materials": 7,
-   "bytes": 41000,
-   "sha256": "4c0eb334559084e9d66b57419ee17f8ea9d15ddcc19e1edfa9029370cc5f613d",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage15_civic.py"
-  },
-  {
-   "id": "building.civic-center",
-   "file": "kit/building/building.civic-center.glb",
-   "category": "building",
-   "footprint": [
-    28.3,
-    20
-   ],
-   "height": 9.0,
-   "triangles": 380,
-   "materials": 9,
-   "bytes": 27892,
-   "sha256": "111aae9e64a7d2b6045e5f8f569acbc746fe625a5f2374053c8f812ceeba6e40",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage17_public.py"
-  },
-  {
-   "id": "building.clinic",
-   "file": "kit/building/building.clinic.glb",
-   "category": "building",
-   "footprint": [
-    8.05,
-    4.925
-   ],
-   "height": 7.85,
-   "triangles": 264,
-   "materials": 6,
-   "bytes": 18216,
-   "sha256": "5a69a454de788365bdc457f60f217f945b2c6460d7bc845f8499b6a91a1ca0bd",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage06_buildings.py"
-  },
-  {
-   "id": "building.clothing-store",
-   "file": "kit/building/building.clothing-store.glb",
-   "category": "building",
-   "footprint": [
-    10.6,
-    9.793
-   ],
-   "height": 7.25,
-   "triangles": 144,
-   "materials": 7,
-   "bytes": 12816,
-   "sha256": "a27cdee1d72864453d21941e25db16cf56bf3bee43b4ef3220e8fd763109f94c",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage10_commerce.py"
-  },
-  {
-   "id": "building.coal-plant",
-   "file": "kit/building/building.coal-plant.glb",
-   "category": "building",
-   "footprint": [
-    22.6,
-    14.6
-   ],
-   "height": 12.4,
-   "triangles": 300,
-   "materials": 7,
-   "bytes": 20436,
-   "sha256": "63faa5f048edab950f7c29c3017cc5e5cfe8118e1fa3da393ac0fec50c956122",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage09_infrastructure.py"
-  },
-  {
-   "id": "building.courthouse",
-   "file": "kit/building/building.courthouse.glb",
-   "category": "building",
-   "footprint": [
-    22,
-    16
-   ],
-   "height": 11.0,
-   "triangles": 442,
-   "materials": 7,
-   "bytes": 29112,
-   "sha256": "a795c98c80725a83761e3dc13bb11e3bbbd0d6d6c7ad741d59a158cc01007e6b",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage15_civic.py"
-  },
-  {
-   "id": "building.datacenter",
-   "file": "kit/building/building.datacenter.glb",
-   "category": "building",
-   "footprint": [
-    27.4,
-    20
-   ],
-   "height": 7.1,
-   "triangles": 368,
-   "materials": 7,
-   "bytes": 23992,
-   "sha256": "346cede675151eb0b74a90adc6631c14aaa44f4d917b4dda11bc57ac6815cf4b",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage11_industry.py"
-  },
-  {
-   "id": "building.energy-plant",
-   "file": "kit/building/building.energy-plant.glb",
-   "category": "building",
-   "footprint": [
-    24.6,
-    14.6
-   ],
-   "height": 14.4,
-   "triangles": 552,
-   "materials": 8,
-   "bytes": 33144,
-   "sha256": "1eb101427439cf18cb477c99efe7d05efe34f4e64a7b344dedeeb87906aea04a",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage09_infrastructure.py"
-  },
-  {
-   "id": "building.farm-barn",
-   "file": "kit/building/building.farm-barn.glb",
-   "category": "building",
-   "footprint": [
-    18.232,
-    12.0
-   ],
-   "height": 9.2,
-   "triangles": 174,
-   "materials": 7,
-   "bytes": 15624,
-   "sha256": "72e5f45951f4c8ba0116512fbe66984f57c438f15910bf93a4e2e6dfe451161c",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage11_industry.py"
-  },
-  {
-   "id": "building.farm-house",
-   "file": "kit/building/building.farm-house.glb",
-   "category": "building",
-   "footprint": [
-    14.0,
-    11.1
-   ],
-   "height": 8.346,
-   "triangles": 184,
-   "materials": 8,
-   "bytes": 15620,
-   "sha256": "23a3fa95aeab41ae4a484b43f91b8905e12702b487f99e573c3040795cfa981a",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage11_industry.py"
-  },
-  {
-   "id": "building.farmers-market",
-   "file": "kit/building/building.farmers-market.glb",
-   "category": "building",
-   "footprint": [
-    20,
-    16
-   ],
-   "height": 6.8,
-   "triangles": 516,
-   "materials": 11,
-   "bytes": 34908,
-   "sha256": "21c1028525a9329658b87b46a26b229fde101a45fa4ec3d39f774a1456cedd2b",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage11_industry.py"
-  },
-  {
-   "id": "building.fast-food",
-   "file": "kit/building/building.fast-food.glb",
-   "category": "building",
-   "footprint": [
-    21.3,
-    14.6
-   ],
-   "height": 9.55,
-   "triangles": 212,
-   "materials": 10,
-   "bytes": 17936,
-   "sha256": "f47d23bb1e54c3005b1375a9e5989b77d4eb8fc2c176d51646be019a2a215277",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage10_commerce.py"
-  },
-  {
-   "id": "building.firehouse",
-   "file": "kit/building/building.firehouse.glb",
-   "category": "building",
-   "footprint": [
-    14.6,
-    11.12
-   ],
-   "height": 9.3,
-   "triangles": 608,
-   "materials": 8,
-   "bytes": 38516,
-   "sha256": "e7073d166cc0ec1dcd867d0d73550bd6d3e0daaae71ed60323db55b442cb2946",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage09_infrastructure.py"
-  },
-  {
-   "id": "building.fuel-station",
-   "file": "kit/building/building.fuel-station.glb",
-   "category": "building",
-   "footprint": [
-    11.2,
-    8.3
-   ],
-   "height": 4.82,
-   "triangles": 264,
-   "materials": 9,
-   "bytes": 20168,
-   "sha256": "82df44612c096f157d2dd995e446f549aecaf91dc77debd3e05f64758978a1e5",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage06_buildings.py"
-  },
-  {
-   "id": "building.funeral-home",
-   "file": "kit/building/building.funeral-home.glb",
-   "category": "building",
-   "footprint": [
-    12.6,
-    9.8
-   ],
-   "height": 11.0,
-   "triangles": 304,
-   "materials": 7,
-   "bytes": 21920,
-   "sha256": "392b1fcdb510a85d3acdfb80daac960c022d6f3245b59d6d3084e3b3d2656564",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage09_infrastructure.py"
-  },
-  {
-   "id": "building.furniture-store",
-   "file": "kit/building/building.furniture-store.glb",
-   "category": "building",
-   "footprint": [
-    17.4,
-    11.0
-   ],
-   "height": 9.1,
-   "triangles": 164,
-   "materials": 7,
-   "bytes": 13936,
-   "sha256": "8fb2b62fd63fba61c16f0ec28eaa6da10ca9bbff90183274aedef42be06c6985",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage10_commerce.py"
-  },
-  {
-   "id": "building.garage",
-   "file": "kit/building/building.garage.glb",
-   "category": "building",
-   "footprint": [
-    10.05,
-    6.825
-   ],
-   "height": 6.3,
-   "triangles": 384,
-   "materials": 8,
-   "bytes": 26684,
-   "sha256": "a14296ec8a690bfcff0f8627f11e73d10b3a3b624a1aed8ebcccdf30ce6487cd",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage06_buildings.py"
-  },
-  {
-   "id": "building.government-office",
-   "file": "kit/building/building.government-office.glb",
-   "category": "building",
-   "footprint": [
-    20,
-    20
-   ],
-   "height": 11,
-   "triangles": 476,
-   "materials": 6,
-   "bytes": 30940,
-   "sha256": "36e0534de5df906d43d0f2aa335b833968e8d14c7e3fbe1f703a28b18e911c66",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage17_public.py"
-  },
-  {
-   "id": "building.grocery",
-   "file": "kit/building/building.grocery.glb",
-   "category": "building",
-   "footprint": [
-    8.05,
-    7.025
-   ],
-   "height": 7.65,
-   "triangles": 276,
-   "materials": 8,
-   "bytes": 21084,
-   "sha256": "8ac7f25e261e0d4611c5d97063365d44af38130752ca3f6d68897cb6f85abf58",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage06_buildings.py"
-  },
-  {
-   "id": "building.hospital",
-   "file": "kit/building/building.hospital.glb",
-   "category": "building",
-   "footprint": [
-    20.6,
-    15.3
-   ],
-   "height": 15.0,
-   "triangles": 692,
-   "materials": 8,
-   "bytes": 43308,
-   "sha256": "b81bca9100be873255d70a20204adecb11f2e7c8d8c564d1474d5599a6c9374d",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage09_infrastructure.py"
-  },
-  {
-   "id": "building.hotel",
-   "file": "kit/building/building.hotel.glb",
-   "category": "building",
-   "footprint": [
-    6.135,
-    6.025
-   ],
-   "height": 14.65,
-   "triangles": 572,
-   "materials": 9,
-   "bytes": 37800,
-   "sha256": "0433c28ba1abcc1dc8963c4e436bc0cda91cb0951861ba89a00aefe7f2220c01",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage06_buildings.py"
-  },
-  {
-   "id": "building.house-detached",
-   "file": "kit/building/building.house-detached.glb",
-   "category": "building",
-   "footprint": [
-    6.4,
-    6.125
-   ],
-   "height": 6.32,
-   "triangles": 216,
-   "materials": 8,
-   "bytes": 17772,
-   "sha256": "8cf818a3f9d911c517868a41fd61374adc9cc5f8e678d2bc54e22eb62b395e72",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage06_buildings.py"
-  },
-  {
-   "id": "building.house-suburban",
-   "file": "kit/building/building.house-suburban.glb",
-   "category": "building",
-   "footprint": [
-    14,
-    12
-   ],
-   "height": 8.5,
-   "triangles": 220,
-   "materials": 10,
-   "bytes": 18720,
-   "sha256": "ec76bf69a0bff44c48bf7fb15b5d825c6f6b4a0e2b09c88da967ae29400665f3",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage11_industry.py"
-  },
-  {
-   "id": "building.library",
-   "file": "kit/building/building.library.glb",
-   "category": "building",
-   "footprint": [
-    20,
-    18
-   ],
-   "height": 8.75,
-   "triangles": 388,
-   "materials": 11,
-   "bytes": 29376,
-   "sha256": "d5c631db2eb9c5a0923cfa4907d784bfd12b6d3006d95caae98627bb75ba63e6",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage17_public.py"
-  },
-  {
-   "id": "building.mall",
-   "file": "kit/building/building.mall.glb",
-   "category": "building",
-   "footprint": [
-    28.6,
-    22.7
-   ],
-   "height": 8.85,
-   "triangles": 424,
-   "materials": 7,
-   "bytes": 27432,
-   "sha256": "b233eb1a0f9228331da0394688b96dfeb053de1e8ea07b7a752172ce80fe4bb7",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage10_commerce.py"
-  },
-  {
-   "id": "building.movie-theater",
-   "file": "kit/building/building.movie-theater.glb",
-   "category": "building",
-   "footprint": [
-    20.6,
-    15.9
-   ],
-   "height": 13.9,
-   "triangles": 368,
-   "materials": 8,
-   "bytes": 24456,
-   "sha256": "2c1505c066a27459b21e82bd0fd433ac4fe241838c5f0badbb8068db9ab7661e",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage10_commerce.py"
-  },
-  {
-   "id": "building.nuclear-plant",
-   "file": "kit/building/building.nuclear-plant.glb",
-   "category": "building",
-   "footprint": [
-    24.6,
-    14.75
-   ],
-   "height": 8.0,
-   "triangles": 468,
-   "materials": 10,
-   "bytes": 35324,
-   "sha256": "26159fed6977616c50196ab47527059be3089361853b9bdb874d9d790c6058b2",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage09_infrastructure.py"
-  },
-  {
-   "id": "building.office-campus",
-   "file": "kit/building/building.office-campus.glb",
-   "category": "building",
-   "footprint": [
-    31.12,
-    25.06
-   ],
-   "height": 13.7,
-   "triangles": 476,
-   "materials": 6,
-   "bytes": 30736,
-   "sha256": "311acd302d20500311167acf4579c411823b15e23899cf77f39c78a363cb1d31",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage11_industry.py"
-  },
-  {
-   "id": "building.office-tower",
-   "file": "kit/building/building.office-tower.glb",
-   "category": "building",
-   "footprint": [
-    5.18,
-    4.89
-   ],
-   "height": 21.15,
-   "triangles": 720,
-   "materials": 5,
-   "bytes": 43136,
-   "sha256": "71bad12e531af45a71e08e47f5d63410d94c516e42cc73d47a97bc153932a0f1",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage06_buildings.py"
-  },
-  {
-   "id": "building.oil-gas-plant",
-   "file": "kit/building/building.oil-gas-plant.glb",
-   "category": "building",
-   "footprint": [
-    28,
-    24
-   ],
-   "height": 14.1,
-   "triangles": 566,
-   "materials": 6,
-   "bytes": 32120,
-   "sha256": "e8be463b45db000958d443a6814462046188a8e3b2184ae0492381968c3f516e",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage11_industry.py"
-  },
-  {
-   "id": "building.ore-plant",
-   "file": "kit/building/building.ore-plant.glb",
-   "category": "building",
-   "footprint": [
-    26,
-    22
-   ],
-   "height": 9.5,
-   "triangles": 262,
-   "materials": 9,
-   "bytes": 20680,
-   "sha256": "0a378e89252b000276d501352a34fc3566ed201bac8e916df80fbac49dfe2b82",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage11_industry.py"
-  },
-  {
-   "id": "building.pier-carnival",
-   "file": "kit/building/building.pier-carnival.glb",
-   "category": "building",
-   "footprint": [
-    14.6,
-    18.6
-   ],
-   "height": 17.54,
-   "triangles": 752,
-   "materials": 9,
-   "bytes": 46668,
-   "sha256": "30a656c721ef4a7834006ab94ae1328a03c980f7ae1a08535bce111c81ee2b5e",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage10_commerce.py"
-  },
-  {
-   "id": "building.police-station",
-   "file": "kit/building/building.police-station.glb",
-   "category": "building",
-   "footprint": [
-    12.6,
-    9.8
-   ],
-   "height": 13.3,
-   "triangles": 472,
-   "materials": 10,
-   "bytes": 31804,
-   "sha256": "f6aebfd16878852e6a72f7e3ae7588a209d5fccfed54188216f8ed9622a64c43",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage09_infrastructure.py"
-  },
-  {
-   "id": "building.post-office",
-   "file": "kit/building/building.post-office.glb",
-   "category": "building",
-   "footprint": [
-    20,
-    14
-   ],
-   "height": 7.95,
-   "triangles": 272,
-   "materials": 10,
-   "bytes": 22048,
-   "sha256": "00585566b4c2d68425500261026915fb39a2e3bdaa4ada18b98abb5af485c141",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage17_public.py"
-  },
-  {
-   "id": "building.restaurant-row",
-   "file": "kit/building/building.restaurant-row.glb",
-   "category": "building",
-   "footprint": [
-    16.6,
-    13.95
-   ],
-   "height": 6.45,
-   "triangles": 420,
-   "materials": 10,
-   "bytes": 29028,
-   "sha256": "e23f80e8c5c6f4db19dac10d214eaac2a10da8e573874fa4941939cd0cd156b0",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage10_commerce.py"
-  },
-  {
-   "id": "building.school",
-   "file": "kit/building/building.school.glb",
-   "category": "building",
-   "footprint": [
-    24.11,
-    19.0
-   ],
-   "height": 6.2,
-   "triangles": 272,
-   "materials": 8,
-   "bytes": 20804,
-   "sha256": "530e8cd86a6ee46d73fa5b1937e73155763142996e4d9374b6b5eebf7826dc12",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage15_civic.py"
-  },
-  {
-   "id": "building.school-community-college",
-   "file": "kit/building/building.school-community-college.glb",
-   "category": "building",
-   "footprint": [
-    34.0,
-    24.075
-   ],
-   "height": 8.95,
-   "triangles": 1066,
-   "materials": 12,
-   "bytes": 69384,
-   "sha256": "392e7f60028c68db8a709f6ba2ecabfdfc83fadad9e16203a4d518bffcf75155",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage16_parks_edu.py"
-  },
-  {
-   "id": "building.school-daycare",
-   "file": "kit/building/building.school-daycare.glb",
-   "category": "building",
-   "footprint": [
-    20.965,
-    14.0
-   ],
-   "height": 4.8,
-   "triangles": 388,
-   "materials": 13,
-   "bytes": 32136,
-   "sha256": "e22e945ec17ae95044746a13e99d31149a7a7b52cea027e3ded00edd75761b3a",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage16_parks_edu.py"
-  },
-  {
-   "id": "building.school-high",
-   "file": "kit/building/building.school-high.glb",
-   "category": "building",
-   "footprint": [
-    36.2,
-    34.0
-   ],
-   "height": 13.4,
-   "triangles": 1008,
-   "materials": 16,
-   "bytes": 67864,
-   "sha256": "b3e81dba52f4618e442ee5e5677ef50609e1c4aaa046941f285d1c2821c5560b",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage16_parks_edu.py"
-  },
-  {
-   "id": "building.school-middle",
-   "file": "kit/building/building.school-middle.glb",
-   "category": "building",
-   "footprint": [
-    28.15,
-    20.0
-   ],
-   "height": 6.8,
-   "triangles": 774,
-   "materials": 14,
-   "bytes": 53824,
-   "sha256": "1f7e7047060428dd4d2343d1d8478ae1f6d55df0e354c278a5ff56c1ccff5924",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage16_parks_edu.py"
-  },
-  {
-   "id": "building.security-station",
-   "file": "kit/building/building.security-station.glb",
-   "category": "building",
-   "footprint": [
-    6.05,
-    4.175
-   ],
-   "height": 8.0,
-   "triangles": 312,
-   "materials": 10,
-   "bytes": 24016,
-   "sha256": "5f636d4d0d03e51515bee73a18f36033ee78642f29937763033dc5d73bcf23c9",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage06_buildings.py"
-  },
-  {
-   "id": "building.shipyard",
-   "file": "kit/building/building.shipyard.glb",
-   "category": "building",
-   "footprint": [
-    24.6,
-    16.6
-   ],
-   "height": 9.3,
-   "triangles": 264,
-   "materials": 9,
-   "bytes": 20368,
-   "sha256": "760f5f59b25a8a763f5026bc2ae7e66ea913fb35d42adf6868972021c543bfd4",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage09_infrastructure.py"
-  },
-  {
-   "id": "building.shop-bakery",
-   "file": "kit/building/building.shop-bakery.glb",
-   "category": "building",
-   "footprint": [
-    4.185,
-    5.422
-   ],
-   "height": 4.55,
-   "triangles": 276,
-   "materials": 10,
-   "bytes": 22288,
-   "sha256": "051bc9c05501fed08a66dacdeacf94b862ac083ec023532486306abaec6d2c74",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage06_buildings.py"
-  },
-  {
-   "id": "building.shop-mechanic",
-   "file": "kit/building/building.shop-mechanic.glb",
-   "category": "building",
-   "footprint": [
-    8.185,
-    4.16
-   ],
-   "height": 5.15,
-   "triangles": 388,
-   "materials": 9,
-   "bytes": 27456,
-   "sha256": "f32cbd254f19892a178afac6f044df4c4ad3ad4c7121b293ab162c26bcaa8724",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage06_buildings.py"
-  },
-  {
-   "id": "building.skyscraper-podium",
-   "file": "kit/building/building.skyscraper-podium.glb",
-   "category": "building",
-   "footprint": [
-    24,
-    20
-   ],
-   "height": 37.95,
-   "triangles": 1584,
-   "materials": 5,
-   "bytes": 89700,
-   "sha256": "b21839380cbb29872e52a33a9c41dc65359ef7105fd09faaa559173b76ecc202",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage11_industry.py"
-  },
-  {
-   "id": "building.skyscraper-setback",
-   "file": "kit/building/building.skyscraper-setback.glb",
-   "category": "building",
-   "footprint": [
-    22,
-    18
-   ],
-   "height": 51.65,
-   "triangles": 2792,
-   "materials": 5,
-   "bytes": 154880,
-   "sha256": "20a49c6c3e9ab1db2f6d4457c43172e97a2b1537160702064a1e11ca95a2cde2",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage11_industry.py"
-  },
-  {
-   "id": "building.skyscraper-slab",
-   "file": "kit/building/building.skyscraper-slab.glb",
-   "category": "building",
-   "footprint": [
-    15.0,
-    12.0
-   ],
-   "height": 34.75,
-   "triangles": 1824,
-   "materials": 5,
-   "bytes": 102616,
-   "sha256": "aa8924984d88d48ffa14bd64e38305cd21e089ca57f1beec6fb23ef3df5047e1",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage11_industry.py"
-  },
-  {
-   "id": "building.skyscraper-tapered",
-   "file": "kit/building/building.skyscraper-tapered.glb",
-   "category": "building",
-   "footprint": [
-    17.0,
-    17.0
-   ],
-   "height": 47.55,
-   "triangles": 3336,
-   "materials": 7,
-   "bytes": 185392,
-   "sha256": "7adde4b876925ff6d768db8a8b1b763384fa7735c988c46a1ac5f0d033a4e263",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage11_industry.py"
-  },
-  {
-   "id": "building.skyscraper-twin",
-   "file": "kit/building/building.skyscraper-twin.glb",
-   "category": "building",
-   "footprint": [
-    21.25,
-    9.25
-   ],
-   "height": 31.35,
-   "triangles": 2368,
-   "materials": 4,
-   "bytes": 131412,
-   "sha256": "e315c034dc7461350776bb63b9b3fd7733206d613a2c65e8ff0b0666b694aeb2",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage11_industry.py"
-  },
-  {
-   "id": "building.stadium",
-   "file": "kit/building/building.stadium.glb",
-   "category": "building",
-   "footprint": [
-    33.5,
-    28.0
-   ],
-   "height": 13.8,
-   "triangles": 744,
-   "materials": 7,
-   "bytes": 39424,
-   "sha256": "223a4dab9e5a6770a4afc1bc4499b049e0d7a81a0bb83458bd17ac0db3a99340",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage10_commerce.py"
-  },
-  {
-   "id": "building.substation",
-   "file": "kit/building/building.substation.glb",
-   "category": "building",
-   "footprint": [
-    18,
-    12.12
-   ],
-   "height": 3.05,
-   "triangles": 432,
-   "materials": 10,
-   "bytes": 30900,
-   "sha256": "820cc3d99c2075addf5385bf81320bf680d8a8c38504e58d3e4ce003c6ec546a",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage15_civic.py"
-  },
-  {
-   "id": "building.theme-park",
-   "file": "kit/building/building.theme-park.glb",
-   "category": "building",
-   "footprint": [
-    26.6,
-    20.6
-   ],
-   "height": 16.44,
-   "triangles": 850,
-   "materials": 11,
-   "bytes": 56048,
-   "sha256": "c124831432d95c2d4b687656b7c39904723eb668380270f11beb5081e0ffa2b1",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage10_commerce.py"
-  },
-  {
-   "id": "building.train-station",
-   "file": "kit/building/building.train-station.glb",
-   "category": "building",
-   "footprint": [
-    24.6,
-    17.8
-   ],
-   "height": 12.2,
-   "triangles": 504,
-   "materials": 7,
-   "bytes": 32376,
-   "sha256": "8e7ae2ec0bf7c3a13efede2b9f0083fac2c06c4132fc1b09a0925c920b6aa325",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage09_infrastructure.py"
-  },
-  {
-   "id": "building.train-yard",
-   "file": "kit/building/building.train-yard.glb",
-   "category": "building",
-   "footprint": [
-    24.6,
-    16.95
-   ],
-   "height": 3.95,
-   "triangles": 736,
-   "materials": 10,
-   "bytes": 46676,
-   "sha256": "59dc5972b477e41a3e64721269fc8dcc91e2156e53c6a8ee6a45442e6b9034d1",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage09_infrastructure.py"
-  },
-  {
-   "id": "building.university",
-   "file": "kit/building/building.university.glb",
-   "category": "building",
-   "footprint": [
-    28.0,
-    18
-   ],
-   "height": 7.7,
-   "triangles": 616,
-   "materials": 7,
-   "bytes": 37456,
-   "sha256": "44aa34de0ba9930a738390d8c894c1ac79eee874998b72dedc9ace2aeaccbd2b",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage15_civic.py"
-  },
-  {
-   "id": "building.warehouse",
-   "file": "kit/building/building.warehouse.glb",
-   "category": "building",
-   "footprint": [
-    28,
-    20
-   ],
-   "height": 8.065,
-   "triangles": 144,
-   "materials": 7,
-   "bytes": 12852,
-   "sha256": "1d642d4be217e2e4331851e8c3789beffda54322e60afd2db01d8ca7886ab549",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage11_industry.py"
-  },
-  {
-   "id": "building.waste-recycling",
-   "file": "kit/building/building.waste-recycling.glb",
-   "category": "building",
-   "footprint": [
-    20,
-    14
-   ],
-   "height": 5.15,
-   "triangles": 192,
-   "materials": 8,
-   "bytes": 16508,
-   "sha256": "ca1c6332900d8fbfddeb8fb369f021e8ba23daafa3134c1f1e49ab5d214e5dd5",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage15_civic.py"
-  },
-  {
-   "id": "building.water-works",
-   "file": "kit/building/building.water-works.glb",
-   "category": "building",
-   "footprint": [
-    18.6,
-    12.6
-   ],
-   "height": 7.0,
-   "triangles": 568,
-   "materials": 10,
-   "bytes": 35304,
-   "sha256": "fd90601e3b31ca87747feb4abfe24458970937e44d02960cb27832059579e2ea",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage09_infrastructure.py"
-  },
-  {
-   "id": "building.waterfront-pavilion",
-   "file": "kit/building/building.waterfront-pavilion.glb",
-   "category": "building",
-   "footprint": [
-    7.0,
-    7.0
-   ],
-   "height": 4.78,
-   "triangles": 212,
-   "materials": 4,
-   "bytes": 15320,
-   "sha256": "7166ff0f172137763ac68fa0eaa5b0ca5d34ae465e87fff49e21ef2c1feb51ed",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage06_buildings.py"
-  },
-  {
-   "id": "interior.cafe",
-   "file": "kit/interior/interior.cafe.glb",
-   "category": "interior",
-   "footprint": [
-    4.06,
-    4.06
-   ],
-   "height": 2.6,
-   "triangles": 864,
-   "materials": 15,
-   "bytes": 58420,
-   "sha256": "4af1aac3da672fd3f8f327ed55b07bb196c3ae20b8ce445eb4ba1f595498a10c",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage07_interiors.py"
-  },
-  {
-   "id": "interior.civic",
-   "file": "kit/interior/interior.civic.glb",
-   "category": "interior",
-   "footprint": [
-    4.18,
-    4.06
-   ],
-   "height": 2.4,
-   "triangles": 384,
-   "materials": 11,
-   "bytes": 28776,
-   "sha256": "9dd88eab40fdaa1b04973ab1aa15249634f4870d466e94229fa4b04fa56c85cf",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage07_interiors.py"
-  },
-  {
-   "id": "interior.clinic",
-   "file": "kit/interior/interior.clinic.glb",
-   "category": "interior",
-   "footprint": [
-    4.18,
-    4.06
-   ],
-   "height": 2.2,
-   "triangles": 520,
-   "materials": 13,
-   "bytes": 37260,
-   "sha256": "4097a8bc382729fcdfc0233894023fa2924970ae2b8cab7c66f5dcb77fb14fe2",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage07_interiors.py"
-  },
-  {
-   "id": "interior.dining-table",
-   "file": "kit/interior/interior.dining-table.glb",
-   "category": "interior",
-   "footprint": [
-    1.4,
-    1.92
-   ],
-   "height": 1.0,
-   "triangles": 228,
-   "materials": 4,
-   "bytes": 15836,
-   "sha256": "da65180d4f405604a2673f38363b8de1bf32a701904691bc3446d01106fdc5df",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage07_interiors.py"
-  },
-  {
-   "id": "interior.floor-tile-4",
-   "file": "kit/interior/interior.floor-tile-4.glb",
-   "category": "interior",
-   "footprint": [
-    4.06,
-    4.06
-   ],
-   "height": 0.12,
-   "triangles": 60,
-   "materials": 2,
-   "bytes": 5112,
-   "sha256": "5953f2f12b9fccb060c52e670738b120846b9a35ea2b5563652c2d2c619cf52b",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage07_interiors.py"
-  },
-  {
-   "id": "interior.garage",
-   "file": "kit/interior/interior.garage.glb",
-   "category": "interior",
-   "footprint": [
-    4.06,
-    4.06
-   ],
-   "height": 3.6,
-   "triangles": 424,
-   "materials": 10,
-   "bytes": 28968,
-   "sha256": "050ef8ac7b40074162d6880b76da83706be7296cc89f20187e9d9063a8e28c7c",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage07_interiors.py"
-  },
-  {
-   "id": "interior.grocery",
-   "file": "kit/interior/interior.grocery.glb",
-   "category": "interior",
-   "footprint": [
-    4.05,
-    8.0
-   ],
-   "height": 2.32,
-   "triangles": 600,
-   "materials": 14,
-   "bytes": 43968,
-   "sha256": "0e4ab4ab560703e9617d2b3e1921c840e2f667b405bc15d5b4d20dc20aa674cf",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage07_interiors.py"
-  },
-  {
-   "id": "interior.patient-bed",
-   "file": "kit/interior/interior.patient-bed.glb",
-   "category": "interior",
-   "footprint": [
-    1.13,
-    2.11
-   ],
-   "height": 1.7,
-   "triangles": 92,
-   "materials": 6,
-   "bytes": 9344,
-   "sha256": "b2b941cfa2435ef67cc8733cfcd6e71df3e7a7a60d669558b0bf76f48865c4ba",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage07_interiors.py"
-  },
-  {
-   "id": "interior.reception-desk",
-   "file": "kit/interior/interior.reception-desk.glb",
-   "category": "interior",
-   "footprint": [
-    3.25,
-    1.01
-   ],
-   "height": 2.2,
-   "triangles": 72,
-   "materials": 6,
-   "bytes": 8112,
-   "sha256": "b6da1c8245834aafc545b7e5aed8d1178a267e07823cb30b73799b6d83855172",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage07_interiors.py"
-  },
-  {
-   "id": "interior.restaurant",
-   "file": "kit/interior/interior.restaurant.glb",
-   "category": "interior",
-   "footprint": [
-    4.15,
-    4.19
-   ],
-   "height": 2.8,
-   "triangles": 608,
-   "materials": 10,
-   "bytes": 40072,
-   "sha256": "ecd2497f1f1194e3c4e0f82198ecce298429a0f82f621c9c2407d699be1341cc",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage07_interiors.py"
-  },
-  {
-   "id": "interior.shelf-stock",
-   "file": "kit/interior/interior.shelf-stock.glb",
-   "category": "interior",
-   "footprint": [
-    2.0,
-    0.9
-   ],
-   "height": 1.91,
-   "triangles": 216,
-   "materials": 8,
-   "bytes": 17096,
-   "sha256": "d5aa2f54c7f213bfa5d0a1794322aca5c2314e337569a7323ec1395bb04bea84",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage07_interiors.py"
-  },
-  {
-   "id": "interior.workbench",
-   "file": "kit/interior/interior.workbench.glb",
-   "category": "interior",
-   "footprint": [
-    2.0,
-    0.7
-   ],
-   "height": 1.18,
-   "triangles": 124,
-   "materials": 6,
-   "bytes": 11168,
-   "sha256": "71e584dae7b484982ee5ffce6d4f5219f91607c2719fa00d51d95df15bd572d5",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage07_interiors.py"
-  },
-  {
-   "id": "landscape.broadleaf",
-   "file": "kit/landscape/landscape.broadleaf.glb",
-   "category": "landscape",
-   "footprint": [
-    3.026,
-    2.656
-   ],
-   "height": 4.45,
-   "triangles": 124,
-   "materials": 3,
-   "bytes": 11700,
-   "sha256": "ad9a6678d1202a731851aa402cccef68de798df4c1ecc8f76f0eed45a6090ab5",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage03_landscape.py"
-  },
-  {
-   "id": "landscape.conifer",
-   "file": "kit/landscape/landscape.conifer.glb",
-   "category": "landscape",
-   "footprint": [
-    2.0,
-    2.0
-   ],
-   "height": 3.9,
-   "triangles": 62,
-   "materials": 3,
-   "bytes": 6124,
-   "sha256": "1883758ebb6cea5e924ac032e099ad1865ad4fbb79b6c2305c245518f85d9ef5",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage03_landscape.py"
-  },
-  {
-   "id": "landscape.flower-cluster",
-   "file": "kit/landscape/landscape.flower-cluster.glb",
-   "category": "landscape",
-   "footprint": [
-    1.221,
-    0.769
-   ],
-   "height": 0.8,
-   "triangles": 232,
-   "materials": 6,
-   "bytes": 20492,
-   "sha256": "b829bcb133f4be485f68b986dfd6ff9a6da2809d535e012f216798edc407743e",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage03_landscape.py"
-  },
-  {
-   "id": "landscape.mining-site",
-   "file": "kit/landscape/landscape.mining-site.glb",
-   "category": "landscape",
-   "footprint": [
-    28.0,
-    24.0
-   ],
-   "height": 7.619,
-   "triangles": 246,
-   "materials": 6,
-   "bytes": 17536,
-   "sha256": "04c7b7345124dd44ab973c9fb48ab7cb2dfc2207c66ea7584af405b4aaf9cf73",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage11_industry.py"
-  },
-  {
-   "id": "landscape.orchard-row",
-   "file": "kit/landscape/landscape.orchard-row.glb",
-   "category": "landscape",
-   "footprint": [
-    14,
-    12
-   ],
-   "height": 4.6,
-   "triangles": 336,
-   "materials": 6,
-   "bytes": 24744,
-   "sha256": "2a29abe365f0d8bce422f30d2975f8a5d57084bdda6e58bd55b2251ffab01ee5",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage11_industry.py"
-  },
-  {
-   "id": "landscape.palm",
-   "file": "kit/landscape/landscape.palm.glb",
-   "category": "landscape",
-   "footprint": [
-    2.842,
-    2.575
-   ],
-   "height": 4.25,
-   "triangles": 296,
-   "materials": 4,
-   "bytes": 23724,
-   "sha256": "3f3bf4b16bc8b6f687948d033c8f08150a43d4c2282b3831e354f9d75dd01601",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage03_landscape.py"
-  },
-  {
-   "id": "landscape.park-child",
-   "file": "kit/landscape/landscape.park-child.glb",
-   "category": "landscape",
-   "footprint": [
-    24,
-    20
-   ],
-   "height": 6.8,
-   "triangles": 622,
-   "materials": 13,
-   "bytes": 47096,
-   "sha256": "1c071757c8450deb92fb0e1e85fbd5faf6469aff1d1269773f92400c17ef08a7",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage16_parks_edu.py"
-  },
-  {
-   "id": "landscape.park-dog",
-   "file": "kit/landscape/landscape.park-dog.glb",
-   "category": "landscape",
-   "footprint": [
-    24,
-    20
-   ],
-   "height": 6.8,
-   "triangles": 470,
-   "materials": 13,
-   "bytes": 36716,
-   "sha256": "14966e08e4a2add6741822ab1afd3986f5194e4328368c4106a23f116d0c61cf",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage16_parks_edu.py"
-  },
-  {
-   "id": "landscape.park-nature",
-   "file": "kit/landscape/landscape.park-nature.glb",
-   "category": "landscape",
-   "footprint": [
-    24.15,
-    20.379
-   ],
-   "height": 6.9,
-   "triangles": 1178,
-   "materials": 8,
-   "bytes": 80432,
-   "sha256": "5d438a220cbc65a62eac08c93cb8cdbfa3c0c265856f34dbbe1a06e130821919",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage16_parks_edu.py"
-  },
-  {
-   "id": "landscape.park-skate",
-   "file": "kit/landscape/landscape.park-skate.glb",
-   "category": "landscape",
-   "footprint": [
-    24.0,
-    20.0
-   ],
-   "height": 6.855,
-   "triangles": 402,
-   "materials": 11,
-   "bytes": 31960,
-   "sha256": "da245cbdf03091cdd75eab10e586419a55e43ab7c34b37b75d6bdef58fd2585a",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage16_parks_edu.py"
-  },
-  {
-   "id": "landscape.park-standard",
-   "file": "kit/landscape/landscape.park-standard.glb",
-   "category": "landscape",
-   "footprint": [
-    24.0,
-    20.0
-   ],
-   "height": 6.82,
-   "triangles": 796,
-   "materials": 14,
-   "bytes": 60712,
-   "sha256": "be7bb5535f7c18a30c88403e3d8c590a1c4d5217817966543c2e2f9ad56014f7",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage16_parks_edu.py"
-  },
-  {
-   "id": "landscape.recreational-lake",
-   "file": "kit/landscape/landscape.recreational-lake.glb",
-   "category": "landscape",
-   "footprint": [
-    26.0,
-    27.254
-   ],
-   "height": 6.9,
-   "triangles": 460,
-   "materials": 8,
-   "bytes": 32856,
-   "sha256": "c96b7f92136001ce3c8c38f1263fc59a4cdd625b689aeb674ee462a43023734f",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage12_wild.py"
-  },
-  {
-   "id": "landscape.reef-rocks",
-   "file": "kit/landscape/landscape.reef-rocks.glb",
-   "category": "landscape",
-   "footprint": [
-    3.0,
-    3.0
-   ],
-   "height": 1.8,
-   "triangles": 124,
-   "materials": 4,
-   "bytes": 11196,
-   "sha256": "6b63ea7120ee66e8547393005148bd608b91ddb5b352dbb8cf710a4c2fbccb55",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage03_landscape.py"
-  },
-  {
-   "id": "landscape.rural-plot",
-   "file": "kit/landscape/landscape.rural-plot.glb",
-   "category": "landscape",
-   "footprint": [
-    16,
-    14
-   ],
-   "height": 2.28,
-   "triangles": 384,
-   "materials": 6,
-   "bytes": 24404,
-   "sha256": "d57500cc2737b88ca6a93a148ec0c03baf7a5d0df16d792771c9eaf9380ee39e",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage11_industry.py"
-  },
-  {
-   "id": "landscape.sand-dune",
-   "file": "kit/landscape/landscape.sand-dune.glb",
-   "category": "landscape",
-   "footprint": [
-    4,
-    4
-   ],
-   "height": 1.6,
-   "triangles": 92,
-   "materials": 2,
-   "bytes": 8784,
-   "sha256": "31a4dcced190d2b54bf629a7d4615b916346888e3ebdda016334445c9c597c18",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage03_landscape.py"
-  },
-  {
-   "id": "landscape.shrub",
-   "file": "kit/landscape/landscape.shrub.glb",
-   "category": "landscape",
-   "footprint": [
-    1.171,
-    0.681
-   ],
-   "height": 0.83,
-   "triangles": 60,
-   "materials": 2,
-   "bytes": 6640,
-   "sha256": "7de557377e706f08eb54512781f5e13f0d653d59a703b3f008bf89870ed17183",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage03_landscape.py"
-  },
-  {
-   "id": "landscape.wild-desert",
-   "file": "kit/landscape/landscape.wild-desert.glb",
-   "category": "landscape",
-   "footprint": [
-    24.0,
-    20.0
-   ],
-   "height": 1.84,
-   "triangles": 324,
-   "materials": 6,
-   "bytes": 26100,
-   "sha256": "9ce8c6a39ec4dce06749c0f3dbf66fb80ebddad628fdb8e6856486832f86ab5e",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage12_wild.py"
-  },
-  {
-   "id": "landscape.wild-forest",
-   "file": "kit/landscape/landscape.wild-forest.glb",
-   "category": "landscape",
-   "footprint": [
-    24,
-    20
-   ],
-   "height": 5.82,
-   "triangles": 920,
-   "materials": 4,
-   "bytes": 61800,
-   "sha256": "564f2d798ff64534c3e9fbfab20041b3e6451005b33f3c34aebfc159a150ba6f",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage12_wild.py"
-  },
-  {
-   "id": "landscape.wild-jungle",
-   "file": "kit/landscape/landscape.wild-jungle.glb",
-   "category": "landscape",
-   "footprint": [
-    24.0,
-    20.0
-   ],
-   "height": 7.99,
-   "triangles": 1004,
-   "materials": 4,
-   "bytes": 71240,
-   "sha256": "48de6a57bf835588212da60c3a2b5ecfd9aa957489c355b87ff8c9307cea4ee8",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage12_wild.py"
-  },
-  {
-   "id": "landscape.wild-lake",
-   "file": "kit/landscape/landscape.wild-lake.glb",
-   "category": "landscape",
-   "footprint": [
-    22.0,
-    22.0
-   ],
-   "height": 4.96,
-   "triangles": 394,
-   "materials": 6,
-   "bytes": 31932,
-   "sha256": "17a24abc3dedc7509a540db5125ad4125188700892cbac858e765e41082ff6f2",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage12_wild.py"
-  },
-  {
-   "id": "landscape.wild-river",
-   "file": "kit/landscape/landscape.wild-river.glb",
-   "category": "landscape",
-   "footprint": [
-    26.735,
-    16.575
-   ],
-   "height": 4.92,
-   "triangles": 566,
-   "materials": 9,
-   "bytes": 40844,
-   "sha256": "38716e82ede425472d77c153c708c023efd16a64b3e3383d9f3f11dedf11d207",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage12_wild.py"
-  },
-  {
-   "id": "marine.buoy",
-   "file": "kit/marine/marine.buoy.glb",
-   "category": "marine",
-   "footprint": [
-    0.685,
-    0.72
-   ],
-   "height": 1.34,
-   "triangles": 140,
-   "materials": 4,
-   "bytes": 10648,
-   "sha256": "45d1704e24b8db75aff338d74fa5388570a8af45d78fe77333e3c4f296c5a385",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage08_marine.py"
-  },
-  {
-   "id": "marine.cargo-ship",
-   "file": "kit/marine/marine.cargo-ship.glb",
-   "category": "marine",
-   "footprint": [
-    2.9,
-    8.0
-   ],
-   "height": 4.25,
-   "triangles": 124,
-   "materials": 9,
-   "bytes": 12512,
-   "sha256": "55b3eb87ba79c9bf453443d20bed0cc866aa31f1c3d45ac4b456b46e298907cf",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage08_marine.py"
-  },
-  {
-   "id": "marine.fishing-boat",
-   "file": "kit/marine/marine.fishing-boat.glb",
-   "category": "marine",
-   "footprint": [
-    2.2,
-    5.5
-   ],
-   "height": 3.9,
-   "triangles": 104,
-   "materials": 6,
-   "bytes": 9792,
-   "sha256": "651150b252b44d2a85a4c87e97a5e86cf599423b64d905e594eff5e5a66fb3ad",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage08_marine.py"
-  },
-  {
-   "id": "marine.kayak",
-   "file": "kit/marine/marine.kayak.glb",
-   "category": "marine",
-   "footprint": [
-    0.7,
-    3.2
-   ],
-   "height": 0.55,
-   "triangles": 88,
-   "materials": 3,
-   "bytes": 7408,
-   "sha256": "7ace3f6134c6fa47dd5a1317e51bb441a7213819a200c7296995c5a8aa4102b4",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage08_marine.py"
-  },
-  {
-   "id": "marine.pwc",
-   "file": "kit/marine/marine.pwc.glb",
-   "category": "marine",
-   "footprint": [
-    0.8,
-    2.2
-   ],
-   "height": 0.97,
-   "triangles": 84,
-   "materials": 5,
-   "bytes": 8256,
-   "sha256": "307fc7b4eb440865f1bc8d2709ec4ad490e01db41df5a58b7a7a73b084aeed31",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage08_marine.py"
-  },
-  {
-   "id": "marine.yacht",
-   "file": "kit/marine/marine.yacht.glb",
-   "category": "marine",
-   "footprint": [
-    1.6,
-    4.5
-   ],
-   "height": 3.3,
-   "triangles": 92,
-   "materials": 5,
-   "bytes": 8772,
-   "sha256": "c5550f989caaf684e2ff7c6c87d4db40b943e187db8ec2bbab5dcd79bb315278",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage08_marine.py"
-  },
-  {
-   "id": "prop.bench",
-   "file": "kit/prop/prop.bench.glb",
-   "category": "prop",
-   "footprint": [
-    1.6,
-    0.446
-   ],
-   "height": 1.151,
-   "triangles": 84,
-   "materials": 3,
-   "bytes": 7276,
-   "sha256": "c44717e21bced65e92aa333a111746df12904698a34199c0cd9c891014b9d15e",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage02_props.py"
-  },
-  {
-   "id": "prop.bicycle-parked",
-   "file": "kit/prop/prop.bicycle-parked.glb",
-   "category": "prop",
-   "footprint": [
-    1.06,
-    2.46
-   ],
-   "height": 0.915,
-   "triangles": 208,
-   "materials": 3,
-   "bytes": 13816,
-   "sha256": "33372e0f916f84b6fa5c3c04cc7ac278a0299bca4140e979829fda638f083a8a",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage15_civic.py"
-  },
-  {
-   "id": "prop.billboard",
-   "file": "kit/prop/prop.billboard.glb",
-   "category": "prop",
-   "footprint": [
-    4.2,
-    0.132
-   ],
-   "height": 6.0,
-   "triangles": 72,
-   "materials": 5,
-   "bytes": 7508,
-   "sha256": "637208c7ca3637f6b4b5cea3f1fb75c096f338266d67db1804d510991c4ddc5f",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage02_props.py"
-  },
-  {
-   "id": "prop.bin",
-   "file": "kit/prop/prop.bin.glb",
-   "category": "prop",
-   "footprint": [
-    0.457,
-    0.48
-   ],
-   "height": 0.98,
-   "triangles": 84,
-   "materials": 3,
-   "bytes": 6352,
-   "sha256": "d9de95f8dd387f327132696992a0fbc4a8b90acefe549ac7277aa26c6c2d4182",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage02_props.py"
-  },
-  {
-   "id": "prop.bollard",
-   "file": "kit/prop/prop.bollard.glb",
-   "category": "prop",
-   "footprint": [
-    0.14,
-    0.14
-   ],
-   "height": 0.8,
-   "triangles": 56,
-   "materials": 2,
-   "bytes": 4280,
-   "sha256": "75f9841cd3fe1cd5d7bc6cbe70e3aded154395ea9fc030e6eae71339603ab16f",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage02_props.py"
-  },
-  {
-   "id": "prop.cafe-patio",
-   "file": "kit/prop/prop.cafe-patio.glb",
-   "category": "prop",
-   "footprint": [
-    2.85,
-    2.6
-   ],
-   "height": 2.6,
-   "triangles": 162,
-   "materials": 4,
-   "bytes": 12172,
-   "sha256": "a49b728227533af1004d191defc109b365e637eaf0121e49d78623097472c94e",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage02_props.py"
-  },
-  {
-   "id": "prop.construction-crane",
-   "file": "kit/prop/prop.construction-crane.glb",
-   "category": "prop",
-   "footprint": [
-    3.0,
-    15.0
-   ],
-   "height": 17.243,
-   "triangles": 492,
-   "materials": 5,
-   "bytes": 31168,
-   "sha256": "ce94d41a19c5725e837dc6e9d8e40f19d9d2e568365c7189d9d07494065b3f9d",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage15_civic.py"
-  },
-  {
-   "id": "prop.construction-zone",
-   "file": "kit/prop/prop.construction-zone.glb",
-   "category": "prop",
-   "footprint": [
-    2.7,
-    0.5
-   ],
-   "height": 1.25,
-   "triangles": 140,
-   "materials": 3,
-   "bytes": 10320,
-   "sha256": "24af9818ac35cb4d43ab496f230b4dcbbab0e144299e75e098f5a958eee864f6",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage02_props.py"
-  },
-  {
-   "id": "prop.fountain",
-   "file": "kit/prop/prop.fountain.glb",
-   "category": "prop",
-   "footprint": [
-    3.2,
-    3.2
-   ],
-   "height": 1.78,
-   "triangles": 208,
-   "materials": 2,
-   "bytes": 12128,
-   "sha256": "1f2c45a581b1b5479d363f8b1cc8a8454b0566259f0dfa1f89865f37301c973d",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage02_props.py"
-  },
-  {
-   "id": "prop.fountain-bowl",
-   "file": "kit/prop/prop.fountain-bowl.glb",
-   "category": "prop",
-   "footprint": [
-    2.5,
-    2.5
-   ],
-   "height": 1.35,
-   "triangles": 150,
-   "materials": 2,
-   "bytes": 10324,
-   "sha256": "d779b41215069440c0223199a6da593f2db46a1d60014226ed0f41e711ff2fac",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage17_public.py"
-  },
-  {
-   "id": "prop.fountain-column",
-   "file": "kit/prop/prop.fountain-column.glb",
-   "category": "prop",
-   "footprint": [
-    4.29,
-    4.4
-   ],
-   "height": 6.58,
-   "triangles": 282,
-   "materials": 2,
-   "bytes": 16324,
-   "sha256": "fd7569781e5b406ef2765df31dfa510b42ba893308318087013e035e41a41395",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage17_public.py"
-  },
-  {
-   "id": "prop.fountain-garden",
-   "file": "kit/prop/prop.fountain-garden.glb",
-   "category": "prop",
-   "footprint": [
-    1.8,
-    1.4
-   ],
-   "height": 0.82,
-   "triangles": 96,
-   "materials": 4,
-   "bytes": 10556,
-   "sha256": "a3aae6ba91025181b14d4505a3e1a9a403b4dfe21bb736e1448a505801465783",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage17_public.py"
-  },
-  {
-   "id": "prop.fountain-plaza",
-   "file": "kit/prop/prop.fountain-plaza.glb",
-   "category": "prop",
-   "footprint": [
-    6.8,
-    6.8
-   ],
-   "height": 2.95,
-   "triangles": 278,
-   "materials": 2,
-   "bytes": 16016,
-   "sha256": "53d65353ce4ada155887e8aebc104e3b42902a56233edb743ff7d5254822e2f3",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage17_public.py"
-  },
-  {
-   "id": "prop.fountain-wall",
-   "file": "kit/prop/prop.fountain-wall.glb",
-   "category": "prop",
-   "footprint": [
-    4.5,
-    2.4
-   ],
-   "height": 2.6,
-   "triangles": 120,
-   "materials": 4,
-   "bytes": 10716,
-   "sha256": "1dd8f393ab076fbf811cebf9724ece0ed0145b0d0cab104139257dcbed93b3ed",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage17_public.py"
-  },
-  {
-   "id": "prop.hydrant",
-   "file": "kit/prop/prop.hydrant.glb",
-   "category": "prop",
-   "footprint": [
-    0.46,
-    0.46
-   ],
-   "height": 0.8,
-   "triangles": 176,
-   "materials": 2,
-   "bytes": 11084,
-   "sha256": "b844a5078c3bfeafb71037b96b8083d38aaff6c4a93530eeeb6b52ee58a09962",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage02_props.py"
-  },
-  {
-   "id": "prop.market-stall",
-   "file": "kit/prop/prop.market-stall.glb",
-   "category": "prop",
-   "footprint": [
-    2.92,
-    1.565
-   ],
-   "height": 3.443,
-   "triangles": 168,
-   "materials": 5,
-   "bytes": 13344,
-   "sha256": "b6043c0d799c11495d4b23e89259e55c48120486a8aa3466ec3fb4ef2fe22e95",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage02_props.py"
-  },
-  {
-   "id": "prop.monument-arch",
-   "file": "kit/prop/prop.monument-arch.glb",
-   "category": "prop",
-   "footprint": [
-    8.0,
-    3.4
-   ],
-   "height": 5.4,
-   "triangles": 120,
-   "materials": 4,
-   "bytes": 10512,
-   "sha256": "7710345512a062bdd3355d2c7c9fabacfc2adc105efa73767f331b4ce559f60b",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage17_public.py"
-  },
-  {
-   "id": "prop.monument-obelisk",
-   "file": "kit/prop/prop.monument-obelisk.glb",
-   "category": "prop",
-   "footprint": [
-    4.4,
-    4.4
-   ],
-   "height": 6.4,
-   "triangles": 54,
-   "materials": 3,
-   "bytes": 6328,
-   "sha256": "e361270d4207778b43b4f5128eda97965a23a4c2ac3bff89d82fd703eb7c576a",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage17_public.py"
-  },
-  {
-   "id": "prop.monument-war",
-   "file": "kit/prop/prop.monument-war.glb",
-   "category": "prop",
-   "footprint": [
-    3.2,
-    3.2
-   ],
-   "height": 4.0,
-   "triangles": 220,
-   "materials": 5,
-   "bytes": 17536,
-   "sha256": "3c527e3b122136dfeefbdddc8eefdfbb3263a1adfa6532425888e90fa94067af",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage17_public.py"
-  },
-  {
-   "id": "prop.parking-meter",
-   "file": "kit/prop/prop.parking-meter.glb",
-   "category": "prop",
-   "footprint": [
-    0.35,
-    0.3
-   ],
-   "height": 1.5,
-   "triangles": 60,
-   "materials": 3,
-   "bytes": 6252,
-   "sha256": "ebb4e6e286bcec525dce090c806f681f209c8d7b15536b83f4c82ee2656be19e",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage15_civic.py"
-  },
-  {
-   "id": "prop.planter",
-   "file": "kit/prop/prop.planter.glb",
-   "category": "prop",
-   "footprint": [
-    1.213,
-    0.6
-   ],
-   "height": 1.1,
-   "triangles": 84,
-   "materials": 4,
-   "bytes": 9196,
-   "sha256": "09d54d987c8c67796b6989f8418dab15fb1bbe051bd6e06feed4f626499fc83f",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage02_props.py"
-  },
-  {
-   "id": "prop.playground-set",
-   "file": "kit/prop/prop.playground-set.glb",
-   "category": "prop",
-   "footprint": [
-    8.7,
-    9.746
-   ],
-   "height": 2.85,
-   "triangles": 312,
-   "materials": 8,
-   "bytes": 23620,
-   "sha256": "91faf4df542f7ba26fd4279bb3ca3e0755b7df43744f64f301c38cffaa0c660c",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage15_civic.py"
-  },
-  {
-   "id": "prop.postbox",
-   "file": "kit/prop/prop.postbox.glb",
-   "category": "prop",
-   "footprint": [
-    0.425,
-    0.35
-   ],
-   "height": 1.235,
-   "triangles": 76,
-   "materials": 4,
-   "bytes": 6980,
-   "sha256": "b342d47e19a262d3bf7573ba7b6599589a7ba0ecc48f83dbba7101ed343bf1f5",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage02_props.py"
-  },
-  {
-   "id": "prop.recreation",
-   "file": "kit/prop/prop.recreation.glb",
-   "category": "prop",
-   "footprint": [
-    2.3,
-    0.9
-   ],
-   "height": 2.95,
-   "triangles": 144,
-   "materials": 3,
-   "bytes": 10504,
-   "sha256": "7fcd496948f6136c940ba7d92a83b6a5dfb3f5021f1fdf093ff7d74d4285b549",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage02_props.py"
-  },
-  {
-   "id": "prop.scaffold-section",
-   "file": "kit/prop/prop.scaffold-section.glb",
-   "category": "prop",
-   "footprint": [
-    4.4,
-    4.4
-   ],
-   "height": 6.1,
-   "triangles": 240,
-   "materials": 4,
-   "bytes": 17056,
-   "sha256": "1ba415bba76709060f28024dcdb594407d9ef1eeade99f195913d6aead3977a1",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage15_civic.py"
-  },
-  {
-   "id": "prop.seagull",
-   "file": "kit/prop/prop.seagull.glb",
-   "category": "prop",
-   "footprint": [
-    0.903,
-    1.13
-   ],
-   "height": 0.78,
-   "triangles": 156,
-   "materials": 4,
-   "bytes": 13668,
-   "sha256": "64f6fc5df3610816dc7a0c095e9bf55a022f4e382b2d2263d25eeeedbcd06691",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage15_civic.py"
-  },
-  {
-   "id": "prop.shelter",
-   "file": "kit/prop/prop.shelter.glb",
-   "category": "prop",
-   "footprint": [
-    4.2,
-    2.3
-   ],
-   "height": 3.1,
-   "triangles": 180,
-   "materials": 7,
-   "bytes": 14708,
-   "sha256": "6886b568142ce4781f84c6f9032384f46251fa67d9e429974159d8f3f2486663",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage02_props.py"
-  },
-  {
-   "id": "prop.statue-figure",
-   "file": "kit/prop/prop.statue-figure.glb",
-   "category": "prop",
-   "footprint": [
-    1.7,
-    1.7
-   ],
-   "height": 2.91,
-   "triangles": 116,
-   "materials": 4,
-   "bytes": 10536,
-   "sha256": "13dac222ea2cde10127bf862d3d0feadba5d9b88a48e166d0d49e03d3435d971",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage17_public.py"
-  },
-  {
-   "id": "prop.statue-memorial",
-   "file": "kit/prop/prop.statue-memorial.glb",
-   "category": "prop",
-   "footprint": [
-    4.4,
-    3.0
-   ],
-   "height": 2.92,
-   "triangles": 276,
-   "materials": 4,
-   "bytes": 20080,
-   "sha256": "b4aadc61d640bf4089a934943fd128f6b169ffa91201cab290863821e22f0d29",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage17_public.py"
-  },
-  {
-   "id": "prop.stop-sign",
-   "file": "kit/prop/prop.stop-sign.glb",
-   "category": "prop",
-   "footprint": [
-    0.6,
-    0.3
-   ],
-   "height": 2.825,
-   "triangles": 96,
-   "materials": 4,
-   "bytes": 7844,
-   "sha256": "68a606ec18a9585fad7e2166d00efaa195e022832abcd8fe7af170d5b53c0aa5",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage02_props.py"
-  },
-  {
-   "id": "prop.streetlamp",
-   "file": "kit/prop/prop.streetlamp.glb",
-   "category": "prop",
-   "footprint": [
-    1.475,
-    0.35
-   ],
-   "height": 4.18,
-   "triangles": 76,
-   "materials": 3,
-   "bytes": 6456,
-   "sha256": "c11496ac9030b5f0f0256558a0677c4a8b6f1aff463e33aeb2226a203332a715",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage02_props.py"
-  },
-  {
-   "id": "prop.traffic-signal",
-   "file": "kit/prop/prop.traffic-signal.glb",
-   "category": "prop",
-   "footprint": [
-    1.13,
-    0.46
-   ],
-   "height": 3.3,
-   "triangles": 148,
-   "materials": 5,
-   "bytes": 10948,
-   "sha256": "7f1861356936cd94734d442bbb4fc6deb9d77a5f8e565d38bbdefc33e7f582c4",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage02_props.py"
-  },
-  {
-   "id": "prop.utility-box",
-   "file": "kit/prop/prop.utility-box.glb",
-   "category": "prop",
-   "footprint": [
-    1.3,
-    0.8
-   ],
-   "height": 1.57,
-   "triangles": 84,
-   "materials": 4,
-   "bytes": 8240,
-   "sha256": "e6146d2b7d6c9ac92cee0393366667525d35d0fc622bbe57333a756e291eaeef",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage15_civic.py"
-  },
-  {
-   "id": "prop.utility-pole",
-   "file": "kit/prop/prop.utility-pole.glb",
-   "category": "prop",
-   "footprint": [
-    2.628,
-    1.35
-   ],
-   "height": 8.0,
-   "triangles": 146,
-   "materials": 5,
-   "bytes": 12536,
-   "sha256": "3820b830759858bae0b3a00a0e1bfa61b52f204f9e72ed9ce2061f5df104a4bb",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage15_civic.py"
-  },
-  {
-   "id": "prop.vending-machine",
-   "file": "kit/prop/prop.vending-machine.glb",
-   "category": "prop",
-   "footprint": [
-    1.1,
-    0.95
-   ],
-   "height": 1.9,
-   "triangles": 168,
-   "materials": 6,
-   "bytes": 14168,
-   "sha256": "6a4e095ed998e5a3503ba94862a7313dae1f44ab5981b2d3c1e0f5e5a621ce80",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage15_civic.py"
-  },
-  {
-   "id": "prop.yield-sign",
-   "file": "kit/prop/prop.yield-sign.glb",
-   "category": "prop",
-   "footprint": [
-    1.5,
-    0.803
-   ],
-   "height": 1.9,
-   "triangles": 22,
-   "materials": 3,
-   "bytes": 4172,
-   "sha256": "627898137846d2965af52b6bffe8b027817508ee012e18ca4e4f2dadd6481a18",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage14_roads.py"
-  },
-  {
-   "id": "road.abutment-support",
-   "file": "kit/road/road.abutment-support.glb",
-   "category": "road",
-   "footprint": [
-    1.2,
-    1.2
-   ],
-   "height": 4.75,
-   "triangles": 72,
-   "materials": 2,
-   "bytes": 5492,
-   "sha256": "04cae4b606488fb279db6fc684d9db35e9a39b3c97c470c1da96c47b5fb1ed58",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage01_roads.py"
-  },
-  {
-   "id": "road.asymmetric-32",
-   "file": "kit/road/road.asymmetric-32.glb",
-   "category": "road",
-   "footprint": [
-    20,
-    10
-   ],
-   "height": 0.132,
-   "triangles": 156,
-   "materials": 2,
-   "bytes": 10800,
-   "sha256": "413d77a07c00da9b17b545d2e0bd14c0e36bf9e08c89808fe193e6e754d2b42e",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage14_roads.py"
-  },
-  {
-   "id": "road.bend-90",
-   "file": "kit/road/road.bend-90.glb",
-   "category": "road",
-   "footprint": [
-    6,
-    6
-   ],
-   "height": 0.132,
-   "triangles": 288,
-   "materials": 2,
-   "bytes": 14560,
-   "sha256": "c5203dbdbac76afb5af6cbef076a10e3e8f5d46dc091dcd6dce282d36f83c0ed",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage01_roads.py"
-  },
-  {
-   "id": "road.boardwalk-pier",
-   "file": "kit/road/road.boardwalk-pier.glb",
-   "category": "road",
-   "footprint": [
-    3.03,
-    8.0
-   ],
-   "height": 3.2,
-   "triangles": 264,
-   "materials": 2,
-   "bytes": 16108,
-   "sha256": "88e4853ef66d60548c1480345593b1a492a617e430941b351b9744a83be9578f",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage01_roads.py"
-  },
-  {
-   "id": "road.boulevard-tree",
-   "file": "kit/road/road.boulevard-tree.glb",
-   "category": "road",
-   "footprint": [
-    14,
-    10.552
-   ],
-   "height": 4.22,
-   "triangles": 240,
-   "materials": 6,
-   "bytes": 19256,
-   "sha256": "0eebfa18544b0d37dca045153d2b4d4551fb53ac91689598294f979be1fc23ce",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage14_roads.py"
-  },
-  {
-   "id": "road.bridge-deck",
-   "file": "kit/road/road.bridge-deck.glb",
-   "category": "road",
-   "footprint": [
-    4.4,
-    10.4
-   ],
-   "height": 0.52,
-   "triangles": 96,
-   "materials": 3,
-   "bytes": 7452,
-   "sha256": "ab0ba9e8679bde887a8aec133e7520c55839d95536e5b5b1206ad1db89b2b215",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage01_roads.py"
-  },
-  {
-   "id": "road.country-2",
-   "file": "kit/road/road.country-2.glb",
-   "category": "road",
-   "footprint": [
-    13.5,
-    10.0
-   ],
-   "height": 0.132,
-   "triangles": 72,
-   "materials": 3,
-   "bytes": 6936,
-   "sha256": "1f987ef6a5cb2671fba348b1389b57b40ef8245548f8d33a703c3a05b67145c4",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage14_roads.py"
-  },
-  {
-   "id": "road.cross-junction",
-   "file": "kit/road/road.cross-junction.glb",
-   "category": "road",
-   "footprint": [
-    4,
-    4
-   ],
-   "height": 0.14,
-   "triangles": 120,
-   "materials": 3,
-   "bytes": 8796,
-   "sha256": "edc1983d59132e42a8ff3c9d610e1c83bf2478c583269a8755bd08d963303bdf",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage01_roads.py"
-  },
-  {
-   "id": "road.crosswalk",
-   "file": "kit/road/road.crosswalk.glb",
-   "category": "road",
-   "footprint": [
-    4,
-    4
-   ],
-   "height": 0.132,
-   "triangles": 72,
-   "materials": 2,
-   "bytes": 5584,
-   "sha256": "e7e2ffe8fbf8bb91926384aa02a1c34a5356a7dd603d224db4d9ba8ae3201e0d",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage01_roads.py"
-  },
-  {
-   "id": "road.curb-return",
-   "file": "kit/road/road.curb-return.glb",
-   "category": "road",
-   "footprint": [
-    2.5,
-    2.5
-   ],
-   "height": 0.32,
-   "triangles": 36,
-   "materials": 1,
-   "bytes": 2776,
-   "sha256": "54a6df5b967fee7d172454ce65d0b7b7f9c3ea9984c4606c61d0e31246a0f2a8",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage01_roads.py"
-  },
-  {
-   "id": "road.dirt-road",
-   "file": "kit/road/road.dirt-road.glb",
-   "category": "road",
-   "footprint": [
-    8,
-    10
-   ],
-   "height": 0.16,
-   "triangles": 60,
-   "materials": 3,
-   "bytes": 6092,
-   "sha256": "4038b663bd221376691a0a09726d5153c4eff24fc079c888b68bbc6a3adc5b26",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage14_roads.py"
-  },
-  {
-   "id": "road.end-cap",
-   "file": "kit/road/road.end-cap.glb",
-   "category": "road",
-   "footprint": [
-    4,
-    2
-   ],
-   "height": 0.132,
-   "triangles": 24,
-   "materials": 2,
-   "bytes": 2812,
-   "sha256": "ac761ab8c4d3fcbfc0a47996e47e4ef7d0825955c48db8f01be2c14edcdd0752",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage01_roads.py"
-  },
-  {
-   "id": "road.flyover-ramp",
-   "file": "kit/road/road.flyover-ramp.glb",
-   "category": "road",
-   "footprint": [
-    14.6,
-    14.6
-   ],
-   "height": 4.15,
-   "triangles": 276,
-   "materials": 4,
-   "bytes": 16292,
-   "sha256": "03589d35b6d507c3d8a52a298b67b2e78c3d38b9697e938633fa48dcd8cb4986",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage14_roads.py"
-  },
-  {
-   "id": "road.highway-4",
-   "file": "kit/road/road.highway-4.glb",
-   "category": "road",
-   "footprint": [
-    15.0,
-    10.0
-   ],
-   "height": 0.132,
-   "triangles": 168,
-   "materials": 2,
-   "bytes": 11444,
-   "sha256": "3d814ab3a14e8fe605a503b932d15b221c1a97407f01a5d44006534eaf17939d",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage14_roads.py"
-  },
-  {
-   "id": "road.highway-6",
-   "file": "kit/road/road.highway-6.glb",
-   "category": "road",
-   "footprint": [
-    21.0,
-    10.0
-   ],
-   "height": 0.132,
-   "triangles": 204,
-   "materials": 2,
-   "bytes": 13396,
-   "sha256": "660498ca36549c9f371ac2ccbbe8ef105ceaffe56abccd2d1c1e09091ca4e94e",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage14_roads.py"
-  },
-  {
-   "id": "road.highway-8",
-   "file": "kit/road/road.highway-8.glb",
-   "category": "road",
-   "footprint": [
-    27.0,
-    10.0
-   ],
-   "height": 1.02,
-   "triangles": 192,
-   "materials": 3,
-   "bytes": 13276,
-   "sha256": "156ae515e558d3ac623408ff5399275af4a99fc02f4a04a2ad9489badd065c57",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage14_roads.py"
-  },
-  {
-   "id": "road.interchange-double",
-   "file": "kit/road/road.interchange-double.glb",
-   "category": "road",
-   "footprint": [
-    20,
-    20
-   ],
-   "height": 4.45,
-   "triangles": 312,
-   "materials": 4,
-   "bytes": 20444,
-   "sha256": "db116a39368be0c93f2b440de9f364775f550377197392798c272587bc536453",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage14_roads.py"
-  },
-  {
-   "id": "road.manhole-drain",
-   "file": "kit/road/road.manhole-drain.glb",
-   "category": "road",
-   "footprint": [
-    0.7,
-    0.7
-   ],
-   "height": 0.052,
-   "triangles": 68,
-   "materials": 2,
-   "bytes": 5200,
-   "sha256": "76bf86145239da3f41a3add68b4c1ce35f9dbed784488eb0a8f0e38920561270",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage01_roads.py"
-  },
-  {
-   "id": "road.one-way-2",
-   "file": "kit/road/road.one-way-2.glb",
-   "category": "road",
-   "footprint": [
-    9.0,
-    10.0
-   ],
-   "height": 0.132,
-   "triangles": 144,
-   "materials": 2,
-   "bytes": 10120,
-   "sha256": "ed307adaa0637d77be9dabc0476bb9ea2df99866f87b60d5fad2d3781a7a11c5",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage14_roads.py"
-  },
-  {
-   "id": "road.parapet-guardrail",
-   "file": "kit/road/road.parapet-guardrail.glb",
-   "category": "road",
-   "footprint": [
-    10.0,
-    0.3
-   ],
-   "height": 0.8,
-   "triangles": 96,
-   "materials": 2,
-   "bytes": 7060,
-   "sha256": "006aa453279a4d41362034bee60f3c25e50ac6bc44bfeb7095f8370a5179e260",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage01_roads.py"
-  },
-  {
-   "id": "road.parking-edge",
-   "file": "kit/road/road.parking-edge.glb",
-   "category": "road",
-   "footprint": [
-    4.1,
-    10.0
-   ],
-   "height": 0.132,
-   "triangles": 108,
-   "materials": 2,
-   "bytes": 7592,
-   "sha256": "a5653f1c05b0d9d7a2a2abca6f0b2572f0a152095c1c66898d5992862b531607",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage01_roads.py"
-  },
-  {
-   "id": "road.paving-repair",
-   "file": "kit/road/road.paving-repair.glb",
-   "category": "road",
-   "footprint": [
-    2.2,
-    3.2
-   ],
-   "height": 0.152,
-   "triangles": 56,
-   "materials": 2,
-   "bytes": 5180,
-   "sha256": "22ba9f12a4b7a6bdf4b46be24924b88a5ae0ec5d85d354982b7a3ff51fd89fc1",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage01_roads.py"
-  },
-  {
-   "id": "road.planted-verge",
-   "file": "kit/road/road.planted-verge.glb",
-   "category": "road",
-   "footprint": [
-    2.025,
-    10.0
-   ],
-   "height": 0.32,
-   "triangles": 84,
-   "materials": 3,
-   "bytes": 6948,
-   "sha256": "394385f1669a0adadde249f8d4e15133869a055f46ef510e737a330756021c92",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage01_roads.py"
-  },
-  {
-   "id": "road.plaza-tile",
-   "file": "kit/road/road.plaza-tile.glb",
-   "category": "road",
-   "footprint": [
-    10.08,
-    10.08
-   ],
-   "height": 3.8,
-   "triangles": 184,
-   "materials": 5,
-   "bytes": 14756,
-   "sha256": "36e03414eca5c0dc50680579ab0f8067553738e9431e66c83194a87bef864002",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage14_roads.py"
-  },
-  {
-   "id": "road.quay-bank",
-   "file": "kit/road/road.quay-bank.glb",
-   "category": "road",
-   "footprint": [
-    4.0,
-    5.2
-   ],
-   "height": 1.72,
-   "triangles": 128,
-   "materials": 3,
-   "bytes": 9156,
-   "sha256": "458249386035a684b631f8d37b9618e3ec1d83e80852f9a37a12844e891eca58",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage01_roads.py"
-  },
-  {
-   "id": "road.rail-track",
-   "file": "kit/road/road.rail-track.glb",
-   "category": "road",
-   "footprint": [
-    4,
-    10
-   ],
-   "height": 0.33,
-   "triangles": 156,
-   "materials": 3,
-   "bytes": 11532,
-   "sha256": "c074614308dac1390df05456de3643a2839f608b46e5596979a008e4dd5a86c3",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage14_roads.py"
-  },
-  {
-   "id": "road.ramp-tactile",
-   "file": "kit/road/road.ramp-tactile.glb",
-   "category": "road",
-   "footprint": [
-    3.022,
-    2.0
-   ],
-   "height": 0.42,
-   "triangles": 372,
-   "materials": 2,
-   "bytes": 20280,
-   "sha256": "794d16a919708a565c06b17f3a8611aff7369975a1bc6f361c5087701d72aebc",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage01_roads.py"
-  },
-  {
-   "id": "road.roundabout",
-   "file": "kit/road/road.roundabout.glb",
-   "category": "road",
-   "footprint": [
-    20,
-    20
-   ],
-   "height": 1.7,
-   "triangles": 592,
-   "materials": 5,
-   "bytes": 35804,
-   "sha256": "6153f63a3ce71a66322362851b286e478f106be34e1c2281d5f0312f2fd3cd04",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage14_roads.py"
-  },
-  {
-   "id": "road.runway",
-   "file": "kit/road/road.runway.glb",
-   "category": "road",
-   "footprint": [
-    24,
-    30
-   ],
-   "height": 0.3,
-   "triangles": 456,
-   "materials": 3,
-   "bytes": 27784,
-   "sha256": "7b7af9074d21a0b16fba6396bab904a91a18689c5cff04be627637807d9a4d65",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage14_roads.py"
-  },
-  {
-   "id": "road.sidewalk-corner",
-   "file": "kit/road/road.sidewalk-corner.glb",
-   "category": "road",
-   "footprint": [
-    1.6,
-    1.6
-   ],
-   "height": 0.332,
-   "triangles": 36,
-   "materials": 2,
-   "bytes": 3876,
-   "sha256": "82cfb5d421c61802802538bcf39c9fd7ee4af89017dd982ab546f8c23b479aa8",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage01_roads.py"
-  },
-  {
-   "id": "road.sidewalk-straight-10",
-   "file": "kit/road/road.sidewalk-straight-10.glb",
-   "category": "road",
-   "footprint": [
-    1.6,
-    10.0
-   ],
-   "height": 0.332,
-   "triangles": 84,
-   "materials": 2,
-   "bytes": 6412,
-   "sha256": "0f24c9a9a0255e0bf69c22705833d368f82053dec0e367ad0ea4c5bae49950b9",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage01_roads.py"
-  },
-  {
-   "id": "road.straight-10",
-   "file": "kit/road/road.straight-10.glb",
-   "category": "road",
-   "footprint": [
-    4,
-    10
-   ],
-   "height": 0.14,
-   "triangles": 108,
-   "materials": 3,
-   "bytes": 8312,
-   "sha256": "087330a71271570a114fe3694befa259b462e7ed3d77ee5b09c95ed1255396f5",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage01_roads.py"
-  },
-  {
-   "id": "road.t-junction",
-   "file": "kit/road/road.t-junction.glb",
-   "category": "road",
-   "footprint": [
-    10,
-    10
-   ],
-   "height": 0.132,
-   "triangles": 96,
-   "materials": 2,
-   "bytes": 6872,
-   "sha256": "2bf1185e06adc0d218f7bead5d29a4fcfe6a27a7937436f249ec292e722572cf",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage01_roads.py"
-  },
-  {
-   "id": "road.toll-portal",
-   "file": "kit/road/road.toll-portal.glb",
-   "category": "road",
-   "footprint": [
-    15.0,
-    10.0
-   ],
-   "height": 3.95,
-   "triangles": 228,
-   "materials": 5,
-   "bytes": 16064,
-   "sha256": "e0f85b5391dc6860c668e601f8005d2d08d9fd054b45dffde0138e8977346a57",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage14_roads.py"
-  },
-  {
-   "id": "road.viaduct-elevated",
-   "file": "kit/road/road.viaduct-elevated.glb",
-   "category": "road",
-   "footprint": [
-    10.0,
-    8.0
-   ],
-   "height": 4.85,
-   "triangles": 120,
-   "materials": 4,
-   "bytes": 10336,
-   "sha256": "d814695f3b33577d48487b117bda0ad55b4bd37d79cfc1d903ee8a883061fdbe",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage14_roads.py"
-  },
-  {
-   "id": "road.width-transition",
-   "file": "kit/road/road.width-transition.glb",
-   "category": "road",
-   "footprint": [
-    6,
-    10
-   ],
-   "height": 0.132,
-   "triangles": 60,
-   "materials": 2,
-   "bytes": 5132,
-   "sha256": "58b1afb7b5bc4d8c5ee9c6de02d65995b096c34f9f7241ff8448fc9c82116a5e",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage01_roads.py"
-  },
-  {
-   "id": "vehicle.ambulance",
-   "file": "kit/vehicle/vehicle.ambulance.glb",
-   "category": "vehicle",
-   "footprint": [
-    2.11,
-    5.18
-   ],
-   "height": 1.981,
-   "triangles": 468,
-   "materials": 9,
-   "bytes": 30172,
-   "sha256": "227f980b6bbf651c93c13d430c77116a0128feef63a4d770c1818d72272525c5",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage04_vehicles.py"
-  },
-  {
-   "id": "vehicle.bicycle",
-   "file": "kit/vehicle/vehicle.bicycle.glb",
-   "category": "vehicle",
-   "footprint": [
-    0.5,
-    2.12
-   ],
-   "height": 0.833,
-   "triangles": 200,
-   "materials": 3,
-   "bytes": 12952,
-   "sha256": "32e3dc38eea836d8f18bccb1b851a5c01c748270610d842f151db3c8d3026abb",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage13_fleet.py"
-  },
-  {
-   "id": "vehicle.bus",
-   "file": "kit/vehicle/vehicle.bus.glb",
-   "category": "vehicle",
-   "footprint": [
-    2.71,
-    10.0
-   ],
-   "height": 3.023,
-   "triangles": 492,
-   "materials": 5,
-   "bytes": 29092,
-   "sha256": "41db9be72fc936db3f21867cebf3c93a33d97445866ace05ac41c12e2d7ad11f",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage04_vehicles.py"
-  },
-  {
-   "id": "vehicle.fire-truck",
-   "file": "kit/vehicle/vehicle.fire-truck.glb",
-   "category": "vehicle",
-   "footprint": [
-    3.348,
-    7.19
-   ],
-   "height": 3.328,
-   "triangles": 676,
-   "materials": 7,
-   "bytes": 39728,
-   "sha256": "4e453b5d701d4b895b3f170f2a4e8907b57532ff544f3435cfba86b833a353a0",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage13_fleet.py"
-  },
-  {
-   "id": "vehicle.hatchback",
-   "file": "kit/vehicle/vehicle.hatchback.glb",
-   "category": "vehicle",
-   "footprint": [
-    1.89,
-    3.9
-   ],
-   "height": 1.364,
-   "triangles": 464,
-   "materials": 6,
-   "bytes": 28368,
-   "sha256": "8dff292d199f85bcf224edc1d45fef3cfb048f995f57a7ce8b89c84959101da6",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage04_vehicles.py"
-  },
-  {
-   "id": "vehicle.hearse",
-   "file": "kit/vehicle/vehicle.hearse.glb",
-   "category": "vehicle",
-   "footprint": [
-    2.03,
-    5.52
-   ],
-   "height": 2.182,
-   "triangles": 428,
-   "materials": 6,
-   "bytes": 26544,
-   "sha256": "a982ee6e4df4995211e9260e882378d009414bd1bd69a81786125255620728e8",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage13_fleet.py"
-  },
-  {
-   "id": "vehicle.motorcycle",
-   "file": "kit/vehicle/vehicle.motorcycle.glb",
-   "category": "vehicle",
-   "footprint": [
-    0.55,
-    2.0
-   ],
-   "height": 1.032,
-   "triangles": 200,
-   "materials": 4,
-   "bytes": 13112,
-   "sha256": "d75a7dbe068a584d51a0e5191493ed378a49d28e4575d6f631e5d34b315e3888",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage04_vehicles.py"
-  },
-  {
-   "id": "vehicle.patrol",
-   "file": "kit/vehicle/vehicle.patrol.glb",
-   "category": "vehicle",
-   "footprint": [
-    1.89,
-    4.5
-   ],
-   "height": 1.474,
-   "triangles": 512,
-   "materials": 7,
-   "bytes": 31716,
-   "sha256": "49850a4a56f4d8a9595ce95abac235d55bbd3a4059ec2f54f81cac7f9dbe34a4",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage04_vehicles.py"
-  },
-  {
-   "id": "vehicle.plane-large",
-   "file": "kit/vehicle/vehicle.plane-large.glb",
-   "category": "vehicle",
-   "footprint": [
-    26.0,
-    21.78
-   ],
-   "height": 4.09,
-   "triangles": 592,
-   "materials": 5,
-   "bytes": 33020,
-   "sha256": "efd3f3afb3c1a2563d3d4bfcc7c2fd1a76e3f57625bb2d4eb1403fb710a4fbb9",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage13_fleet.py"
-  },
-  {
-   "id": "vehicle.plane-medium",
-   "file": "kit/vehicle/vehicle.plane-medium.glb",
-   "category": "vehicle",
-   "footprint": [
-    18.0,
-    15.84
-   ],
-   "height": 3.1,
-   "triangles": 520,
-   "materials": 5,
-   "bytes": 29700,
-   "sha256": "212b53189e989016a72a022755beb527c37cc149d77b596c114a41b2a24ff8d4",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage13_fleet.py"
-  },
-  {
-   "id": "vehicle.plane-small",
-   "file": "kit/vehicle/vehicle.plane-small.glb",
-   "category": "vehicle",
-   "footprint": [
-    6.4,
-    4.95
-   ],
-   "height": 1.691,
-   "triangles": 344,
-   "materials": 6,
-   "bytes": 22320,
-   "sha256": "52674148fc19fe5fbbfd80c5b450f047786f39fd166797773650f758ac83905e",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage13_fleet.py"
-  },
-  {
-   "id": "vehicle.police-helicopter",
-   "file": "kit/vehicle/vehicle.police-helicopter.glb",
-   "category": "vehicle",
-   "footprint": [
-    7.069,
-    5.2
-   ],
-   "height": 2.95,
-   "triangles": 264,
-   "materials": 5,
-   "bytes": 18780,
-   "sha256": "022a250cd30aeeb42d86cfc0bb8837c5526456e1b8bcf4b33f1a74c50b5d7451",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage13_fleet.py"
-  },
-  {
-   "id": "vehicle.police-suv",
-   "file": "kit/vehicle/vehicle.police-suv.glb",
-   "category": "vehicle",
-   "footprint": [
-    2.03,
-    4.6
-   ],
-   "height": 1.642,
-   "triangles": 428,
-   "materials": 6,
-   "bytes": 27084,
-   "sha256": "1dac0a3ae46ae0532db815a277072cc85af10764a933366a2d7cc6f38d19cd20",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage13_fleet.py"
-  },
-  {
-   "id": "vehicle.police-van",
-   "file": "kit/vehicle/vehicle.police-van.glb",
-   "category": "vehicle",
-   "footprint": [
-    2.11,
-    5.18
-   ],
-   "height": 2.031,
-   "triangles": 444,
-   "materials": 7,
-   "bytes": 27884,
-   "sha256": "2bb9565883d772802f11ad6a8521d36ebe036a6c8ffde36a0e96a4aef8d2277f",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage13_fleet.py"
-  },
-  {
-   "id": "vehicle.sedan",
-   "file": "kit/vehicle/vehicle.sedan.glb",
-   "category": "vehicle",
-   "footprint": [
-    1.89,
-    4.5
-   ],
-   "height": 1.344,
-   "triangles": 464,
-   "materials": 6,
-   "bytes": 28328,
-   "sha256": "1e5af704df90520410163ab3e77ed0d93e9ce788e638f3b43b1f346646b5b63f",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage04_vehicles.py"
-  },
-  {
-   "id": "vehicle.taxi",
-   "file": "kit/vehicle/vehicle.taxi.glb",
-   "category": "vehicle",
-   "footprint": [
-    1.89,
-    4.0
-   ],
-   "height": 1.524,
-   "triangles": 488,
-   "materials": 6,
-   "bytes": 29624,
-   "sha256": "16a2decee0292e793f1bfbc95d14eff0857166179cc31d4ac68667162bc7250f",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage04_vehicles.py"
-  },
-  {
-   "id": "vehicle.train-cargo",
-   "file": "kit/vehicle/vehicle.train-cargo.glb",
-   "category": "vehicle",
-   "footprint": [
-    3.08,
-    15.0
-   ],
-   "height": 3.478,
-   "triangles": 384,
-   "materials": 4,
-   "bytes": 22868,
-   "sha256": "6de8f6af3f2acc7d6bee0e149964e2ce8c1b7582026994c9ef0fbd618604c7fa",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage13_fleet.py"
-  },
-  {
-   "id": "vehicle.train-passenger",
-   "file": "kit/vehicle/vehicle.train-passenger.glb",
-   "category": "vehicle",
-   "footprint": [
-    2.92,
-    15.0
-   ],
-   "height": 4.078,
-   "triangles": 516,
-   "materials": 6,
-   "bytes": 31252,
-   "sha256": "8ae17bb6431ac93c921bd39880e123b3a6170d5eb9dd00c610e421629dc617be",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage13_fleet.py"
-  },
-  {
-   "id": "vehicle.truck",
-   "file": "kit/vehicle/vehicle.truck.glb",
-   "category": "vehicle",
-   "footprint": [
-    2.2,
-    6.9
-   ],
-   "height": 3.329,
-   "triangles": 508,
-   "materials": 6,
-   "bytes": 29428,
-   "sha256": "3831b9900ca75c9f6ced7ac387a572b512a21c818ba12e2c62418c6c3aea46cd",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage04_vehicles.py"
-  },
-  {
-   "id": "vehicle.truck-garbage",
-   "file": "kit/vehicle/vehicle.truck-garbage.glb",
-   "category": "vehicle",
-   "footprint": [
-    2.37,
-    7.34
-   ],
-   "height": 3.579,
-   "triangles": 580,
-   "materials": 7,
-   "bytes": 34808,
-   "sha256": "4f358c74691c6d42f2d98c557b5f8be7d5b48f16ad62b46651fbc8a4ed422fcc",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage13_fleet.py"
-  },
-  {
-   "id": "vehicle.van",
-   "file": "kit/vehicle/vehicle.van.glb",
-   "category": "vehicle",
-   "footprint": [
-    2.11,
-    5.18
-   ],
-   "height": 1.781,
-   "triangles": 420,
-   "materials": 7,
-   "bytes": 26560,
-   "sha256": "4aa7943da7c09436db445753b91b32341997ca5dca190fc5a3db439b740ea567",
-   "license": "CC0-1.0",
-   "source": "scripts/asset-kit/stage04_vehicles.py"
-  }
- ]
+  "version": 1,
+  "generated": "2026-11-25",
+  "spec": "specs/arbora-city/asset-pack.md",
+  "units": "metres",
+  "up": "Y (glTF after Blender Z-up export)",
+  "pivot": "bottom centre: origin at ground level, footprint centre",
+  "forward": "vehicles face +Y in the glTF frame (Blender +Y authoring)",
+  "textures": "none: flat palette materials, sRGB-to-linear baseColorFactor",
+  "license": "CC0-1.0",
+  "budgets": {
+    "triangles": 4000,
+    "materials": 16,
+    "texturePx": 2048
+  },
+  "entries": [
+    {
+      "id": "arch.awning",
+      "file": "kit/arch/arch.awning.glb",
+      "category": "arch",
+      "footprint": [
+        4.0,
+        1.716
+      ],
+      "height": 0.971,
+      "triangles": 108,
+      "materials": 3,
+      "bytes": 8172,
+      "sha256": "cab7a6aa9277f9306ead893dd0787411d1bca02d9f1cdf69242d552795fcffc7",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage05_arch.py"
+    },
+    {
+      "id": "arch.balcony",
+      "file": "kit/arch/arch.balcony.glb",
+      "category": "arch",
+      "footprint": [
+        1.8,
+        0.85
+      ],
+      "height": 2.1,
+      "triangles": 84,
+      "materials": 4,
+      "bytes": 7596,
+      "sha256": "d5377e5f7fb0bd94c81031c35289a882c8c549b74bd64439bf14c532865acc48",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage05_arch.py"
+    },
+    {
+      "id": "arch.bay-corner",
+      "file": "kit/arch/arch.bay-corner.glb",
+      "category": "arch",
+      "footprint": [
+        5.945,
+        4.255
+      ],
+      "height": 3.2,
+      "triangles": 180,
+      "materials": 4,
+      "bytes": 12968,
+      "sha256": "73ecff8f459bcaf8eb3acc84dca7aa7fb59d32b700b24ffdc6a8333720c73333",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage05_arch.py"
+    },
+    {
+      "id": "arch.bay-curtain",
+      "file": "kit/arch/arch.bay-curtain.glb",
+      "category": "arch",
+      "footprint": [
+        4.0,
+        0.39
+      ],
+      "height": 4.2,
+      "triangles": 72,
+      "materials": 4,
+      "bytes": 6940,
+      "sha256": "85f181fdf386d70f8387d2d4d7b2af6aab949ba720527d073bf8373cbd477121",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage05_arch.py"
+    },
+    {
+      "id": "arch.bay-roller",
+      "file": "kit/arch/arch.bay-roller.glb",
+      "category": "arch",
+      "footprint": [
+        4.0,
+        0.425
+      ],
+      "height": 3.5,
+      "triangles": 108,
+      "materials": 5,
+      "bytes": 9584,
+      "sha256": "38f734a58ffe061e23a8b6918579d958355931662df6c44b84d28b6fedbc7ab2",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage05_arch.py"
+    },
+    {
+      "id": "arch.bay-solid",
+      "file": "kit/arch/arch.bay-solid.glb",
+      "category": "arch",
+      "footprint": [
+        4.0,
+        0.3
+      ],
+      "height": 3.2,
+      "triangles": 48,
+      "materials": 2,
+      "bytes": 4428,
+      "sha256": "5a9e80cebf4a661d4672c521804e1b8b68da99c775ea921e09783150db69e480",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage05_arch.py"
+    },
+    {
+      "id": "arch.bay-storefront",
+      "file": "kit/arch/arch.bay-storefront.glb",
+      "category": "arch",
+      "footprint": [
+        4.0,
+        0.41
+      ],
+      "height": 3.5,
+      "triangles": 108,
+      "materials": 7,
+      "bytes": 10552,
+      "sha256": "31af264dd61ba4e4e3d92d0469c096e4a1bc105ec6d649a8d8fbd8ed5fddca0d",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage05_arch.py"
+    },
+    {
+      "id": "arch.bay-window",
+      "file": "kit/arch/arch.bay-window.glb",
+      "category": "arch",
+      "footprint": [
+        4.0,
+        0.43
+      ],
+      "height": 3.2,
+      "triangles": 144,
+      "materials": 4,
+      "bytes": 11236,
+      "sha256": "4d1acf2cf48d7ed769d0d777daf59280caa0ed611eaf4edf4a6c33454ddd4590",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage05_arch.py"
+    },
+    {
+      "id": "arch.cornice-band",
+      "file": "kit/arch/arch.cornice-band.glb",
+      "category": "arch",
+      "footprint": [
+        4.0,
+        0.35
+      ],
+      "height": 0.39,
+      "triangles": 120,
+      "materials": 2,
+      "bytes": 8348,
+      "sha256": "8f6c223d3354181ff7331966b19f4dc6bf00614a6084440d536fbd66e301b83f",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage05_arch.py"
+    },
+    {
+      "id": "arch.exterior-stair",
+      "file": "kit/arch/arch.exterior-stair.glb",
+      "category": "arch",
+      "footprint": [
+        1.4,
+        3.387
+      ],
+      "height": 2.436,
+      "triangles": 108,
+      "materials": 2,
+      "bytes": 7800,
+      "sha256": "602fb6ff305872d909dfc8b5fed384caf14382d9354ae49c94fcf705b7917404",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage05_arch.py"
+    },
+    {
+      "id": "arch.plinth",
+      "file": "kit/arch/arch.plinth.glb",
+      "category": "arch",
+      "footprint": [
+        4.1,
+        4.1
+      ],
+      "height": 0.62,
+      "triangles": 56,
+      "materials": 2,
+      "bytes": 5068,
+      "sha256": "e73d610c9e144e64c581c860d4a353c01b74eddb13bf549a139585855e5d24a2",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage05_arch.py"
+    },
+    {
+      "id": "arch.portal",
+      "file": "kit/arch/arch.portal.glb",
+      "category": "arch",
+      "footprint": [
+        2.9,
+        0.975
+      ],
+      "height": 3.0,
+      "triangles": 96,
+      "materials": 4,
+      "bytes": 8212,
+      "sha256": "04c46f630c7a16a8c68ec854fc0aa046b8a7da4cb3709d374471b8a2aa0618a1",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage05_arch.py"
+    },
+    {
+      "id": "arch.roof-flat",
+      "file": "kit/arch/arch.roof-flat.glb",
+      "category": "arch",
+      "footprint": [
+        4.06,
+        4.06
+      ],
+      "height": 0.76,
+      "triangles": 108,
+      "materials": 2,
+      "bytes": 7728,
+      "sha256": "21e97058e72579215b8c3c89b9f0ff53b9d07f5e0e53ed187948673ff52ef402",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage05_arch.py"
+    },
+    {
+      "id": "arch.roof-pitch",
+      "file": "kit/arch/arch.roof-pitch.glb",
+      "category": "arch",
+      "footprint": [
+        4.0,
+        3.659
+      ],
+      "height": 1.77,
+      "triangles": 38,
+      "materials": 2,
+      "bytes": 4272,
+      "sha256": "808fc16933e635d4140fd996c341db3c96a0be36247cabd6318172eeacc05606",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage05_arch.py"
+    },
+    {
+      "id": "arch.rooftop-plant",
+      "file": "kit/arch/arch.rooftop-plant.glb",
+      "category": "arch",
+      "footprint": [
+        4.019,
+        0.84
+      ],
+      "height": 1.4,
+      "triangles": 184,
+      "materials": 4,
+      "bytes": 12308,
+      "sha256": "d94ea2df5c0f39e1693085dc289f77ea2f12c495819515c6d533247c7210a823",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage05_arch.py"
+    },
+    {
+      "id": "arch.setback-adapter",
+      "file": "kit/arch/arch.setback-adapter.glb",
+      "category": "arch",
+      "footprint": [
+        2.1,
+        2.1
+      ],
+      "height": 0.38,
+      "triangles": 24,
+      "materials": 2,
+      "bytes": 2992,
+      "sha256": "196c298809ad522f2632a18ccbe91fa32b0fd11ce000d4d801aea9d1ffce68a1",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage05_arch.py"
+    },
+    {
+      "id": "building.airport-terminal",
+      "file": "kit/building/building.airport-terminal.glb",
+      "category": "building",
+      "footprint": [
+        29.5,
+        14.073
+      ],
+      "height": 9.75,
+      "triangles": 316,
+      "materials": 7,
+      "bytes": 21912,
+      "sha256": "9c1f348cf687de0cb9a1fe896be4c51d21af26e88c12b2c22af979d6ab675894",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage09_infrastructure.py"
+    },
+    {
+      "id": "building.apartment-rowhouse",
+      "file": "kit/building/building.apartment-rowhouse.glb",
+      "category": "building",
+      "footprint": [
+        4.135,
+        5.03
+      ],
+      "height": 11.15,
+      "triangles": 300,
+      "materials": 8,
+      "bytes": 22012,
+      "sha256": "69a86d1ee64acef085c10395aba40c9e7e2a1534cb95eea984f1ce5dbf697401",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage06_buildings.py"
+    },
+    {
+      "id": "building.arcade",
+      "file": "kit/building/building.arcade.glb",
+      "category": "building",
+      "footprint": [
+        12.6,
+        11.98
+      ],
+      "height": 6.75,
+      "triangles": 200,
+      "materials": 8,
+      "bytes": 15976,
+      "sha256": "aa5a6972a377e1e7e153a788315f5b1ae1aba4a4f9868c66b93c903b3dd81ce3",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage10_commerce.py"
+    },
+    {
+      "id": "building.bus-station",
+      "file": "kit/building/building.bus-station.glb",
+      "category": "building",
+      "footprint": [
+        20.6,
+        15.3
+      ],
+      "height": 5.35,
+      "triangles": 336,
+      "materials": 10,
+      "bytes": 24452,
+      "sha256": "9f6dffebce6abfe930ce29be423a741f1d4322df8e1dc0fa0e72f44a0e86a57c",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage09_infrastructure.py"
+    },
+    {
+      "id": "building.carnival-bigtop",
+      "file": "kit/building/building.carnival-bigtop.glb",
+      "category": "building",
+      "footprint": [
+        20.6,
+        20.6
+      ],
+      "height": 10.9,
+      "triangles": 330,
+      "materials": 7,
+      "bytes": 21904,
+      "sha256": "d285fe9251434d7b0e02863c487006bf57ff59c29e5df74319f05ccb05243dfa",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage10_commerce.py"
+    },
+    {
+      "id": "building.city-hall",
+      "file": "kit/building/building.city-hall.glb",
+      "category": "building",
+      "footprint": [
+        24.0,
+        18.5
+      ],
+      "height": 13.1,
+      "triangles": 680,
+      "materials": 7,
+      "bytes": 41000,
+      "sha256": "4c0eb334559084e9d66b57419ee17f8ea9d15ddcc19e1edfa9029370cc5f613d",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage15_civic.py"
+    },
+    {
+      "id": "building.civic-center",
+      "file": "kit/building/building.civic-center.glb",
+      "category": "building",
+      "footprint": [
+        28.3,
+        20
+      ],
+      "height": 9.0,
+      "triangles": 380,
+      "materials": 9,
+      "bytes": 27892,
+      "sha256": "111aae9e64a7d2b6045e5f8f569acbc746fe625a5f2374053c8f812ceeba6e40",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage17_public.py"
+    },
+    {
+      "id": "building.clinic",
+      "file": "kit/building/building.clinic.glb",
+      "category": "building",
+      "footprint": [
+        8.05,
+        4.925
+      ],
+      "height": 7.85,
+      "triangles": 264,
+      "materials": 6,
+      "bytes": 18216,
+      "sha256": "5a69a454de788365bdc457f60f217f945b2c6460d7bc845f8499b6a91a1ca0bd",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage06_buildings.py"
+    },
+    {
+      "id": "building.clothing-store",
+      "file": "kit/building/building.clothing-store.glb",
+      "category": "building",
+      "footprint": [
+        10.6,
+        9.793
+      ],
+      "height": 7.25,
+      "triangles": 144,
+      "materials": 7,
+      "bytes": 12816,
+      "sha256": "a27cdee1d72864453d21941e25db16cf56bf3bee43b4ef3220e8fd763109f94c",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage10_commerce.py"
+    },
+    {
+      "id": "building.coal-plant",
+      "file": "kit/building/building.coal-plant.glb",
+      "category": "building",
+      "footprint": [
+        22.6,
+        14.6
+      ],
+      "height": 12.4,
+      "triangles": 300,
+      "materials": 7,
+      "bytes": 20436,
+      "sha256": "63faa5f048edab950f7c29c3017cc5e5cfe8118e1fa3da393ac0fec50c956122",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage09_infrastructure.py"
+    },
+    {
+      "id": "building.courthouse",
+      "file": "kit/building/building.courthouse.glb",
+      "category": "building",
+      "footprint": [
+        22,
+        16
+      ],
+      "height": 11.0,
+      "triangles": 442,
+      "materials": 7,
+      "bytes": 29112,
+      "sha256": "a795c98c80725a83761e3dc13bb11e3bbbd0d6d6c7ad741d59a158cc01007e6b",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage15_civic.py"
+    },
+    {
+      "id": "building.datacenter",
+      "file": "kit/building/building.datacenter.glb",
+      "category": "building",
+      "footprint": [
+        27.4,
+        20
+      ],
+      "height": 7.1,
+      "triangles": 368,
+      "materials": 7,
+      "bytes": 23992,
+      "sha256": "346cede675151eb0b74a90adc6631c14aaa44f4d917b4dda11bc57ac6815cf4b",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage11_industry.py"
+    },
+    {
+      "id": "building.energy-plant",
+      "file": "kit/building/building.energy-plant.glb",
+      "category": "building",
+      "footprint": [
+        24.6,
+        14.6
+      ],
+      "height": 14.4,
+      "triangles": 552,
+      "materials": 8,
+      "bytes": 33144,
+      "sha256": "1eb101427439cf18cb477c99efe7d05efe34f4e64a7b344dedeeb87906aea04a",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage09_infrastructure.py"
+    },
+    {
+      "id": "building.farm-barn",
+      "file": "kit/building/building.farm-barn.glb",
+      "category": "building",
+      "footprint": [
+        18.232,
+        12.0
+      ],
+      "height": 9.2,
+      "triangles": 174,
+      "materials": 7,
+      "bytes": 15624,
+      "sha256": "72e5f45951f4c8ba0116512fbe66984f57c438f15910bf93a4e2e6dfe451161c",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage11_industry.py"
+    },
+    {
+      "id": "building.farm-house",
+      "file": "kit/building/building.farm-house.glb",
+      "category": "building",
+      "footprint": [
+        14.0,
+        11.1
+      ],
+      "height": 8.346,
+      "triangles": 184,
+      "materials": 8,
+      "bytes": 15620,
+      "sha256": "23a3fa95aeab41ae4a484b43f91b8905e12702b487f99e573c3040795cfa981a",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage11_industry.py"
+    },
+    {
+      "id": "building.farmers-market",
+      "file": "kit/building/building.farmers-market.glb",
+      "category": "building",
+      "footprint": [
+        20,
+        16
+      ],
+      "height": 6.8,
+      "triangles": 516,
+      "materials": 11,
+      "bytes": 34908,
+      "sha256": "21c1028525a9329658b87b46a26b229fde101a45fa4ec3d39f774a1456cedd2b",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage11_industry.py"
+    },
+    {
+      "id": "building.fast-food",
+      "file": "kit/building/building.fast-food.glb",
+      "category": "building",
+      "footprint": [
+        21.3,
+        14.6
+      ],
+      "height": 9.55,
+      "triangles": 212,
+      "materials": 10,
+      "bytes": 17936,
+      "sha256": "f47d23bb1e54c3005b1375a9e5989b77d4eb8fc2c176d51646be019a2a215277",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage10_commerce.py"
+    },
+    {
+      "id": "building.firehouse",
+      "file": "kit/building/building.firehouse.glb",
+      "category": "building",
+      "footprint": [
+        14.6,
+        11.12
+      ],
+      "height": 9.3,
+      "triangles": 608,
+      "materials": 8,
+      "bytes": 38516,
+      "sha256": "e7073d166cc0ec1dcd867d0d73550bd6d3e0daaae71ed60323db55b442cb2946",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage09_infrastructure.py"
+    },
+    {
+      "id": "building.fuel-station",
+      "file": "kit/building/building.fuel-station.glb",
+      "category": "building",
+      "footprint": [
+        11.2,
+        8.3
+      ],
+      "height": 4.82,
+      "triangles": 264,
+      "materials": 9,
+      "bytes": 20168,
+      "sha256": "82df44612c096f157d2dd995e446f549aecaf91dc77debd3e05f64758978a1e5",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage06_buildings.py"
+    },
+    {
+      "id": "building.funeral-home",
+      "file": "kit/building/building.funeral-home.glb",
+      "category": "building",
+      "footprint": [
+        12.6,
+        9.8
+      ],
+      "height": 11.0,
+      "triangles": 304,
+      "materials": 7,
+      "bytes": 21920,
+      "sha256": "392b1fcdb510a85d3acdfb80daac960c022d6f3245b59d6d3084e3b3d2656564",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage09_infrastructure.py"
+    },
+    {
+      "id": "building.furniture-store",
+      "file": "kit/building/building.furniture-store.glb",
+      "category": "building",
+      "footprint": [
+        17.4,
+        11.0
+      ],
+      "height": 9.1,
+      "triangles": 164,
+      "materials": 7,
+      "bytes": 13936,
+      "sha256": "8fb2b62fd63fba61c16f0ec28eaa6da10ca9bbff90183274aedef42be06c6985",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage10_commerce.py"
+    },
+    {
+      "id": "building.garage",
+      "file": "kit/building/building.garage.glb",
+      "category": "building",
+      "footprint": [
+        10.05,
+        6.825
+      ],
+      "height": 6.3,
+      "triangles": 384,
+      "materials": 8,
+      "bytes": 26684,
+      "sha256": "a14296ec8a690bfcff0f8627f11e73d10b3a3b624a1aed8ebcccdf30ce6487cd",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage06_buildings.py"
+    },
+    {
+      "id": "building.government-office",
+      "file": "kit/building/building.government-office.glb",
+      "category": "building",
+      "footprint": [
+        20,
+        20
+      ],
+      "height": 11,
+      "triangles": 476,
+      "materials": 6,
+      "bytes": 30940,
+      "sha256": "36e0534de5df906d43d0f2aa335b833968e8d14c7e3fbe1f703a28b18e911c66",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage17_public.py"
+    },
+    {
+      "id": "building.grocery",
+      "file": "kit/building/building.grocery.glb",
+      "category": "building",
+      "footprint": [
+        8.05,
+        7.025
+      ],
+      "height": 7.65,
+      "triangles": 276,
+      "materials": 8,
+      "bytes": 21084,
+      "sha256": "8ac7f25e261e0d4611c5d97063365d44af38130752ca3f6d68897cb6f85abf58",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage06_buildings.py"
+    },
+    {
+      "id": "building.hospital",
+      "file": "kit/building/building.hospital.glb",
+      "category": "building",
+      "footprint": [
+        20.6,
+        15.3
+      ],
+      "height": 15.0,
+      "triangles": 692,
+      "materials": 8,
+      "bytes": 43308,
+      "sha256": "b81bca9100be873255d70a20204adecb11f2e7c8d8c564d1474d5599a6c9374d",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage09_infrastructure.py"
+    },
+    {
+      "id": "building.hotel",
+      "file": "kit/building/building.hotel.glb",
+      "category": "building",
+      "footprint": [
+        6.135,
+        6.025
+      ],
+      "height": 14.65,
+      "triangles": 572,
+      "materials": 9,
+      "bytes": 37800,
+      "sha256": "0433c28ba1abcc1dc8963c4e436bc0cda91cb0951861ba89a00aefe7f2220c01",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage06_buildings.py"
+    },
+    {
+      "id": "building.house-detached",
+      "file": "kit/building/building.house-detached.glb",
+      "category": "building",
+      "footprint": [
+        6.4,
+        6.125
+      ],
+      "height": 6.32,
+      "triangles": 216,
+      "materials": 8,
+      "bytes": 17772,
+      "sha256": "8cf818a3f9d911c517868a41fd61374adc9cc5f8e678d2bc54e22eb62b395e72",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage06_buildings.py"
+    },
+    {
+      "id": "building.house-suburban",
+      "file": "kit/building/building.house-suburban.glb",
+      "category": "building",
+      "footprint": [
+        14,
+        12
+      ],
+      "height": 8.5,
+      "triangles": 220,
+      "materials": 10,
+      "bytes": 18720,
+      "sha256": "ec76bf69a0bff44c48bf7fb15b5d825c6f6b4a0e2b09c88da967ae29400665f3",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage11_industry.py"
+    },
+    {
+      "id": "building.library",
+      "file": "kit/building/building.library.glb",
+      "category": "building",
+      "footprint": [
+        20,
+        18
+      ],
+      "height": 8.75,
+      "triangles": 388,
+      "materials": 11,
+      "bytes": 29376,
+      "sha256": "d5c631db2eb9c5a0923cfa4907d784bfd12b6d3006d95caae98627bb75ba63e6",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage17_public.py"
+    },
+    {
+      "id": "building.mall",
+      "file": "kit/building/building.mall.glb",
+      "category": "building",
+      "footprint": [
+        28.6,
+        22.7
+      ],
+      "height": 8.85,
+      "triangles": 424,
+      "materials": 7,
+      "bytes": 27432,
+      "sha256": "b233eb1a0f9228331da0394688b96dfeb053de1e8ea07b7a752172ce80fe4bb7",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage10_commerce.py"
+    },
+    {
+      "id": "building.movie-theater",
+      "file": "kit/building/building.movie-theater.glb",
+      "category": "building",
+      "footprint": [
+        20.6,
+        15.9
+      ],
+      "height": 13.9,
+      "triangles": 368,
+      "materials": 8,
+      "bytes": 24456,
+      "sha256": "2c1505c066a27459b21e82bd0fd433ac4fe241838c5f0badbb8068db9ab7661e",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage10_commerce.py"
+    },
+    {
+      "id": "building.nuclear-plant",
+      "file": "kit/building/building.nuclear-plant.glb",
+      "category": "building",
+      "footprint": [
+        24.6,
+        14.75
+      ],
+      "height": 8.0,
+      "triangles": 468,
+      "materials": 10,
+      "bytes": 35324,
+      "sha256": "26159fed6977616c50196ab47527059be3089361853b9bdb874d9d790c6058b2",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage09_infrastructure.py"
+    },
+    {
+      "id": "building.office-campus",
+      "file": "kit/building/building.office-campus.glb",
+      "category": "building",
+      "footprint": [
+        31.12,
+        25.06
+      ],
+      "height": 13.7,
+      "triangles": 476,
+      "materials": 6,
+      "bytes": 30736,
+      "sha256": "311acd302d20500311167acf4579c411823b15e23899cf77f39c78a363cb1d31",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage11_industry.py"
+    },
+    {
+      "id": "building.office-tower",
+      "file": "kit/building/building.office-tower.glb",
+      "category": "building",
+      "footprint": [
+        5.18,
+        4.89
+      ],
+      "height": 21.15,
+      "triangles": 720,
+      "materials": 5,
+      "bytes": 43136,
+      "sha256": "71bad12e531af45a71e08e47f5d63410d94c516e42cc73d47a97bc153932a0f1",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage06_buildings.py"
+    },
+    {
+      "id": "building.oil-gas-plant",
+      "file": "kit/building/building.oil-gas-plant.glb",
+      "category": "building",
+      "footprint": [
+        28,
+        24
+      ],
+      "height": 14.1,
+      "triangles": 566,
+      "materials": 6,
+      "bytes": 32120,
+      "sha256": "e8be463b45db000958d443a6814462046188a8e3b2184ae0492381968c3f516e",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage11_industry.py"
+    },
+    {
+      "id": "building.ore-plant",
+      "file": "kit/building/building.ore-plant.glb",
+      "category": "building",
+      "footprint": [
+        26,
+        22
+      ],
+      "height": 9.5,
+      "triangles": 262,
+      "materials": 9,
+      "bytes": 20680,
+      "sha256": "0a378e89252b000276d501352a34fc3566ed201bac8e916df80fbac49dfe2b82",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage11_industry.py"
+    },
+    {
+      "id": "building.pier-carnival",
+      "file": "kit/building/building.pier-carnival.glb",
+      "category": "building",
+      "footprint": [
+        14.6,
+        18.6
+      ],
+      "height": 17.54,
+      "triangles": 752,
+      "materials": 9,
+      "bytes": 46668,
+      "sha256": "30a656c721ef4a7834006ab94ae1328a03c980f7ae1a08535bce111c81ee2b5e",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage10_commerce.py"
+    },
+    {
+      "id": "building.police-station",
+      "file": "kit/building/building.police-station.glb",
+      "category": "building",
+      "footprint": [
+        12.6,
+        9.8
+      ],
+      "height": 13.3,
+      "triangles": 472,
+      "materials": 10,
+      "bytes": 31804,
+      "sha256": "f6aebfd16878852e6a72f7e3ae7588a209d5fccfed54188216f8ed9622a64c43",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage09_infrastructure.py"
+    },
+    {
+      "id": "building.post-office",
+      "file": "kit/building/building.post-office.glb",
+      "category": "building",
+      "footprint": [
+        20,
+        14
+      ],
+      "height": 7.95,
+      "triangles": 272,
+      "materials": 10,
+      "bytes": 22048,
+      "sha256": "00585566b4c2d68425500261026915fb39a2e3bdaa4ada18b98abb5af485c141",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage17_public.py"
+    },
+    {
+      "id": "building.restaurant-row",
+      "file": "kit/building/building.restaurant-row.glb",
+      "category": "building",
+      "footprint": [
+        16.6,
+        13.95
+      ],
+      "height": 6.45,
+      "triangles": 420,
+      "materials": 10,
+      "bytes": 29028,
+      "sha256": "e23f80e8c5c6f4db19dac10d214eaac2a10da8e573874fa4941939cd0cd156b0",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage10_commerce.py"
+    },
+    {
+      "id": "building.school",
+      "file": "kit/building/building.school.glb",
+      "category": "building",
+      "footprint": [
+        24.11,
+        19.0
+      ],
+      "height": 6.2,
+      "triangles": 272,
+      "materials": 8,
+      "bytes": 20804,
+      "sha256": "530e8cd86a6ee46d73fa5b1937e73155763142996e4d9374b6b5eebf7826dc12",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage15_civic.py"
+    },
+    {
+      "id": "building.school-community-college",
+      "file": "kit/building/building.school-community-college.glb",
+      "category": "building",
+      "footprint": [
+        34.0,
+        24.075
+      ],
+      "height": 8.95,
+      "triangles": 1066,
+      "materials": 12,
+      "bytes": 69384,
+      "sha256": "392e7f60028c68db8a709f6ba2ecabfdfc83fadad9e16203a4d518bffcf75155",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage16_parks_edu.py"
+    },
+    {
+      "id": "building.school-daycare",
+      "file": "kit/building/building.school-daycare.glb",
+      "category": "building",
+      "footprint": [
+        20.965,
+        14.0
+      ],
+      "height": 4.8,
+      "triangles": 388,
+      "materials": 13,
+      "bytes": 32136,
+      "sha256": "e22e945ec17ae95044746a13e99d31149a7a7b52cea027e3ded00edd75761b3a",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage16_parks_edu.py"
+    },
+    {
+      "id": "building.school-high",
+      "file": "kit/building/building.school-high.glb",
+      "category": "building",
+      "footprint": [
+        36.2,
+        34.0
+      ],
+      "height": 13.4,
+      "triangles": 1008,
+      "materials": 16,
+      "bytes": 67864,
+      "sha256": "b3e81dba52f4618e442ee5e5677ef50609e1c4aaa046941f285d1c2821c5560b",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage16_parks_edu.py"
+    },
+    {
+      "id": "building.school-middle",
+      "file": "kit/building/building.school-middle.glb",
+      "category": "building",
+      "footprint": [
+        28.15,
+        20.0
+      ],
+      "height": 6.8,
+      "triangles": 774,
+      "materials": 14,
+      "bytes": 53824,
+      "sha256": "1f7e7047060428dd4d2343d1d8478ae1f6d55df0e354c278a5ff56c1ccff5924",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage16_parks_edu.py"
+    },
+    {
+      "id": "building.security-station",
+      "file": "kit/building/building.security-station.glb",
+      "category": "building",
+      "footprint": [
+        6.05,
+        4.175
+      ],
+      "height": 8.0,
+      "triangles": 312,
+      "materials": 10,
+      "bytes": 24016,
+      "sha256": "5f636d4d0d03e51515bee73a18f36033ee78642f29937763033dc5d73bcf23c9",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage06_buildings.py"
+    },
+    {
+      "id": "building.shipyard",
+      "file": "kit/building/building.shipyard.glb",
+      "category": "building",
+      "footprint": [
+        24.6,
+        16.6
+      ],
+      "height": 9.3,
+      "triangles": 264,
+      "materials": 9,
+      "bytes": 20368,
+      "sha256": "760f5f59b25a8a763f5026bc2ae7e66ea913fb35d42adf6868972021c543bfd4",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage09_infrastructure.py"
+    },
+    {
+      "id": "building.shop-bakery",
+      "file": "kit/building/building.shop-bakery.glb",
+      "category": "building",
+      "footprint": [
+        4.185,
+        5.422
+      ],
+      "height": 4.55,
+      "triangles": 276,
+      "materials": 10,
+      "bytes": 22288,
+      "sha256": "051bc9c05501fed08a66dacdeacf94b862ac083ec023532486306abaec6d2c74",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage06_buildings.py"
+    },
+    {
+      "id": "building.shop-mechanic",
+      "file": "kit/building/building.shop-mechanic.glb",
+      "category": "building",
+      "footprint": [
+        8.185,
+        4.16
+      ],
+      "height": 5.15,
+      "triangles": 388,
+      "materials": 9,
+      "bytes": 27456,
+      "sha256": "f32cbd254f19892a178afac6f044df4c4ad3ad4c7121b293ab162c26bcaa8724",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage06_buildings.py"
+    },
+    {
+      "id": "building.skyscraper-podium",
+      "file": "kit/building/building.skyscraper-podium.glb",
+      "category": "building",
+      "footprint": [
+        24,
+        20
+      ],
+      "height": 37.95,
+      "triangles": 1584,
+      "materials": 5,
+      "bytes": 89700,
+      "sha256": "b21839380cbb29872e52a33a9c41dc65359ef7105fd09faaa559173b76ecc202",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage11_industry.py"
+    },
+    {
+      "id": "building.skyscraper-setback",
+      "file": "kit/building/building.skyscraper-setback.glb",
+      "category": "building",
+      "footprint": [
+        22,
+        18
+      ],
+      "height": 51.65,
+      "triangles": 2792,
+      "materials": 5,
+      "bytes": 154880,
+      "sha256": "20a49c6c3e9ab1db2f6d4457c43172e97a2b1537160702064a1e11ca95a2cde2",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage11_industry.py"
+    },
+    {
+      "id": "building.skyscraper-slab",
+      "file": "kit/building/building.skyscraper-slab.glb",
+      "category": "building",
+      "footprint": [
+        15.0,
+        12.0
+      ],
+      "height": 34.75,
+      "triangles": 1824,
+      "materials": 5,
+      "bytes": 102616,
+      "sha256": "aa8924984d88d48ffa14bd64e38305cd21e089ca57f1beec6fb23ef3df5047e1",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage11_industry.py"
+    },
+    {
+      "id": "building.skyscraper-tapered",
+      "file": "kit/building/building.skyscraper-tapered.glb",
+      "category": "building",
+      "footprint": [
+        17.0,
+        17.0
+      ],
+      "height": 47.55,
+      "triangles": 3336,
+      "materials": 7,
+      "bytes": 185392,
+      "sha256": "7adde4b876925ff6d768db8a8b1b763384fa7735c988c46a1ac5f0d033a4e263",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage11_industry.py"
+    },
+    {
+      "id": "building.skyscraper-twin",
+      "file": "kit/building/building.skyscraper-twin.glb",
+      "category": "building",
+      "footprint": [
+        21.25,
+        9.25
+      ],
+      "height": 31.35,
+      "triangles": 2368,
+      "materials": 4,
+      "bytes": 131412,
+      "sha256": "e315c034dc7461350776bb63b9b3fd7733206d613a2c65e8ff0b0666b694aeb2",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage11_industry.py"
+    },
+    {
+      "id": "building.stadium",
+      "file": "kit/building/building.stadium.glb",
+      "category": "building",
+      "footprint": [
+        33.5,
+        28.0
+      ],
+      "height": 13.8,
+      "triangles": 744,
+      "materials": 7,
+      "bytes": 39424,
+      "sha256": "223a4dab9e5a6770a4afc1bc4499b049e0d7a81a0bb83458bd17ac0db3a99340",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage10_commerce.py"
+    },
+    {
+      "id": "building.substation",
+      "file": "kit/building/building.substation.glb",
+      "category": "building",
+      "footprint": [
+        18,
+        12.12
+      ],
+      "height": 3.05,
+      "triangles": 432,
+      "materials": 10,
+      "bytes": 30900,
+      "sha256": "820cc3d99c2075addf5385bf81320bf680d8a8c38504e58d3e4ce003c6ec546a",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage15_civic.py"
+    },
+    {
+      "id": "building.theme-park",
+      "file": "kit/building/building.theme-park.glb",
+      "category": "building",
+      "footprint": [
+        26.6,
+        20.6
+      ],
+      "height": 16.44,
+      "triangles": 850,
+      "materials": 11,
+      "bytes": 56048,
+      "sha256": "c124831432d95c2d4b687656b7c39904723eb668380270f11beb5081e0ffa2b1",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage10_commerce.py"
+    },
+    {
+      "id": "building.train-station",
+      "file": "kit/building/building.train-station.glb",
+      "category": "building",
+      "footprint": [
+        24.6,
+        17.8
+      ],
+      "height": 12.2,
+      "triangles": 504,
+      "materials": 7,
+      "bytes": 32376,
+      "sha256": "8e7ae2ec0bf7c3a13efede2b9f0083fac2c06c4132fc1b09a0925c920b6aa325",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage09_infrastructure.py"
+    },
+    {
+      "id": "building.train-yard",
+      "file": "kit/building/building.train-yard.glb",
+      "category": "building",
+      "footprint": [
+        24.6,
+        16.95
+      ],
+      "height": 3.95,
+      "triangles": 736,
+      "materials": 10,
+      "bytes": 46676,
+      "sha256": "59dc5972b477e41a3e64721269fc8dcc91e2156e53c6a8ee6a45442e6b9034d1",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage09_infrastructure.py"
+    },
+    {
+      "id": "building.university",
+      "file": "kit/building/building.university.glb",
+      "category": "building",
+      "footprint": [
+        28.0,
+        18
+      ],
+      "height": 7.7,
+      "triangles": 616,
+      "materials": 7,
+      "bytes": 37456,
+      "sha256": "44aa34de0ba9930a738390d8c894c1ac79eee874998b72dedc9ace2aeaccbd2b",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage15_civic.py"
+    },
+    {
+      "id": "building.warehouse",
+      "file": "kit/building/building.warehouse.glb",
+      "category": "building",
+      "footprint": [
+        28,
+        20
+      ],
+      "height": 8.065,
+      "triangles": 144,
+      "materials": 7,
+      "bytes": 12852,
+      "sha256": "1d642d4be217e2e4331851e8c3789beffda54322e60afd2db01d8ca7886ab549",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage11_industry.py"
+    },
+    {
+      "id": "building.waste-recycling",
+      "file": "kit/building/building.waste-recycling.glb",
+      "category": "building",
+      "footprint": [
+        20,
+        14
+      ],
+      "height": 5.15,
+      "triangles": 192,
+      "materials": 8,
+      "bytes": 16508,
+      "sha256": "ca1c6332900d8fbfddeb8fb369f021e8ba23daafa3134c1f1e49ab5d214e5dd5",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage15_civic.py"
+    },
+    {
+      "id": "building.water-works",
+      "file": "kit/building/building.water-works.glb",
+      "category": "building",
+      "footprint": [
+        18.6,
+        12.6
+      ],
+      "height": 7.0,
+      "triangles": 568,
+      "materials": 10,
+      "bytes": 35304,
+      "sha256": "fd90601e3b31ca87747feb4abfe24458970937e44d02960cb27832059579e2ea",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage09_infrastructure.py"
+    },
+    {
+      "id": "building.waterfront-pavilion",
+      "file": "kit/building/building.waterfront-pavilion.glb",
+      "category": "building",
+      "footprint": [
+        7.0,
+        7.0
+      ],
+      "height": 4.78,
+      "triangles": 212,
+      "materials": 4,
+      "bytes": 15320,
+      "sha256": "7166ff0f172137763ac68fa0eaa5b0ca5d34ae465e87fff49e21ef2c1feb51ed",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage06_buildings.py"
+    },
+    {
+      "id": "interior.cafe",
+      "file": "kit/interior/interior.cafe.glb",
+      "category": "interior",
+      "footprint": [
+        4.06,
+        4.06
+      ],
+      "height": 2.6,
+      "triangles": 864,
+      "materials": 15,
+      "bytes": 58420,
+      "sha256": "4af1aac3da672fd3f8f327ed55b07bb196c3ae20b8ce445eb4ba1f595498a10c",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage07_interiors.py"
+    },
+    {
+      "id": "interior.civic",
+      "file": "kit/interior/interior.civic.glb",
+      "category": "interior",
+      "footprint": [
+        4.18,
+        4.06
+      ],
+      "height": 2.4,
+      "triangles": 384,
+      "materials": 11,
+      "bytes": 28776,
+      "sha256": "9dd88eab40fdaa1b04973ab1aa15249634f4870d466e94229fa4b04fa56c85cf",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage07_interiors.py"
+    },
+    {
+      "id": "interior.clinic",
+      "file": "kit/interior/interior.clinic.glb",
+      "category": "interior",
+      "footprint": [
+        4.18,
+        4.06
+      ],
+      "height": 2.2,
+      "triangles": 520,
+      "materials": 13,
+      "bytes": 37260,
+      "sha256": "4097a8bc382729fcdfc0233894023fa2924970ae2b8cab7c66f5dcb77fb14fe2",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage07_interiors.py"
+    },
+    {
+      "id": "interior.dining-table",
+      "file": "kit/interior/interior.dining-table.glb",
+      "category": "interior",
+      "footprint": [
+        1.4,
+        1.92
+      ],
+      "height": 1.0,
+      "triangles": 228,
+      "materials": 4,
+      "bytes": 15836,
+      "sha256": "da65180d4f405604a2673f38363b8de1bf32a701904691bc3446d01106fdc5df",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage07_interiors.py"
+    },
+    {
+      "id": "interior.floor-tile-4",
+      "file": "kit/interior/interior.floor-tile-4.glb",
+      "category": "interior",
+      "footprint": [
+        4.06,
+        4.06
+      ],
+      "height": 0.12,
+      "triangles": 60,
+      "materials": 2,
+      "bytes": 5112,
+      "sha256": "5953f2f12b9fccb060c52e670738b120846b9a35ea2b5563652c2d2c619cf52b",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage07_interiors.py"
+    },
+    {
+      "id": "interior.garage",
+      "file": "kit/interior/interior.garage.glb",
+      "category": "interior",
+      "footprint": [
+        4.06,
+        4.06
+      ],
+      "height": 3.6,
+      "triangles": 424,
+      "materials": 10,
+      "bytes": 28968,
+      "sha256": "050ef8ac7b40074162d6880b76da83706be7296cc89f20187e9d9063a8e28c7c",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage07_interiors.py"
+    },
+    {
+      "id": "interior.grocery",
+      "file": "kit/interior/interior.grocery.glb",
+      "category": "interior",
+      "footprint": [
+        4.05,
+        8.0
+      ],
+      "height": 2.32,
+      "triangles": 600,
+      "materials": 14,
+      "bytes": 43968,
+      "sha256": "0e4ab4ab560703e9617d2b3e1921c840e2f667b405bc15d5b4d20dc20aa674cf",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage07_interiors.py"
+    },
+    {
+      "id": "interior.patient-bed",
+      "file": "kit/interior/interior.patient-bed.glb",
+      "category": "interior",
+      "footprint": [
+        1.13,
+        2.11
+      ],
+      "height": 1.7,
+      "triangles": 92,
+      "materials": 6,
+      "bytes": 9344,
+      "sha256": "b2b941cfa2435ef67cc8733cfcd6e71df3e7a7a60d669558b0bf76f48865c4ba",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage07_interiors.py"
+    },
+    {
+      "id": "interior.reception-desk",
+      "file": "kit/interior/interior.reception-desk.glb",
+      "category": "interior",
+      "footprint": [
+        3.25,
+        1.01
+      ],
+      "height": 2.2,
+      "triangles": 72,
+      "materials": 6,
+      "bytes": 8112,
+      "sha256": "b6da1c8245834aafc545b7e5aed8d1178a267e07823cb30b73799b6d83855172",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage07_interiors.py"
+    },
+    {
+      "id": "interior.restaurant",
+      "file": "kit/interior/interior.restaurant.glb",
+      "category": "interior",
+      "footprint": [
+        4.15,
+        4.19
+      ],
+      "height": 2.8,
+      "triangles": 608,
+      "materials": 10,
+      "bytes": 40072,
+      "sha256": "ecd2497f1f1194e3c4e0f82198ecce298429a0f82f621c9c2407d699be1341cc",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage07_interiors.py"
+    },
+    {
+      "id": "interior.shelf-stock",
+      "file": "kit/interior/interior.shelf-stock.glb",
+      "category": "interior",
+      "footprint": [
+        2.0,
+        0.9
+      ],
+      "height": 1.91,
+      "triangles": 216,
+      "materials": 8,
+      "bytes": 17096,
+      "sha256": "d5aa2f54c7f213bfa5d0a1794322aca5c2314e337569a7323ec1395bb04bea84",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage07_interiors.py"
+    },
+    {
+      "id": "interior.workbench",
+      "file": "kit/interior/interior.workbench.glb",
+      "category": "interior",
+      "footprint": [
+        2.0,
+        0.7
+      ],
+      "height": 1.18,
+      "triangles": 124,
+      "materials": 6,
+      "bytes": 11168,
+      "sha256": "71e584dae7b484982ee5ffce6d4f5219f91607c2719fa00d51d95df15bd572d5",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage07_interiors.py"
+    },
+    {
+      "id": "landscape.broadleaf",
+      "file": "kit/landscape/landscape.broadleaf.glb",
+      "category": "landscape",
+      "footprint": [
+        3.026,
+        2.656
+      ],
+      "height": 4.45,
+      "triangles": 124,
+      "materials": 3,
+      "bytes": 11700,
+      "sha256": "ad9a6678d1202a731851aa402cccef68de798df4c1ecc8f76f0eed45a6090ab5",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage03_landscape.py"
+    },
+    {
+      "id": "landscape.conifer",
+      "file": "kit/landscape/landscape.conifer.glb",
+      "category": "landscape",
+      "footprint": [
+        2.0,
+        2.0
+      ],
+      "height": 3.9,
+      "triangles": 62,
+      "materials": 3,
+      "bytes": 6124,
+      "sha256": "1883758ebb6cea5e924ac032e099ad1865ad4fbb79b6c2305c245518f85d9ef5",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage03_landscape.py"
+    },
+    {
+      "id": "landscape.flower-cluster",
+      "file": "kit/landscape/landscape.flower-cluster.glb",
+      "category": "landscape",
+      "footprint": [
+        1.221,
+        0.769
+      ],
+      "height": 0.8,
+      "triangles": 232,
+      "materials": 6,
+      "bytes": 20492,
+      "sha256": "b829bcb133f4be485f68b986dfd6ff9a6da2809d535e012f216798edc407743e",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage03_landscape.py"
+    },
+    {
+      "id": "landscape.mining-site",
+      "file": "kit/landscape/landscape.mining-site.glb",
+      "category": "landscape",
+      "footprint": [
+        28.0,
+        24.0
+      ],
+      "height": 7.619,
+      "triangles": 246,
+      "materials": 6,
+      "bytes": 17536,
+      "sha256": "04c7b7345124dd44ab973c9fb48ab7cb2dfc2207c66ea7584af405b4aaf9cf73",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage11_industry.py"
+    },
+    {
+      "id": "landscape.orchard-row",
+      "file": "kit/landscape/landscape.orchard-row.glb",
+      "category": "landscape",
+      "footprint": [
+        14,
+        12
+      ],
+      "height": 4.6,
+      "triangles": 336,
+      "materials": 6,
+      "bytes": 24744,
+      "sha256": "2a29abe365f0d8bce422f30d2975f8a5d57084bdda6e58bd55b2251ffab01ee5",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage11_industry.py"
+    },
+    {
+      "id": "landscape.palm",
+      "file": "kit/landscape/landscape.palm.glb",
+      "category": "landscape",
+      "footprint": [
+        2.842,
+        2.575
+      ],
+      "height": 4.25,
+      "triangles": 296,
+      "materials": 4,
+      "bytes": 23724,
+      "sha256": "3f3bf4b16bc8b6f687948d033c8f08150a43d4c2282b3831e354f9d75dd01601",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage03_landscape.py"
+    },
+    {
+      "id": "landscape.park-child",
+      "file": "kit/landscape/landscape.park-child.glb",
+      "category": "landscape",
+      "footprint": [
+        24,
+        20
+      ],
+      "height": 6.8,
+      "triangles": 622,
+      "materials": 13,
+      "bytes": 47096,
+      "sha256": "1c071757c8450deb92fb0e1e85fbd5faf6469aff1d1269773f92400c17ef08a7",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage16_parks_edu.py"
+    },
+    {
+      "id": "landscape.park-dog",
+      "file": "kit/landscape/landscape.park-dog.glb",
+      "category": "landscape",
+      "footprint": [
+        24,
+        20
+      ],
+      "height": 6.8,
+      "triangles": 470,
+      "materials": 13,
+      "bytes": 36716,
+      "sha256": "14966e08e4a2add6741822ab1afd3986f5194e4328368c4106a23f116d0c61cf",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage16_parks_edu.py"
+    },
+    {
+      "id": "landscape.park-nature",
+      "file": "kit/landscape/landscape.park-nature.glb",
+      "category": "landscape",
+      "footprint": [
+        24.15,
+        20.379
+      ],
+      "height": 6.9,
+      "triangles": 1178,
+      "materials": 8,
+      "bytes": 80432,
+      "sha256": "5d438a220cbc65a62eac08c93cb8cdbfa3c0c265856f34dbbe1a06e130821919",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage16_parks_edu.py"
+    },
+    {
+      "id": "landscape.park-skate",
+      "file": "kit/landscape/landscape.park-skate.glb",
+      "category": "landscape",
+      "footprint": [
+        24.0,
+        20.0
+      ],
+      "height": 6.855,
+      "triangles": 402,
+      "materials": 11,
+      "bytes": 31960,
+      "sha256": "da245cbdf03091cdd75eab10e586419a55e43ab7c34b37b75d6bdef58fd2585a",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage16_parks_edu.py"
+    },
+    {
+      "id": "landscape.park-standard",
+      "file": "kit/landscape/landscape.park-standard.glb",
+      "category": "landscape",
+      "footprint": [
+        24.0,
+        20.0
+      ],
+      "height": 6.82,
+      "triangles": 796,
+      "materials": 14,
+      "bytes": 60712,
+      "sha256": "be7bb5535f7c18a30c88403e3d8c590a1c4d5217817966543c2e2f9ad56014f7",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage16_parks_edu.py"
+    },
+    {
+      "id": "landscape.recreational-lake",
+      "file": "kit/landscape/landscape.recreational-lake.glb",
+      "category": "landscape",
+      "footprint": [
+        26.0,
+        27.254
+      ],
+      "height": 6.9,
+      "triangles": 460,
+      "materials": 8,
+      "bytes": 32856,
+      "sha256": "c96b7f92136001ce3c8c38f1263fc59a4cdd625b689aeb674ee462a43023734f",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage12_wild.py"
+    },
+    {
+      "id": "landscape.reef-rocks",
+      "file": "kit/landscape/landscape.reef-rocks.glb",
+      "category": "landscape",
+      "footprint": [
+        3.0,
+        3.0
+      ],
+      "height": 1.8,
+      "triangles": 124,
+      "materials": 4,
+      "bytes": 11196,
+      "sha256": "6b63ea7120ee66e8547393005148bd608b91ddb5b352dbb8cf710a4c2fbccb55",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage03_landscape.py"
+    },
+    {
+      "id": "landscape.rural-plot",
+      "file": "kit/landscape/landscape.rural-plot.glb",
+      "category": "landscape",
+      "footprint": [
+        16,
+        14
+      ],
+      "height": 2.28,
+      "triangles": 384,
+      "materials": 6,
+      "bytes": 24404,
+      "sha256": "d57500cc2737b88ca6a93a148ec0c03baf7a5d0df16d792771c9eaf9380ee39e",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage11_industry.py"
+    },
+    {
+      "id": "landscape.sand-dune",
+      "file": "kit/landscape/landscape.sand-dune.glb",
+      "category": "landscape",
+      "footprint": [
+        4,
+        4
+      ],
+      "height": 1.6,
+      "triangles": 92,
+      "materials": 2,
+      "bytes": 8784,
+      "sha256": "31a4dcced190d2b54bf629a7d4615b916346888e3ebdda016334445c9c597c18",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage03_landscape.py"
+    },
+    {
+      "id": "landscape.shrub",
+      "file": "kit/landscape/landscape.shrub.glb",
+      "category": "landscape",
+      "footprint": [
+        1.171,
+        0.681
+      ],
+      "height": 0.83,
+      "triangles": 60,
+      "materials": 2,
+      "bytes": 6640,
+      "sha256": "7de557377e706f08eb54512781f5e13f0d653d59a703b3f008bf89870ed17183",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage03_landscape.py"
+    },
+    {
+      "id": "landscape.wild-desert",
+      "file": "kit/landscape/landscape.wild-desert.glb",
+      "category": "landscape",
+      "footprint": [
+        24.0,
+        20.0
+      ],
+      "height": 1.84,
+      "triangles": 324,
+      "materials": 6,
+      "bytes": 26100,
+      "sha256": "9ce8c6a39ec4dce06749c0f3dbf66fb80ebddad628fdb8e6856486832f86ab5e",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage12_wild.py"
+    },
+    {
+      "id": "landscape.wild-forest",
+      "file": "kit/landscape/landscape.wild-forest.glb",
+      "category": "landscape",
+      "footprint": [
+        24,
+        20
+      ],
+      "height": 5.82,
+      "triangles": 920,
+      "materials": 4,
+      "bytes": 61800,
+      "sha256": "564f2d798ff64534c3e9fbfab20041b3e6451005b33f3c34aebfc159a150ba6f",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage12_wild.py"
+    },
+    {
+      "id": "landscape.wild-jungle",
+      "file": "kit/landscape/landscape.wild-jungle.glb",
+      "category": "landscape",
+      "footprint": [
+        24.0,
+        20.0
+      ],
+      "height": 7.99,
+      "triangles": 1004,
+      "materials": 4,
+      "bytes": 71240,
+      "sha256": "48de6a57bf835588212da60c3a2b5ecfd9aa957489c355b87ff8c9307cea4ee8",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage12_wild.py"
+    },
+    {
+      "id": "landscape.wild-lake",
+      "file": "kit/landscape/landscape.wild-lake.glb",
+      "category": "landscape",
+      "footprint": [
+        22.0,
+        22.0
+      ],
+      "height": 4.96,
+      "triangles": 394,
+      "materials": 6,
+      "bytes": 31932,
+      "sha256": "17a24abc3dedc7509a540db5125ad4125188700892cbac858e765e41082ff6f2",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage12_wild.py"
+    },
+    {
+      "id": "landscape.wild-river",
+      "file": "kit/landscape/landscape.wild-river.glb",
+      "category": "landscape",
+      "footprint": [
+        26.735,
+        16.575
+      ],
+      "height": 4.92,
+      "triangles": 566,
+      "materials": 9,
+      "bytes": 40844,
+      "sha256": "38716e82ede425472d77c153c708c023efd16a64b3e3383d9f3f11dedf11d207",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage12_wild.py"
+    },
+    {
+      "id": "marine.buoy",
+      "file": "kit/marine/marine.buoy.glb",
+      "category": "marine",
+      "footprint": [
+        0.685,
+        0.72
+      ],
+      "height": 1.34,
+      "triangles": 140,
+      "materials": 4,
+      "bytes": 10648,
+      "sha256": "45d1704e24b8db75aff338d74fa5388570a8af45d78fe77333e3c4f296c5a385",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage08_marine.py"
+    },
+    {
+      "id": "marine.cargo-ship",
+      "file": "kit/marine/marine.cargo-ship.glb",
+      "category": "marine",
+      "footprint": [
+        2.9,
+        8.0
+      ],
+      "height": 4.25,
+      "triangles": 124,
+      "materials": 9,
+      "bytes": 12512,
+      "sha256": "55b3eb87ba79c9bf453443d20bed0cc866aa31f1c3d45ac4b456b46e298907cf",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage08_marine.py"
+    },
+    {
+      "id": "marine.fishing-boat",
+      "file": "kit/marine/marine.fishing-boat.glb",
+      "category": "marine",
+      "footprint": [
+        2.2,
+        5.5
+      ],
+      "height": 3.9,
+      "triangles": 104,
+      "materials": 6,
+      "bytes": 9792,
+      "sha256": "651150b252b44d2a85a4c87e97a5e86cf599423b64d905e594eff5e5a66fb3ad",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage08_marine.py"
+    },
+    {
+      "id": "marine.kayak",
+      "file": "kit/marine/marine.kayak.glb",
+      "category": "marine",
+      "footprint": [
+        0.7,
+        3.2
+      ],
+      "height": 0.55,
+      "triangles": 88,
+      "materials": 3,
+      "bytes": 7408,
+      "sha256": "7ace3f6134c6fa47dd5a1317e51bb441a7213819a200c7296995c5a8aa4102b4",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage08_marine.py"
+    },
+    {
+      "id": "marine.pwc",
+      "file": "kit/marine/marine.pwc.glb",
+      "category": "marine",
+      "footprint": [
+        0.8,
+        2.2
+      ],
+      "height": 0.97,
+      "triangles": 84,
+      "materials": 5,
+      "bytes": 8256,
+      "sha256": "307fc7b4eb440865f1bc8d2709ec4ad490e01db41df5a58b7a7a73b084aeed31",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage08_marine.py"
+    },
+    {
+      "id": "marine.yacht",
+      "file": "kit/marine/marine.yacht.glb",
+      "category": "marine",
+      "footprint": [
+        1.6,
+        4.5
+      ],
+      "height": 3.3,
+      "triangles": 92,
+      "materials": 5,
+      "bytes": 8772,
+      "sha256": "c5550f989caaf684e2ff7c6c87d4db40b943e187db8ec2bbab5dcd79bb315278",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage08_marine.py"
+    },
+    {
+      "id": "prop.bench",
+      "file": "kit/prop/prop.bench.glb",
+      "category": "prop",
+      "footprint": [
+        1.6,
+        0.446
+      ],
+      "height": 1.151,
+      "triangles": 84,
+      "materials": 3,
+      "bytes": 7276,
+      "sha256": "c44717e21bced65e92aa333a111746df12904698a34199c0cd9c891014b9d15e",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage02_props.py"
+    },
+    {
+      "id": "prop.bicycle-parked",
+      "file": "kit/prop/prop.bicycle-parked.glb",
+      "category": "prop",
+      "footprint": [
+        1.06,
+        2.46
+      ],
+      "height": 0.915,
+      "triangles": 208,
+      "materials": 3,
+      "bytes": 13816,
+      "sha256": "33372e0f916f84b6fa5c3c04cc7ac278a0299bca4140e979829fda638f083a8a",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage15_civic.py"
+    },
+    {
+      "id": "prop.billboard",
+      "file": "kit/prop/prop.billboard.glb",
+      "category": "prop",
+      "footprint": [
+        4.2,
+        0.132
+      ],
+      "height": 6.0,
+      "triangles": 72,
+      "materials": 5,
+      "bytes": 7508,
+      "sha256": "637208c7ca3637f6b4b5cea3f1fb75c096f338266d67db1804d510991c4ddc5f",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage02_props.py"
+    },
+    {
+      "id": "prop.bin",
+      "file": "kit/prop/prop.bin.glb",
+      "category": "prop",
+      "footprint": [
+        0.457,
+        0.48
+      ],
+      "height": 0.98,
+      "triangles": 84,
+      "materials": 3,
+      "bytes": 6352,
+      "sha256": "d9de95f8dd387f327132696992a0fbc4a8b90acefe549ac7277aa26c6c2d4182",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage02_props.py"
+    },
+    {
+      "id": "prop.bollard",
+      "file": "kit/prop/prop.bollard.glb",
+      "category": "prop",
+      "footprint": [
+        0.14,
+        0.14
+      ],
+      "height": 0.8,
+      "triangles": 56,
+      "materials": 2,
+      "bytes": 4280,
+      "sha256": "75f9841cd3fe1cd5d7bc6cbe70e3aded154395ea9fc030e6eae71339603ab16f",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage02_props.py"
+    },
+    {
+      "id": "prop.cafe-patio",
+      "file": "kit/prop/prop.cafe-patio.glb",
+      "category": "prop",
+      "footprint": [
+        2.85,
+        2.6
+      ],
+      "height": 2.6,
+      "triangles": 162,
+      "materials": 4,
+      "bytes": 12172,
+      "sha256": "a49b728227533af1004d191defc109b365e637eaf0121e49d78623097472c94e",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage02_props.py"
+    },
+    {
+      "id": "prop.construction-crane",
+      "file": "kit/prop/prop.construction-crane.glb",
+      "category": "prop",
+      "footprint": [
+        3.0,
+        15.0
+      ],
+      "height": 17.243,
+      "triangles": 492,
+      "materials": 5,
+      "bytes": 31168,
+      "sha256": "ce94d41a19c5725e837dc6e9d8e40f19d9d2e568365c7189d9d07494065b3f9d",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage15_civic.py"
+    },
+    {
+      "id": "prop.construction-zone",
+      "file": "kit/prop/prop.construction-zone.glb",
+      "category": "prop",
+      "footprint": [
+        2.7,
+        0.5
+      ],
+      "height": 1.25,
+      "triangles": 140,
+      "materials": 3,
+      "bytes": 10320,
+      "sha256": "24af9818ac35cb4d43ab496f230b4dcbbab0e144299e75e098f5a958eee864f6",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage02_props.py"
+    },
+    {
+      "id": "prop.fountain",
+      "file": "kit/prop/prop.fountain.glb",
+      "category": "prop",
+      "footprint": [
+        3.2,
+        3.2
+      ],
+      "height": 1.78,
+      "triangles": 208,
+      "materials": 2,
+      "bytes": 12128,
+      "sha256": "1f2c45a581b1b5479d363f8b1cc8a8454b0566259f0dfa1f89865f37301c973d",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage02_props.py"
+    },
+    {
+      "id": "prop.fountain-bowl",
+      "file": "kit/prop/prop.fountain-bowl.glb",
+      "category": "prop",
+      "footprint": [
+        2.5,
+        2.5
+      ],
+      "height": 1.35,
+      "triangles": 150,
+      "materials": 2,
+      "bytes": 10324,
+      "sha256": "d779b41215069440c0223199a6da593f2db46a1d60014226ed0f41e711ff2fac",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage17_public.py"
+    },
+    {
+      "id": "prop.fountain-column",
+      "file": "kit/prop/prop.fountain-column.glb",
+      "category": "prop",
+      "footprint": [
+        4.29,
+        4.4
+      ],
+      "height": 6.58,
+      "triangles": 282,
+      "materials": 2,
+      "bytes": 16324,
+      "sha256": "fd7569781e5b406ef2765df31dfa510b42ba893308318087013e035e41a41395",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage17_public.py"
+    },
+    {
+      "id": "prop.fountain-garden",
+      "file": "kit/prop/prop.fountain-garden.glb",
+      "category": "prop",
+      "footprint": [
+        1.8,
+        1.4
+      ],
+      "height": 0.82,
+      "triangles": 96,
+      "materials": 4,
+      "bytes": 10556,
+      "sha256": "a3aae6ba91025181b14d4505a3e1a9a403b4dfe21bb736e1448a505801465783",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage17_public.py"
+    },
+    {
+      "id": "prop.fountain-plaza",
+      "file": "kit/prop/prop.fountain-plaza.glb",
+      "category": "prop",
+      "footprint": [
+        6.8,
+        6.8
+      ],
+      "height": 2.95,
+      "triangles": 278,
+      "materials": 2,
+      "bytes": 16016,
+      "sha256": "53d65353ce4ada155887e8aebc104e3b42902a56233edb743ff7d5254822e2f3",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage17_public.py"
+    },
+    {
+      "id": "prop.fountain-wall",
+      "file": "kit/prop/prop.fountain-wall.glb",
+      "category": "prop",
+      "footprint": [
+        4.5,
+        2.4
+      ],
+      "height": 2.6,
+      "triangles": 120,
+      "materials": 4,
+      "bytes": 10716,
+      "sha256": "1dd8f393ab076fbf811cebf9724ece0ed0145b0d0cab104139257dcbed93b3ed",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage17_public.py"
+    },
+    {
+      "id": "prop.hydrant",
+      "file": "kit/prop/prop.hydrant.glb",
+      "category": "prop",
+      "footprint": [
+        0.46,
+        0.46
+      ],
+      "height": 0.8,
+      "triangles": 176,
+      "materials": 2,
+      "bytes": 11084,
+      "sha256": "b844a5078c3bfeafb71037b96b8083d38aaff6c4a93530eeeb6b52ee58a09962",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage02_props.py"
+    },
+    {
+      "id": "prop.market-stall",
+      "file": "kit/prop/prop.market-stall.glb",
+      "category": "prop",
+      "footprint": [
+        2.92,
+        1.565
+      ],
+      "height": 3.443,
+      "triangles": 168,
+      "materials": 5,
+      "bytes": 13344,
+      "sha256": "b6043c0d799c11495d4b23e89259e55c48120486a8aa3466ec3fb4ef2fe22e95",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage02_props.py"
+    },
+    {
+      "id": "prop.monument-arch",
+      "file": "kit/prop/prop.monument-arch.glb",
+      "category": "prop",
+      "footprint": [
+        8.0,
+        3.4
+      ],
+      "height": 5.4,
+      "triangles": 120,
+      "materials": 4,
+      "bytes": 10512,
+      "sha256": "7710345512a062bdd3355d2c7c9fabacfc2adc105efa73767f331b4ce559f60b",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage17_public.py"
+    },
+    {
+      "id": "prop.monument-obelisk",
+      "file": "kit/prop/prop.monument-obelisk.glb",
+      "category": "prop",
+      "footprint": [
+        4.4,
+        4.4
+      ],
+      "height": 6.4,
+      "triangles": 54,
+      "materials": 3,
+      "bytes": 6328,
+      "sha256": "e361270d4207778b43b4f5128eda97965a23a4c2ac3bff89d82fd703eb7c576a",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage17_public.py"
+    },
+    {
+      "id": "prop.monument-war",
+      "file": "kit/prop/prop.monument-war.glb",
+      "category": "prop",
+      "footprint": [
+        3.2,
+        3.2
+      ],
+      "height": 4.0,
+      "triangles": 220,
+      "materials": 5,
+      "bytes": 17536,
+      "sha256": "3c527e3b122136dfeefbdddc8eefdfbb3263a1adfa6532425888e90fa94067af",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage17_public.py"
+    },
+    {
+      "id": "prop.parking-meter",
+      "file": "kit/prop/prop.parking-meter.glb",
+      "category": "prop",
+      "footprint": [
+        0.35,
+        0.3
+      ],
+      "height": 1.5,
+      "triangles": 60,
+      "materials": 3,
+      "bytes": 6252,
+      "sha256": "ebb4e6e286bcec525dce090c806f681f209c8d7b15536b83f4c82ee2656be19e",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage15_civic.py"
+    },
+    {
+      "id": "prop.planter",
+      "file": "kit/prop/prop.planter.glb",
+      "category": "prop",
+      "footprint": [
+        1.213,
+        0.6
+      ],
+      "height": 1.1,
+      "triangles": 84,
+      "materials": 4,
+      "bytes": 9196,
+      "sha256": "09d54d987c8c67796b6989f8418dab15fb1bbe051bd6e06feed4f626499fc83f",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage02_props.py"
+    },
+    {
+      "id": "prop.playground-set",
+      "file": "kit/prop/prop.playground-set.glb",
+      "category": "prop",
+      "footprint": [
+        8.7,
+        9.746
+      ],
+      "height": 2.85,
+      "triangles": 312,
+      "materials": 8,
+      "bytes": 23620,
+      "sha256": "91faf4df542f7ba26fd4279bb3ca3e0755b7df43744f64f301c38cffaa0c660c",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage15_civic.py"
+    },
+    {
+      "id": "prop.postbox",
+      "file": "kit/prop/prop.postbox.glb",
+      "category": "prop",
+      "footprint": [
+        0.425,
+        0.35
+      ],
+      "height": 1.235,
+      "triangles": 76,
+      "materials": 4,
+      "bytes": 6980,
+      "sha256": "b342d47e19a262d3bf7573ba7b6599589a7ba0ecc48f83dbba7101ed343bf1f5",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage02_props.py"
+    },
+    {
+      "id": "prop.recreation",
+      "file": "kit/prop/prop.recreation.glb",
+      "category": "prop",
+      "footprint": [
+        2.3,
+        0.9
+      ],
+      "height": 2.95,
+      "triangles": 144,
+      "materials": 3,
+      "bytes": 10504,
+      "sha256": "7fcd496948f6136c940ba7d92a83b6a5dfb3f5021f1fdf093ff7d74d4285b549",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage02_props.py"
+    },
+    {
+      "id": "prop.scaffold-section",
+      "file": "kit/prop/prop.scaffold-section.glb",
+      "category": "prop",
+      "footprint": [
+        4.4,
+        4.4
+      ],
+      "height": 6.1,
+      "triangles": 240,
+      "materials": 4,
+      "bytes": 17056,
+      "sha256": "1ba415bba76709060f28024dcdb594407d9ef1eeade99f195913d6aead3977a1",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage15_civic.py"
+    },
+    {
+      "id": "prop.seagull",
+      "file": "kit/prop/prop.seagull.glb",
+      "category": "prop",
+      "footprint": [
+        0.903,
+        1.13
+      ],
+      "height": 0.78,
+      "triangles": 156,
+      "materials": 4,
+      "bytes": 13668,
+      "sha256": "64f6fc5df3610816dc7a0c095e9bf55a022f4e382b2d2263d25eeeedbcd06691",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage15_civic.py"
+    },
+    {
+      "id": "prop.shelter",
+      "file": "kit/prop/prop.shelter.glb",
+      "category": "prop",
+      "footprint": [
+        4.2,
+        2.3
+      ],
+      "height": 3.1,
+      "triangles": 180,
+      "materials": 7,
+      "bytes": 14708,
+      "sha256": "6886b568142ce4781f84c6f9032384f46251fa67d9e429974159d8f3f2486663",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage02_props.py"
+    },
+    {
+      "id": "prop.statue-figure",
+      "file": "kit/prop/prop.statue-figure.glb",
+      "category": "prop",
+      "footprint": [
+        1.7,
+        1.7
+      ],
+      "height": 2.91,
+      "triangles": 116,
+      "materials": 4,
+      "bytes": 10536,
+      "sha256": "13dac222ea2cde10127bf862d3d0feadba5d9b88a48e166d0d49e03d3435d971",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage17_public.py"
+    },
+    {
+      "id": "prop.statue-memorial",
+      "file": "kit/prop/prop.statue-memorial.glb",
+      "category": "prop",
+      "footprint": [
+        4.4,
+        3.0
+      ],
+      "height": 2.92,
+      "triangles": 276,
+      "materials": 4,
+      "bytes": 20080,
+      "sha256": "b4aadc61d640bf4089a934943fd128f6b169ffa91201cab290863821e22f0d29",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage17_public.py"
+    },
+    {
+      "id": "prop.stop-sign",
+      "file": "kit/prop/prop.stop-sign.glb",
+      "category": "prop",
+      "footprint": [
+        0.6,
+        0.3
+      ],
+      "height": 2.825,
+      "triangles": 96,
+      "materials": 4,
+      "bytes": 7844,
+      "sha256": "68a606ec18a9585fad7e2166d00efaa195e022832abcd8fe7af170d5b53c0aa5",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage02_props.py"
+    },
+    {
+      "id": "prop.streetlamp",
+      "file": "kit/prop/prop.streetlamp.glb",
+      "category": "prop",
+      "footprint": [
+        1.475,
+        0.35
+      ],
+      "height": 4.18,
+      "triangles": 76,
+      "materials": 3,
+      "bytes": 6456,
+      "sha256": "c11496ac9030b5f0f0256558a0677c4a8b6f1aff463e33aeb2226a203332a715",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage02_props.py"
+    },
+    {
+      "id": "prop.traffic-signal",
+      "file": "kit/prop/prop.traffic-signal.glb",
+      "category": "prop",
+      "footprint": [
+        1.13,
+        0.46
+      ],
+      "height": 3.3,
+      "triangles": 148,
+      "materials": 5,
+      "bytes": 10948,
+      "sha256": "7f1861356936cd94734d442bbb4fc6deb9d77a5f8e565d38bbdefc33e7f582c4",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage02_props.py"
+    },
+    {
+      "id": "prop.utility-box",
+      "file": "kit/prop/prop.utility-box.glb",
+      "category": "prop",
+      "footprint": [
+        1.3,
+        0.8
+      ],
+      "height": 1.57,
+      "triangles": 84,
+      "materials": 4,
+      "bytes": 8240,
+      "sha256": "e6146d2b7d6c9ac92cee0393366667525d35d0fc622bbe57333a756e291eaeef",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage15_civic.py"
+    },
+    {
+      "id": "prop.utility-pole",
+      "file": "kit/prop/prop.utility-pole.glb",
+      "category": "prop",
+      "footprint": [
+        2.628,
+        1.35
+      ],
+      "height": 8.0,
+      "triangles": 146,
+      "materials": 5,
+      "bytes": 12536,
+      "sha256": "3820b830759858bae0b3a00a0e1bfa61b52f204f9e72ed9ce2061f5df104a4bb",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage15_civic.py"
+    },
+    {
+      "id": "prop.vending-machine",
+      "file": "kit/prop/prop.vending-machine.glb",
+      "category": "prop",
+      "footprint": [
+        1.1,
+        0.95
+      ],
+      "height": 1.9,
+      "triangles": 168,
+      "materials": 6,
+      "bytes": 14168,
+      "sha256": "6a4e095ed998e5a3503ba94862a7313dae1f44ab5981b2d3c1e0f5e5a621ce80",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage15_civic.py"
+    },
+    {
+      "id": "prop.yield-sign",
+      "file": "kit/prop/prop.yield-sign.glb",
+      "category": "prop",
+      "footprint": [
+        1.5,
+        0.803
+      ],
+      "height": 1.9,
+      "triangles": 22,
+      "materials": 3,
+      "bytes": 4172,
+      "sha256": "627898137846d2965af52b6bffe8b027817508ee012e18ca4e4f2dadd6481a18",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage14_roads.py"
+    },
+    {
+      "id": "road.abutment-support",
+      "file": "kit/road/road.abutment-support.glb",
+      "category": "road",
+      "footprint": [
+        1.2,
+        1.2
+      ],
+      "height": 4.75,
+      "triangles": 72,
+      "materials": 2,
+      "bytes": 5492,
+      "sha256": "04cae4b606488fb279db6fc684d9db35e9a39b3c97c470c1da96c47b5fb1ed58",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage01_roads.py"
+    },
+    {
+      "id": "road.asymmetric-32",
+      "file": "kit/road/road.asymmetric-32.glb",
+      "category": "road",
+      "footprint": [
+        20,
+        10
+      ],
+      "height": 0.132,
+      "triangles": 156,
+      "materials": 2,
+      "bytes": 10800,
+      "sha256": "413d77a07c00da9b17b545d2e0bd14c0e36bf9e08c89808fe193e6e754d2b42e",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage14_roads.py"
+    },
+    {
+      "id": "road.bend-90",
+      "file": "kit/road/road.bend-90.glb",
+      "category": "road",
+      "footprint": [
+        6,
+        6
+      ],
+      "height": 0.132,
+      "triangles": 288,
+      "materials": 2,
+      "bytes": 14560,
+      "sha256": "c5203dbdbac76afb5af6cbef076a10e3e8f5d46dc091dcd6dce282d36f83c0ed",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage01_roads.py"
+    },
+    {
+      "id": "road.boardwalk-pier",
+      "file": "kit/road/road.boardwalk-pier.glb",
+      "category": "road",
+      "footprint": [
+        3.03,
+        8.0
+      ],
+      "height": 3.2,
+      "triangles": 264,
+      "materials": 2,
+      "bytes": 16108,
+      "sha256": "88e4853ef66d60548c1480345593b1a492a617e430941b351b9744a83be9578f",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage01_roads.py"
+    },
+    {
+      "id": "road.boulevard-tree",
+      "file": "kit/road/road.boulevard-tree.glb",
+      "category": "road",
+      "footprint": [
+        14,
+        10.552
+      ],
+      "height": 4.22,
+      "triangles": 240,
+      "materials": 6,
+      "bytes": 19256,
+      "sha256": "0eebfa18544b0d37dca045153d2b4d4551fb53ac91689598294f979be1fc23ce",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage14_roads.py"
+    },
+    {
+      "id": "road.bridge-deck",
+      "file": "kit/road/road.bridge-deck.glb",
+      "category": "road",
+      "footprint": [
+        4.4,
+        10.4
+      ],
+      "height": 0.52,
+      "triangles": 96,
+      "materials": 3,
+      "bytes": 7452,
+      "sha256": "ab0ba9e8679bde887a8aec133e7520c55839d95536e5b5b1206ad1db89b2b215",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage01_roads.py"
+    },
+    {
+      "id": "road.country-2",
+      "file": "kit/road/road.country-2.glb",
+      "category": "road",
+      "footprint": [
+        13.5,
+        10.0
+      ],
+      "height": 0.132,
+      "triangles": 72,
+      "materials": 3,
+      "bytes": 6936,
+      "sha256": "1f987ef6a5cb2671fba348b1389b57b40ef8245548f8d33a703c3a05b67145c4",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage14_roads.py"
+    },
+    {
+      "id": "road.cross-junction",
+      "file": "kit/road/road.cross-junction.glb",
+      "category": "road",
+      "footprint": [
+        4,
+        4
+      ],
+      "height": 0.14,
+      "triangles": 120,
+      "materials": 3,
+      "bytes": 8796,
+      "sha256": "edc1983d59132e42a8ff3c9d610e1c83bf2478c583269a8755bd08d963303bdf",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage01_roads.py"
+    },
+    {
+      "id": "road.crosswalk",
+      "file": "kit/road/road.crosswalk.glb",
+      "category": "road",
+      "footprint": [
+        4,
+        4
+      ],
+      "height": 0.132,
+      "triangles": 72,
+      "materials": 2,
+      "bytes": 5584,
+      "sha256": "e7e2ffe8fbf8bb91926384aa02a1c34a5356a7dd603d224db4d9ba8ae3201e0d",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage01_roads.py"
+    },
+    {
+      "id": "road.curb-return",
+      "file": "kit/road/road.curb-return.glb",
+      "category": "road",
+      "footprint": [
+        2.5,
+        2.5
+      ],
+      "height": 0.32,
+      "triangles": 36,
+      "materials": 1,
+      "bytes": 2776,
+      "sha256": "54a6df5b967fee7d172454ce65d0b7b7f9c3ea9984c4606c61d0e31246a0f2a8",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage01_roads.py"
+    },
+    {
+      "id": "road.dirt-road",
+      "file": "kit/road/road.dirt-road.glb",
+      "category": "road",
+      "footprint": [
+        8,
+        10
+      ],
+      "height": 0.16,
+      "triangles": 60,
+      "materials": 3,
+      "bytes": 6092,
+      "sha256": "4038b663bd221376691a0a09726d5153c4eff24fc079c888b68bbc6a3adc5b26",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage14_roads.py"
+    },
+    {
+      "id": "road.end-cap",
+      "file": "kit/road/road.end-cap.glb",
+      "category": "road",
+      "footprint": [
+        4,
+        2
+      ],
+      "height": 0.132,
+      "triangles": 24,
+      "materials": 2,
+      "bytes": 2812,
+      "sha256": "ac761ab8c4d3fcbfc0a47996e47e4ef7d0825955c48db8f01be2c14edcdd0752",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage01_roads.py"
+    },
+    {
+      "id": "road.flyover-ramp",
+      "file": "kit/road/road.flyover-ramp.glb",
+      "category": "road",
+      "footprint": [
+        14.6,
+        14.6
+      ],
+      "height": 4.15,
+      "triangles": 276,
+      "materials": 4,
+      "bytes": 16292,
+      "sha256": "03589d35b6d507c3d8a52a298b67b2e78c3d38b9697e938633fa48dcd8cb4986",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage14_roads.py"
+    },
+    {
+      "id": "road.highway-4",
+      "file": "kit/road/road.highway-4.glb",
+      "category": "road",
+      "footprint": [
+        15.0,
+        10.0
+      ],
+      "height": 0.132,
+      "triangles": 168,
+      "materials": 2,
+      "bytes": 11444,
+      "sha256": "3d814ab3a14e8fe605a503b932d15b221c1a97407f01a5d44006534eaf17939d",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage14_roads.py"
+    },
+    {
+      "id": "road.highway-6",
+      "file": "kit/road/road.highway-6.glb",
+      "category": "road",
+      "footprint": [
+        21.0,
+        10.0
+      ],
+      "height": 0.132,
+      "triangles": 204,
+      "materials": 2,
+      "bytes": 13396,
+      "sha256": "660498ca36549c9f371ac2ccbbe8ef105ceaffe56abccd2d1c1e09091ca4e94e",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage14_roads.py"
+    },
+    {
+      "id": "road.highway-8",
+      "file": "kit/road/road.highway-8.glb",
+      "category": "road",
+      "footprint": [
+        27.0,
+        10.0
+      ],
+      "height": 1.02,
+      "triangles": 192,
+      "materials": 3,
+      "bytes": 13276,
+      "sha256": "156ae515e558d3ac623408ff5399275af4a99fc02f4a04a2ad9489badd065c57",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage14_roads.py"
+    },
+    {
+      "id": "road.interchange-double",
+      "file": "kit/road/road.interchange-double.glb",
+      "category": "road",
+      "footprint": [
+        20,
+        20
+      ],
+      "height": 4.45,
+      "triangles": 312,
+      "materials": 4,
+      "bytes": 20444,
+      "sha256": "db116a39368be0c93f2b440de9f364775f550377197392798c272587bc536453",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage14_roads.py"
+    },
+    {
+      "id": "road.manhole-drain",
+      "file": "kit/road/road.manhole-drain.glb",
+      "category": "road",
+      "footprint": [
+        0.7,
+        0.7
+      ],
+      "height": 0.052,
+      "triangles": 68,
+      "materials": 2,
+      "bytes": 5200,
+      "sha256": "76bf86145239da3f41a3add68b4c1ce35f9dbed784488eb0a8f0e38920561270",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage01_roads.py"
+    },
+    {
+      "id": "road.one-way-2",
+      "file": "kit/road/road.one-way-2.glb",
+      "category": "road",
+      "footprint": [
+        9.0,
+        10.0
+      ],
+      "height": 0.132,
+      "triangles": 144,
+      "materials": 2,
+      "bytes": 10120,
+      "sha256": "ed307adaa0637d77be9dabc0476bb9ea2df99866f87b60d5fad2d3781a7a11c5",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage14_roads.py"
+    },
+    {
+      "id": "road.parapet-guardrail",
+      "file": "kit/road/road.parapet-guardrail.glb",
+      "category": "road",
+      "footprint": [
+        10.0,
+        0.3
+      ],
+      "height": 0.8,
+      "triangles": 96,
+      "materials": 2,
+      "bytes": 7060,
+      "sha256": "006aa453279a4d41362034bee60f3c25e50ac6bc44bfeb7095f8370a5179e260",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage01_roads.py"
+    },
+    {
+      "id": "road.parking-edge",
+      "file": "kit/road/road.parking-edge.glb",
+      "category": "road",
+      "footprint": [
+        4.1,
+        10.0
+      ],
+      "height": 0.132,
+      "triangles": 108,
+      "materials": 2,
+      "bytes": 7592,
+      "sha256": "a5653f1c05b0d9d7a2a2abca6f0b2572f0a152095c1c66898d5992862b531607",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage01_roads.py"
+    },
+    {
+      "id": "road.paving-repair",
+      "file": "kit/road/road.paving-repair.glb",
+      "category": "road",
+      "footprint": [
+        2.2,
+        3.2
+      ],
+      "height": 0.152,
+      "triangles": 56,
+      "materials": 2,
+      "bytes": 5180,
+      "sha256": "22ba9f12a4b7a6bdf4b46be24924b88a5ae0ec5d85d354982b7a3ff51fd89fc1",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage01_roads.py"
+    },
+    {
+      "id": "road.planted-verge",
+      "file": "kit/road/road.planted-verge.glb",
+      "category": "road",
+      "footprint": [
+        2.025,
+        10.0
+      ],
+      "height": 0.32,
+      "triangles": 84,
+      "materials": 3,
+      "bytes": 6948,
+      "sha256": "394385f1669a0adadde249f8d4e15133869a055f46ef510e737a330756021c92",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage01_roads.py"
+    },
+    {
+      "id": "road.plaza-tile",
+      "file": "kit/road/road.plaza-tile.glb",
+      "category": "road",
+      "footprint": [
+        10.08,
+        10.08
+      ],
+      "height": 3.8,
+      "triangles": 184,
+      "materials": 5,
+      "bytes": 14756,
+      "sha256": "36e03414eca5c0dc50680579ab0f8067553738e9431e66c83194a87bef864002",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage14_roads.py"
+    },
+    {
+      "id": "road.quay-bank",
+      "file": "kit/road/road.quay-bank.glb",
+      "category": "road",
+      "footprint": [
+        4.0,
+        5.2
+      ],
+      "height": 1.72,
+      "triangles": 128,
+      "materials": 3,
+      "bytes": 9156,
+      "sha256": "458249386035a684b631f8d37b9618e3ec1d83e80852f9a37a12844e891eca58",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage01_roads.py"
+    },
+    {
+      "id": "road.rail-track",
+      "file": "kit/road/road.rail-track.glb",
+      "category": "road",
+      "footprint": [
+        4,
+        10
+      ],
+      "height": 0.33,
+      "triangles": 156,
+      "materials": 3,
+      "bytes": 11532,
+      "sha256": "c074614308dac1390df05456de3643a2839f608b46e5596979a008e4dd5a86c3",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage14_roads.py"
+    },
+    {
+      "id": "road.ramp-tactile",
+      "file": "kit/road/road.ramp-tactile.glb",
+      "category": "road",
+      "footprint": [
+        3.022,
+        2.0
+      ],
+      "height": 0.42,
+      "triangles": 372,
+      "materials": 2,
+      "bytes": 20280,
+      "sha256": "794d16a919708a565c06b17f3a8611aff7369975a1bc6f361c5087701d72aebc",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage01_roads.py"
+    },
+    {
+      "id": "road.roundabout",
+      "file": "kit/road/road.roundabout.glb",
+      "category": "road",
+      "footprint": [
+        20,
+        20
+      ],
+      "height": 1.7,
+      "triangles": 592,
+      "materials": 5,
+      "bytes": 35804,
+      "sha256": "6153f63a3ce71a66322362851b286e478f106be34e1c2281d5f0312f2fd3cd04",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage14_roads.py"
+    },
+    {
+      "id": "road.runway",
+      "file": "kit/road/road.runway.glb",
+      "category": "road",
+      "footprint": [
+        24,
+        30
+      ],
+      "height": 0.3,
+      "triangles": 456,
+      "materials": 3,
+      "bytes": 27784,
+      "sha256": "7b7af9074d21a0b16fba6396bab904a91a18689c5cff04be627637807d9a4d65",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage14_roads.py"
+    },
+    {
+      "id": "road.sidewalk-corner",
+      "file": "kit/road/road.sidewalk-corner.glb",
+      "category": "road",
+      "footprint": [
+        1.6,
+        1.6
+      ],
+      "height": 0.332,
+      "triangles": 36,
+      "materials": 2,
+      "bytes": 3876,
+      "sha256": "82cfb5d421c61802802538bcf39c9fd7ee4af89017dd982ab546f8c23b479aa8",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage01_roads.py"
+    },
+    {
+      "id": "road.sidewalk-straight-10",
+      "file": "kit/road/road.sidewalk-straight-10.glb",
+      "category": "road",
+      "footprint": [
+        1.6,
+        10.0
+      ],
+      "height": 0.332,
+      "triangles": 84,
+      "materials": 2,
+      "bytes": 6412,
+      "sha256": "0f24c9a9a0255e0bf69c22705833d368f82053dec0e367ad0ea4c5bae49950b9",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage01_roads.py"
+    },
+    {
+      "id": "road.straight-10",
+      "file": "kit/road/road.straight-10.glb",
+      "category": "road",
+      "footprint": [
+        4,
+        10
+      ],
+      "height": 0.14,
+      "triangles": 108,
+      "materials": 3,
+      "bytes": 8312,
+      "sha256": "087330a71271570a114fe3694befa259b462e7ed3d77ee5b09c95ed1255396f5",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage01_roads.py"
+    },
+    {
+      "id": "road.t-junction",
+      "file": "kit/road/road.t-junction.glb",
+      "category": "road",
+      "footprint": [
+        10,
+        10
+      ],
+      "height": 0.132,
+      "triangles": 96,
+      "materials": 2,
+      "bytes": 6872,
+      "sha256": "2bf1185e06adc0d218f7bead5d29a4fcfe6a27a7937436f249ec292e722572cf",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage01_roads.py"
+    },
+    {
+      "id": "road.toll-portal",
+      "file": "kit/road/road.toll-portal.glb",
+      "category": "road",
+      "footprint": [
+        15.0,
+        10.0
+      ],
+      "height": 3.95,
+      "triangles": 228,
+      "materials": 5,
+      "bytes": 16064,
+      "sha256": "e0f85b5391dc6860c668e601f8005d2d08d9fd054b45dffde0138e8977346a57",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage14_roads.py"
+    },
+    {
+      "id": "road.viaduct-elevated",
+      "file": "kit/road/road.viaduct-elevated.glb",
+      "category": "road",
+      "footprint": [
+        10.0,
+        8.0
+      ],
+      "height": 4.85,
+      "triangles": 120,
+      "materials": 4,
+      "bytes": 10336,
+      "sha256": "d814695f3b33577d48487b117bda0ad55b4bd37d79cfc1d903ee8a883061fdbe",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage14_roads.py"
+    },
+    {
+      "id": "road.width-transition",
+      "file": "kit/road/road.width-transition.glb",
+      "category": "road",
+      "footprint": [
+        6,
+        10
+      ],
+      "height": 0.132,
+      "triangles": 60,
+      "materials": 2,
+      "bytes": 5132,
+      "sha256": "58b1afb7b5bc4d8c5ee9c6de02d65995b096c34f9f7241ff8448fc9c82116a5e",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage01_roads.py"
+    },
+    {
+      "id": "vehicle.ambulance",
+      "file": "kit/vehicle/vehicle.ambulance.glb",
+      "category": "vehicle",
+      "footprint": [
+        2.11,
+        5.18
+      ],
+      "height": 1.981,
+      "triangles": 468,
+      "materials": 9,
+      "bytes": 30172,
+      "sha256": "227f980b6bbf651c93c13d430c77116a0128feef63a4d770c1818d72272525c5",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage04_vehicles.py"
+    },
+    {
+      "id": "vehicle.bicycle",
+      "file": "kit/vehicle/vehicle.bicycle.glb",
+      "category": "vehicle",
+      "footprint": [
+        0.5,
+        2.12
+      ],
+      "height": 0.833,
+      "triangles": 200,
+      "materials": 3,
+      "bytes": 12952,
+      "sha256": "32e3dc38eea836d8f18bccb1b851a5c01c748270610d842f151db3c8d3026abb",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage13_fleet.py"
+    },
+    {
+      "id": "vehicle.bus",
+      "file": "kit/vehicle/vehicle.bus.glb",
+      "category": "vehicle",
+      "footprint": [
+        2.71,
+        10.0
+      ],
+      "height": 3.023,
+      "triangles": 492,
+      "materials": 5,
+      "bytes": 29092,
+      "sha256": "41db9be72fc936db3f21867cebf3c93a33d97445866ace05ac41c12e2d7ad11f",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage04_vehicles.py"
+    },
+    {
+      "id": "vehicle.fire-truck",
+      "file": "kit/vehicle/vehicle.fire-truck.glb",
+      "category": "vehicle",
+      "footprint": [
+        3.348,
+        7.19
+      ],
+      "height": 3.328,
+      "triangles": 676,
+      "materials": 7,
+      "bytes": 39728,
+      "sha256": "4e453b5d701d4b895b3f170f2a4e8907b57532ff544f3435cfba86b833a353a0",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage13_fleet.py"
+    },
+    {
+      "id": "vehicle.hatchback",
+      "file": "kit/vehicle/vehicle.hatchback.glb",
+      "category": "vehicle",
+      "footprint": [
+        1.89,
+        3.9
+      ],
+      "height": 1.364,
+      "triangles": 464,
+      "materials": 6,
+      "bytes": 28368,
+      "sha256": "8dff292d199f85bcf224edc1d45fef3cfb048f995f57a7ce8b89c84959101da6",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage04_vehicles.py"
+    },
+    {
+      "id": "vehicle.hearse",
+      "file": "kit/vehicle/vehicle.hearse.glb",
+      "category": "vehicle",
+      "footprint": [
+        2.03,
+        5.52
+      ],
+      "height": 2.182,
+      "triangles": 428,
+      "materials": 6,
+      "bytes": 26544,
+      "sha256": "a982ee6e4df4995211e9260e882378d009414bd1bd69a81786125255620728e8",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage13_fleet.py"
+    },
+    {
+      "id": "vehicle.motorcycle",
+      "file": "kit/vehicle/vehicle.motorcycle.glb",
+      "category": "vehicle",
+      "footprint": [
+        0.55,
+        2.0
+      ],
+      "height": 1.032,
+      "triangles": 200,
+      "materials": 4,
+      "bytes": 13112,
+      "sha256": "d75a7dbe068a584d51a0e5191493ed378a49d28e4575d6f631e5d34b315e3888",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage04_vehicles.py"
+    },
+    {
+      "id": "vehicle.patrol",
+      "file": "kit/vehicle/vehicle.patrol.glb",
+      "category": "vehicle",
+      "footprint": [
+        1.89,
+        4.5
+      ],
+      "height": 1.474,
+      "triangles": 512,
+      "materials": 7,
+      "bytes": 31716,
+      "sha256": "49850a4a56f4d8a9595ce95abac235d55bbd3a4059ec2f54f81cac7f9dbe34a4",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage04_vehicles.py"
+    },
+    {
+      "id": "vehicle.plane-large",
+      "file": "kit/vehicle/vehicle.plane-large.glb",
+      "category": "vehicle",
+      "footprint": [
+        26.0,
+        21.78
+      ],
+      "height": 4.09,
+      "triangles": 592,
+      "materials": 5,
+      "bytes": 33020,
+      "sha256": "efd3f3afb3c1a2563d3d4bfcc7c2fd1a76e3f57625bb2d4eb1403fb710a4fbb9",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage13_fleet.py"
+    },
+    {
+      "id": "vehicle.plane-medium",
+      "file": "kit/vehicle/vehicle.plane-medium.glb",
+      "category": "vehicle",
+      "footprint": [
+        18.0,
+        15.84
+      ],
+      "height": 3.1,
+      "triangles": 520,
+      "materials": 5,
+      "bytes": 29700,
+      "sha256": "212b53189e989016a72a022755beb527c37cc149d77b596c114a41b2a24ff8d4",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage13_fleet.py"
+    },
+    {
+      "id": "vehicle.plane-small",
+      "file": "kit/vehicle/vehicle.plane-small.glb",
+      "category": "vehicle",
+      "footprint": [
+        6.4,
+        4.95
+      ],
+      "height": 1.691,
+      "triangles": 344,
+      "materials": 6,
+      "bytes": 22320,
+      "sha256": "52674148fc19fe5fbbfd80c5b450f047786f39fd166797773650f758ac83905e",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage13_fleet.py"
+    },
+    {
+      "id": "vehicle.police-helicopter",
+      "file": "kit/vehicle/vehicle.police-helicopter.glb",
+      "category": "vehicle",
+      "footprint": [
+        7.069,
+        5.2
+      ],
+      "height": 2.95,
+      "triangles": 264,
+      "materials": 5,
+      "bytes": 18780,
+      "sha256": "022a250cd30aeeb42d86cfc0bb8837c5526456e1b8bcf4b33f1a74c50b5d7451",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage13_fleet.py"
+    },
+    {
+      "id": "vehicle.police-suv",
+      "file": "kit/vehicle/vehicle.police-suv.glb",
+      "category": "vehicle",
+      "footprint": [
+        2.03,
+        4.6
+      ],
+      "height": 1.642,
+      "triangles": 428,
+      "materials": 6,
+      "bytes": 27084,
+      "sha256": "1dac0a3ae46ae0532db815a277072cc85af10764a933366a2d7cc6f38d19cd20",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage13_fleet.py"
+    },
+    {
+      "id": "vehicle.police-van",
+      "file": "kit/vehicle/vehicle.police-van.glb",
+      "category": "vehicle",
+      "footprint": [
+        2.11,
+        5.18
+      ],
+      "height": 2.031,
+      "triangles": 444,
+      "materials": 7,
+      "bytes": 27884,
+      "sha256": "2bb9565883d772802f11ad6a8521d36ebe036a6c8ffde36a0e96a4aef8d2277f",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage13_fleet.py"
+    },
+    {
+      "id": "vehicle.sedan",
+      "file": "kit/vehicle/vehicle.sedan.glb",
+      "category": "vehicle",
+      "footprint": [
+        1.89,
+        4.5
+      ],
+      "height": 1.344,
+      "triangles": 464,
+      "materials": 6,
+      "bytes": 28328,
+      "sha256": "1e5af704df90520410163ab3e77ed0d93e9ce788e638f3b43b1f346646b5b63f",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage04_vehicles.py"
+    },
+    {
+      "id": "vehicle.taxi",
+      "file": "kit/vehicle/vehicle.taxi.glb",
+      "category": "vehicle",
+      "footprint": [
+        1.89,
+        4.0
+      ],
+      "height": 1.524,
+      "triangles": 488,
+      "materials": 6,
+      "bytes": 29624,
+      "sha256": "16a2decee0292e793f1bfbc95d14eff0857166179cc31d4ac68667162bc7250f",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage04_vehicles.py"
+    },
+    {
+      "id": "vehicle.train-cargo",
+      "file": "kit/vehicle/vehicle.train-cargo.glb",
+      "category": "vehicle",
+      "footprint": [
+        3.08,
+        15.0
+      ],
+      "height": 3.478,
+      "triangles": 384,
+      "materials": 4,
+      "bytes": 22868,
+      "sha256": "6de8f6af3f2acc7d6bee0e149964e2ce8c1b7582026994c9ef0fbd618604c7fa",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage13_fleet.py"
+    },
+    {
+      "id": "vehicle.train-passenger",
+      "file": "kit/vehicle/vehicle.train-passenger.glb",
+      "category": "vehicle",
+      "footprint": [
+        2.92,
+        15.0
+      ],
+      "height": 4.078,
+      "triangles": 516,
+      "materials": 6,
+      "bytes": 31252,
+      "sha256": "8ae17bb6431ac93c921bd39880e123b3a6170d5eb9dd00c610e421629dc617be",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage13_fleet.py"
+    },
+    {
+      "id": "vehicle.truck",
+      "file": "kit/vehicle/vehicle.truck.glb",
+      "category": "vehicle",
+      "footprint": [
+        2.2,
+        6.9
+      ],
+      "height": 3.329,
+      "triangles": 508,
+      "materials": 6,
+      "bytes": 29428,
+      "sha256": "3831b9900ca75c9f6ced7ac387a572b512a21c818ba12e2c62418c6c3aea46cd",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage04_vehicles.py"
+    },
+    {
+      "id": "vehicle.truck-garbage",
+      "file": "kit/vehicle/vehicle.truck-garbage.glb",
+      "category": "vehicle",
+      "footprint": [
+        2.37,
+        7.34
+      ],
+      "height": 3.579,
+      "triangles": 580,
+      "materials": 7,
+      "bytes": 34808,
+      "sha256": "4f358c74691c6d42f2d98c557b5f8be7d5b48f16ad62b46651fbc8a4ed422fcc",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage13_fleet.py"
+    },
+    {
+      "id": "vehicle.van",
+      "file": "kit/vehicle/vehicle.van.glb",
+      "category": "vehicle",
+      "footprint": [
+        2.11,
+        5.18
+      ],
+      "height": 1.781,
+      "triangles": 420,
+      "materials": 7,
+      "bytes": 26560,
+      "sha256": "4aa7943da7c09436db445753b91b32341997ca5dca190fc5a3db439b740ea567",
+      "license": "CC0-1.0",
+      "source": "scripts/asset-kit/stage04_vehicles.py"
+    },
+    {
+      "id": "fauna.seagull",
+      "file": "kit/fauna/fauna.seagull.glb",
+      "category": "fauna",
+      "triangles": 90,
+      "materials": 4,
+      "bytes": 8680,
+      "license": "CC0-1.0",
+      "sha256": "4a4627ba870e7b1efc2df9b57f5ce40a0e32a2e2221e08af848f8421c3f99e76",
+      "source": "scripts/asset-kit/stage18_fauna.py",
+      "footprint": [
+        0.6,
+        0.25
+      ],
+      "height": 0.2
+    },
+    {
+      "id": "fauna.dog",
+      "file": "kit/fauna/fauna.dog.glb",
+      "category": "fauna",
+      "triangles": 184,
+      "materials": 2,
+      "bytes": 11624,
+      "license": "CC0-1.0",
+      "sha256": "9ddc39b93ec4302e723fef648a4ae3873a6974a951c83ded9f234903fad71056",
+      "source": "scripts/asset-kit/stage18_fauna.py",
+      "footprint": [
+        0.45,
+        0.25
+      ],
+      "height": 0.3
+    },
+    {
+      "id": "fauna.fish",
+      "file": "kit/fauna/fauna.fish.glb",
+      "category": "fauna",
+      "triangles": 66,
+      "materials": 1,
+      "bytes": 4532,
+      "license": "CC0-1.0",
+      "sha256": "93c8456788ab55647c7dd0a1924905a94152d8b7e029794683e5492b11cd6c16",
+      "source": "scripts/asset-kit/stage18_fauna.py",
+      "footprint": [
+        0.25,
+        0.15
+      ],
+      "height": 0.1
+    }
+  ]
 }

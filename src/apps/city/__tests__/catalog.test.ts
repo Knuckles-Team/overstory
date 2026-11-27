@@ -140,8 +140,8 @@ describe('kit_only (R063)', () => {
   })
 
   it('catalog, lock and disk stay in integrity at the full family count', () => {
-    expect(catalog.entries, 'kit family count').toHaveLength(212)
-    expect(Object.keys(lock.files), 'total pinned count (212 kit + 14 non-kit)').toHaveLength(226)
+    expect(catalog.entries, 'kit family count').toHaveLength(215)
+    expect(Object.keys(lock.files), 'total pinned count (215 kit + 14 non-kit)').toHaveLength(229)
     const kitPins = Object.keys(lock.files).filter((p) => p.startsWith('city-assets/kit/'))
     expect(new Set(kitPins), 'kit pins').toEqual(new Set(catalog.entries.map((e) => `city-assets/${e.file}`)))
     expect(new Set(diskKitFiles()), 'kit files on disk').toEqual(new Set(kitPins))
