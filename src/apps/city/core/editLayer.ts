@@ -41,12 +41,20 @@ export interface TerrainEdit {
   delta: number
 }
 
+/** A zone policy set on a plot (R112). */
+export interface PlotZone {
+  plotIndex: number
+  zone: 'residential' | 'commercial' | 'industrial' | 'mixed'
+}
+
 export interface EditLayer {
   version: typeof EDIT_LAYER_VERSION
   pins: BuildingPin[]
   roads: RoadPin[]
   decor: Decor[]
   terrain: TerrainEdit[]
+  /** Plot zone policies (R112). */
+  zones: PlotZone[]
 }
 
 export interface Area {
@@ -57,7 +65,7 @@ export interface Area {
 }
 
 export function emptyEditLayer(): EditLayer {
-  return { version: EDIT_LAYER_VERSION, pins: [], roads: [], decor: [], terrain: [] }
+  return { version: EDIT_LAYER_VERSION, pins: [], roads: [], decor: [], terrain: [], zones: [] }
 }
 
 /** The city a viewer sees: the derived layout with the edit layer applied. */
@@ -161,4 +169,37 @@ export function resetArea(layer: EditLayer, area: Area, derived?: DerivedCity): 
     decor: layer.decor.filter((d) => !inArea(d.cell, area)),
     terrain: layer.terrain.filter((t) => !inArea(t.cell, area)),
   }
+}
+
+// ===========================================================================
+// R112: Plot zone editing
+// ===========================================================================
+
+/** Set zone on a plot (R112). */
+export function setPlotZone(
+  layer: EditLayer,
+  plotIndex: number,
+  zone: 'residential' | 'commercial' | 'industrial' | 'mixed',
+): EditLayer {
+  const existing = layer.zones.findIndex((z) => z.plotIndex === plotIndex)
+  if (existing >= 0) {
+    const updated = [...layer.zones]
+    updated[existing] = { plotIndex, zone }
+    return { ...layer, zones: updated }
+  }
+  return { ...layer, zones: [...layer.zones, { plotIndex, zone }] }
+}
+
+/** Clear zone on a plot (R112, undo). */
+export function clearPlotZone(layer: EditLayer, plotIndex: number): EditLayer {
+  return { ...layer, zones: layer.zones.filter((z) => z.plotIndex !== plotIndex) }
+}
+
+/** Get zone for a plot. */
+export function getPlotZone(
+  layer: EditLayer,
+  plotIndex: number,
+): 'residential' | 'commercial' | 'industrial' | 'mixed' | undefined {
+  const z = layer.zones.find((z) => z.plotIndex === plotIndex)
+  return z?.zone
 }

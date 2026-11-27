@@ -6,10 +6,17 @@
  *
  * R096: Economic overlays — RCI demand heatmap, service coverage, congestion,
  * land value, and decay overlays rendered on top of the 2D schematic.
+ * R101: Demand markers drawn as ghost outlines on empty lots with pending
+ *   demand (R101).
+ * R102: Building economic health overlay — green for healthy, red for
+ *   unhealthy (R102).
+ * R109: Pedestrian density heatmap overlay (R109).
+ * R112: Zone policy overlay showing zoning type per lot (R112).
+ * R113: Service coverage visualization with radius circles (R113).
  *
- * spec: OVERSTORY-CITY-R015, OVERSTORY-CITY-R027, OVERSTORY-CITY-R028.1, OVERSTORY-CITY-R065, OVERSTORY-CITY-R066, OVERSTORY-CITY-R077, OVERSTORY-CITY-R078, OVERSTORY-CITY-R096
+ * spec: OVERSTORY-CITY-R015, OVERSTORY-CITY-R027, OVERSTORY-CITY-R028.1, OVERSTORY-CITY-R065, OVERSTORY-CITY-R066, OVERSTORY-CITY-R077, OVERSTORY-CITY-R078, OVERSTORY-CITY-R096, OVERSTORY-CITY-R101, OVERSTORY-CITY-R102, OVERSTORY-CITY-R109, OVERSTORY-CITY-R112, OVERSTORY-CITY-R113
  */
-// spec: OVERSTORY-CITY-R015, OVERSTORY-CITY-R027, OVERSTORY-CITY-R028.1, OVERSTORY-CITY-R065, OVERSTORY-CITY-R066, OVERSTORY-CITY-R077, OVERSTORY-CITY-R078, OVERSTORY-CITY-R096
+// spec: OVERSTORY-CITY-R015, OVERSTORY-CITY-R027, OVERSTORY-CITY-R028.1, OVERSTORY-CITY-R065, OVERSTORY-CITY-R066, OVERSTORY-CITY-R077, OVERSTORY-CITY-R078, OVERSTORY-CITY-R096, OVERSTORY-CITY-R101, OVERSTORY-CITY-R102, OVERSTORY-CITY-R109, OVERSTORY-CITY-R112, OVERSTORY-CITY-R113
 import { GROUND_SIZE, PLOT_W } from './layout'
 import { encodingColor, stateColor } from './encoding'
 import { world as simWorld } from './sim'
@@ -18,11 +25,23 @@ import { sampleRoadCurve, type RoadGraph } from '@/lib/scene3d/roads'
 import { sampleTrafficPose } from './render3d/traffic'
 import type { CityRenderer, CityViewport, SelectionHit } from './types'
 import { TARGET_FRAME_MS } from './frameBudget'
+import { demandMarkers, getServiceNetworks } from './economy'
 
 // ---- Economic overlays (R096) ------------------------------------------------
 
 /** Overlays that can be rendered on top of the 2D schematic. */
-export type OverlayType = 'none' | 'rci_demand' | 'service_coverage' | 'congestion' | 'land_value' | 'decay'
+export type OverlayType =
+  | 'none'
+  | 'rci_demand'
+  | 'service_coverage'
+  | 'congestion'
+  | 'land_value'
+  | 'decay'
+  | 'demand_markers' // R101: ghost outlines on empty lots with pending demand
+  | 'building_health' // R102: building economic health overlay
+  | 'service_coverage_viz' // R113: service coverage radius circles
+  | 'pedestrian_density' // R109: pedestrian density heatmap
+  | 'zone_policy' // R112: zone policy overlay
 
 /** Overlay toggle interface — the 2D renderer exposes these to the UI layer. */
 export interface OverlayApi {
@@ -337,6 +356,142 @@ export function init2D(
         }
         break
       }
+
+      // -----------------------------------------------------------------------
+      // R101: Demand markers on empty lots with pending demand
+      // -----------------------------------------------------------------------
+      case 'demand_markers': {
+        const zoneColors: Record<string, number> = {
+          residential: 0x4caf50,
+          commercial: 0x2196f3,
+          industrial: 0xff9800,
+        }
+        octx.globalAlpha = 0.35
+        for (const marker of demandMarkers) {
+          const plot = world.plots[marker.plotIndex]
+          if (!plot) continue
+          const bx = px(plot.x - PLOT_W / 2)
+          const bz = pz(plot.z - PLOT_W / 2)
+          const w = PLOT_W * scale
+          const h = PLOT_W * scale
+          // Ghost outline with zone color
+          const color = zoneColors[marker.zoneType] ?? 0x9e9e9e
+          octx.strokeStyle = `#${color.toString(16).padStart(6, '0')}`
+          octx.lineWidth = 2
+          octx.setLineDash([4 * scale, 4 * scale])
+          octx.strokeRect(bx, bz, w, h)
+          octx.setLineDash([])
+          // Demand indicator: brighter fill proportional to demand value
+          const intensity = marker.demand ?? 0.5
+          octx.globalAlpha = 0.15 + intensity * 0.25
+          octx.fillStyle = `#${color.toString(16).padStart(6, '0')}`
+          octx.fillRect(bx, bz, w, h)
+          octx.globalAlpha = 0.35
+          // Demand value text
+          octx.globalAlpha = 0.6
+          octx.fillStyle = '#e8ecf4'
+          octx.font = `${Math.max(7, scale * 1.0)}px system-ui, sans-serif`
+          octx.textAlign = 'center'
+          octx.fillText(marker.demand?.toFixed(1) ?? '?', px(plot.x), pz(plot.z))
+        }
+        break
+      }
+
+      // -----------------------------------------------------------------------
+      // R102: Building economic health overlay
+      // -----------------------------------------------------------------------
+      case 'building_health': {
+        for (const b of Object.values(world.buildings)) {
+          // Compute economic health from building state (proxy from served, fresh, and category).
+          let health = 0.5
+          if (b.category === 'core') {
+            health = 0.8
+          } else {
+            // Healthy: served=true, low fresh counter → high health
+            const servedBonus = b.served ? 0.3 : 0
+            const agePenalty = b.fresh > 0 ? Math.max(0, 0.3 - b.fresh * 0.02) : 0
+            health = Math.max(0, Math.min(1, 0.5 + servedBonus - agePenalty))
+          }
+          // Interpolate from red (unhealthy) to green (healthy)
+          const r = Math.round(255 * (1 - health))
+          const g = Math.round(255 * health)
+          octx.globalAlpha = 0.3
+          octx.fillStyle = `rgb(${r},${g},0)`
+          const bx = px(b.x - b.w / 2)
+          const bz = pz(b.z - b.d / 2)
+          octx.fillRect(bx, bz, b.w * scale, b.d * scale)
+        }
+        break
+      }
+
+      // -----------------------------------------------------------------------
+      // R113: Service coverage visualization with radius circles
+      // -----------------------------------------------------------------------
+      case 'service_coverage_viz': {
+        const networks = getServiceNetworks()
+        for (const net of networks) {
+          // Find a service building's position for this network.
+          let sx = 0
+          let sz = 0
+          const bldg = world.buildings[net.buildings[0]]
+          if (bldg) {
+            sx = bldg.x
+            sz = bldg.z
+          }
+          // Draw coverage circle
+          octx.beginPath()
+          octx.arc(px(sx), pz(sz), net.radius * scale, 0, Math.PI * 2)
+          octx.strokeStyle = net.active ? 'rgba(0, 200, 0, 0.35)' : 'rgba(200, 0, 0, 0.35)'
+          octx.lineWidth = 1.5
+          octx.stroke()
+        }
+        break
+      }
+
+      // -----------------------------------------------------------------------
+      // R109: Pedestrian density heatmap
+      // -----------------------------------------------------------------------
+      case 'pedestrian_density': {
+        // Draw small circles at each character position to show density.
+        octx.globalAlpha = 0.4
+        for (const ch of world.characters) {
+          if (!ch.visible) continue
+          octx.beginPath()
+          octx.arc(px(ch.pos.x), pz(ch.pos.z), Math.max(2, scale * 0.8), 0, Math.PI * 2)
+          // Yellow for density heatmap
+          octx.fillStyle = 'rgba(255, 255, 0, 0.3)'
+          octx.fill()
+        }
+        // Draw character count for context
+        octx.globalAlpha = 0.7
+        octx.fillStyle = '#ffd98a'
+        octx.font = `${Math.max(8, scale * 1.2)}px system-ui, sans-serif`
+        octx.textAlign = 'left'
+        octx.fillText(`Pedestrians: ${world.characters.filter((c) => c.visible).length}`, 6, 14)
+        break
+      }
+
+      // -----------------------------------------------------------------------
+      // R112: Zone policy overlay
+      // -----------------------------------------------------------------------
+      case 'zone_policy': {
+        const zoneColors: Record<string, string> = {
+          residential: 'rgba(76, 175, 80, 0.2)',
+          commercial: 'rgba(33, 150, 243, 0.2)',
+          industrial: 'rgba(255, 152, 0, 0.2)',
+          mixed: 'rgba(156, 39, 176, 0.2)',
+        }
+        for (const plot of world.plots) {
+          if (plot.zone) {
+            const color = zoneColors[plot.zone] ?? 'rgba(200, 200, 200, 0.1)'
+            octx.fillStyle = color
+            const bx = px(plot.x - PLOT_W / 2)
+            const bz = pz(plot.z - PLOT_W / 2)
+            octx.fillRect(bx, bz, PLOT_W * scale, PLOT_W * scale)
+          }
+        }
+        break
+      }
     }
     octx.globalAlpha = 1
   }
@@ -347,7 +502,19 @@ export function init2D(
     const key = e.key
     if (key === 'o' || key === 'O') {
       e.preventDefault()
-      const types: OverlayType[] = ['none', 'rci_demand', 'service_coverage', 'congestion', 'land_value', 'decay']
+      const types: OverlayType[] = [
+        'none',
+        'rci_demand',
+        'service_coverage',
+        'congestion',
+        'land_value',
+        'decay',
+        'demand_markers',
+        'building_health',
+        'service_coverage_viz',
+        'pedestrian_density',
+        'zone_policy',
+      ]
       const idx = types.indexOf(activeOverlay)
       activeOverlay = types[(idx + 1) % types.length]
       overlayDirty = true

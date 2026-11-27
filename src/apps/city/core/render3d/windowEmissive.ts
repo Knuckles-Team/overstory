@@ -7,8 +7,12 @@
  * when the schedule slot, the occupancy or the live work changes. No new
  * objects or textures are ever created per frame, so the stable object and
  * texture count contract (R048.6.1) holds with every window live.
+ *
+ * R103: building occupancy state modulates window emissive intensity — vacant
+ * buildings are dark, construction partially lit, mature buildings full, and
+ * abandoned buildings dark again.
  */
-// spec: OVERSTORY-CITY-R066
+// spec: OVERSTORY-CITY-R066, OVERSTORY-CITY-R103
 import * as THREE from 'three'
 import { floorOccupancy, gridHash, resolveWindows, occupancyAt, type BuildingFunction } from '../activity'
 
@@ -26,6 +30,8 @@ export interface NightWindowSample {
   perFloor: number[]
   /** A stable fingerprint of the lit grid at this instant. */
   fingerprint: number
+  /** The building's occupancy state, influencing emissive intensity (R103). */
+  occupancyState?: string
 }
 
 /** The live night-window resolution over every kit building (R066). */
@@ -114,8 +120,23 @@ export interface WindowEmissiveHandle {
   fingerprint: number
   /** The schedule occupancy the grid resolved from. */
   occupancy: number
+  /** The building's occupancy state (R103). */
+  occupancyState: string
   /** Free the texture. */
   dispose(): void
+}
+
+/** Occupancy state values that modulate window emissive intensity (R103). */
+export type OccupancyState = 'vacant' | 'construction' | 'new' | 'mature' | 'declining' | 'abandoned'
+
+/** The emissive multiplier for each occupancy state (R103). */
+const OCCUPANCY_MULTIPLIER: Record<string, number> = {
+  vacant: 0,
+  construction: 0.3,
+  new: 0.7,
+  mature: 1.0,
+  declining: 0.3,
+  abandoned: 0.0,
 }
 
 /**
@@ -130,8 +151,10 @@ export function createWindowEmissive(opts: {
   floors: number
   cols: number
   color: number
+  /** Occupancy state that modulates emissive intensity (R103). */
+  occupancyState?: OccupancyState
 }): WindowEmissiveHandle {
-  const { seed, fn, floors, cols, color } = opts
+  const { seed, fn, floors, cols, color, occupancyState } = opts
   const canvas = document.createElement('canvas')
   canvas.width = Math.max(1, cols)
   canvas.height = Math.max(1, floors)
@@ -149,6 +172,8 @@ export function createWindowEmissive(opts: {
   let perFloor: number[] = []
   let fingerprint = 0
   let occupancy = 0
+  const occState = occupancyState ?? 'mature'
+  const occMult = OCCUPANCY_MULTIPLIER[occState] ?? 1.0
 
   return {
     floors,
@@ -166,6 +191,9 @@ export function createWindowEmissive(opts: {
     },
     get occupancy(): number {
       return occupancy
+    },
+    get occupancyState(): string {
+      return occState
     },
     update(clockS: number, inFlightCalls: number): boolean {
       const occ = occupancyAt(fn, clockS)
@@ -187,6 +215,10 @@ export function createWindowEmissive(opts: {
       texture.needsUpdate = true
       anyLit = grid.some((cell) => cell === 1)
       perFloor = floorOccupancy(grid, floors, cols)
+      // R103: modulate per-floor lit fraction by occupancy state multiplier.
+      for (let i = 0; i < perFloor.length; i++) {
+        perFloor[i] *= occMult
+      }
       fingerprint = gridHash(grid)
       occupancy = occ
       return true

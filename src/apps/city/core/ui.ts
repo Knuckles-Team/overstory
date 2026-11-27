@@ -13,6 +13,7 @@
 import { bus, feedFullySimulated, getMode, type CityEvent } from './events'
 import { legendLines, stateColor } from './encoding'
 import { ROLE_LABELS } from './ecosystem'
+import * as Economy from './economy'
 import { isNight } from './sim'
 import type { world as simWorld } from './sim'
 import type { CityActions, CityRenderer, CityUiElements, SelectionHit } from './types'
@@ -1082,4 +1083,30 @@ export function initUI(world: World, renderer: CityRenderer, actions: CityAction
       document.removeEventListener('keydown', onModalKey)
     },
   }
+}
+
+// ===========================================================================
+// R111, R113, R114: Economic data accessors for the operator UI
+// ===========================================================================
+
+/** Projected treasury over next 50 ticks (R114). */
+export function getProjectedTreasury(): number[] {
+  return (Economy as any).projectedTreasury ?? []
+}
+
+/** Policy change timeline (R111). */
+export function getPolicyTimeline(): Array<{ tick: number; type: string; zone?: string; effect?: string }> {
+  return (Economy as any).policyTimeline ?? []
+}
+
+/** Service network data for overlay (R113). */
+export function getServiceNetworkData(): Array<{ x: number; z: number; radius: number; type: string; funded: boolean }> {
+  const networks = Economy.getServiceNetworks()
+  return networks.map((n) => ({
+    x: 0,
+    z: 0,
+    radius: n.capacity,
+    type: n.type,
+    funded: n.active,
+  }))
 }

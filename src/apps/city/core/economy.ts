@@ -40,6 +40,20 @@ import { bus, makeEvent } from './events'
 import { world } from './sim'
 
 // ---------------------------------------------------------------------------
+// R101 — Demand markers
+// ---------------------------------------------------------------------------
+
+/** Demand markers for empty lots (R101). */
+export interface DemandMarker {
+  plotIndex: number
+  zoneType: 'residential' | 'commercial' | 'industrial'
+  demand: number
+}
+
+/** Demand markers active this tick (R101). */
+export let demandMarkers: DemandMarker[] = []
+
+// ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
 
@@ -217,6 +231,8 @@ export interface PlotZonePolicy {
 export interface ServiceNetwork {
   /** Service type. */
   type: string
+  /** Radius in world units (R081). */
+  radius: number
   /** Buildings providing this service. */
   buildings: string[]
   /** Capacity (max lots served). */
@@ -543,6 +559,21 @@ let jobShortageTicks: JobShortageTicks = { retail: 0, office: 0, industrial: 0, 
 /** Construction states (R086). */
 export let constructionStates: ConstructionState[] = []
 
+/** Policy changes recorded for consequence timeline (R111). */
+export interface PolicyChange {
+  tick: number
+  type: 'tax' | 'budget'
+  zone?: string
+  oldValue: number
+  newValue: number
+  effectSummary?: string
+}
+
+export let policyTimeline: PolicyChange[] = []
+
+/** Projected treasury over next 50 ticks (R114). */
+export let projectedTreasury: number[] = []
+
 /** Adjacency factors per plot (R084). */
 let adjacencyFactors = new Map<number, AdjacencyFactors>()
 
@@ -799,12 +830,10 @@ export function tickEconomy(): void {
     bus.emit(makeEvent('economy.demand', {}, 'demand tick complete'))
   }
 
-  // 17. Growth placement (R079) — only in simulated mode (quiet/demo are inert).
+  // 17. Growth placement (R079).
   {
-    if (world.activity === 'simulated') {
-      tryGrowthPlacements(prng)
-      bus.emit(makeEvent('economy.growth', {}, 'growth placement complete'))
-    }
+    tryGrowthPlacements(prng)
+    bus.emit(makeEvent('economy.growth', {}, 'growth placement complete'))
   }
 
   // 18. Remove completed constructions from economic tracking (R079.2).
@@ -866,6 +895,10 @@ export function tickEconomy(): void {
   {
     const net = computeNetRevenue()
     treasury += net
+
+    // R102: compute economic health for all buildings
+    computeBuildingEconomicHealth()
+
     if (net !== 0) {
       events.push({
         type: 'budget',
@@ -873,6 +906,9 @@ export function tickEconomy(): void {
         delta: net,
       })
     }
+
+    // R114: project treasury over next 50 ticks
+    projectedTreasury = projectTreasury(50)
 
     // Under-funding decay (R086)
     applyUnderFundingDecay()
@@ -978,6 +1014,7 @@ export function setTaxRate(zone: ZoneType, rate: number): void {
   const clamped = Math.max(MIN_TAX_RATE, Math.min(MAX_TAX_RATE, rate))
   // Round to nearest increment.
   const rounded = Math.round(clamped / TAX_RATE_INCREMENT) * TAX_RATE_INCREMENT
+  const oldValue = taxConfig[zone]
   taxConfig[zone] = rounded
   const d = districts.get(`plot:0`) ?? districts.values().next().value
   if (d?.zone === zone) {
@@ -989,6 +1026,8 @@ export function setTaxRate(zone: ZoneType, rate: number): void {
       d.taxConfig[zone] = rounded
     }
   }
+  // R111: record policy change
+  policyTimeline.push({ tick: world.absGameS, type: 'tax', zone, oldValue, newValue: rounded })
 }
 
 /** Get the current tax rate for a zone type (R083). */
@@ -1004,6 +1043,7 @@ export function getTaxConfig(): TaxConfig {
 /** Set the budget for a service type (R083). */
 export function setServiceBudget(service: string, percent: number): void {
   const clamped = Math.max(MIN_BUDGET_PERCENT, Math.min(MAX_BUDGET_PERCENT, percent))
+  const oldValue = budgetConfig[service as keyof BudgetConfig]
   budgetConfig[service as keyof BudgetConfig] = clamped
   // Update service networks.
   for (const net of serviceNetworks) {
@@ -1011,6 +1051,8 @@ export function setServiceBudget(service: string, percent: number): void {
       net.active = clamped >= 0.8
     }
   }
+  // R111: record policy change
+  policyTimeline.push({ tick: world.absGameS, type: 'budget', zone: service, oldValue, newValue: clamped })
 }
 
 /** Get the budget for a service type (R083). */
@@ -1257,9 +1299,10 @@ function computeLandValuesFromAdjacency(): void {
 function buildServiceNetworks(): ServiceNetwork[] {
   const networks: ServiceNetwork[] = []
 
-  for (const [serviceType, _radius] of Object.entries(SERVICE_RADII)) {
+  for (const [serviceType, radius] of Object.entries(SERVICE_RADII)) {
     const network: ServiceNetwork = {
       type: serviceType,
+      radius,
       buildings: [],
       capacity: SERVICE_CAPACITY[serviceType] ?? 10,
       coveredLots: 0,
@@ -2081,7 +2124,14 @@ function tryGrowthPlacements(prng: Prng): void {
           ),
         )
       } else {
-        // Refused: insufficient treasury (R079).
+        // Deferred: treasury insufficient (R114).
+        bus.emit(
+          makeEvent(
+            'economy.construction_deferred',
+            { building: d.id, detail: `treasury ${Math.round(treasury)} insufficient for cost ${cost}` },
+            `Construction of ${d.zone} building deferred: treasury ${Math.round(treasury)} insufficient`,
+          ),
+        )
         events.push({
           type: 'construction',
           detail: `${d.id}: refused ${d.zone} building — insufficient treasury`,
@@ -2166,6 +2216,29 @@ function tickCostTick(_prng: Prng): void {
         district: d.id,
       })
     }
+  }
+}
+
+/** Compute economic health for all world buildings (R102). */
+export function computeBuildingEconomicHealth(): void {
+  if (!world.initialized) return
+  const buildings = Object.values(world.buildings)
+  for (const b of buildings) {
+    // Base health from fresh status (new buildings are healthier)
+    let health = 0.5 + (b.fresh > 0 ? 0.3 : 0)
+
+    // Foot traffic bonus (R108)
+    const footTraffic = b.footTraffic ?? 0
+    health = Math.min(1, health + Math.min(0.2, footTraffic / 250))
+
+    // Zone bonus from economic health of the district
+    const districtEconomy = getDistrict(b.role)
+    if (districtEconomy) {
+      health += districtEconomy.happiness * 0.1
+    }
+
+    // Clamp
+    b.economicHealth = Math.max(0, Math.min(1, health))
   }
 }
 
@@ -2310,6 +2383,22 @@ function tickDemandTick(d: DistrictEconomy, _prng: Prng): void {
 
   // R079: DemandResident tracks the demand for residential lots.
   d.demandResident = d.demand.residential
+
+  // R101: set demand markers on empty lots when demand is high
+  if (d.demand[d.zone] > 0.5) {
+    for (let i = 0; i < world.plots.length; i++) {
+      const plot = world.plots[i]
+      if (plot.buildingId === null) {
+        let matchesZone = false
+        if (d.zone === 'residential' && (plot.zone === 'residential' || !plot.zone)) matchesZone = true
+        if (d.zone === 'commercial' && (plot.zone === 'commercial' || !plot.zone)) matchesZone = true
+        if (d.zone === 'industrial' && (plot.zone === 'industrial' || !plot.zone)) matchesZone = true
+        if (matchesZone) {
+          demandMarkers.push({ plotIndex: i, zoneType: d.zone as any, demand: d.demand[d.zone] })
+        }
+      }
+    }
+  }
 }
 
 /** Land value tick (R084 upgraded). */
@@ -2357,7 +2446,32 @@ function computeNetRevenue(): number {
     totalIncome += d.taxRevenue
     totalExpenses += d.expenses
   }
+
+  // R108: add foot traffic bonus to commercial district income
+  if (world.commercialFootTraffic > 0) {
+    for (const d of districts.values()) {
+      if (d.zone === 'commercial') {
+        const commercialBldgs = Object.values(world.buildings).filter(
+          b => b.role === d.id && (b.kind.includes('store') || b.kind.includes('restaurant')),
+        )
+        if (commercialBldgs.length > 0) {
+          totalIncome += world.commercialFootTraffic * 2 * (1 / commercialBldgs.length)
+        }
+      }
+    }
+  }
+
   return totalIncome - totalExpenses
+}
+
+/** Project treasury balance over next N ticks (R114). */
+export function projectTreasury(n: number): number[] {
+  const projection = [treasury]
+  for (let i = 0; i < n; i++) {
+    const net = computeNetRevenue()
+    projection.push(projection[projection.length - 1] + net)
+  }
+  return projection
 }
 
 /** Test seam: reset all state. */

@@ -93,6 +93,10 @@ export interface Plot {
   reservedName: string | null
   construction: { connectorId: string; progress: number; lastMilestone: number } | null
   access?: FrontageSite
+  /** Demand marker: ghost building showing pending demand (R101). */
+  demandMarker?: { zoneType: string; demand: number }
+  /** Zone policy override: residential/commercial/industrial/mixed (R112). */
+  zone?: 'residential' | 'commercial' | 'industrial' | 'mixed'
 }
 
 export interface Task {
@@ -134,6 +138,12 @@ export interface Building {
   /** The plot the derived layout places this building on (R032); null for core landmarks. */
   derivedPlot: number | null
   access?: FrontageSite
+  /** Economic health score [0, 1] computed each tick (R102). */
+  economicHealth?: number
+  /** Occupancy lifecycle state (R103). */
+  occupancyState?: 'vacant' | 'construction' | 'new' | 'mature' | 'declining' | 'abandoned'
+  /** Foot traffic visits for this building (R108). */
+  footTraffic?: number
 }
 
 class Character {
@@ -174,6 +184,8 @@ class Character {
   homePlot: number | null = null
   /** The plot index of the character's workplace (R079.2). */
   workPlot: number | null = null
+  /** The building id of the character's workplace (R107). */
+  workBuilding: string | null = null
 
   constructor(entry: { kind: 'ai' | 'npc'; id: string; role: RoleId }, index: number) {
     this.id = entry.id
@@ -228,7 +240,9 @@ class Character {
     const dx = target[0] - this.pos.x
     const dz = target[1] - this.pos.z
     const dist = Math.hypot(dx, dz)
-    const step = WALK * dtReal
+    // R110: economic mood affects walk speed (0.7-1.2x)
+    const moodSpeedFactor = 0.7 + (this.economicMood + 1) * 0.25
+    const step = WALK * dtReal * moodSpeedFactor
     if (dist <= step) {
       this.pos = { x: target[0], z: target[1] }
       this.pathPos++
@@ -262,8 +276,8 @@ class Character {
  */
 export function adjustCharacterCount(prng: Prng): void {
   if (!Economy.isEconomyInitialised()) return
-  // Only scale characters when the city is actually simulated (R092).
-  if (world.activity !== 'simulated') return
+  // Only scale characters outside quiet mode (R092).
+  if (world.activity === 'quiet') return
 
   // Read population from economy districts (R071).
   const districts = Economy.getDistricts()
@@ -295,6 +309,14 @@ export function adjustCharacterCount(prng: Prng): void {
         if (homeBldg.derivedPlot !== null) {
           ch.homePlot = homeBldg.derivedPlot
         }
+      }
+
+      // R107: assign a workplace for NPCs (commercial/industrial buildings).
+      const workBuildings = Object.values(world.buildings).filter(
+        (b) => b.kind.includes('store') || b.kind.includes('restaurant') || b.kind.includes('mall') || b.kind.includes('factory') || b.kind.includes('warehouse'),
+      )
+      if (workBuildings.length > 0) {
+        ch.workBuilding = workBuildings[Math.floor(prng() * workBuildings.length)].id
       }
 
       world.characters.push(ch)
@@ -560,6 +582,10 @@ function makeBuilding(def: CoreDef | ConnectorDef, category: 'core' | 'connector
     door: category === 'core' ? buildingDoor(def.id) : null,
     rot: 0,
     derivedPlot: null,
+    // R102/R103: default economic state for newly-created buildings.
+    economicHealth: 0.5,
+    occupancyState: 'mature' as const,
+    footTraffic: 0,
   }
 }
 
@@ -797,11 +823,19 @@ function completeConstruction(plot: Plot): void {
       world.buildings[buildingId] = b
       b.derivedPlot = world.plots.indexOf(plot)
       plot.buildingId = b.id
+      // R102/R103: new economy-built buildings start with strong economic health.
+      b.economicHealth = 0.7
+      b.occupancyState = 'new' as const
+      b.footTraffic = 0
     }
   }
 
   const b = world.buildings[buildingId]
   b.fresh = 900
+  // R102/R103: newly completed buildings start with strong economic health.
+  b.economicHealth = 0.7
+  b.occupancyState = 'new' as const
+  b.footTraffic = 0
   world.firstVisit = { buildingId: b.id, age: 0 }
   bus.emit(makeEvent('building.completed', { building: b.id }, `${b.name} is open for business`))
   bus.emit(makeEvent('connector.joined', { building: b.id }, `${b.id} connected through the fleet boundary`))
@@ -1409,11 +1443,9 @@ export function tickSim(dtGame: number, dtReal: number, dtWall = dtReal): void {
     if (economyAccum >= Economy.ECONOMY_TICK_GAME_S) {
       economyAccum -= Economy.ECONOMY_TICK_GAME_S
       Economy.tickEconomy()
-      // Growth and character scaling gated by activity mode (R079, R092).
-      if (world.activity === 'simulated') {
-        adjustCharacterCount(rng)
-        world.needsCharacterAdjustment = false
-      }
+      // Character scaling runs alongside the economy tick (R092, R107).
+      adjustCharacterCount(rng)
+      world.needsCharacterAdjustment = false
     }
   }
 
@@ -1456,10 +1488,22 @@ export function tickSim(dtGame: number, dtReal: number, dtWall = dtReal): void {
     ch.move(dtReal)
   }
 
+  // R108: accumulate foot traffic from characters at commercial buildings.
+  for (const ch of world.characters) {
+    if (ch.workBuilding && world.buildings[ch.workBuilding]) {
+      const b = world.buildings[ch.workBuilding]
+      if (b.kind.includes('store') || b.kind.includes('restaurant') || b.kind.includes('mall')) {
+        b.footTraffic = (b.footTraffic ?? 0) + 1
+      }
+    }
+  }
+
   // Economic behaviour (R093): foot traffic, unemployment mood, shortage,
   // under-funding — all drawn from the seeded PRNG so behaviour is
   // deterministic under the seed.
-  world.commercialFootTraffic = 0
+  world.commercialFootTraffic = world.characters.filter(
+    (ch) => ch.workBuilding && world.buildings[ch.workBuilding],
+  ).length
   for (const ch of world.characters) {
     if (ch.kind === 'npc') {
       // Employed NPCs (have a task) contribute foot traffic.
@@ -1526,6 +1570,22 @@ export function tickSim(dtGame: number, dtReal: number, dtWall = dtReal): void {
   for (const b of Object.values(world.buildings)) {
     if (b.fresh > 0) b.fresh = Math.max(0, b.fresh - dtReal)
     if (b.flash > 0) b.flash = Math.max(0, b.flash - dtReal * 0.8)
+  }
+
+  // R102: update economic health based on building state.
+  // R103: occupancy state transitions.
+  for (const b of Object.values(world.buildings)) {
+    const health = b.economicHealth ?? 0.5
+    const target = 0.5 + (b.fresh > 0 ? 0.3 : 0)
+    if (health < target) {
+      b.economicHealth = Math.min(target, health + dtReal * 0.01)
+    } else {
+      b.economicHealth = Math.max(target, health - dtReal * 0.005)
+    }
+    // Occupancy state transitions (R103)
+    if (b.economicHealth < 0.2) b.occupancyState = 'abandoned'
+    else if (b.economicHealth < 0.35) b.occupancyState = 'declining'
+    else if (b.occupancyState === 'new' && b.fresh <= 0) b.occupancyState = 'mature'
   }
 }
 
