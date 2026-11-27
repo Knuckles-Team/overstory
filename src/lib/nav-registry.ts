@@ -853,6 +853,17 @@ export const ROUTES: readonly RouteDef[] = [
     element: lazy(() => import('@/components/views/BrokerView')),
   },
   {
+    id: 'observability.host-logs',
+    path: '/host-logs',
+    label: 'Host Logs',
+    section: 'observability',
+    blurb: "Read a host's log stream with its original host details, and see when entries were rotated out.",
+    icon: ScrollText,
+    minRole: 'maintainer',
+    mobile: 'adapted',
+    element: lazy(() => import('@/components/views/HostLogView')),
+  },
+  {
     id: 'observability.usage',
     path: '/usage',
     redirects: [{ routeId: 'workspace.operate', search: 'lens=usage' }],
