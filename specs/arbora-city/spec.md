@@ -149,6 +149,7 @@ The [modular asset pack](asset-pack.md) expands R048.1–R048.6. A player must r
 - **FR-007**: The follow-on world: enterable buildings, live ecosystem mirroring, Medulla-backed layout, NPC dialogue, visitor presence and asset scale-out — each naming its owner rows in the arbora and medulla specs. Rows: OVERSTORY-CITY-R019, OVERSTORY-CITY-R020, OVERSTORY-CITY-R021, OVERSTORY-CITY-R022, OVERSTORY-CITY-R023, OVERSTORY-CITY-R024.
 - **FR-008**: The city reads like the platform it mirrors: one visual encoding table with an always-on legend, quiet-by-default activity with a labelled demo mode, full keyboard accessibility, performance budgets as acceptance criteria, a time scrubber over deterministically replayable history, and a first-visit tour. Rows: OVERSTORY-CITY-R025, OVERSTORY-CITY-R026, OVERSTORY-CITY-R027, OVERSTORY-CITY-R028, OVERSTORY-CITY-R029, OVERSTORY-CITY-R030.
 - **FR-009**: The flagship bar: the 3D view meets the shared fidelity bar (the browser-design-system spec's R012.1–R012.9 rows), operators shape the layout through validated, animated, stored edits, and the cast reads as the fleet — one shared rig with role encoding replacing the borrowed roster. Rows: OVERSTORY-CITY-R031, OVERSTORY-CITY-R032, OVERSTORY-CITY-R033.
+- **FR-010**: Closed-loop city sim (A+): the economic engine drives the visible world demand markers, building health, occupancy states, economy-driven vehicles, edge congestion, goods transport, character commuting, foot traffic, street density, mood-expressed behavior, tax consequences, zoning with preview, service visualization, treasury projection, and closed-loop integration tests. Rows: OVERSTORY-CITY-R101–R116.
 
 ## Success Criteria
 
@@ -157,6 +158,7 @@ The [modular asset pack](asset-pack.md) expands R048.1–R048.6. A player must r
 - **SC-003**: A connector building completes construction within 30 real seconds at 1× speed; the new building receives its first agent visit within 2 real minutes. Rows: OVERSTORY-CITY-R008.
 - **SC-004**: Lockfile verification passes for every pinned character asset with zero mismatches. Rows: OVERSTORY-CITY-R013.
 - **SC-005**: A full in-game day at 4× speed (10 minutes real) produces zero uncaught errors. Rows: OVERSTORY-CITY-R009.
+- **SC-006**: A+ closed-loop: demand markers appear on empty lots before construction, buildings show economic health through visuals (pristine → worn → run-down), vehicles move on the road graph with economy-driven density, characters commute on paths, foot traffic boosts commercial income, tax changes show delayed visible consequences, zoning tools preview buildings, and the full economic loop (demand → construction → characters → income → demand) closes over 20 ticks. Rows: OVERSTORY-CITY-R101–R116.
 
 ## Assumptions
 
