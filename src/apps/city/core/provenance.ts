@@ -22,6 +22,18 @@ import * as THREE from 'three'
 export const EXEMPT_NONKIT_PINS: readonly string[] = [
   'city-assets/characters/robot-expressive.glb',
   'city-assets/marker-cube.glb',
+  'city-assets/characters/civilian-000.glb',
+  'city-assets/characters/civilian-001.glb',
+  'city-assets/characters/civilian-002.glb',
+  'city-assets/characters/civilian-003.glb',
+  'city-assets/characters/civilian-004.glb',
+  'city-assets/characters/civilian-005.glb',
+  'city-assets/characters/civilian-006.glb',
+  'city-assets/characters/civilian-007.glb',
+  'city-assets/characters/civilian-008.glb',
+  'city-assets/characters/civilian-009.glb',
+  'city-assets/characters/civilian-010.glb',
+  'city-assets/characters/civilian-011.glb',
 ]
 
 /** True when a pinned path is a kit family (the catalog covers exactly the kit GLBs on disk). */

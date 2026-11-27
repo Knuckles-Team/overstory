@@ -1,0 +1,186 @@
+{
+  "version": 1,
+  "count": 12,
+  "variants": [
+    {
+      "id": "civilian-000",
+      "skin": "light",
+      "shirt": "blue",
+      "pants": "gray",
+      "build": "tall",
+      "triangles": 184,
+      "materials": 6,
+      "bytes": 14312,
+      "bbox": [
+        0.46,
+        0.26,
+        1.275
+      ]
+    },
+    {
+      "id": "civilian-001",
+      "skin": "medium",
+      "shirt": "red",
+      "pants": "blue",
+      "build": "short",
+      "triangles": 184,
+      "materials": 6,
+      "bytes": 14320,
+      "bbox": [
+        0.46,
+        0.26,
+        1.275
+      ]
+    },
+    {
+      "id": "civilian-002",
+      "skin": "tan",
+      "shirt": "green",
+      "pants": "dark",
+      "build": "broad",
+      "triangles": 184,
+      "materials": 6,
+      "bytes": 14320,
+      "bbox": [
+        0.497,
+        0.267,
+        1.275
+      ]
+    },
+    {
+      "id": "civilian-003",
+      "skin": "dark",
+      "shirt": "white",
+      "pants": "gray",
+      "build": "slim",
+      "triangles": 184,
+      "materials": 6,
+      "bytes": 14312,
+      "bbox": [
+        0.423,
+        0.253,
+        1.275
+      ]
+    },
+    {
+      "id": "civilian-004",
+      "skin": "light",
+      "shirt": "mango",
+      "pants": "blue",
+      "build": "tall",
+      "triangles": 184,
+      "materials": 6,
+      "bytes": 14316,
+      "bbox": [
+        0.46,
+        0.26,
+        1.275
+      ]
+    },
+    {
+      "id": "civilian-005",
+      "skin": "medium",
+      "shirt": "turquoise",
+      "pants": "dark",
+      "build": "short",
+      "triangles": 184,
+      "materials": 6,
+      "bytes": 14320,
+      "bbox": [
+        0.46,
+        0.26,
+        1.275
+      ]
+    },
+    {
+      "id": "civilian-006",
+      "skin": "tan",
+      "shirt": "blue",
+      "pants": "gray",
+      "build": "broad",
+      "triangles": 184,
+      "materials": 6,
+      "bytes": 14312,
+      "bbox": [
+        0.497,
+        0.267,
+        1.275
+      ]
+    },
+    {
+      "id": "civilian-007",
+      "skin": "dark",
+      "shirt": "red",
+      "pants": "blue",
+      "build": "slim",
+      "triangles": 184,
+      "materials": 6,
+      "bytes": 14320,
+      "bbox": [
+        0.423,
+        0.253,
+        1.275
+      ]
+    },
+    {
+      "id": "civilian-008",
+      "skin": "light",
+      "shirt": "green",
+      "pants": "dark",
+      "build": "tall",
+      "triangles": 184,
+      "materials": 6,
+      "bytes": 14316,
+      "bbox": [
+        0.46,
+        0.26,
+        1.275
+      ]
+    },
+    {
+      "id": "civilian-009",
+      "skin": "medium",
+      "shirt": "white",
+      "pants": "gray",
+      "build": "short",
+      "triangles": 184,
+      "materials": 6,
+      "bytes": 14312,
+      "bbox": [
+        0.46,
+        0.26,
+        1.275
+      ]
+    },
+    {
+      "id": "civilian-010",
+      "skin": "tan",
+      "shirt": "mango",
+      "pants": "blue",
+      "build": "broad",
+      "triangles": 184,
+      "materials": 6,
+      "bytes": 14316,
+      "bbox": [
+        0.497,
+        0.267,
+        1.275
+      ]
+    },
+    {
+      "id": "civilian-011",
+      "skin": "dark",
+      "shirt": "turquoise",
+      "pants": "dark",
+      "build": "slim",
+      "triangles": 184,
+      "materials": 6,
+      "bytes": 14320,
+      "bbox": [
+        0.423,
+        0.253,
+        1.275
+      ]
+    }
+  ]
+}

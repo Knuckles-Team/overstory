@@ -119,10 +119,13 @@ describe('live_scene_audit (R063)', () => {
     expect(provenanceManifest()).toEqual([])
   })
 
-  it('the exempt pin set is exactly the shared rig and the marker cube', () => {
-    expect([...EXEMPT_NONKIT_PINS].sort()).toEqual([
-      'city-assets/characters/robot-expressive.glb',
-      'city-assets/marker-cube.glb',
-    ])
+  it('the exempt pin set includes the shared rig, the marker cube and 12 civilian variants', () => {
+    const pins = [...EXEMPT_NONKIT_PINS].sort()
+    expect(pins).toContain('city-assets/characters/robot-expressive.glb')
+    expect(pins).toContain('city-assets/marker-cube.glb')
+    for (let i = 0; i < 12; i++) {
+      expect(pins).toContain(`city-assets/characters/civilian-${i.toString().padStart(3, '0')}.glb`)
+    }
+    expect(pins).toHaveLength(14)
   })
 })

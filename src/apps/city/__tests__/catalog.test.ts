@@ -119,14 +119,29 @@ describe('kit_only (R063)', () => {
     }
   })
 
-  it('the non-kit pins are exactly the shared rig and the marker cube', () => {
+  it('the non-kit pins are the shared rig, the marker cube and 12 civilian variants', () => {
     const nonKit = Object.keys(lock.files).filter((p) => !p.startsWith('city-assets/kit/'))
-    expect(nonKit.sort()).toEqual(['city-assets/characters/robot-expressive.glb', 'city-assets/marker-cube.glb'])
+    expect(nonKit.sort()).toEqual([
+      'city-assets/characters/civilian-000.glb',
+      'city-assets/characters/civilian-001.glb',
+      'city-assets/characters/civilian-002.glb',
+      'city-assets/characters/civilian-003.glb',
+      'city-assets/characters/civilian-004.glb',
+      'city-assets/characters/civilian-005.glb',
+      'city-assets/characters/civilian-006.glb',
+      'city-assets/characters/civilian-007.glb',
+      'city-assets/characters/civilian-008.glb',
+      'city-assets/characters/civilian-009.glb',
+      'city-assets/characters/civilian-010.glb',
+      'city-assets/characters/civilian-011.glb',
+      'city-assets/characters/robot-expressive.glb',
+      'city-assets/marker-cube.glb',
+    ])
   })
 
   it('catalog, lock and disk stay in integrity at the full family count', () => {
     expect(catalog.entries, 'kit family count').toHaveLength(212)
-    expect(Object.keys(lock.files), 'total pinned count (212 kit + rig + marker cube)').toHaveLength(214)
+    expect(Object.keys(lock.files), 'total pinned count (212 kit + 14 non-kit)').toHaveLength(226)
     const kitPins = Object.keys(lock.files).filter((p) => p.startsWith('city-assets/kit/'))
     expect(new Set(kitPins), 'kit pins').toEqual(new Set(catalog.entries.map((e) => `city-assets/${e.file}`)))
     expect(new Set(diskKitFiles()), 'kit files on disk').toEqual(new Set(kitPins))
@@ -160,7 +175,7 @@ describe('the runtime catalog (R063): the provenance registry resolves families 
         source: entry.source,
       })
     }
-    // The two exempt non-kit pins have no catalog family.
+    // The 14 exempt non-kit pins have no catalog family.
     for (const pin of EXEMPT_NONKIT_PINS) {
       expect(catalogFamily(pin), pin).toBeNull()
     }

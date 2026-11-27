@@ -16,6 +16,11 @@
         0.78,
         0.98
       ]
+    },
+    "characters": {
+      "id": "civilian-pack",
+      "note": "R049: 12 civilian variants over shared rigged base",
+      "count": 12
     }
   },
   "entries": [

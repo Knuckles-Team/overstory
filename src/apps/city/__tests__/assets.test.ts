@@ -38,11 +38,14 @@ afterAll(() => {
 })
 
 describe('lockfile (R013)', () => {
-  it('pins exactly 2 external files (the shared rig + the marker); the kit is tracked per catalog', () => {
+  it('pins 2 external files (shared rig + marker) plus 12 civilian characters; the kit is tracked per catalog', () => {
     const external = Object.keys(lock.files).filter((p) => !p.startsWith('city-assets/kit/'))
-    expect(external).toHaveLength(2)
+    expect(external).toHaveLength(14)
     expect(external).toContain('city-assets/characters/robot-expressive.glb')
     expect(external).toContain('city-assets/marker-cube.glb')
+    for (let i = 0; i < 12; i++) {
+      expect(external).toContain(`city-assets/characters/civilian-${i.toString().padStart(3, '0')}.glb`)
+    }
     for (const p of Object.keys(lock.files)) expect(p.startsWith('city-assets/')).toBe(true)
   })
 
