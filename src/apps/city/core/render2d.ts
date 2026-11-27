@@ -3,8 +3,13 @@
  * @description 2D schematic fallback for clients without WebGL
  * (OVERSTORY-CITY-R015). Same city graph, same characters, same events — a
  * view over the shared world state, never a second system.
+ *
+ * R096: Economic overlays — RCI demand heatmap, service coverage, congestion,
+ * land value, and decay overlays rendered on top of the 2D schematic.
+ *
+ * spec: OVERSTORY-CITY-R015, OVERSTORY-CITY-R027, OVERSTORY-CITY-R028.1, OVERSTORY-CITY-R065, OVERSTORY-CITY-R066, OVERSTORY-CITY-R077, OVERSTORY-CITY-R078, OVERSTORY-CITY-R096
  */
-// spec: OVERSTORY-CITY-R015, OVERSTORY-CITY-R027, OVERSTORY-CITY-R028.1, OVERSTORY-CITY-R065, OVERSTORY-CITY-R066, OVERSTORY-CITY-R077, OVERSTORY-CITY-R078
+// spec: OVERSTORY-CITY-R015, OVERSTORY-CITY-R027, OVERSTORY-CITY-R028.1, OVERSTORY-CITY-R065, OVERSTORY-CITY-R066, OVERSTORY-CITY-R077, OVERSTORY-CITY-R078, OVERSTORY-CITY-R096
 import { GROUND_SIZE, PLOT_W } from './layout'
 import { encodingColor, stateColor } from './encoding'
 import { world as simWorld } from './sim'
@@ -13,6 +18,21 @@ import { sampleRoadCurve, type RoadGraph } from '@/lib/scene3d/roads'
 import { sampleTrafficPose } from './render3d/traffic'
 import type { CityRenderer, CityViewport, SelectionHit } from './types'
 import { TARGET_FRAME_MS } from './frameBudget'
+
+// ---- Economic overlays (R096) ------------------------------------------------
+
+/** Overlays that can be rendered on top of the 2D schematic. */
+export type OverlayType = 'none' | 'rci_demand' | 'service_coverage' | 'congestion' | 'land_value' | 'decay'
+
+/** Overlay toggle interface — the 2D renderer exposes these to the UI layer. */
+export interface OverlayApi {
+  /** Render the active overlay on top of the 2D canvas. */
+  renderOverlay(ctx: CanvasRenderingContext2D, px: (x: number) => number, pz: (z: number) => number): void
+  /** Get the current overlay type. */
+  getOverlay(): OverlayType
+  /** Set the overlay type (called by the UI layer). */
+  setOverlay(type: OverlayType): void
+}
 
 /**
  * WebGL probe (OVERSTORY-CITY-R015): the page mounts the 3D scene only when
@@ -143,6 +163,197 @@ export function init2D(
     ctx.lineTo(px(access.entranceX), pz(access.entranceZ))
     ctx.stroke()
   }
+
+  // ---- Economic overlay (R096) --------------------------------------------------
+  let activeOverlay: OverlayType = 'none'
+  const overlayCanvas = document.createElement('canvas')
+  overlayCanvas.style.position = 'absolute'
+  overlayCanvas.style.top = '0'
+  overlayCanvas.style.left = '0'
+  overlayCanvas.style.width = '100%'
+  overlayCanvas.style.height = '100%'
+  overlayCanvas.style.pointerEvents = 'none'
+  container.appendChild(overlayCanvas)
+  let overlayDirty = false
+  const overlayContext = overlayCanvas.getContext('2d')
+
+  function resizeOverlay(): void {
+    overlayCanvas.width = canvas.width
+    overlayCanvas.height = canvas.height
+  }
+
+  // --- Overlay data providers ---
+  /** Simple economic state probe — reads from the world model. */
+  function getPlotZone(plotIndex: number): string {
+    // Use the plot's reserved name or building category as a proxy for zone type.
+    const plot = world.plots[plotIndex]
+    if (plot.buildingId && plot.buildingId in world.buildings) {
+      const b = world.buildings[plot.buildingId]
+      if (b.kind.includes('industrial') || b.kind.includes('factory') || b.kind.includes('mine')) return 'industrial'
+      if (b.kind.includes('store') || b.kind.includes('mall') || b.kind.includes('restaurant')) return 'commercial'
+    }
+    return 'residential'
+  }
+
+  /** Get RCI demand for a plot — proxy from zone type and building state. */
+  function getPlotDemand(plotIndex: number): number {
+    const zone = getPlotZone(plotIndex)
+    if (zone === 'residential') {
+      const resPop = world.characters.filter((c) => c.kind === 'npc').length
+      return Math.min(1, Math.max(0, 1 - resPop / 30))
+    }
+    if (zone === 'commercial') {
+      const commercialBuildings = Object.values(world.buildings).filter(
+        (b) => b.kind.includes('store') || b.kind.includes('mall') || b.kind.includes('restaurant'),
+      )
+      return Math.min(1, commercialBuildings.length / 3)
+    }
+    return 0.5
+  }
+
+  /** Get land value for a plot — proxy from position. */
+  function getPlotLandValue(plotIndex: number): number {
+    const plot = world.plots[plotIndex]
+    const dist = Math.sqrt(plot.x * plot.x + plot.z * plot.z)
+    // Closer to centre = higher value.
+    return Math.max(0, Math.min(100, 100 - dist))
+  }
+
+  /** Get decay state for a plot. */
+  function getPlotDecay(plotIndex: number): string {
+    const plot = world.plots[plotIndex]
+    if (plot.construction) return 'under_construction'
+    if (plot.buildingId && plot.buildingId in world.buildings) {
+      const b = world.buildings[plot.buildingId]
+      if (b.kind.includes('scaffold') || b.fresh > 0) return 'run-down'
+    }
+    return 'none'
+  }
+
+  /** Get service coverage for a plot. */
+  function getPlotServiceCoverage(plotIndex: number): number {
+    // Default: full coverage for plots with buildings.
+    const plot = world.plots[plotIndex]
+    if (plot.buildingId && plot.buildingId in world.buildings) return 1
+    return 0.3
+  }
+
+  /** Get congestion for a road segment. */
+  function getRoadCongestion(): number {
+    // Proxy: fraction of traffic vehicles on the road.
+    if (!world.traffic || world.traffic.routes.length === 0) return 0
+    const totalWaited = world.traffic.routes.reduce((sum, r) => sum + r.motion.waited, 0)
+    return Math.min(1, totalWaited / (world.traffic.routes.length * 5))
+  }
+
+  /** Render the active overlay. */
+  function renderActiveOverlay(): void {
+    if (!overlayContext || activeOverlay === 'none') {
+      overlayCanvas.style.display = 'none'
+      return
+    }
+    overlayCanvas.style.display = ''
+    resizeOverlay()
+    const octx = overlayContext
+    octx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height)
+
+    switch (activeOverlay) {
+      case 'rci_demand': {
+        // RCI demand heatmap: green = high demand, red = low demand.
+        octx.globalAlpha = 0.3
+        for (let i = 0; i < world.plots.length; i++) {
+          const plot = world.plots[i]
+          const demand = getPlotDemand(i)
+          const r = Math.round((1 - demand) * 255)
+          const g = Math.round(demand * 255)
+          const bx = px(plot.x - PLOT_W / 2)
+          const bz = pz(plot.z - PLOT_W / 2)
+          octx.fillStyle = `rgb(${r},${g},0)`
+          octx.fillRect(bx, bz, PLOT_W * scale, PLOT_W * scale)
+        }
+        break
+      }
+      case 'service_coverage': {
+        // Service coverage: green = covered, red = uncovered.
+        octx.globalAlpha = 0.25
+        for (let i = 0; i < world.plots.length; i++) {
+          const plot = world.plots[i]
+          const coverage = getPlotServiceCoverage(i)
+          const r = Math.round((1 - coverage) * 255)
+          const g = Math.round(coverage * 255)
+          const bx = px(plot.x - PLOT_W / 2)
+          const bz = pz(plot.z - PLOT_W / 2)
+          octx.fillStyle = `rgb(${r},${g},0)`
+          octx.fillRect(bx, bz, PLOT_W * scale, PLOT_W * scale)
+        }
+        break
+      }
+      case 'congestion': {
+        // Congestion: green = free flow, yellow = moderate, red = heavy.
+        const congestion = getRoadCongestion()
+        octx.globalAlpha = 0.4
+        octx.strokeStyle = congestion < 0.33 ? '#33cc33' : congestion < 0.66 ? '#cccc33' : '#cc3333'
+        octx.lineWidth = Math.max(2, 4 * scale)
+        for (const road of roadPaths) {
+          if (road.points.length < 2) continue
+          octx.beginPath()
+          octx.moveTo(px(road.points[0].x), pz(road.points[0].z))
+          for (let i = 1; i < road.points.length; i++) {
+            octx.lineTo(px(road.points[i].x), pz(road.points[i].z))
+          }
+          octx.stroke()
+        }
+        break
+      }
+      case 'land_value': {
+        // Land value: grey (low) to gold (high).
+        octx.globalAlpha = 0.25
+        for (let i = 0; i < world.plots.length; i++) {
+          const plot = world.plots[i]
+          const lv = getPlotLandValue(i)
+          const gold = lv / 100
+          const r = Math.round(255 * gold + 128 * (1 - gold))
+          const g = Math.round(215 * gold + 128 * (1 - gold))
+          const b = Math.round(102 * gold + 128 * (1 - gold))
+          const bx = px(plot.x - PLOT_W / 2)
+          const bz = pz(plot.z - PLOT_W / 2)
+          octx.fillStyle = `rgb(${r},${g},${b})`
+          octx.fillRect(bx, bz, PLOT_W * scale, PLOT_W * scale)
+        }
+        break
+      }
+      case 'decay': {
+        // Decay: red for run-down, scaffolding color for under construction.
+        octx.globalAlpha = 0.5
+        for (let i = 0; i < world.plots.length; i++) {
+          const plot = world.plots[i]
+          const decay = getPlotDecay(i)
+          if (decay === 'run-down') {
+            const bx = px(plot.x - PLOT_W / 2)
+            const bz = pz(plot.z - PLOT_W / 2)
+            octx.fillStyle = '#cc3333'
+            octx.fillRect(bx, bz, PLOT_W * scale, PLOT_W * scale)
+          }
+        }
+        break
+      }
+    }
+    octx.globalAlpha = 1
+  }
+
+  // --- Overlay toggle ---
+  const onOverlayKey = (e: KeyboardEvent): void => {
+    if (!e.ctrlKey && !e.metaKey) return
+    const key = e.key
+    if (key === 'o' || key === 'O') {
+      e.preventDefault()
+      const types: OverlayType[] = ['none', 'rci_demand', 'service_coverage', 'congestion', 'land_value', 'decay']
+      const idx = types.indexOf(activeOverlay)
+      activeOverlay = types[(idx + 1) % types.length]
+      overlayDirty = true
+    }
+  }
+  document.addEventListener('keydown', onOverlayKey)
 
   function render(): void {
     const now = performance.now()
@@ -349,6 +560,12 @@ export function init2D(
     // Ease the pan toward its target.
     panX += (panTX - panX) * 0.15
     panY += (panTY - panY) * 0.15
+
+    // Render the active economic overlay (R096).
+    if (overlayDirty) {
+      renderActiveOverlay()
+      overlayDirty = false
+    }
   }
 
   // ---- Interaction ----------------------------------------------------------

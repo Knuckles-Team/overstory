@@ -1,8 +1,8 @@
-// spec: OVERSTORY-CITY-R069, OVERSTORY-CITY-R070, OVERSTORY-CITY-R071, OVERSTORY-CITY-R072, OVERSTORY-CITY-R073, OVERSTORY-CITY-R074, OVERSTORY-CITY-R075, OVERSTORY-CITY-R076, OVERSTORY-CITY-R079, OVERSTORY-CITY-R080, OVERSTORY-CITY-R081, OVERSTORY-CITY-R082, OVERSTORY-CITY-R083, OVERSTORY-CITY-R084, OVERSTORY-CITY-R085, OVERSTORY-CITY-R086, OVERSTORY-CITY-R087, OVERSTORY-CITY-R088
+// spec: OVERSTORY-CITY-R069, OVERSTORY-CITY-R070, OVERSTORY-CITY-R071, OVERSTORY-CITY-R072, OVERSTORY-CITY-R073, OVERSTORY-CITY-R074, OVERSTORY-CITY-R075, OVERSTORY-CITY-R076, OVERSTORY-CITY-R079, OVERSTORY-CITY-R080, OVERSTORY-CITY-R081, OVERSTORY-CITY-R082, OVERSTORY-CITY-R083, OVERSTORY-CITY-R084, OVERSTORY-CITY-R085, OVERSTORY-CITY-R086, OVERSTORY-CITY-R087, OVERSTORY-CITY-R088, OVERSTORY-CITY-R089, OVERSTORY-CITY-R090, OVERSTORY-CITY-R091, OVERSTORY-CITY-R092, OVERSTORY-CITY-R093, OVERSTORY-CITY-R094, OVERSTORY-CITY-R095, OVERSTORY-CITY-R096, OVERSTORY-CITY-R097, OVERSTORY-CITY-R098, OVERSTORY-CITY-R099, OVERSTORY-CITY-R100
 
 /**
  * @file economy.ts
- * @description The city's economic engine (OVERSTORY-CITY-R069–R088).
+ * @description The city's economic engine (OVERSTORY-CITY-R069–R100).
  *
  * R069 — economic loop: per-district income/expense, city-wide budget &
  *   treasury, tax rates, deterministic under the seed.
@@ -23,6 +23,12 @@
  * R086 — construction/maintenance costs: debit, accrual, decay chain.
  * R087 — procedural zoning: arterial=commercial, street=residential, mixed-use.
  * R088 — co-simulation loop: 11 sub-steps in correct order, replayable.
+ * R089 — typed jobs: per-job-type production, wage dynamics, shortage detection.
+ * R090 — production chains: goods types, supply/demand matching, satisfaction index.
+ * R091 — inter-district migration: employment-driven migration pressure, net migration.
+ * R095 — transit system: bus/train routes, ridership, fare revenue, congestion relief.
+ * R099 — weather system: weather types, intensity, economic effects per weather.
+ * R100 — extended co-simulation loop: 20 sub-steps in correct order, replayable.
  *
  * All randomness is the seeded PRNG; the module never calls Math.random.
  * The simulation tick (R009) invokes `tickEconomy()` each sub-step, which
@@ -214,6 +220,83 @@ export interface LabourState {
   commuters: number
   /** Wages (multiplier based on employment rate). */
   wages: number
+  // R090 — production chains
+  goodsSatisfactionIndex?: number
+  // R099 — weather effects
+  fireRiskModifier?: number
+  agricultureBonus?: number
+}
+
+// ---------------------------------------------------------------------------
+// R089 — Typed Jobs
+// ---------------------------------------------------------------------------
+
+/** Job types available in the city. */
+export type JobType = 'retail' | 'office' | 'industrial' | 'service'
+
+/** Per-job-type wage multipliers (R089). */
+export interface JobTypeWage {
+  retail: number
+  office: number
+  industrial: number
+  service: number
+}
+
+/** Per-job-type job shortage tracking (R089). */
+export interface JobShortageTicks {
+  retail: number
+  office: number
+  industrial: number
+  service: number
+}
+
+// ---------------------------------------------------------------------------
+// R090 — Production Chains
+// ---------------------------------------------------------------------------
+
+/** Goods types produced and consumed by buildings (R090). */
+export type GoodsType = 'raw_materials' | 'food' | 'equipment' | 'technology'
+
+/** A goods profile: what a building produces or consumes (R090). */
+export interface GoodsProfile {
+  type: GoodsType
+  rate: number // goods per tick
+}
+
+/** Building-level goods profile: what it produces and consumes (R090). */
+export interface BuildingGoodsProfile {
+  produces: GoodsProfile[]
+  consumes: GoodsProfile[]
+}
+
+// ---------------------------------------------------------------------------
+// R095 — Transit
+// ---------------------------------------------------------------------------
+
+/** A transit route connecting districts (R095). */
+export interface TransitRoute {
+  id: string
+  type: 'bus' | 'train'
+  /** Connected district ids. */
+  districts: string[]
+  /** Capacity (commuters per tick). */
+  capacity: number
+  /** Current riders. */
+  riders: number
+  /** Fare revenue per tick. */
+  fareRevenue: number
+}
+
+// ---------------------------------------------------------------------------
+// R099 — Weather
+// ---------------------------------------------------------------------------
+
+/** Current weather conditions (R099). */
+export interface WeatherState {
+  type: 'clear' | 'rain' | 'wind' | 'fog'
+  intensity: number // 0..1
+  /** Days since weather changed. */
+  age: number
 }
 
 /** Adjacency factor for a lot (R084). */
@@ -309,6 +392,14 @@ export interface DistrictEconomy {
   budgetConfig: BudgetConfig
   // R082 — goods price
   goodsPrice: number
+  // R089 — typed jobs
+  jobProduction: Record<string, number>
+  jobShortageTicks: JobShortageTicks
+  wages: JobTypeWage
+  // R090 — production chains
+  goodsSatisfaction: number
+  // R091 — inter-district migration
+  migrationNet: number
 }
 
 // ---------------------------------------------------------------------------
@@ -355,6 +446,14 @@ function createDistrictEconomy(id: string, zone: ZoneType): DistrictEconomy {
       education: 1.0,
     } satisfies BudgetConfig,
     goodsPrice: 1.0,
+    // R089 — typed jobs
+    jobProduction: {},
+    jobShortageTicks: { retail: 0, office: 0, industrial: 0, service: 0 },
+    wages: { retail: 1.0, office: 1.0, industrial: 1.0, service: 1.0 },
+    // R090 — production chains
+    goodsSatisfaction: 1.0,
+    // R091 — inter-district migration
+    migrationNet: 0,
   }
 }
 
@@ -396,6 +495,12 @@ let goodsPrices: GoodsPriceState = {
 /** Labour state (R080). */
 let labourState: LabourState = { jobs: 0, employed: 0, unemployed: 0, commuters: 0, wages: 1.0 }
 
+/** Per-job-type wage multipliers (R089). */
+let jobTypeWages: JobTypeWage = { retail: 1.0, office: 1.0, industrial: 1.0, service: 1.0 }
+
+/** Per-job-type shortage tick counters (R089). */
+let jobShortageTicks: JobShortageTicks = { retail: 0, office: 0, industrial: 0, service: 0 }
+
 /** Construction states (R086). */
 let constructionStates: ConstructionState[] = []
 
@@ -423,6 +528,27 @@ export interface TrafficCongestion {
   plotCongestion: Map<number, number>
 }
 let externalCongestion: TrafficCongestion = { plotCongestion: new Map<number, number>() }
+
+/** Transit routes (R095). */
+let transitRoutes: TransitRoute[] = []
+
+/** Fare revenue per commuter per tick (R095). */
+const FARE_PER_TICK = 2
+
+/** Congestion reduction per transit route (R095). */
+const CONGESTION_REDUCTION_PER_ROUTE = 0.05
+
+/** Weather state (R099). */
+let weatherState: WeatherState = { type: 'clear', intensity: 0, age: 0 }
+
+/** Character scaling state (R100). */
+let characterScale = 1.0
+
+/** Character behaviour log (R100). */
+let characterBehaviourLog: string[] = []
+
+/** Traffic density per plot (R100). */
+let trafficDensityPerPlot = new Map<number, number>()
 
 /**
  * Set external congestion from traffic simulation (R085).
@@ -501,70 +627,196 @@ export function initEconomy(_prng?: Prng): void {
   initialised = true
 }
 
-/** Tick the economy by one tick (R069, R088 co-simulation loop). */
+/**
+ * Tick the economy: extended co-simulation loop (R100).
+ * 20 sub-steps in order, each emitting events on the bus.
+ */
 export function tickEconomy(): void {
   if (!initialised) return
 
   events = []
   const prng = mulberry32(0) // seeded, deterministic within a tick
 
-  // === R088 Co-simulation loop: 11 sub-steps in order ===
+  // === R100 Extended co-simulation loop: 20 sub-steps ===
 
-  // 1. Production tick (industrial districts produce goods) & 2. Consumption tick (residential/commercial districts consume goods) — handled per-district below.
-  // 3. Price update (R082).
-  tickGoodsPrices(prng)
-
-  // 4. Jobs tick (buildings create/destroy employment).
-  tickJobsTick(prng)
-
-  // 5. Population tick (migration, growth, happiness based on above).
-  for (const d of districts.values()) {
-    tickPopulationTick(d, prng)
+  // 1. Production tick (industrial districts produce goods)
+  {
+    for (const d of districts.values()) {
+      if (d.zone === 'industrial') {
+        d.inventory += d.production
+        d.production = Math.max(0, d.production + (prng() - 0.5) * 2)
+      }
+    }
+    bus.emit(makeEvent('economy.production', {}, 'production tick complete'))
   }
 
-  // 6. Land value tick (R084).
-  tickLandValueTick(prng)
-
-  // 7. Service coverage tick (R081).
-  tickServiceCoverageTick(prng)
-
-  // 8. Congestion read (R085).
-  tickCongestionRead(prng)
-
-  // 9. Cost tick (R086).
-  tickCostTick(prng)
-
-  // 10. Demand tick (R070, R079).
-  for (const d of districts.values()) {
-    tickDemandTick(d, prng)
+  // 2. Consumption tick (match goods to consumers)
+  {
+    for (const d of districts.values()) {
+      if (d.zone === 'residential' || d.zone === 'commercial') {
+        d.inventory = Math.max(0, d.inventory - d.consumption)
+        if (d.inventory <= 0 && d.consumption > 0) {
+          d.happiness = Math.max(HAPPINESS_MIN, d.happiness - 0.02)
+        }
+      }
+    }
+    bus.emit(makeEvent('economy.consumption', {}, 'consumption tick complete'))
   }
 
-  // 11. Growth placement (R079).
-  tryGrowthPlacements(prng)
-
-  // City-wide budget event (R069).
-  const net = computeNetRevenue()
-  treasury += net
-  if (net !== 0) {
-    events.push({
-      type: 'budget',
-      detail: net > 0 ? 'net surplus' : 'net deficit',
-      delta: net,
-    })
+  // 3. Price update (R082)
+  {
+    tickGoodsPrices(prng)
+    bus.emit(makeEvent('economy.price_update', {}, 'price update complete'))
   }
 
-  // Under-funding decay (R086).
-  applyUnderFundingDecay()
+  // 4. Jobs tick — typed jobs (R089)
+  {
+    computeJobsTyped(prng)
+    bus.emit(makeEvent('economy.jobs_typed', {}, 'typed jobs tick complete'))
+  }
 
-  // Emit events on the bus.
-  for (const e of events) {
+  // 5. Wage update (R089)
+  {
+    tickWages(prng)
+    bus.emit(makeEvent('economy.wage_update', {}, 'wage update complete'))
+  }
+
+  // 6. Population tick — migration, growth, happiness (R091)
+  {
+    tickMigration(prng)
+    for (const d of districts.values()) {
+      tickPopulationTick(d, prng)
+    }
+    bus.emit(makeEvent('economy.population', {}, 'population tick complete'))
+  }
+
+  // 7. Character scaling (R100)
+  {
+    tickCharacterScaling(prng)
+  }
+
+  // 8. Character behaviour (R100)
+  {
+    tickCharacterBehaviour(prng)
+  }
+
+  // 9. Land value tick (R084)
+  {
+    tickLandValueTick(prng)
+    bus.emit(makeEvent('economy.land_value', {}, 'land value tick complete'))
+  }
+
+  // 10. Service coverage tick (R081)
+  {
+    tickServiceCoverageTick(prng)
+    bus.emit(makeEvent('economy.service_coverage', {}, 'service coverage tick complete'))
+  }
+
+  // 11. Traffic density tick (R100)
+  {
+    tickTrafficDensity(prng)
+    bus.emit(makeEvent('economy.traffic_density', {}, 'traffic density tick complete'))
+  }
+
+  // 12. Transit tick (R095)
+  {
+    tickTransit(prng)
+  }
+
+  // 13. Congestion tick (R085)
+  {
+    tickCongestionRead(prng)
+    // Apply transit congestion reduction
+    for (const d of districts.values()) {
+      const transitReduction = transitRoutes.length * CONGESTION_REDUCTION_PER_ROUTE
+      d.congestion = Math.max(0, Math.min(1, d.congestion + transitReduction))
+    }
+    bus.emit(makeEvent('economy.congestion', {}, 'congestion tick complete'))
+  }
+
+  // 14. Cost tick (R086)
+  {
+    tickCostTick(prng)
+    bus.emit(makeEvent('economy.cost', {}, 'cost tick complete'))
+  }
+
+  // 15. Weather tick (R099)
+  {
+    tickWeather()
     bus.emit(
       makeEvent(
-        e.type === 'construction' ? 'economy.construction' : 'economy',
+        'economy.weather',
         {},
-        e.district ? `${e.district}: ${e.detail}` : e.detail,
+        `weather: ${weatherState.type} (intensity ${weatherState.intensity.toFixed(2)})`,
       ),
     )
+  }
+
+  // 16. Demand tick (R070/R079)
+  {
+    for (const d of districts.values()) {
+      tickDemandTick(d, prng)
+    }
+    bus.emit(makeEvent('economy.demand', {}, 'demand tick complete'))
+  }
+
+  // 17. Growth placement (R079)
+  {
+    tryGrowthPlacements(prng)
+    bus.emit(makeEvent('economy.growth', {}, 'growth placement complete'))
+  }
+
+  // 18. Construction/deployment tick (R100)
+  {
+    // Process construction decay and new deployments
+    for (const cs of constructionStates) {
+      if (cs.decayState === 'run-down' && cs.standing()) {
+        // Run-down buildings consume extra maintenance
+        const extraCost = cs.maintenancePerTick * 0.5
+        for (const d of districts.values()) {
+          for (const dc of d.constructions) {
+            if (dc.buildingId === cs.buildingId) {
+              d.balance -= extraCost
+              break
+            }
+          }
+        }
+      }
+    }
+    bus.emit(makeEvent('economy.construction', {}, 'construction/deployment tick complete'))
+  }
+
+  // 19. Event emission (extend existing)
+  {
+    // Emit economy events on the bus
+    for (const e of events) {
+      bus.emit(
+        makeEvent(
+          e.type === 'construction' ? 'economy.construction' : 'economy',
+          {},
+          e.district ? `${e.district}: ${e.detail}` : e.detail,
+        ),
+      )
+    }
+  }
+
+  // 20. Treasury update (R069)
+  {
+    const net = computeNetRevenue()
+    treasury += net
+    if (net !== 0) {
+      events.push({
+        type: 'budget',
+        detail: net > 0 ? 'net surplus' : 'net deficit',
+        delta: net,
+      })
+    }
+
+    // Under-funding decay (R086)
+    applyUnderFundingDecay()
+
+    // Final treasury update event
+    bus.emit(makeEvent('economy.treasury', {}, `treasury update: ${treasury}`))
   }
 }
 
@@ -606,6 +858,36 @@ export function getGoodsPrices(): GoodsPriceState {
 /** Access labour state for inspection. */
 export function getLabourState(): LabourState {
   return { ...labourState }
+}
+
+/** Access per-job-type wage multipliers (R089). */
+export function getJobTypeWages(): JobTypeWage {
+  return { ...jobTypeWages }
+}
+
+/** Access per-job-type shortage ticks (R089). */
+export function getJobShortageTicks(): JobShortageTicks {
+  return { ...jobShortageTicks }
+}
+
+/** Access transit routes (R095). */
+export function getTransitRoutes(): TransitRoute[] {
+  return [...transitRoutes]
+}
+
+/** Access weather state (R099). */
+export function getWeatherState(): WeatherState {
+  return { ...weatherState }
+}
+
+/** Access character scale (R100). */
+export function getCharacterScale(): number {
+  return characterScale
+}
+
+/** Access traffic density per plot (R100). */
+export function getTrafficDensityPerPlot(): Map<number, number> {
+  return new Map(trafficDensityPerPlot)
 }
 
 /** Set goods price multipliers (test seam). */
@@ -976,8 +1258,11 @@ function computeJobs(_prng: Prng): void {
   labourState.jobs = totalJobs
 }
 
-/** Tick jobs during co-simulation (R080). */
-function tickJobsTick(_prng: Prng): void {
+/**
+ * Tick jobs during co-simulation (R080).
+ * @deprecated — use computeJobsTyped() / tickWages() in the R100 20-step loop. Kept for backward compat.
+ */
+export function tickJobsTick(_prng: Prng): void {
   // Recompute jobs from current buildings.
   let totalJobs = 0
   for (const b of Object.values(world.buildings)) {
@@ -1014,6 +1299,555 @@ function tickJobsTick(_prng: Prng): void {
       _employedTotal += d.labour.employed
     } else {
       d.labour.jobs = labourState.jobs // non-residential get job info too
+    }
+  }
+}
+
+// ===========================================================================
+// R089: Typed Jobs
+// ===========================================================================
+
+/** Job archetype building kinds that produce typed jobs (R089). */
+const INDUSTRIAL_BUILDING_KINDS = new Set([
+  'industrial',
+  'factory',
+  'mine',
+  'ore-plant',
+  'oil-gas-plant',
+  'datacenter',
+  'warehouse',
+])
+
+const RETAIL_BUILDING_KINDS = new Set(['store', 'mall', 'restaurant', 'cafe'])
+
+const SERVICE_BUILDING_KINDS = new Set(['fire', 'police', 'health', 'education'])
+
+/**
+ * Compute typed jobs from all buildings in the world (R089).
+ * Sums per-job-type jobs into `labourState` and populates each district's
+ * `jobProduction`.
+ */
+export function computeJobsTyped(_prng?: Prng): void {
+  const jobProduction: Record<string, number> = {}
+  const totalJobsTyped: JobTypeWage = { retail: 0, office: 0, industrial: 0, service: 0 }
+
+  for (const b of Object.values(world.buildings)) {
+    const kind = b.kind || ''
+    const category = b.category
+    const toolCount = b.toolCount || 0
+
+    // Connector buildings with tools → office jobs
+    if (category === 'connector' && b.tools.length > 0) {
+      const officeJobs = Math.ceil(toolCount * 0.3)
+      totalJobsTyped.office += officeJobs
+      const distId = b.derivedPlot !== null ? `plot:${b.derivedPlot}` : b.id
+      jobProduction[distId] = (jobProduction[distId] ?? 0) + officeJobs
+      continue
+    }
+
+    // Industrial buildings → industrial jobs
+    if (INDUSTRIAL_BUILDING_KINDS.has(kind)) {
+      const industrialJobs = Math.ceil(toolCount * 0.5)
+      totalJobsTyped.industrial += industrialJobs
+      const distId = b.derivedPlot !== null ? `plot:${b.derivedPlot}` : b.id
+      jobProduction[distId] = (jobProduction[distId] ?? 0) + industrialJobs
+      continue
+    }
+
+    // Retail buildings → retail jobs
+    if (RETAIL_BUILDING_KINDS.has(kind)) {
+      const retailJobs = Math.ceil(toolCount * 0.2)
+      totalJobsTyped.retail += retailJobs
+      const distId = b.derivedPlot !== null ? `plot:${b.derivedPlot}` : b.id
+      jobProduction[distId] = (jobProduction[distId] ?? 0) + retailJobs
+      continue
+    }
+
+    // Service buildings → service jobs (2 per building)
+    if (SERVICE_BUILDING_KINDS.has(kind)) {
+      const serviceJobs = 2
+      totalJobsTyped.service += serviceJobs
+      const distId = b.derivedPlot !== null ? `plot:${b.derivedPlot}` : b.id
+      jobProduction[distId] = (jobProduction[distId] ?? 0) + serviceJobs
+    }
+  }
+
+  labourState.jobs = totalJobsTyped.office + totalJobsTyped.industrial + totalJobsTyped.retail + totalJobsTyped.service
+
+  // Distribute typed jobs to districts
+  for (const d of districts.values()) {
+    d.jobProduction = { ...jobProduction }
+  }
+}
+
+/**
+ * Update per-job-type wages based on consecutive shortage ticks (R089).
+ * After 3 consecutive shortage ticks, increase wage for that type by 5% compound.
+ * Reset shortageTicks when the type is no longer in shortage.
+ */
+function tickWages(_prng?: Prng): void {
+  const totalDemand: JobTypeWage = { retail: 0, office: 0, industrial: 0, service: 0 }
+  let totalResPopulation = 0
+
+  for (const d of districts.values()) {
+    if (d.zone === 'residential') {
+      totalResPopulation += d.population
+    }
+  }
+
+  // Total labour force per district = 80% of residential population
+  const totalLabourForce = totalResPopulation * 0.8
+
+  // Demand is proportional to population needing each job type
+  if (totalLabourForce > 0) {
+    totalDemand.retail = Math.ceil(totalLabourForce * 0.3)
+    totalDemand.office = Math.ceil(totalLabourForce * 0.25)
+    totalDemand.industrial = Math.ceil(totalLabourForce * 0.25)
+    totalDemand.service = Math.ceil(totalLabourForce * 0.2)
+  }
+
+  for (const jobType of ['retail', 'office', 'industrial', 'service'] as JobType[]) {
+    // Aggregate supply from district-level jobProduction
+    let totalSupplyForType = 0
+    for (const d of districts.values()) {
+      totalSupplyForType += d.jobProduction[jobType] ?? 0
+    }
+    const demand = totalDemand[jobType]
+
+    if (demand > totalSupplyForType) {
+      // In shortage — increment tick counter
+      if (jobShortageTicks[jobType] < 3) {
+        jobShortageTicks[jobType] += 1
+      }
+      if (jobShortageTicks[jobType] >= 3) {
+        // Increase wage by 5% compound
+        jobTypeWages[jobType] = Math.round(jobTypeWages[jobType] * 1.05 * 100) / 100
+      }
+    } else {
+      // No longer in shortage — reset counter
+      jobShortageTicks[jobType] = 0
+    }
+  }
+}
+
+/**
+ * Compute employment rate per district for each job type (R089).
+ * @deprecated — called from tickEconomy 20-step loop instead. Kept for backward compat.
+ */
+export function computeEmploymentTyped(): void {
+  let totalResPopulation = 0
+  for (const d of districts.values()) {
+    if (d.zone === 'residential') {
+      totalResPopulation += d.population
+    }
+  }
+
+  for (const d of districts.values()) {
+    if (d.zone === 'residential' && totalResPopulation > 0) {
+      const labourForce = Math.ceil(d.population * 0.8)
+      const localJobs = Object.values(d.jobProduction).reduce((s, v) => s + v, 0)
+      d.labour.employed = Math.min(d.population, Math.max(0, localJobs))
+      d.labour.unemployed = d.population - d.labour.employed
+
+      // Per-district employment rate
+      if (labourForce > 0) {
+        d.unemployment = 1 - d.labour.employed / labourForce
+      }
+    }
+  }
+}
+
+// ===========================================================================
+// R090: Production Chains
+// ===========================================================================
+
+/**
+ * Compute production chains: goods produced by industrial districts,
+ * goods consumed by commercial districts, satisfaction index (R090).
+ */
+export function computeProductionChains(prng: Prng): void {
+  const production: Record<string, number> = {}
+  const consumption: Record<string, number> = {}
+
+  for (const b of Object.values(world.buildings)) {
+    const kind = b.kind || ''
+    const category = b.category
+
+    // Industrial buildings produce goods based on kind
+    if (INDUSTRIAL_BUILDING_KINDS.has(kind)) {
+      const baseProd = 2 + Math.floor(prng() * 3)
+      let goodsType: GoodsType = 'raw_materials'
+      if (kind.includes('data') || kind.includes('tech')) goodsType = 'technology'
+      else if (kind.includes('food') || kind.includes('restaurant') || kind.includes('cafe')) goodsType = 'food'
+      else if (kind.includes('equip') || kind.includes('factory')) goodsType = 'equipment'
+      production[goodsType] = (production[goodsType] ?? 0) + baseProd
+    }
+
+    // Commercial buildings consume goods
+    if (RETAIL_BUILDING_KINDS.has(kind) || (category === 'connector' && b.tools.length > 0)) {
+      const baseCons = 1 + Math.floor(prng() * 2)
+      consumption.food = consumption.food + baseCons
+      consumption.equipment = consumption.equipment + Math.ceil(baseCons * 0.5)
+    }
+  }
+
+  // Match supply to demand for each goods type
+  let totalSatisfaction = 0
+  let commercialDistrictCount = 0
+
+  for (const d of districts.values()) {
+    if (d.zone === 'commercial') {
+      commercialDistrictCount++
+      const neededFood = consumption.food
+      const neededEquip = consumption.equipment
+      const producedFood = production.food
+      const producedEquip = production.equipment
+
+      const satisfactionFood = neededFood > 0 ? Math.min(1, producedFood / neededFood) : 1
+      const satisfactionEquip = neededEquip > 0 ? Math.min(1, producedEquip / neededEquip) : 1
+      d.goodsSatisfaction = (satisfactionFood + satisfactionEquip) / 2
+      totalSatisfaction += d.goodsSatisfaction
+    }
+  }
+
+  // Consumer satisfaction index = average of all commercial districts' goodsSatisfaction
+  const consumerSatisfactionIndex = commercialDistrictCount > 0 ? totalSatisfaction / commercialDistrictCount : 1
+
+  // Emit the goods_chain event
+  bus.emit(
+    makeEvent('economy.goods_chain', {}, `consumer satisfaction index: ${consumerSatisfactionIndex.toFixed(3)}`),
+  )
+
+  // Store in labourState for access
+  labourState.goodsSatisfactionIndex = consumerSatisfactionIndex
+}
+
+// ===========================================================================
+// R091: Inter-district Migration
+// ===========================================================================
+
+/**
+ * Compute inter-district migration based on employment pressure (R091).
+ */
+function tickMigration(_prng: Prng): void {
+  // Find the district with highest employment rate and happiness > 0.6
+  let bestDest: DistrictEconomy | null = null
+  let bestEmploymentRate = 0
+
+  for (const d of districts.values()) {
+    if (d.happiness > 0.6) {
+      const employmentRate = d.labour.employed / Math.max(1, d.population)
+      if (employmentRate > bestEmploymentRate) {
+        bestEmploymentRate = employmentRate
+        bestDest = d
+      }
+    }
+  }
+
+  for (const d of districts.values()) {
+    d.migrationNet = 0
+
+    if (d.zone !== 'residential') continue
+
+    const employmentRate = d.labour.jobs > 0 ? d.labour.employed / Math.max(1, d.population) : 0
+
+    // Migration out: high unemployment
+    let migrationOut = 0
+    if (employmentRate < 0.1) {
+      migrationOut = Math.floor(d.population * 0.05)
+    } else if (employmentRate < 0.3) {
+      migrationOut = Math.floor(d.population * 0.02)
+    }
+
+    // Migration in: attracted to high-employment, high-happiness district with spare capacity
+    let migrationIn = 0
+    if (bestDest && bestDest !== d && bestEmploymentRate < 0.9) {
+      const totalResPopulation = [...districts.values()]
+        .filter((dd) => dd.zone === 'residential')
+        .reduce((s, dd) => s + dd.population, 0)
+      if (totalResPopulation > 0) {
+        migrationIn = Math.floor(migrationOut * 0.3) + 1
+      }
+    }
+
+    d.migrationNet = migrationIn - migrationOut
+    d.population = Math.max(0, d.population + d.migrationNet)
+  }
+
+  // Emit migration events
+  for (const d of districts.values()) {
+    if (d.migrationNet !== 0) {
+      bus.emit(
+        makeEvent('economy.migration', {}, `${d.id}: migration net ${d.migrationNet > 0 ? '+' : ''}${d.migrationNet}`),
+      )
+    }
+  }
+}
+
+// ===========================================================================
+// R095: Transit System
+// ===========================================================================
+
+/**
+ * Initialize transit routes (R095).
+ * Creates one bus route connecting core districts and one train route.
+ */
+export function initTransit(): void {
+  transitRoutes = []
+
+  const districtIds = [...districts.keys()]
+
+  // Bus route connecting core districts (plot:0, plot:1, plot:2)
+  const coreDistricts = districtIds.filter((id) => id.startsWith('plot:') && parseInt(id.replace('plot:', ''), 10) < 3)
+  if (coreDistricts.length >= 2) {
+    transitRoutes.push({
+      id: 'bus-core',
+      type: 'bus',
+      districts: coreDistricts,
+      capacity: 100,
+      riders: 0,
+      fareRevenue: 0,
+    })
+  }
+
+  // Train route connecting industrial zone to core (last plot to plot:0)
+  if (coreDistricts.length > 0 && districtIds.length > 1) {
+    const lastPlot = districtIds[districtIds.length - 1]
+    transitRoutes.push({
+      id: 'train-industrial',
+      type: 'train',
+      districts: [coreDistricts[0], lastPlot],
+      capacity: 200,
+      riders: 0,
+      fareRevenue: 0,
+    })
+  }
+}
+
+/**
+ * Tick transit system: compute ridership, fare revenue, congestion reduction (R095).
+ */
+function tickTransit(_prng: Prng): void {
+  if (transitRoutes.length === 0) return
+
+  const resTotal = [...districts.values()]
+    .filter((d) => d.zone === 'residential')
+    .reduce((s, d) => s + d.population, 0)
+
+  let totalRiders = 0
+  let totalFareRevenue = 0
+
+  for (const route of transitRoutes) {
+    // Ridership = floor(residential_population / transit_routes.length)
+    const ridership = Math.floor(resTotal / transitRoutes.length)
+    const cappedRiders = Math.min(ridership, route.capacity)
+    route.riders = cappedRiders
+
+    // Fare revenue
+    const fare = cappedRiders * FARE_PER_TICK
+    route.fareRevenue = fare
+    totalRiders += cappedRiders
+    totalFareRevenue += fare
+  }
+
+  // Add fare revenue to treasury
+  if (totalFareRevenue > 0) {
+    treasury += totalFareRevenue
+    events.push({
+      type: 'income',
+      detail: `transit fare revenue: ${totalFareRevenue}`,
+      delta: totalFareRevenue,
+    })
+  }
+
+  // Compute congestion reduction
+  const congestionReduction = transitRoutes.length * CONGESTION_REDUCTION_PER_ROUTE
+  bus.emit(
+    makeEvent(
+      'economy.transit',
+      {},
+      `transit: ${totalRiders} riders, ${totalFareRevenue} fare, congestion reduction ${congestionReduction.toFixed(2)}`,
+    ),
+  )
+}
+
+// ===========================================================================
+// R099: Weather System
+// ===========================================================================
+
+/** Weather transition probabilities (R099). */
+const WEATHER_TRANSITIONS: Record<string, string[]> = {
+  clear: ['rain', 'wind', 'fog', 'clear'],
+  rain: ['clear', 'wind', 'fog', 'rain'],
+  wind: ['clear', 'rain', 'fog', 'wind'],
+  fog: ['clear', 'rain', 'wind', 'fog'],
+}
+
+/**
+ * Tick weather: update state and apply economic effects (R099).
+ */
+export function tickWeather(): void {
+  weatherState.age += 1
+
+  // Every 20 ticks, with probability 0.15, change weather
+  if (weatherState.age % 20 === 0) {
+    const prng = mulberry32(0)
+    if (prng() < 0.15) {
+      const transitions = WEATHER_TRANSITIONS[weatherState.type] ?? ['clear']
+      const newType = transitions[Math.floor(prng() * transitions.length)]
+      weatherState.type = newType as WeatherState['type']
+      weatherState.age = 0
+
+      // Set intensity based on type
+      if (newType === 'rain') {
+        weatherState.intensity = Math.min(1, prng() * 0.5 + 0.5)
+      } else if (newType === 'wind') {
+        weatherState.intensity = prng() * 0.8
+      } else if (newType === 'fog') {
+        weatherState.intensity = prng() * 0.6
+      } else {
+        weatherState.intensity = 0
+      }
+    }
+  }
+
+  // Apply weather effects via the congestion factor and production multipliers
+  // Effects are capped at +/-20% from base
+  const effects = getWeatherEffectModifiers()
+
+  for (const d of districts.values()) {
+    // Apply traffic modifier (affects congestion)
+    if (effects.trafficModifier !== 0) {
+      d.congestion = Math.max(0.8, Math.min(1, d.congestion + effects.trafficModifier))
+    }
+  }
+
+  // Store weather effects in labourState for other systems to consume
+  labourState.fireRiskModifier = (labourState.fireRiskModifier ?? 0) + effects.fireRisk
+  labourState.agricultureBonus = (labourState.agricultureBonus ?? 0) + effects.agricultureBonus
+}
+
+/**
+ * Get current weather economic effect modifiers (R099).
+ */
+function getWeatherEffectModifiers(): {
+  trafficModifier: number
+  fireRisk: number
+  agricultureBonus: number
+  constructionCostModifier: number
+  serviceDelay: number
+} {
+  switch (weatherState.type) {
+    case 'rain':
+      return {
+        trafficModifier: -0.15,
+        fireRisk: 0.01,
+        agricultureBonus: 0.1,
+        constructionCostModifier: 0,
+        serviceDelay: 0.05,
+      }
+    case 'wind':
+      return {
+        trafficModifier: 0,
+        fireRisk: 0,
+        agricultureBonus: 0,
+        constructionCostModifier: 0.05,
+        serviceDelay: 0,
+      }
+    case 'fog':
+      // Visual only — no economic effect
+      return {
+        trafficModifier: 0,
+        fireRisk: 0,
+        agricultureBonus: 0,
+        constructionCostModifier: 0,
+        serviceDelay: 0,
+      }
+    case 'clear':
+    default:
+      return {
+        trafficModifier: 0,
+        fireRisk: 0,
+        agricultureBonus: 0,
+        constructionCostModifier: 0,
+        serviceDelay: 0,
+      }
+  }
+}
+
+// ===========================================================================
+// R100: Extended Co-simulation — Character Scaling & Behaviour
+// ===========================================================================
+
+/**
+ * Tick character scaling: adjust simulation scale based on city state (R100).
+ */
+function tickCharacterScaling(_prng: Prng): void {
+  // Scale based on average happiness and employment
+  let totalHappiness = 0
+  let totalEmployment = 0
+  let count = 0
+
+  for (const d of districts.values()) {
+    if (d.zone === 'residential') {
+      totalHappiness += d.happiness
+      totalEmployment += d.labour.employed / Math.max(1, d.population)
+      count++
+    }
+  }
+
+  if (count > 0) {
+    const avgHappiness = totalHappiness / count
+    const avgEmployment = totalEmployment / count
+    // Scale factor: 0.8 to 1.2 based on city health
+    characterScale = 0.8 + (avgHappiness * 0.2 + avgEmployment * 0.2)
+    characterScale = Math.max(0.5, Math.min(2.0, characterScale))
+  }
+
+  bus.emit(makeEvent('economy.character_scaling', {}, `character scaling: ${characterScale.toFixed(3)}`))
+}
+
+/**
+ * Tick character behaviour: simulate citizen actions (R100).
+ */
+function tickCharacterBehaviour(_prng: Prng): void {
+  characterBehaviourLog = []
+
+  for (const d of districts.values()) {
+    if (d.zone === 'residential' && d.population > 0) {
+      // Citizens work, consume, and provide services based on employment
+      const employmentRate = d.labour.employed / Math.max(1, d.population)
+
+      if (employmentRate > 0.5) {
+        characterBehaviourLog.push(`${d.id}: citizens working (employment ${employmentRate.toFixed(2)})`)
+      } else if (employmentRate < 0.2) {
+        characterBehaviourLog.push(`${d.id}: citizens idle (employment ${employmentRate.toFixed(2)})`)
+      }
+    }
+  }
+
+  bus.emit(
+    makeEvent('economy.character_behaviour', {}, `character behaviour: ${characterBehaviourLog.length} activities`),
+  )
+}
+
+// ===========================================================================
+// R100: Traffic Density
+// ===========================================================================
+
+/**
+ * Tick traffic density based on commuter count and transit (R100).
+ */
+function tickTrafficDensity(_prng: Prng): void {
+  trafficDensityPerPlot = new Map()
+
+  for (const d of districts.values()) {
+    const plotIndex = parseInt(d.id.replace('plot:', ''), 10)
+    if (!isNaN(plotIndex)) {
+      // Traffic proportional to population and inversely proportional to transit
+      const baseDensity = d.population / 100
+      const transitReduction = transitRoutes.length * CONGESTION_REDUCTION_PER_ROUTE
+      trafficDensityPerPlot.set(plotIndex, Math.max(0, baseDensity * (1 - transitReduction)))
     }
   }
 }
@@ -1453,6 +2287,8 @@ export function clearEconomy(): void {
     shortage: false,
   }
   labourState = { jobs: 0, employed: 0, unemployed: 0, commuters: 0, wages: 1.0 }
+  jobTypeWages = { retail: 1.0, office: 1.0, industrial: 1.0, service: 1.0 }
+  jobShortageTicks = { retail: 0, office: 0, industrial: 0, service: 0 }
   constructionStates = []
   adjacencyFactors = new Map()
   taxConfig = { residential: TAX_RATE, commercial: TAX_RATE, industrial: TAX_RATE }
@@ -1467,4 +2303,12 @@ export function clearEconomy(): void {
     education: 1.0,
   }
   externalCongestion = { plotCongestion: new Map<number, number>() }
+  // R095 — transit
+  transitRoutes = []
+  // R099 — weather
+  weatherState = { type: 'clear', intensity: 0, age: 0 }
+  // R100 — character scaling
+  characterScale = 1.0
+  characterBehaviourLog = []
+  trafficDensityPerPlot = new Map<number, number>()
 }

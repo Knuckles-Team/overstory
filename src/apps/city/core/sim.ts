@@ -1,6 +1,11 @@
 // The simulation engine: the only writer of world state. Every state change
 // emits a typed event on the shared bus (OVERSTORY-CITY-R006).
 //
+// R092: Character population scaling — character count scales with economy.
+// R093: Character economic behaviour — mood, foot traffic, schedule gating.
+//
+// spec: OVERSTORY-CITY-R005, OVERSTORY-CITY-R006, OVERSTORY-CITY-R009, OVERSTORY-CITY-R012, OVERSTORY-CITY-R014, OVERSTORY-CITY-R026, OVERSTORY-CITY-R029, OVERSTORY-CITY-R092, OVERSTORY-CITY-R093, OVERSTORY-CITY-R100
+//
 // Time convention: the in-game clock runs at `timeScale` in-game seconds per
 // real second, so one in-game day is ten real minutes at 1× and the day/night
 // cycle reads as a living city. Character actions — walking, tool calls,
@@ -17,6 +22,7 @@
 import {
   CORE_LANDMARKS,
   ROSTER,
+  ROLE_LABELS,
   SIM_TOOLS,
   connectorsByDomain,
   type ConnectorDef,
@@ -162,6 +168,8 @@ class Character {
   commitPhase: 'committing' | 'compacting' | null = null
   events: { type: string; detail: string }[] = []
   pos: Vec2 = { x: 0, z: 0 }
+  /** Economic mood -1 (miserable) to 1 (thriving), clamped each tick (R093). */
+  economicMood = 0
 
   constructor(entry: { kind: 'ai' | 'npc'; id: string; role: RoleId }, index: number) {
     this.id = entry.id
@@ -241,6 +249,49 @@ class Character {
   }
 }
 
+// ---- Character population scaling (R092) ---------------------------------
+
+/**
+ * Adjust the character roster to match the economy-derived population.
+ * Reads the population from the economy (R071) and spawns or removes
+ * civilian characters accordingly, bounded to 200 (R092).
+ */
+export function adjustCharacterCount(prng: Prng): void {
+  if (!Economy.isEconomyInitialised()) return
+
+  // Read population from economy districts (R071).
+  const districts = Economy.getDistricts()
+  const totalPopulation = districts
+    .filter((d) => d.zone === 'residential')
+    .reduce((sum, d) => sum + Math.round(d.population), 0)
+
+  // Target: scale with population, base 15, cap 200 (R092).
+  const targetCount = Math.min(200, Math.max(15, Math.floor(totalPopulation / 50) + 15))
+
+  const currentCount = world.characters.length
+
+  if (targetCount > currentCount) {
+    // Spawn new civilian characters (R092).
+    for (let i = currentCount; i < targetCount; i++) {
+      const roleIndex = Math.floor(prng() * Object.keys(ROLE_LABELS).length)
+      const roles = Object.keys(ROLE_LABELS) as RoleId[]
+      const role = roles[roleIndex]
+      const ch = new Character({ kind: 'npc', id: `civilian-${i}`, role }, i)
+      ch.economicMood = 0
+      world.characters.push(ch)
+      bus.emit(makeEvent('character.spawned', { character: ch.id }, `${ch.name} joins the city`))
+    }
+  } else if (targetCount < currentCount) {
+    // Remove excess characters from the end (R092).
+    while (world.characters.length > targetCount) {
+      world.characters.pop()
+    }
+  }
+
+  world.characterTargetCount = targetCount
+  world.needsCharacterAdjustment = true
+}
+
 // ---- World -----------------------------------------------------------------
 
 export const world = {
@@ -291,6 +342,12 @@ export const world = {
   /** Human avatars maintained by the presence system (R023). */
   avatars: [] as AvatarEntry[],
   initialized: false,
+  /** Cached character count derived from economy (R092). */
+  characterTargetCount: 15,
+  /** Whether the character roster needs adjusting (R092). */
+  needsCharacterAdjustment: true,
+  /** Running commercial foot traffic from employed characters (R093). */
+  commercialFootTraffic: 0,
   /**
    * Current first-person / enterable camera mode (OVERSTORY-CITY-R019).
    * `'overview'` and `'street'` mean the orbit-control camera;
@@ -320,6 +377,10 @@ export interface AvatarEntry {
  * dropped as new ones land, so the record never grows without bound.
  */
 export const ACTION_WINDOW_GAME_S = 300
+
+/** Economic mood clamp range (R093). */
+export const ECONOMIC_MOOD_MIN = -1
+export const ECONOMIC_MOOD_MAX = 1
 
 /** One recorded operator action, stamped and bounded to the replay window. */
 function recordAction(kind: RecordedAction['kind'], target?: string): void {
@@ -1302,6 +1363,46 @@ export function tickSim(dtGame: number, dtReal: number, dtWall = dtReal): void {
     ch.move(dtReal)
   }
 
+  // Economic behaviour (R093): foot traffic, unemployment mood, shortage,
+  // under-funding — all drawn from the seeded PRNG so behaviour is
+  // deterministic under the seed.
+  world.commercialFootTraffic = 0
+  for (const ch of world.characters) {
+    if (ch.kind === 'npc') {
+      // Employed NPCs (have a task) contribute foot traffic.
+      if (ch.task && ['tasked', 'working', 'committing'].includes(ch.state)) {
+        world.commercialFootTraffic++
+      }
+      // Unemployed NPCs wander — small negative mood hit (R093).
+      if (ch.state === 'idle' && !ch.task) {
+        ch.economicMood = Math.max(ECONOMIC_MOOD_MIN, ch.economicMood - 0.01)
+      }
+    }
+    if (Economy.getGoodsPrices().shortage) {
+      ch.economicMood = Math.max(ECONOMIC_MOOD_MIN, ch.economicMood - 0.005)
+    }
+    // Under-funding penalty (R093): iterate each service budget and
+    // penalise characters when any service falls below the active threshold.
+    const underfunded = new Set<string>()
+    for (const svc of Economy.getServiceNetworks()) {
+      const budget = Economy.getServiceBudget(svc.type)
+      if (budget < 0.8) underfunded.add(svc.type)
+    }
+    if (underfunded.size > 0) {
+      const penalty = Math.min(0.01, underfunded.size * 0.002)
+      ch.economicMood = Math.max(ECONOMIC_MOOD_MIN, ch.economicMood - penalty)
+    }
+    // Clamp economic mood to [-1, 1] (R093).
+    ch.economicMood = Math.max(ECONOMIC_MOOD_MIN, Math.min(ECONOMIC_MOOD_MAX, ch.economicMood))
+  }
+
+  // Population scaling (R092): adjust the character roster to match the
+  // economy-derived population after the population tick has run.
+  if (world.needsCharacterAdjustment) {
+    adjustCharacterCount(rng)
+    world.needsCharacterAdjustment = false
+  }
+
   // Construction (real-time, so SC-003 holds at any speed).
   for (const plot of world.plots) {
     if (!plot.construction) continue
@@ -1372,6 +1473,9 @@ export function resetSim(): void {
   world.layoutDoc = null
   world.avatars = []
   world.initialized = false
+  world.characterTargetCount = 15
+  world.needsCharacterAdjustment = true
+  world.commercialFootTraffic = 0
   autoTaskTimer = 5
   economyAccum = 0
   taskSeq = 0

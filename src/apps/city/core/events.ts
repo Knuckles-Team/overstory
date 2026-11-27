@@ -2,6 +2,8 @@
 // by a event emitted here (OVERSTORY-CITY-R010). Simulation and the live
 // bridge emit the same vocabulary.
 //
+// spec: OVERSTORY-CITY-R010, OVERSTORY-CITY-R029, OVERSTORY-CITY-R100
+//
 // Provenance (R010 amendment): every event carries a `provenance` flag —
 // `simulated` or `live`. In this delivery every event the simulation emits is
 // `simulated`; only an external live stream (R020, not yet landed) injects
@@ -36,6 +38,27 @@ export const EVENT_TYPES = [
   'mode.selected',
   'economy',
   'economy.construction',
+  // Economy sub-events (R100)
+  'economy.goods_chain',
+  'economy.migration',
+  'economy.transit',
+  'economy.weather',
+  'economy.character_scaling',
+  'economy.character_behaviour',
+  'economy.traffic_density',
+  'economy.production',
+  'economy.consumption',
+  'economy.price_update',
+  'economy.jobs_typed',
+  'economy.wage_update',
+  'economy.population',
+  'economy.land_value',
+  'economy.service_coverage',
+  'economy.congestion',
+  'economy.cost',
+  'economy.demand',
+  'economy.growth',
+  'economy.treasury',
   // Avatar presence (R023)
   'avatar.heartbeat',
   'avatar.zone-change',
