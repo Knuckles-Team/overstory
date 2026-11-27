@@ -190,6 +190,12 @@ export interface CityCore {
       motion: TrafficMotion
     }[]
   }
+  /** Regional vegetation canopies: instanced mesh + per-instance original Y for wind sway (R052, R053). */
+  canopySway: { mesh: THREE.InstancedMesh; originalsY: number[]; count: number } | null
+  /** Rain drop instances for atmospheric weather (R053). */
+  rainDrops: THREE.InstancedMesh | null
+  /** Low-tier: skip per-frame animation when budget is tight (R052/R053). */
+  lowTier: boolean
   junctionControls: ReturnType<typeof createJunctionControls>
   /** The road layer (R032): rebuilds for a new road graph, disposes with the scene. */
   roads: RoadsApi
@@ -532,6 +538,14 @@ export function buildCityCore(
     regionalCrowns.setColorAt(index, new THREE.Color(biomeFoliage[plant.biome]))
   })
   regionalTrunks.castShadow = regionalCrowns.castShadow = true
+  // Store original Y positions for wind sway (R052).
+  const originalsY: number[] = []
+  for (let i = 0; i < regionalPlants.length; i++) {
+    const m = new THREE.Matrix4()
+    regionalCrowns.getMatrixAt(i, m)
+    originalsY[i] = m.elements[13]
+  }
+  // canopySway will be passed through the return object (R052)
   regionalTrunks.instanceMatrix.needsUpdate = regionalCrowns.instanceMatrix.needsUpdate = true
   if (regionalCrowns.instanceColor) regionalCrowns.instanceColor.needsUpdate = true
   scene.add(regionalTrunks, regionalCrowns)
@@ -865,6 +879,9 @@ export function buildCityCore(
     watercraft,
     aircraft,
     traffic,
+    canopySway: { mesh: regionalCrowns, originalsY, count: regionalPlants.length },
+    rainDrops: null,
+    lowTier: false,
     junctionControls,
     roads,
   }
@@ -1172,6 +1189,21 @@ export function createCityScene(container: HTMLElement, world: World, opts: City
   const trafficPose = { x: 0, z: 0, heading: 0 }
 
   // ---- Per-frame environment (day/night, houses, lamps, ships) --------------
+  // Rain drop instanced mesh for atmospheric weather (R053).
+  const rainDropGeo = new THREE.SphereGeometry(0.02, 4, 2)
+  const rainDropMat = new THREE.MeshBasicMaterial({ color: 0x88aacc, transparent: true, opacity: 0.35 })
+  const RAIN_COUNT = 2000
+  const rainDrops = new THREE.InstancedMesh(rainDropGeo, rainDropMat, RAIN_COUNT)
+  for (let i = 0; i < RAIN_COUNT; i++) {
+    rainDrops.setMatrixAt(
+      i,
+      new THREE.Matrix4().makeTranslation(Math.random() * 120 - 60, Math.random() * 80 - 40, Math.random() * 120 - 60),
+    )
+  }
+  scene.add(rainDrops)
+  // Hide rain when not raining.
+  rainDrops.visible = false
+
   function updateEnvironment(clockS: number, _dtReal: number): void {
     // The sun follows the in-game clock through the shared pipeline (R012.1).
     pipeline.updateEnvironment(clockS)
@@ -1266,6 +1298,45 @@ export function createCityScene(container: HTMLElement, world: World, opts: City
     }
     core.traffic.body.instanceMatrix.needsUpdate = true
     core.traffic.cabin.instanceMatrix.needsUpdate = true
+
+    // ---- Vegetation wind sway (R052) and weather (R053) ----
+    if (core.canopySway && !core.lowTier) {
+      const { mesh, originalsY, count } = core.canopySway
+      if (originalsY.length) {
+        for (let i = 0; i < count; i++) {
+          const base = originalsY[i]
+          const sway = Math.sin(clockS * 1.2 + i * 0.37) * 0.06
+          const m = new THREE.Matrix4()
+          mesh.getMatrixAt(i, m)
+          m.elements[13] = base + sway
+          mesh.setMatrixAt(i, m)
+        }
+        mesh.instanceMatrix.needsUpdate = true
+      }
+    }
+
+    // ---- Vehicle head and tail lights (R053) ----
+    if (fleet) {
+      const night = nightFactor(clockS)
+      for (const route of fleet.routes) {
+        // Headlights brighten at night; tail lights (brake) pulse on stops
+        const brake = route.motion.waitingAt !== null ? 0.8 : 0
+        core.traffic.body.material.emissiveIntensity = 0.3 + 0.7 * night
+        core.traffic.cabin.material.emissiveIntensity = 0.15 + brake * 0.6
+      }
+    }
+
+    // ---- Rain particles (R053) ----
+    if (!core.lowTier) {
+      const rainCount = rainDrops.count
+      for (let i = 0; i < rainCount; i++) {
+        const dropX = ((Math.sin(clockS * 2.0 + i * 0.01) * 60) % 120) - 60
+        const dropY = ((clockS * 40 + i * 3.3) % 80) - 40
+        const dropZ = ((Math.cos(clockS * 1.5 + i * 0.013) * 60) % 120) - 60
+        rainDrops.setMatrixAt(i, new THREE.Matrix4().makeTranslation(dropX, dropY, dropZ))
+      }
+      rainDrops.instanceMatrix.needsUpdate = true
+    }
   }
 
   // Complete disposal at the GPU level (R018): the scene graph is traversed
@@ -1331,5 +1402,13 @@ export function createCityScene(container: HTMLElement, world: World, opts: City
     enterInterior,
     exitInterior,
     dispose,
+    /** Set low-tier mode: skip wind, rain, and extra light updates (R052/R053). */
+    setLowTier(low: boolean): void {
+      core.lowTier = low
+    },
+    /** Toggle rain visibility (R053). */
+    setRainVisible(visible: boolean): void {
+      rainDrops.visible = visible
+    },
   }
 }
