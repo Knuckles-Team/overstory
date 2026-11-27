@@ -4,6 +4,8 @@
  *
  * Data reaches the browser only through arbora's `/host/logs/reference` and
  * `/host/logs/read` routes (contract: `specs/arbora-app-surface/contracts/host-logs.md`).
+ * The caller is the signed-in browser session: no credential is typed, held or sent
+ * by this module.
  * Every answer is validated before it is rendered. A refusal is a closed union that
  * carries no log content, so a caller that receives one has nothing to show but the
  * refusal itself.
@@ -51,15 +53,15 @@ export function refusalFor(status: number, body: unknown): HostLogRefusal {
   return new HostLogRefusal('unavailable')
 }
 
-async function post(path: string, credential: string, body: unknown, signal?: AbortSignal): Promise<unknown> {
+async function post(path: string, body: unknown, signal?: AbortSignal): Promise<unknown> {
   let response: Response
   try {
     response = await fetch(path, {
       method: 'POST',
-      // Cookies are never sent: arbora refuses a request that carries one.
-      credentials: 'omit',
+      // The signed-in browser session: the cookie rides along and the shared fetch
+      // wrapper in `csrf.ts` adds the session's CSRF token to this same-origin POST.
+      credentials: 'same-origin',
       headers: {
-        Authorization: `Bearer ${credential}`,
         Accept: 'application/json',
         ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
       },
@@ -81,21 +83,20 @@ async function post(path: string, credential: string, body: unknown, signal?: Ab
 }
 
 /** Ask arbora for a fresh log reference bound to the caller's current grant. */
-export async function referenceHostLogs(credential: string, signal?: AbortSignal): Promise<string> {
-  const parsed = referenceSchema.safeParse(await post('/host/logs/reference', credential, undefined, signal))
+export async function referenceHostLogs(signal?: AbortSignal): Promise<string> {
+  const parsed = referenceSchema.safeParse(await post('/host/logs/reference', undefined, signal))
   if (!parsed.success) throw new HostLogRefusal('unavailable')
   return parsed.data.log_ref
 }
 
 /** Read one version-2 batch. A null cursor starts a fresh read. */
 export async function readHostLogs(
-  credential: string,
   logRef: string,
   cursor: string | null,
   signal?: AbortSignal,
 ): Promise<HostLogBatch> {
   const parsed = batchSchema.safeParse(
-    await post('/host/logs/read', credential, { version: 2, log_ref: logRef, cursor, limit: 128 }, signal),
+    await post('/host/logs/read', { version: 2, log_ref: logRef, cursor, limit: 128 }, signal),
   )
   if (!parsed.success) throw new HostLogRefusal('unavailable')
   return parsed.data

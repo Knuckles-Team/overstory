@@ -3,16 +3,14 @@
  * @description Host-log view (OVERSTORY-APPS-R054): one host's log stream read through
  * arbora, with each record's original host metadata.
  *
- * The workspace log credential is held only in a ref, is never stored or placed in a
- * URL, and is dropped on a denial. On a retention gap, a `gap: true` batch or a denied
+ * The view uses the signed-in browser session and never takes a typed credential. On a retention gap, a `gap: true` batch or a denied
  * grant the view drops every record, cursor and reference it holds, so rotated-out or
  * revoked text can never stay on screen.
  */
-import { useCallback, useEffect, useRef, useState, type SubmitEvent } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { ScrollText } from 'lucide-react'
 import { BlockedState } from '@/components/renderers/BlockedState'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import {
   HostLogRefusal,
   readHostLogs,
@@ -37,7 +35,6 @@ function when(timestamp: number): string {
 }
 
 export default function HostLogView({ pollMs = DEFAULT_POLL_MS }: HostLogViewProps) {
-  const credential = useRef<string | null>(null)
   const logRef = useRef<string | null>(null)
   const cursor = useRef<string | null>(null)
   const busy = useRef(false)
@@ -58,15 +55,14 @@ export default function HostLogView({ pollMs = DEFAULT_POLL_MS }: HostLogViewPro
   }, [])
 
   const poll = useCallback(async () => {
-    const secret = credential.current
-    if (secret === null || busy.current) return
+    if (busy.current) return
     busy.current = true
     try {
       for (let attempt = 0; attempt < 2; attempt += 1) {
         try {
           const fresh = logRef.current === null
-          if (fresh) logRef.current = await referenceHostLogs(secret)
-          applyBatch(await readHostLogs(secret, logRef.current!, fresh ? null : cursor.current), fresh)
+          if (fresh) logRef.current = await referenceHostLogs()
+          applyBatch(await readHostLogs(logRef.current!, fresh ? null : cursor.current), fresh)
           setState('live')
           return
         } catch (error) {
@@ -78,7 +74,6 @@ export default function HostLogView({ pollMs = DEFAULT_POLL_MS }: HostLogViewPro
             continue
           }
           if (kind === 'workspace_denied') {
-            credential.current = null
             dropHeld()
             setGap(false)
             setState('denied')
@@ -104,47 +99,28 @@ export default function HostLogView({ pollMs = DEFAULT_POLL_MS }: HostLogViewPro
     }
   }, [state, pollMs, poll])
 
-  function connect(event: SubmitEvent<HTMLFormElement>) {
-    event.preventDefault()
-    const form = event.currentTarget
-    const entered = new FormData(form).get('credential')
-    const value = typeof entered === 'string' ? entered.trim() : ''
-    form.reset()
-    if (!value) return
-    credential.current = value
-    dropHeld()
-    setGap(false)
+  // The signed-in session is the credential, so the view reads as soon as it mounts.
+  useEffect(() => {
     poll().catch(() => undefined)
-  }
+  }, [poll])
 
   return (
     <main className="mx-auto flex max-w-5xl flex-col gap-4 p-4" aria-labelledby="host-log-title">
       <h1 id="host-log-title" className="flex items-center gap-2 text-lg font-semibold">
         <ScrollText className="h-5 w-5" aria-hidden /> Host logs
       </h1>
-      <form onSubmit={connect} className="flex gap-2" autoComplete="off">
-        <label htmlFor="host-log-credential" className="sr-only">
-          Workspace log credential
-        </label>
-        <Input
-          id="host-log-credential"
-          name="credential"
-          type="password"
-          placeholder="Workspace log credential"
-          autoComplete="off"
-        />
-        <Button type="submit">Connect</Button>
+      <div className="flex gap-2">
         <Button
           type="button"
           variant="outline"
           onClick={() => {
             poll().catch(() => undefined)
           }}
-          disabled={state !== 'live'}
+          disabled={state === 'idle'}
         >
           Refresh
         </Button>
-      </form>
+      </div>
       {state === 'denied' && (
         <BlockedState status="blocked" reason="Access denied: the workspace log grant is not valid." />
       )}

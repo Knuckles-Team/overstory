@@ -4,7 +4,7 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
 // The page and the arbora host share one origin through this proxy, so the browser
-// reaches the host-log routes exactly as a deployed page would: same origin, no cookie.
+// reaches the host-log routes exactly as a deployed page would: same origin, with the signed-in session cookie.
 export default defineConfig({
   root: fileURLToPath(new URL('.', import.meta.url)),
   plugins: [react(), tailwindcss()],
