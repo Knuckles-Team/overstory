@@ -170,6 +170,10 @@ class Character {
   pos: Vec2 = { x: 0, z: 0 }
   /** Economic mood -1 (miserable) to 1 (thriving), clamped each tick (R093). */
   economicMood = 0
+  /** The plot index of the character's home (R079.2). */
+  homePlot: number | null = null
+  /** The plot index of the character's workplace (R079.2). */
+  workPlot: number | null = null
 
   constructor(entry: { kind: 'ai' | 'npc'; id: string; role: RoleId }, index: number) {
     this.id = entry.id
@@ -258,6 +262,8 @@ class Character {
  */
 export function adjustCharacterCount(prng: Prng): void {
   if (!Economy.isEconomyInitialised()) return
+  // Only scale characters when the city is actually simulated (R092).
+  if (world.activity !== 'simulated') return
 
   // Read population from economy districts (R071).
   const districts = Economy.getDistricts()
@@ -278,6 +284,19 @@ export function adjustCharacterCount(prng: Prng): void {
       const role = roles[roleIndex]
       const ch = new Character({ kind: 'npc', id: `civilian-${i}`, role }, i)
       ch.economicMood = 0
+
+      // Assign home from economy-built residential buildings (R079.2).
+      // Fall back to the housing catalog.
+      const resBuildings = Object.values(world.buildings).filter(
+        (b) => b.kind.includes('house') || b.kind.includes('apartment'),
+      )
+      if (resBuildings.length > 0) {
+        const homeBldg = resBuildings[Math.floor(prng() * resBuildings.length)]
+        if (homeBldg.derivedPlot !== null) {
+          ch.homePlot = homeBldg.derivedPlot
+        }
+      }
+
       world.characters.push(ch)
       bus.emit(makeEvent('character.spawned', { character: ch.id }, `${ch.name} joins the city`))
     }
@@ -712,11 +731,81 @@ export function onboardConnector(connectorId: string): boolean {
 
 function completeConstruction(plot: Plot): void {
   plot.construction = null
-  const b = world.buildings[plot.buildingId!]
+  const buildingId = plot.buildingId!
+
+  // Check if this is an economy-built building (R079.2) — the building was
+  // created by the economy tick's step 17b (resolved constructions).
+  const existingB = world.buildings[buildingId]
+
+  /* eslint-disable-next-line @typescript-eslint/no-unnecessary-condition */
+  if (!existingB) {
+    // Economy-built buildings: create from construction state (R079.2).
+    // Economy tick step 17 runs before sim construction completes, so the
+    // building should already exist. Handle the race defensively.
+    let cs: (typeof Economy.constructionStates)[number] | undefined = undefined
+    for (const c of Economy.constructionStates) {
+      if (c.buildingId === buildingId) {
+        cs = c
+        break
+      }
+    }
+    if (cs) {
+      const zone = cs.archetype
+        ? cs.archetype.includes('factory') || cs.archetype.includes('warehouse')
+          ? 'industrial'
+          : cs.archetype.includes('store') || cs.archetype.includes('restaurant')
+            ? 'commercial'
+            : 'residential'
+        : 'residential'
+
+      // Create a building from the economy construction state.
+      const b: Building = {
+        id: buildingId,
+        name: `${zone}-${cs.archetype ?? 'building'}-built`,
+        category: 'connector',
+        role: zone,
+        tools: cs.archetype === 'mall' || cs.archetype === 'factory' ? ['advanced'] : [],
+        rooms: ['main'],
+        color: zone === 'residential' ? 0x4caf50 : zone === 'commercial' ? 0x2196f3 : 0xff9800,
+        kind: cs.archetype ?? 'house',
+        x: plot.x,
+        z: plot.z,
+        w: 4,
+        d: 4,
+        online: true,
+        visits: 0,
+        fresh: 20,
+        flash: 0,
+        served: false,
+        packStatus: 'active',
+        blurb: `${zone} building (economy-placed)`,
+        simTools: false,
+        toolCount:
+          cs.archetype === 'mall'
+            ? 5
+            : cs.archetype === 'factory'
+              ? 4
+              : cs.archetype === 'restaurant'
+                ? 3
+                : cs.archetype === 'warehouse'
+                  ? 2
+                  : 0,
+        door: null,
+        rot: 0,
+        derivedPlot: 0, // will be set correctly below
+      }
+      world.buildings[buildingId] = b
+      b.derivedPlot = world.plots.indexOf(plot)
+      plot.buildingId = b.id
+    }
+  }
+
+  const b = world.buildings[buildingId]
   b.fresh = 900
   world.firstVisit = { buildingId: b.id, age: 0 }
   bus.emit(makeEvent('building.completed', { building: b.id }, `${b.name} is open for business`))
   bus.emit(makeEvent('connector.joined', { building: b.id }, `${b.id} connected through the fleet boundary`))
+  plot.buildingId = buildingId
 }
 
 // ---- Layout edits (R032) -----------------------------------------------------
@@ -1315,12 +1404,16 @@ export function tickSim(dtGame: number, dtReal: number, dtWall = dtReal): void {
     world.day++
   }
 
-  // Economic tick (R069–R076): every 300 in-game seconds.
   if (Economy.isEconomyInitialised()) {
     economyAccum += dtGame
     if (economyAccum >= Economy.ECONOMY_TICK_GAME_S) {
       economyAccum -= Economy.ECONOMY_TICK_GAME_S
       Economy.tickEconomy()
+      // Growth and character scaling gated by activity mode (R079, R092).
+      if (world.activity === 'simulated') {
+        adjustCharacterCount(rng)
+        world.needsCharacterAdjustment = false
+      }
     }
   }
 
@@ -1412,7 +1505,12 @@ export function tickSim(dtGame: number, dtReal: number, dtWall = dtReal): void {
       if (c.progress >= m && c.lastMilestone < m) {
         c.lastMilestone = m
         const b = world.buildings[c.connectorId]
-        bus.emit(makeEvent('construction.progress', { building: b.id }, `${b.name}: ${Math.round(m * 100)}% complete`))
+        // Guard: the building might not be placed yet (economy-grown buildings).
+        if (b) {
+          bus.emit(
+            makeEvent('construction.progress', { building: b.id }, `${b.name}: ${Math.round(m * 100)}% complete`),
+          )
+        }
       }
     }
     if (c.progress >= 1) completeConstruction(plot)

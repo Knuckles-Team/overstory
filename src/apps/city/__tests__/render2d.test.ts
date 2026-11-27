@@ -149,8 +149,10 @@ describe('init2D (R015)', () => {
       const container = document.createElement('div')
       document.body.appendChild(container)
       const renderer = init2D(container, world, { onSelect: () => undefined })
-      expect(container.children).toHaveLength(1)
-      expect((container.firstChild as HTMLElement | null)?.tagName).toBe('CANVAS')
+      // 2D renderer + economic overlay canvas (R096).
+      expect(container.children).toHaveLength(2)
+      // The first child is the main 2D canvas; the second is the overlay.
+      expect((container.children[0] as HTMLElement | null)?.tagName).toBe('CANVAS')
 
       renderer.render(0.016)
       // Every character of the shared world is drawn with its name.

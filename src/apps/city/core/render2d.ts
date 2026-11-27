@@ -677,6 +677,9 @@ export function init2D(
     canvas.removeEventListener('pointercancel', onCancel)
     canvas.removeEventListener('wheel', onWheel)
     container.removeChild(canvas)
+    if (container.contains(overlayCanvas)) {
+      container.removeChild(overlayCanvas)
+    }
   }
 
   return {

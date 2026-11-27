@@ -635,12 +635,13 @@ describe('WebGL context loss and restore (R015)', () => {
       // and the paused renderer was not disposed (the fallback is not a
       // one-way door).
       const holder = document.querySelector('.city-holder') as HTMLElement
-      expect(holder.querySelectorAll('canvas')).toHaveLength(2)
+      // 3D canvas + 2D schematic canvas + economic overlay canvas (R096).
+      expect(holder.querySelectorAll('canvas')).toHaveLength(3)
       expect(renderer.dispose).not.toHaveBeenCalled()
       // A manual 3D toggle is ignored while the kept renderer is paused —
       // the restore callback owns the return path.
       screen.getByRole('button', { name: '3D view' }).click()
-      expect(holder.querySelectorAll('canvas')).toHaveLength(2)
+      expect(holder.querySelectorAll('canvas')).toHaveLength(3)
       expect(renderer.dispose).not.toHaveBeenCalled()
     } finally {
       view.unmount()

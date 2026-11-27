@@ -132,6 +132,41 @@ const CONSTRUCTION_COSTS: Record<ZoneType, number> = {
   industrial: BASE_CONSTRUCTION_COST * 1.2,
 }
 
+/** City growth archetypes — building families per zone (R079.2, R087). */
+interface CityArchetype {
+  zone: ZoneType
+  form: string
+  family: string
+  jobs: number
+  maintenanceFraction: number
+}
+
+/** Residential building families. */
+const RESIDENTIAL_ARCHETYPES: CityArchetype[] = [
+  { zone: 'residential', form: 'house', family: 'house', jobs: 0, maintenanceFraction: 0.02 },
+  { zone: 'residential', form: 'apartment', family: 'apartment', jobs: 0, maintenanceFraction: 0.025 },
+]
+
+/** Commercial building families. */
+const COMMERCIAL_ARCHETYPES: CityArchetype[] = [
+  { zone: 'commercial', form: 'store', family: 'store', jobs: 2, maintenanceFraction: 0.03 },
+  { zone: 'commercial', form: 'mall', family: 'gateway', jobs: 5, maintenanceFraction: 0.04 },
+  { zone: 'commercial', form: 'restaurant', family: 'studio', jobs: 3, maintenanceFraction: 0.03 },
+]
+
+/** Industrial building families. */
+const INDUSTRIAL_ARCHETYPES: CityArchetype[] = [
+  { zone: 'industrial', form: 'factory', family: 'workshop', jobs: 4, maintenanceFraction: 0.03 },
+  { zone: 'industrial', form: 'warehouse', family: 'storehouse', jobs: 2, maintenanceFraction: 0.025 },
+]
+
+/** All city archetype families by zone (R087). */
+const CITY_ARCHETYPES: Record<ZoneType, CityArchetype[]> = {
+  residential: RESIDENTIAL_ARCHETYPES,
+  commercial: COMMERCIAL_ARCHETYPES,
+  industrial: INDUSTRIAL_ARCHETYPES,
+}
+
 /** Adjacency factor weights (R084). */
 const ADJACENCY_WEIGHTS = {
   road_proximity: 5,
@@ -322,6 +357,10 @@ export interface ConstructionState {
   decayState: 'none' | 'run-down' | 'abandoned' | 'demolished'
   /** Building is still standing. */
   standing(): boolean
+  /** The selected city archetype (R079.2). */
+  archetype?: string
+  /** Construction progress 0→100 (R079.2). */
+  progress?: number
 }
 
 /** Tax configuration (R083). */
@@ -502,7 +541,7 @@ let jobTypeWages: JobTypeWage = { retail: 1.0, office: 1.0, industrial: 1.0, ser
 let jobShortageTicks: JobShortageTicks = { retail: 0, office: 0, industrial: 0, service: 0 }
 
 /** Construction states (R086). */
-let constructionStates: ConstructionState[] = []
+export let constructionStates: ConstructionState[] = []
 
 /** Adjacency factors per plot (R084). */
 let adjacencyFactors = new Map<number, AdjacencyFactors>()
@@ -760,15 +799,38 @@ export function tickEconomy(): void {
     bus.emit(makeEvent('economy.demand', {}, 'demand tick complete'))
   }
 
-  // 17. Growth placement (R079)
+  // 17. Growth placement (R079) — only in simulated mode (quiet/demo are inert).
   {
-    tryGrowthPlacements(prng)
-    bus.emit(makeEvent('economy.growth', {}, 'growth placement complete'))
+    if (world.activity === 'simulated') {
+      tryGrowthPlacements(prng)
+      bus.emit(makeEvent('economy.growth', {}, 'growth placement complete'))
+    }
   }
 
-  // 18. Construction/deployment tick (R100)
+  // 18. Remove completed constructions from economic tracking (R079.2).
+  // The visual completion happens in sim.ts's completeConstruction, but the
+  // economy needs to remove completed constructions from its cost/decay tracking.
   {
-    // Process construction decay and new deployments
+    let removed = 0
+    for (let i = constructionStates.length - 1; i >= 0; i--) {
+      const cs = constructionStates[i]
+      // Check if this construction has been visually completed (no plot or plot has no construction).
+      const plotIdx = findPlotForConstruction(cs)
+      if (plotIdx >= 0 && world.plots[plotIdx].construction === null) {
+        constructionStates.splice(i, 1)
+        removed++
+      }
+    }
+    if (removed > 0) {
+      bus.emit(
+        makeEvent('economy.construction', {}, `${removed} constructions completed, removed from economic tracking`),
+      )
+    }
+  }
+
+  // 18. Construction decay (R086, R079.2).
+  // Only active (non-completed) constructions contribute to maintenance costs.
+  {
     for (const cs of constructionStates) {
       if (cs.decayState === 'run-down' && cs.standing()) {
         // Run-down buildings consume extra maintenance
@@ -783,7 +845,7 @@ export function tickEconomy(): void {
         }
       }
     }
-    bus.emit(makeEvent('economy.construction', {}, 'construction/deployment tick complete'))
+    bus.emit(makeEvent('economy.construction', {}, 'construction decay tick complete'))
   }
 
   // 19. Event emission (extend existing)
@@ -1936,11 +1998,21 @@ function tickCongestionRead(_prng: Prng): void {
 // R079: Closed-loop economy — demand gates growth
 // ===========================================================================
 
-/** Try to place new buildings based on demand (R079). */
-function tryGrowthPlacements(_prng: Prng): void {
+/**
+ * City growth: demand-gated building placement (R079, R087, R079.2).
+ * The economy calls this every tick. It:
+ * 1. Picks an archetype from the zone's catalog (R087)
+ * 2. Finds an empty lot near the district
+ * 3. Creates scaffolding (construction state with progress 0→100)
+ * 4. On completion, creates a real building in world.buildings
+ * 5. Emits construction events (progress, complete)
+ *
+ * Returns the list of new constructions placed this tick.
+ */
+function tryGrowthPlacements(prng: Prng): void {
   const emptyLots: number[] = []
   for (let i = 0; i < world.plots.length; i++) {
-    if (!world.plots[i].buildingId) {
+    if (!world.plots[i].buildingId && !world.plots[i].construction) {
       emptyLots.push(i)
     }
   }
@@ -1962,20 +2034,22 @@ function tryGrowthPlacements(_prng: Prng): void {
       if (treasury >= cost) {
         // Debit treasury (R079).
         treasury -= cost
-        events.push({
-          type: 'construction',
-          detail: `${d.id}: placed ${d.zone} building (cost: ${cost})`,
-          delta: -cost,
-          district: d.id,
-        })
 
-        // Add a construction state (R086).
+        // Select an archetype from the zone's catalog (R087).
+        const archetypes = CITY_ARCHETYPES[d.zone]
+        const archetype = archetypes[Math.floor(prng() * archetypes.length)]
+
+        // Add a construction state (R079, R087).
         const buildId = `built:${d.id}:${++_buildCounter}`
         const cs: ConstructionState = {
           buildingId: buildId,
           cost,
-          maintenancePerTick: cost * MAINTENANCE_FRACTION,
+          maintenancePerTick: Math.round(cost * archetype.maintenanceFraction * 100) / 100,
           decayState: 'none',
+          /** The archetype selected for this building (R079.2). */
+          archetype: archetype.form,
+          /** Construction progress 0→100 (R079.2). */
+          progress: 0,
           standing() {
             return this.decayState !== 'demolished'
           },
@@ -1983,12 +2057,29 @@ function tryGrowthPlacements(_prng: Prng): void {
         d.constructions.push(cs)
         constructionStates.push(cs)
 
-        // Mark the lot as built.
+        // Mark the lot as under construction (not yet built).
         const lotIndex = emptyLots.shift()!
         if (lotIndex < world.plots.length) {
           world.plots[lotIndex].buildingId = cs.buildingId
           world.plots[lotIndex].reservedId = null
+          world.plots[lotIndex].construction = { connectorId: buildId, progress: 0, lastMilestone: 0 }
         }
+
+        // Emit the construction start event (R079.2).
+        events.push({
+          type: 'construction',
+          detail: `${d.id}: placed ${d.zone} building (scaffolding, cost: ${cost})`,
+          delta: -cost,
+          district: d.id,
+        })
+
+        bus.emit(
+          makeEvent(
+            'construction.progress',
+            { building: buildId },
+            `Scaffolding raised at ${d.zone} ${archetype.form} ${buildId}`,
+          ),
+        )
       } else {
         // Refused: insufficient treasury (R079).
         events.push({
@@ -2311,4 +2402,17 @@ export function clearEconomy(): void {
   characterScale = 1.0
   characterBehaviourLog = []
   trafficDensityPerPlot = new Map<number, number>()
+}
+
+/**
+ * Find the plot index for a construction state (R079.2).
+ * Searches world.plots for a plot where buildingId matches the construction's id.
+ */
+function findPlotForConstruction(cs: ConstructionState): number {
+  for (let i = 0; i < world.plots.length; i++) {
+    if (world.plots[i].buildingId === cs.buildingId) {
+      return i
+    }
+  }
+  return -1
 }
