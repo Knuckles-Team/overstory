@@ -220,10 +220,8 @@ export function createAudioEngine(
   function apply(): void {
     if (!ctx || !master) return
     master.gain.setTargetAtTime(enabled ? MASTER_GAIN : 0, ctx.currentTime, 0.3)
-    // R055: use district-aware mix when a district is set
-    const mix = district
-      ? mixForDistrict(last.height, last.indoors, district)
-      : mixFor(last.height, last.indoors)
+    // R055: district is always a DistrictType (non-empty string literal union)
+    const mix = mixForDistrict(last.height, last.indoors, district)
     for (const [s, g] of sources) g.gain.setTargetAtTime(enabled ? mix[s] : 0, ctx.currentTime, 0.5)
   }
 
@@ -278,9 +276,13 @@ export function createAudioEngine(
         // Aircraft flyover: sweeping whine
         const o = c.createOscillator()
         o.type = 'sawtooth'
-        o.frequency.setValueAtTime(220, c.currentTime)
-        o.frequency.linearRampToValueAtTime(880, c.currentTime + 0.6)
-        o.frequency.linearRampToValueAtTime(220, c.currentTime + 1.2)
+        const freq = o.frequency as unknown as {
+          setValueAtTime: (v: number, t: number) => void
+          linearRampToValueAtTime: (v: number, t: number) => void
+        }
+        freq.setValueAtTime(220, c.currentTime)
+        freq.linearRampToValueAtTime(880, c.currentTime + 0.6)
+        freq.linearRampToValueAtTime(220, c.currentTime + 1.2)
         const g = c.createGain()
         g.gain.value = 0.15
         const f = c.createBiquadFilter()
@@ -288,7 +290,7 @@ export function createAudioEngine(
         f.frequency.value = 500
         o.connect(f)
         f.connect(g)
-        g.connect(master!)
+        g.connect(master)
         o.start()
         o.stop(c.currentTime + 1.2)
       } else {

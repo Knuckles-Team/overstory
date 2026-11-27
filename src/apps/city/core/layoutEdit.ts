@@ -10,7 +10,7 @@
  * storage is an authorised write through the city gateway (R021's served
  * layout operation), never browser-local state.
  */
-// spec: OVERSTORY-CITY-R032, OVERSTORY-DESIGN-R012.6
+// spec: OVERSTORY-CITY-R032, OVERSTORY-CITY-R021, OVERSTORY-DESIGN-R012.6
 import {
   deriveRoadGraph,
   validateRoadEdit,
@@ -23,6 +23,9 @@ import { DISTRICT_DOMAINS, ROAD_W, X_ROADS, Z_ROADS, plotDoor } from './layout'
 import type { world as SimWorld } from './sim'
 import { CITY_WORLD_SEED, generateIslandRoads, isDryFootprint } from './worldgen'
 import { isCitySandbox } from '@/lib/city-sandbox'
+
+/** The quarter-turn rotations the layout edit accepts (R032; mirrors schemas.ts). */
+const QUARTER_TURNS = [0, 90, 180, 270] as const
 
 export type World = typeof SimWorld
 
@@ -159,6 +162,19 @@ export interface LayoutOverride {
   moves: BuildingMove[]
   roads: RoadOverride[]
   styles: DistrictStyle[]
+  /**
+   * Medulla KV stores styles as a record (domain → archetype),
+   * which is the effective world state after applying DistrictStyle[].
+   * Read-only for the layout doc; the array form is the edit form.
+   */
+  stylesMap?: Record<string, string>
+  /** Monotonically increasing revision number (Medulla-backed, R021). */
+  revision?: number
+  /** Arbitrary metadata (Medulla KV store uses this for world-level data). */
+  buildings?: { id: string; x: number; z: number; rot: number; plot: number; door?: { x: number; z: number } }[]
+  seed?: string
+  captured_at?: string
+  roads_extended?: { id: string; from: string; to: string; x1?: number; z1?: number; x2?: number; z2?: number }[]
 }
 
 export function emptyLayoutOverride(): LayoutOverride {
@@ -204,7 +220,7 @@ export function validateEdit(edit: LayoutEdit, world: World, graph: RoadGraph): 
       if (plot.buildingId && plot.buildingId !== edit.buildingId) return { ok: false, reason: 'plot-occupied' }
       if (plot.reservedId) return { ok: false, reason: 'plot-reserved' }
       if (plot.construction) return { ok: false, reason: 'plot-under-construction' }
-      if (edit.rotation !== undefined && !(ROTATIONS as readonly number[]).includes(edit.rotation))
+      if (edit.rotation !== undefined && !(QUARTER_TURNS as readonly number[]).includes(edit.rotation))
         return { ok: false, reason: 'invalid-rotation' }
       if (!dryBuildingSite(b, plot, edit.rotation ?? b.rot)) return { ok: false, reason: 'building-hits-water' }
       return { ok: true }
@@ -213,7 +229,8 @@ export function validateEdit(edit: LayoutEdit, world: World, graph: RoadGraph): 
       if (!(edit.buildingId in world.buildings)) return { ok: false, reason: 'not-movable' }
       const b = world.buildings[edit.buildingId]
       if (b.category !== 'connector') return { ok: false, reason: 'not-movable' }
-      if (!(ROTATIONS as readonly number[]).includes(edit.rotation)) return { ok: false, reason: 'invalid-rotation' }
+      if (!(QUARTER_TURNS as readonly number[]).includes(edit.rotation))
+        return { ok: false, reason: 'invalid-rotation' }
       if (!dryBuildingSite(b, b, edit.rotation)) return { ok: false, reason: 'building-hits-water' }
       return { ok: true }
     }

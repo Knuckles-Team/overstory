@@ -176,9 +176,11 @@ describe('multimodal route graph (R048.16)', () => {
     expect(noStation.reason).toBe('no-station')
 
     // Shallow water (boat)
-    const { from: nf, to: nt } = Object.values(network.nodes)
+    const waterNodes = Object.values(network.nodes)
       .filter((n) => n.level === NETWORK_LEVELS.water && n.id.startsWith('water-river'))
       .sort((a, b) => a.id.localeCompare(b.id))
+    const nf = waterNodes[0]
+    const nt = waterNodes[1]
     if (nf && nt) {
       // Shallow draft should work, deep draft should fail.
       const deep = validateBoatRoute(network, { x: nf.x, z: nf.z }, { x: nt.x, z: nt.z }, { minDepthM: 0.5 })

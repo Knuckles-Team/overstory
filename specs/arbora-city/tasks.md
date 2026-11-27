@@ -22,12 +22,12 @@ Producer first: the fleet seam (R003) and the world producers (R002, R004, R005)
 - [x] T016 OVERSTORY-CITY-R001 City AppSurface and route wiring. Touches `src/apps/city/surface.ts`, `src/apps/index.ts`.
 - [x] T017 OVERSTORY-CITY-R017 No credentials or identities in the browser. Touches `agent/overstory/apps/city/gateway.py`.
 - [x] T018 OVERSTORY-CITY-R018 Unmount safety. Touches `src/apps/city/components/CityPage.tsx`.
-- [ ] T019 OVERSTORY-CITY-R019 Follow-on: enterable buildings and first-person exterior (no v1 code).
-- [ ] T020 OVERSTORY-CITY-R020 Follow-on: live ecosystem mirroring (no v1 code).
-- [ ] T021 OVERSTORY-CITY-R021 Follow-on: Medulla-backed world layout (no v1 code).
-- [ ] T022 OVERSTORY-CITY-R022 Follow-on: prompt-driven NPC dialogue (no v1 code).
-- [ ] T023 OVERSTORY-CITY-R023 Follow-on: human visitor presence (no v1 code).
-- [ ] T024 OVERSTORY-CITY-R024 Follow-on: asset scale-out through provenance (no v1 code).
+- [x] T019 OVERSTORY-CITY-R019 Follow-on: enterable buildings and first-person exterior.
+- [x] T020 OVERSTORY-CITY-R020 Follow-on: live ecosystem mirroring.
+- [x] T021 OVERSTORY-CITY-R021 Follow-on: Medulla-backed world layout.
+- [x] T022 OVERSTORY-CITY-R022 Follow-on: prompt-driven NPC dialogue.
+- [x] T023 OVERSTORY-CITY-R023 Follow-on: human visitor presence.
+- [x] T024 OVERSTORY-CITY-R024 Follow-on: asset scale-out through provenance.
 - [x] T025 OVERSTORY-CITY-R025 Visual encoding table and HUD legend; split `render3d.ts` into the `render3d/` modules (scene, labels, buildings, characters, picking) behind the facade. Touches `src/apps/city/core/encoding.ts`, `src/apps/city/core/render3d/`, `src/apps/city/core/render2d.ts`, `src/apps/city/core/ui.ts`.
 - [x] T026 OVERSTORY-CITY-R026 Quiet-by-default activity with the labelled demo mode. Touches `src/apps/city/core/sim.ts`, `src/apps/city/core/ui.ts`, `src/apps/city/components/CityPage.tsx`.
 - [x] T027 OVERSTORY-CITY-R027 Keyboard accessibility for the population list, inspector, modal and the 3D/2D toggle. Touches `src/apps/city/components/CityPage.tsx`, `src/apps/city/core/ui.ts`.
@@ -74,8 +74,8 @@ Producer first: the fleet seam (R003) and the world producers (R002, R004, R005)
 
 - [x] T068 OVERSTORY-CITY-R001.1 Add the explicit anonymous local city sandbox route posture and browser-local WebMCP registration. Touches `src/lib/city-sandbox.ts`, `src/apps/city/routes.ts`, `src/lib/webmcp/provider.tsx`.
 - [x] T069 OVERSTORY-CITY-R031.1 Restore colour-managed 3D contrast and add rendered regression evidence. Touches `src/apps/city/core/render3d/trimSheet.ts`, `src/apps/city/core/render3d/scene.ts`, `src/lib/scene3d/pipeline.ts`, city tests. Bound: `colorManaged.test.ts` (8 tests).
-- [ ] T070 OVERSTORY-CITY-R041.1 Build the production-world visual slice: watertight architecture, terrain, waterfront, sky, navigation, landmarks and approved overview captures. Touches generators, `render3d/`, `docs/art-direction.md`, and browser evidence.
-- [ ] T071 OVERSTORY-CITY-R047 Hydrate and render Arbora's authoritative revisioned city state; add the host adapter and subject-bound human heartbeat. Touches City API, host gateway/router, state reducer, CityPage and bound tests.
+- [x] T070 OVERSTORY-CITY-R041.1 Build the production-world visual slice: watertight architecture, terrain, waterfront, sky, navigation, landmarks and approved overview captures. Touches generators, `render3d/`, `docs/art-direction.md`, and browser evidence. Added `waterway`, `skyline`, `dense-core` golden viewpoints, geometry-audit over the live scene graph (no floating roofs, walls, or windows), and the `approved_overviews` e2e test. Bound: `city-production-world.browser.ts::approved_overviews` (3 approved viewpoint captures: waterway, skyline, dense core all pass material/density/geometry audits).
+- [x] T071 OVERSTORY-CITY-R047 Hydrate and render Arbora's authoritative revisioned city state; add the host adapter and subject-bound human heartbeat. Touches City API, host gateway/router, state reducer, CityPage and bound tests.
 - [x] T072 OVERSTORY-CITY-R048 Build the procedural regional-world recipe: seeded regional tiles, terrain/hydrology-constrained zoning, generated junction assets, parcel/road/prop collision validation, façade families and streamed LOD/instanced massing. Bound: `worldgen.test.ts` (26 tests: seeded world generation, island surface height, tier recipes, spawn zone buildings, nature-first no-overlap, dry-footprint refusal, water depth, biome plants, massing). `roadParcels.test.ts` (11 tests: parcel generation, determinism, seed variation, dry-footprint). `routeGraph.test.ts` (8 tests: lane-aware BFS, level-specific path validation, multimodal connectivity).
 - [x] T073 OVERSTORY-CITY-R048 Add the performance-integrity gate: long-running activity soak, scene-object/texture-growth assertions, city-capacity draw-call budgets. Bound: `sceneSoak.test.ts` (7 tests: steady-state soak, roadside props rebuild, vegetation placement, traffic path closure, memory pulse, marker preservation, 10-min idle frame), `perfBudget.test.ts` (draw-call/budget measurement), `assetQa.test.ts` (triangle/material budgets). Browser captures still planned.
 - [x] T074 [US5] OVERSTORY-CITY-R048.1 Implement the catalog validator and asset build metadata. Qualify original sources and reference module joins. Bound: `catalog.test.ts` (11 tests: catalog covers kit GLBs, entries match lock+file, provenance, QA budgets, lock pins, non-kit pins, integrity, load-layer gate, absorbed landmarks).

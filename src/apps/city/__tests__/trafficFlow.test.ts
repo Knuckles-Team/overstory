@@ -182,11 +182,11 @@ describe('junction approaches (R048.16)', () => {
   it('places controls at intersections with 3+ arms', () => {
     const graph: RoadGraph = {
       nodes: {
-        center: { x: 0, z: 0, id: 'center' },
-        n1: { x: 0, z: 50, id: 'n1' },
-        n2: { x: 50, z: 0, id: 'n2' },
-        n3: { x: 0, z: -50, id: 'n3' },
-        n4: { x: -50, z: 0, id: 'n4' },
+        center: { x: 0, z: 0, id: 'center', kind: 'intersection' as const },
+        n1: { x: 0, z: 50, id: 'n1', kind: 'intersection' as const },
+        n2: { x: 50, z: 0, id: 'n2', kind: 'intersection' as const },
+        n3: { x: 0, z: -50, id: 'n3', kind: 'intersection' as const },
+        n4: { x: -50, z: 0, id: 'n4', kind: 'intersection' as const },
       },
       segments: {
         s1: { id: 's1', from: 'center', to: 'n1', curve: 0, width: 8 },
@@ -207,7 +207,10 @@ describe('junction approaches (R048.16)', () => {
 
   it('2-way segment does not produce junction controls', () => {
     const graph: RoadGraph = {
-      nodes: { a: { x: 0, z: 0, id: 'a' }, b: { x: 50, z: 0, id: 'b' } },
+      nodes: {
+        a: { x: 0, z: 0, id: 'a', kind: 'intersection' as const },
+        b: { x: 50, z: 0, id: 'b', kind: 'intersection' as const },
+      },
       segments: { s1: { id: 's1', from: 'a', to: 'b', curve: 0, width: 6 } },
     }
     expect(junctionApproaches(graph)).toHaveLength(0)
@@ -218,10 +221,10 @@ describe('traffic route generation (R048.16)', () => {
   it('creates routes over a connected graph', () => {
     const graph: RoadGraph = {
       nodes: {
-        a: { x: 0, z: 0, id: 'a' },
-        b: { x: 50, z: 0, id: 'b' },
-        c: { x: 50, z: 50, id: 'c' },
-        d: { x: 0, z: 50, id: 'd' },
+        a: { x: 0, z: 0, id: 'a', kind: 'intersection' as const },
+        b: { x: 50, z: 0, id: 'b', kind: 'intersection' as const },
+        c: { x: 50, z: 50, id: 'c', kind: 'intersection' as const },
+        d: { x: 0, z: 50, id: 'd', kind: 'intersection' as const },
       },
       segments: {
         s1: { id: 's1', from: 'a', to: 'b', curve: 0, width: 10 },
@@ -236,11 +239,11 @@ describe('traffic route generation (R048.16)', () => {
   it('creates routes with controls over a seeded graph', () => {
     const graph: RoadGraph = {
       nodes: {
-        'seed:0': { x: 0, z: 0, id: 'seed:0' },
-        a: { x: 0, z: 0, id: 'a' },
-        b: { x: 50, z: 0, id: 'b' },
-        c: { x: 50, z: 50, id: 'c' },
-        d: { x: 0, z: 50, id: 'd' },
+        'seed:0': { x: 0, z: 0, id: 'seed:0', kind: 'intersection' as const },
+        a: { x: 0, z: 0, id: 'a', kind: 'intersection' as const },
+        b: { x: 50, z: 0, id: 'b', kind: 'intersection' as const },
+        c: { x: 50, z: 50, id: 'c', kind: 'intersection' as const },
+        d: { x: 0, z: 50, id: 'd', kind: 'intersection' as const },
       },
       segments: {
         s1: { id: 's1', from: 'a', to: 'b', curve: 0, width: 10 },
@@ -261,7 +264,11 @@ describe('traffic route generation (R048.16)', () => {
 
   it('every route has positive length and valid motion', () => {
     const graph: RoadGraph = {
-      nodes: { 'seed:0': { x: 0, z: 0, id: 'seed:0' }, a: { x: 0, z: 0, id: 'a' }, b: { x: 100, z: 0, id: 'b' } },
+      nodes: {
+        'seed:0': { x: 0, z: 0, id: 'seed:0', kind: 'intersection' as const },
+        a: { x: 0, z: 0, id: 'a', kind: 'intersection' as const },
+        b: { x: 100, z: 0, id: 'b', kind: 'endpoint' as const },
+      },
       segments: { s1: { id: 's1', from: 'a', to: 'b', curve: 0, width: 10 } },
     }
     for (const route of makeTrafficRoutes(graph)) {
@@ -274,7 +281,11 @@ describe('traffic route generation (R048.16)', () => {
 
   it('deterministic: same graph produces same routes', () => {
     const graph: RoadGraph = {
-      nodes: { 'seed:0': { x: 0, z: 0, id: 'seed:0' }, a: { x: 0, z: 0, id: 'a' }, b: { x: 100, z: 0, id: 'b' } },
+      nodes: {
+        'seed:0': { x: 0, z: 0, id: 'seed:0', kind: 'intersection' as const },
+        a: { x: 0, z: 0, id: 'a', kind: 'intersection' as const },
+        b: { x: 100, z: 0, id: 'b', kind: 'endpoint' as const },
+      },
       segments: { s1: { id: 's1', from: 'a', to: 'b', curve: 0, width: 10 } },
     }
     const r1 = makeTrafficRoutes(graph)

@@ -15,11 +15,11 @@ import type { RoadGraph } from '@/lib/scene3d/roads'
 const SEED = 42
 
 /** A sample request for generating frontage parcels. */
-function sampleRequests(): { w: number; d: number }[] {
+function sampleRequests(): import('../core/worldgen').FrontageRequest[] {
   return [
-    { w: 16, d: 16 }, // small lot
-    { w: 24, d: 16 }, // medium lot
-    { w: 32, d: 24 }, // large lot
+    { id: 'small', w: 16, d: 16 }, // small lot
+    { id: 'medium', w: 24, d: 16 }, // medium lot
+    { id: 'large', w: 32, d: 24 }, // large lot
   ]
 }
 
@@ -39,7 +39,7 @@ describe('road-first parcel generation (R048.8/R048.9)', () => {
     for (const p of parcels) {
       // Every parcel must pass the dry-footprint test.
       expect(
-        isDryFootprint({ x: p.x, z: p.z, w: p.w, d: p.d, yaw: 0 }, 0, SEED),
+        isDryFootprint({ x: p.x, z: p.z, w: p.w, d: p.d }, 0, SEED),
         `parcel at ${p.x.toFixed(1)},${p.z.toFixed(1)} is not dry`,
       ).toBe(true)
     }
@@ -68,11 +68,7 @@ describe('road-first parcel generation (R048.8/R048.9)', () => {
       for (let j = i + 1; j < parcels.length; j++) {
         const a = parcels[i]
         const b = parcels[j]
-        const overlap = rectsOverlap(
-          { x: a.x, z: a.z, w: a.w, d: a.d, yaw: 0 },
-          { x: b.x, z: b.z, w: b.w, d: b.d, yaw: 0 },
-          1,
-        )
+        const overlap = rectsOverlap({ x: a.x, z: a.z, w: a.w, d: a.d }, { x: b.x, z: b.z, w: b.w, d: b.d }, 1)
         expect(
           overlap,
           `parcels ${i} and ${j} overlap: [${a.x.toFixed(1)},${a.z.toFixed(1)}] vs [${b.x.toFixed(1)},${b.z.toFixed(1)}]`,
@@ -176,7 +172,7 @@ describe('road-first parcel generation (R048.8/R048.9)', () => {
     const parcels = generateFrontageSites(graph, SEED, sampleRequests())
 
     for (const p of parcels) {
-      const rect = { x: p.x, z: p.z, w: p.w, d: p.d, yaw: 0 }
+      const rect = { x: p.x, z: p.z, w: p.w, d: p.d }
       // Parcels must pass the dry-footprint check, which includes
       // sea-level filtering (SEA_LEVEL_M).
       expect(isDryFootprint(rect, 0, SEED)).toBe(true)
@@ -187,7 +183,7 @@ describe('road-first parcel generation (R048.8/R048.9)', () => {
     // With a single request and a network that has many segments,
     // we should get at least some parcels.
     const graph = islandRoads(SEED)
-    const parcels = generateFrontageSites(graph, SEED, [{ w: 16, d: 16 }])
+    const parcels = generateFrontageSites(graph, SEED, [{ id: 'small', w: 16, d: 16 }])
 
     // On a generated island network, we should get at least a handful.
     expect(parcels.length, 'expected at least some parcels on island network').toBeGreaterThan(0)

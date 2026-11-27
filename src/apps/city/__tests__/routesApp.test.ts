@@ -64,7 +64,7 @@ describe('city route registration (R001/R001.2)', () => {
     const route = APP_ROUTES[0]
     // The conditional spread is optional; either way is valid.
     // If present, verify the values are correct.
-    const pageConfig = (route as Record<string, unknown>).page as
+    const pageConfig = (route as unknown as Record<string, unknown>).page as
       { visibility: string; indexable: boolean } | undefined
     if (pageConfig) {
       expect(pageConfig.visibility).toBe('public')

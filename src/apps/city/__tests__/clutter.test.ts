@@ -14,10 +14,10 @@ describe('roadside props (R057)', () => {
   it('generates props for a connected graph', () => {
     const graph: RoadGraph = {
       nodes: {
-        a: { x: 0, z: 0, id: 'a' },
-        b: { x: 100, z: 0, id: 'b' },
-        c: { x: 100, z: 100, id: 'c' },
-        d: { x: 0, z: 100, id: 'd' },
+        a: { x: 0, z: 0, id: 'a', kind: 'intersection' as const },
+        b: { x: 100, z: 0, id: 'b', kind: 'intersection' as const },
+        c: { x: 100, z: 100, id: 'c', kind: 'intersection' as const },
+        d: { x: 0, z: 100, id: 'd', kind: 'intersection' as const },
       },
       segments: {
         s1: { id: 's1', from: 'a', to: 'b', curve: 0, width: 12 },
@@ -39,8 +39,8 @@ describe('roadside props (R057)', () => {
   it('same seed produces identical props (deterministic)', () => {
     const graph: RoadGraph = {
       nodes: {
-        a: { x: 0, z: 0, id: 'a' },
-        b: { x: 100, z: 0, id: 'b' },
+        a: { x: 0, z: 0, id: 'a', kind: 'intersection' as const },
+        b: { x: 100, z: 0, id: 'b', kind: 'intersection' as const },
       },
       segments: {
         s1: { id: 's1', from: 'a', to: 'b', curve: 0, width: 10 },
@@ -58,7 +58,10 @@ describe('roadside props (R057)', () => {
 
   it('different seeds produce different props', () => {
     const graph: RoadGraph = {
-      nodes: { a: { x: 0, z: 0, id: 'a' }, b: { x: 100, z: 0, id: 'b' } },
+      nodes: {
+        a: { x: 0, z: 0, id: 'a', kind: 'intersection' as const },
+        b: { x: 100, z: 0, id: 'b', kind: 'intersection' as const },
+      },
       segments: { s1: { id: 's1', from: 'a', to: 'b', curve: 0, width: 10 } },
     }
     const p1 = generateRoadsideProps(graph, 42, [])
@@ -74,10 +77,10 @@ describe('roadside props (R057)', () => {
   it('no two props overlap (minimum clearance)', () => {
     const graph: RoadGraph = {
       nodes: {
-        a: { x: 0, z: 0, id: 'a' },
-        b: { x: 200, z: 0, id: 'b' },
-        c: { x: 200, z: 200, id: 'c' },
-        d: { x: 0, z: 200, id: 'd' },
+        a: { x: 0, z: 0, id: 'a', kind: 'intersection' as const },
+        b: { x: 200, z: 0, id: 'b', kind: 'intersection' as const },
+        c: { x: 200, z: 200, id: 'c', kind: 'intersection' as const },
+        d: { x: 0, z: 200, id: 'd', kind: 'intersection' as const },
       },
       segments: {
         s1: { id: 's1', from: 'a', to: 'b', curve: 0, width: 12 },
@@ -101,7 +104,10 @@ describe('roadside props (R057)', () => {
 
   it('props are placed on both sides of roads (left and right)', () => {
     const graph: RoadGraph = {
-      nodes: { a: { x: 0, z: 0, id: 'a' }, b: { x: 300, z: 0, id: 'b' } },
+      nodes: {
+        a: { x: 0, z: 0, id: 'a', kind: 'intersection' as const },
+        b: { x: 300, z: 0, id: 'b', kind: 'intersection' as const },
+      },
       segments: { s1: { id: 's1', from: 'a', to: 'b', curve: 0, width: 14 } },
     }
     const props = generateRoadsideProps(graph, 42, [])
@@ -120,7 +126,10 @@ describe('roadside props (R057)', () => {
 
   it('obstacles block nearby props', () => {
     const graph: RoadGraph = {
-      nodes: { a: { x: 0, z: 0, id: 'a' }, b: { x: 200, z: 0, id: 'b' } },
+      nodes: {
+        a: { x: 0, z: 0, id: 'a', kind: 'intersection' as const },
+        b: { x: 200, z: 0, id: 'b', kind: 'intersection' as const },
+      },
       segments: { s1: { id: 's1', from: 'a', to: 'b', curve: 0, width: 10 } },
     }
     const obstacles = [{ x: 100, z: 10, w: 20, d: 20 }]
@@ -134,7 +143,10 @@ describe('roadside props (R057)', () => {
 
   it('short segments produce no props', () => {
     const graph: RoadGraph = {
-      nodes: { a: { x: 0, z: 0, id: 'a' }, b: { x: 2, z: 0, id: 'b' } },
+      nodes: {
+        a: { x: 0, z: 0, id: 'a', kind: 'intersection' as const },
+        b: { x: 2, z: 0, id: 'b', kind: 'intersection' as const },
+      },
       segments: { s1: { id: 's1', from: 'a', to: 'b', curve: 0, width: 10 } },
     }
     // Segments need 7+ points; short segments get only 2-3.
@@ -145,10 +157,10 @@ describe('roadside props (R057)', () => {
   it('prop counts respect per-kind limits', () => {
     const graph: RoadGraph = {
       nodes: {
-        a: { x: 0, z: 0, id: 'a' },
-        b: { x: 500, z: 0, id: 'b' },
-        c: { x: 500, z: 500, id: 'c' },
-        d: { x: 0, z: 500, id: 'd' },
+        a: { x: 0, z: 0, id: 'a', kind: 'intersection' as const },
+        b: { x: 500, z: 0, id: 'b', kind: 'intersection' as const },
+        c: { x: 500, z: 500, id: 'c', kind: 'intersection' as const },
+        d: { x: 0, z: 500, id: 'd', kind: 'intersection' as const },
       },
       segments: {
         s1: { id: 's1', from: 'a', to: 'b', curve: 0, width: 12 },
@@ -172,9 +184,9 @@ describe('frontage sites (R057)', () => {
   it('allocates frontage sites next to roads', () => {
     const graph: RoadGraph = {
       nodes: {
-        a: { x: 0, z: 0, id: 'a' },
-        b: { x: 200, z: 0, id: 'b' },
-        c: { x: 200, z: 200, id: 'c' },
+        a: { x: 0, z: 0, id: 'a', kind: 'intersection' as const },
+        b: { x: 200, z: 0, id: 'b', kind: 'intersection' as const },
+        c: { x: 200, z: 200, id: 'c', kind: 'intersection' as const },
       },
       segments: {
         s1: { id: 's1', from: 'a', to: 'b', curve: 0, width: 12 },
@@ -200,7 +212,10 @@ describe('frontage sites (R057)', () => {
 
   it('frontage sites are dry and road-cleared', () => {
     const graph: RoadGraph = {
-      nodes: { a: { x: 0, z: 0, id: 'a' }, b: { x: 300, z: 0, id: 'b' } },
+      nodes: {
+        a: { x: 0, z: 0, id: 'a', kind: 'intersection' as const },
+        b: { x: 300, z: 0, id: 'b', kind: 'intersection' as const },
+      },
       segments: { s1: { id: 's1', from: 'a', to: 'b', curve: 0, width: 14 } },
     }
     const sites = generateFrontageSites(graph, 42, [{ id: 'r1', w: 12, d: 12 }])
@@ -214,10 +229,10 @@ describe('frontage sites (R057)', () => {
   it('frontage sites do not overlap', () => {
     const graph: RoadGraph = {
       nodes: {
-        a: { x: 0, z: 0, id: 'a' },
-        b: { x: 400, z: 0, id: 'b' },
-        c: { x: 400, z: 400, id: 'c' },
-        d: { x: 0, z: 400, id: 'd' },
+        a: { x: 0, z: 0, id: 'a', kind: 'intersection' as const },
+        b: { x: 400, z: 0, id: 'b', kind: 'intersection' as const },
+        c: { x: 400, z: 400, id: 'c', kind: 'intersection' as const },
+        d: { x: 0, z: 400, id: 'd', kind: 'intersection' as const },
       },
       segments: {
         s1: { id: 's1', from: 'a', to: 'b', curve: 0, width: 14 },
@@ -250,7 +265,10 @@ describe('frontage sites (R057)', () => {
 
   it('deterministic frontage sites for same seed', () => {
     const graph: RoadGraph = {
-      nodes: { a: { x: 0, z: 0, id: 'a' }, b: { x: 200, z: 0, id: 'b' } },
+      nodes: {
+        a: { x: 0, z: 0, id: 'a', kind: 'intersection' as const },
+        b: { x: 200, z: 0, id: 'b', kind: 'intersection' as const },
+      },
       segments: { s1: { id: 's1', from: 'a', to: 'b', curve: 0, width: 12 } },
     }
     const requests = [{ id: 'r1', w: 10, d: 10 }]
@@ -266,7 +284,10 @@ describe('frontage sites (R057)', () => {
 
   it('invalid requests are rejected gracefully', () => {
     const graph: RoadGraph = {
-      nodes: { a: { x: 0, z: 0, id: 'a' }, b: { x: 200, z: 0, id: 'b' } },
+      nodes: {
+        a: { x: 0, z: 0, id: 'a', kind: 'intersection' as const },
+        b: { x: 200, z: 0, id: 'b', kind: 'intersection' as const },
+      },
       segments: { s1: { id: 's1', from: 'a', to: 'b', curve: 0, width: 12 } },
     }
     const requests: { id: string; w: number; d: number }[] = [

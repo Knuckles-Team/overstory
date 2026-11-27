@@ -56,6 +56,13 @@ export interface CharactersApi {
   say(charId: string, text: string): void
   /** Detach from the scene and release this layer's GPU resources. */
   dispose(): void
+  /**
+   * Update avatar character positions each frame (R023).
+   * Avatars use a special marker mesh (gold diamond) instead of the rig.
+   */
+  updateAvatars(dtReal: number, _timeAcc: number): void
+  /** Release GPU resources for the avatar marker layer. */
+  disposeAvatars(): void
 }
 
 /**
@@ -365,7 +372,81 @@ export async function initCharacters(
     }
   }
 
+  // ---- Avatar marker mesh (R023) -------------------------------------------
+  // Human visitor avatars use a distinct marker (gold diamond) instead of the
+  // shared rig — they sit on top of the sim layer and follow camera position.
+  const avatarGeo = new THREE.ConeGeometry(0.35, 0.6, 4)
+  avatarGeo.rotateY(Math.PI / 4)
+  const avatarMat = new THREE.MeshStandardMaterial({
+    color: 0xffd166,
+    roughness: 0.5,
+    emissive: 0x332200,
+    emissiveIntensity: 0.3,
+  })
+  const avatarRingGeo = new THREE.RingGeometry(0.2, 0.35, 12)
+  const avatarRingMat = new THREE.MeshBasicMaterial({
+    color: 0xff9500,
+    transparent: true,
+    opacity: 0.7,
+    side: THREE.DoubleSide,
+    depthWrite: false,
+  })
+  const avatarEntries = new Map<string, THREE.Group>()
+
+  function updateAvatars(_dtReal: number, timeAcc: number): void {
+    // Add or update avatar markers for current world.avatars.
+    const currentIds = new Set<string>()
+    for (const av of world.avatars) {
+      currentIds.add(av.avatarId)
+      let group = avatarEntries.get(av.avatarId)
+      if (!group) {
+        group = new THREE.Group()
+        const cone = new THREE.Mesh(avatarGeo, avatarMat)
+        cone.position.y = HUMAN_HEIGHT_M / 2
+        group.add(cone)
+        const ring = new THREE.Mesh(avatarRingGeo, avatarRingMat)
+        ring.rotation.x = -Math.PI / 2
+        ring.position.y = 0.08
+        group.add(ring)
+        scene.add(group)
+        avatarEntries.set(av.avatarId, group)
+      }
+      group.visible = true
+      group.position.set(av.position.x, groundHeight(av.position.x, av.position.z), av.position.z)
+      group.rotation.y = av.heading
+      // Gentle vertical bob for presence.
+      const bob = Math.sin(timeAcc * 2.5 + parseFloat(av.avatarId) * 0.7) * 0.05
+      group.children.forEach((c, i) => {
+        if (i === 0) (c as THREE.Mesh).position.y = HUMAN_HEIGHT_M / 2 + bob
+      })
+    }
+    // Remove avatars that are no longer present.
+    for (const [id, group] of avatarEntries) {
+      if (!currentIds.has(id)) {
+        scene.remove(group)
+        group.children.forEach((c) => {
+          if (c instanceof THREE.Mesh) {
+            if (c.geometry !== avatarGeo) {
+              const geo = c.geometry as { dispose: () => void }
+              geo.dispose()
+            }
+            const mat = c.material as unknown as { dispose?: () => void } | undefined
+            if (typeof mat?.dispose === 'function') mat.dispose()
+          }
+        })
+        avatarEntries.delete(id)
+      }
+    }
+  }
+
+  function disposeAvatars(): void {
+    for (const [, group] of avatarEntries) {
+      scene.remove(group)
+    }
+    avatarEntries.clear()
+  }
+
   await loadCharacters()
 
-  return { update, say, dispose }
+  return { update, say, dispose, updateAvatars, disposeAvatars }
 }

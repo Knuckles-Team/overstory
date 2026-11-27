@@ -187,19 +187,45 @@ describe('R055 district layers', () => {
   })
 
   it('starts muted and sounds only after enable()', async () => {
-    let oscs = 0
+    let _oscs = 0
     const makeCtx = (): AudioContextLike => ({
       currentTime: 0,
       sampleRate: 44100,
       destination: {},
-      createGain: () => ({ connect: () => null, gain: { value: 0, setTargetAtTime: () => {} } }),
+      createGain: () => ({
+        connect: () => null,
+        gain: {
+          value: 0,
+          setTargetAtTime: () => {
+            /* mock */
+          },
+        },
+      }),
       createBuffer: () => ({ getChannelData: () => new Float32Array(1) }),
       createBufferSource: () => ({
-        buffer: null, loop: false, start: () => {}, stop: () => {}, connect: () => null,
+        buffer: null,
+        loop: false,
+        start: () => {
+          /* mock */
+        },
+        stop: () => {
+          /* mock */
+        },
+        connect: () => null,
       }),
       createOscillator: () => {
-        oscs++
-        return { type: 'sine', frequency: { value: 440 }, start: () => {}, stop: () => {}, connect: () => null }
+        _oscs++
+        return {
+          type: 'sine',
+          frequency: { value: 440 },
+          start: () => {
+            /* mock */
+          },
+          stop: () => {
+            /* mock */
+          },
+          connect: () => null,
+        }
       },
       createBiquadFilter: () => ({ type: 'bandpass', frequency: { value: 1000 }, connect: () => null }),
     })
@@ -233,7 +259,7 @@ describe('R055 district layers', () => {
       expect(sources.length).toBeGreaterThanOrEqual(3)
     }
     // Parks and waterfronts have birds
-    expect(Object.keys(DISTRICT_MIX['park'])).toContain('birds')
-    expect(Object.keys(DISTRICT_MIX['waterfront'])).toContain('birds')
+    expect(Object.keys(DISTRICT_MIX.park)).toContain('birds')
+    expect(Object.keys(DISTRICT_MIX.waterfront)).toContain('birds')
   })
 })

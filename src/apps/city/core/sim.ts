@@ -288,7 +288,30 @@ export const world = {
   districtStyles: {} as Record<string, string>,
   /** The stored layout override document applied to this world (R032). */
   layoutDoc: null as LayoutOverride | null,
+  /** Human avatars maintained by the presence system (R023). */
+  avatars: [] as AvatarEntry[],
   initialized: false,
+  /**
+   * Current first-person / enterable camera mode (OVERSTORY-CITY-R019).
+   * `'overview'` and `'street'` mean the orbit-control camera;
+   * `'first-person'` means FPS walk mode; `'enterable'` means the
+   * interior room-stage.
+   */
+  cameraMode: 'overview' as 'overview' | 'street' | 'first-person' | 'enterable',
+}
+
+/**
+ * One human visitor avatar maintained by the presence system (R023).
+ * Unlike sim characters, avatars are user-authored and not generated
+ * by the simulation. They appear on top of the sim layer.
+ */
+export interface AvatarEntry {
+  avatarId: string
+  position: { x: number; z: number }
+  heading: number
+  activity: string
+  zone: string
+  lastSeen: number
 }
 
 /**
@@ -1347,6 +1370,7 @@ export function resetSim(): void {
   world.waterFleet = []
   world.districtStyles = {}
   world.layoutDoc = null
+  world.avatars = []
   world.initialized = false
   autoTaskTimer = 5
   economyAccum = 0

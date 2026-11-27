@@ -36,10 +36,14 @@ function parseGlb(buf: Buffer): {
     off += 8 + cl
   }
   if (!json) throw new Error('no JSON chunk')
-  return json
+  return json as {
+    meshes?: { primitives?: { indices?: number; attributes: Record<string, number> }[] }[]
+    accessors?: { count: number }[]
+    materials?: unknown[]
+  }
 }
 
-function trianglesOf(g: { meshes?: { primitives?: { indices?: number; attributes: Record<string, number> }[] }[]; accessors?: { count: number }[] }): number {
+function trianglesOf(g: any): number {
   let total = 0
   for (const mesh of g.meshes ?? []) {
     for (const prim of mesh.primitives ?? []) {
@@ -57,7 +61,9 @@ describe('civilian pack (R049 / T102)', () => {
   })
 
   it('every civilian variant is pinned in the lock with matching digest and license', () => {
-    const lock = JSON.parse(readFileSync(join(__dirname, '..', '..', '..', '..', 'public', 'city-assets', 'assets.lock.json'), 'utf8'))
+    const lock = JSON.parse(
+      readFileSync(join(__dirname, '..', '..', '..', '..', 'public', 'city-assets', 'assets.lock.json'), 'utf8'),
+    )
     for (let i = 0; i < 12; i++) {
       const name = `civilian-${i.toString().padStart(3, '0')}`
       const path = `city-assets/characters/${name}.glb`
@@ -77,11 +83,11 @@ describe('civilian pack (R049 / T102)', () => {
       const buf = readFileSync(path)
       const g = parseGlb(buf)
       const tris = trianglesOf(g)
-      const mats = (g.materials?.length ?? 0)
+      const mats = g.materials?.length ?? 0
       expect(tris, `${name}: triangles`).toBeLessThanOrEqual(4000)
       expect(mats, `${name}: materials`).toBeLessThanOrEqual(16)
       // No embedded images (no textures)
-      for (const img of g.images ?? []) {
+      for (const img of (g as any).images ?? []) {
         expect(Math.max(img.width ?? 0, img.height ?? 0), `${name}: texture px`).toBeLessThanOrEqual(2048)
       }
     }

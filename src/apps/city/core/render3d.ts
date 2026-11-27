@@ -7,7 +7,11 @@
  * and picking & focus (picking.ts). It consumes the shared world state and
  * the event bus; it owns no facts of its own. The scene library ships only
  * in the city route chunk (OVERSTORY-CITY-R016).
+ *
+ * Avatar characters (R023) use a special marker mesh rendered on top of
+ * the sim character layer.
  */
+// spec: OVERSTORY-CITY-R009, OVERSTORY-CITY-R011, OVERSTORY-CITY-R015, OVERSTORY-CITY-R023, OVERSTORY-CITY-R025, OVERSTORY-CITY-R027, OVERSTORY-CITY-R029, OVERSTORY-CITY-R031, OVERSTORY-CITY-R033
 import * as THREE from 'three'
 import { GLTFLoader, type GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { zoomBandFor } from '@/lib/scene3d/labels'
@@ -23,6 +27,8 @@ import { initCharacters } from './render3d/characters'
 import { createAsyncLayerSlot } from './render3d/asyncLayer'
 import { collectLabelCandidates, createLabelLayer } from './render3d/labelLayer'
 import { createPicking } from './render3d/picking'
+import { createFirstPersonCamera, type CameraMode } from './render3d/firstPerson'
+import { createEnterableBuildingSystem } from './enterBuildings'
 import type { CityRenderer, SelectionHit } from './types'
 
 type World = typeof simWorld
@@ -104,9 +110,58 @@ export async function init3D(
     await initCharacters(scene, world, markerRoot, loadPinnedGLB, camera, sceneCore.groundHeight),
   )
   const picking = createPicking(scene, camera, renderer.domElement, world, controls, onSelect)
+  // Avatar marker methods live on the characters layer.
+  const avatarApi = {
+    updateAvatars: characters.current.updateAvatars.bind(characters.current),
+    disposeAvatars: characters.current.disposeAvatars.bind(characters.current),
+  }
 
   // Landmarks + pre-existing buildings.
   buildings.syncBuildings()
+
+  // ---- First-person / enterable system (OVERSTORY-CITY-R019) -------------
+  const fpCamera = createFirstPersonCamera()
+  fpCamera.attach()
+  const enterable = createEnterableBuildingSystem()
+  // Wire the scene core's ground function and buildings into the FPS system.
+  fpCamera.setGroundHeight(sceneCore.groundHeight)
+  enterable.init(world.buildings)
+
+  // Track the current camera mode (default: overview).
+  let cameraMode: CameraMode = 'overview'
+
+  // ---- Toggle between orbit controls and FPS camera --------------------
+  function syncCameraMode(): void {
+    const mode = world.cameraMode
+    cameraMode = mode
+    // Hide orbit controls when in FPS / enterable mode.
+    controls.enabled = mode !== 'first-person'
+    if (mode === 'first-person' || mode === 'enterable') {
+      fpCamera.setMode(mode)
+      // Set the starting position near the selected building, or at the
+      // orbit camera position if no specific target.
+      if (selectedHit) {
+        const b = world.buildings[selectedHit.id]
+        if (b.door) {
+          fpCamera.setPosition(b.door.x, b.door.z)
+        } else {
+          fpCamera.setPosition(controls.target.x, controls.target.z)
+        }
+      } else {
+        fpCamera.setPosition(controls.target.x, controls.target.z)
+      }
+      fpCamera.setBuildings(world.buildings)
+    } else {
+      fpCamera.setMode('overview')
+    }
+  }
+
+  /** The currently selected hit (used by the FPS system for placement). */
+  let selectedHit: SelectionHit | null = null
+  // Re-sync camera mode whenever the world's cameraMode changes.
+  // (The page calls this via the renderer's lifecycle; we also check
+  // periodically in case the sim changed it independently.)
+  let lastWorldCameraMode: typeof world.cameraMode = world.cameraMode
 
   /**
    * Rebind the layer references after the world was replaced (the replay
@@ -115,9 +170,12 @@ export async function init3D(
    */
   function resync(): void {
     if (disposed) return
-    void characters.replace(() =>
-      initCharacters(scene, world, markerRoot, loadPinnedGLB, camera, sceneCore.groundHeight),
-    )
+    void characters
+      .replace(() => initCharacters(scene, world, markerRoot, loadPinnedGLB, camera, sceneCore.groundHeight))
+      .then(() => {
+        avatarApi.updateAvatars = characters.current.updateAvatars.bind(characters.current)
+        avatarApi.disposeAvatars = characters.current.disposeAvatars.bind(characters.current)
+      })
     buildings.syncBuildings()
   }
 
@@ -154,12 +212,30 @@ export async function init3D(
       if (interval < 200) budgetMonitor.record(interval)
     }
     lastFrameNow = frameStart
-    controls.update()
+
+    // Check for world camera mode changes (OVERSTORY-CITY-R019).
+    if (world.cameraMode !== lastWorldCameraMode) {
+      lastWorldCameraMode = world.cameraMode
+      syncCameraMode()
+    }
+
+    // ---- Update FPS camera when in first-person / enterable mode ------
+    if (cameraMode === 'first-person' || cameraMode === 'enterable') {
+      fpCamera.update(dtReal, camera)
+      // In enterable mode, also update the interior camera state.
+      // The interior room stage uses its own position; the FPS camera
+      // handles the exterior walk.
+    } else {
+      controls.update()
+    }
+
     picking.tick(dtReal)
     const sceneClock = heldAmbientTime ?? world.clock
     sceneCore.updateEnvironment(sceneClock, dtReal)
     buildings.update(dtReal, sceneClock)
     characters.current.update(dtReal, sceneClock)
+    // Avatar characters (R023): update position markers on top of the sim layer.
+    avatarApi.updateAvatars(dtReal, sceneClock)
     buildings.syncBuildings()
     picking.update(sceneClock)
     const labelBand = zoomBandFor(camera.position.distanceTo(controls.target))
@@ -190,10 +266,13 @@ export async function init3D(
 
   function dispose(): void {
     disposed = true
+    avatarApi.disposeAvatars()
     characters.dispose()
     buildings.dispose()
     picking.dispose()
     labelLayer.dispose()
+    fpCamera.dispose()
+    enterable.dispose()
     sceneCore.dispose()
   }
 
@@ -214,7 +293,9 @@ export async function init3D(
       picking.focus(x, z)
     },
     overview: () => {
+      world.cameraMode = 'overview'
       sceneCore.exitInterior()
+      enterable.exit()
       picking.overview()
     },
     getViewport: () => ({
@@ -256,12 +337,30 @@ export async function init3D(
     onResize,
     setSelected: (hit: SelectionHit | null) => {
       picking.setSelected(hit)
+      selectedHit = hit
     },
     enterInterior: (buildingId: string) => {
-      sceneCore.enterInterior(buildingId)
+      // OVERSTORY-CITY-R019: the enterable system handles building entry.
+      // If a valid interior exists, transition the world camera mode.
+      if (enterable.canEnter(buildingId)) {
+        world.cameraMode = 'enterable'
+        enterable.enter(buildingId, 0)
+        // Also activate the existing room-stage interior.
+        sceneCore.enterInterior(buildingId)
+      }
     },
     exitInterior: () => {
+      // First leave the interior room stage.
       sceneCore.exitInterior()
+      // Then restore the world camera mode.
+      if (enterable.inside()) {
+        const exteriorState = enterable.exit()
+        if (exteriorState) {
+          world.cameraMode = 'first-person'
+        }
+      } else {
+        world.cameraMode = 'overview'
+      }
     },
     resync,
     setRoads: (graph: RoadGraph) => {
@@ -281,6 +380,7 @@ export async function init3D(
       holdAmbient,
       budget: budgetView,
       nightWindows: () => buildings.nightWindows(heldAmbientTime ?? world.clock),
+      firstPersonCamera: (): import('./render3d/firstPerson').FirstPersonCamera | null => fpCamera,
       diagnostics: () => {
         const report = budgetMonitor.report()
         return {

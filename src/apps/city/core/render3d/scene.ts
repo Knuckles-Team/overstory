@@ -154,6 +154,10 @@ export interface CityScene {
   /** Restore the exterior camera after leaving the room stage. */
   exitInterior(): void
   dispose(): void
+  /** Set low-tier mode: skip wind, rain, and extra light updates (R052/R053). */
+  setLowTier(low: boolean): void
+  /** Toggle rain visibility (R053). */
+  setRainVisible(visible: boolean): void
 }
 
 /** The per-frame handles of the static city geometry (ambient animation). */
@@ -1321,8 +1325,10 @@ export function createCityScene(container: HTMLElement, world: World, opts: City
       for (const route of fleet.routes) {
         // Headlights brighten at night; tail lights (brake) pulse on stops
         const brake = route.motion.waitingAt !== null ? 0.8 : 0
-        core.traffic.body.material.emissiveIntensity = 0.3 + 0.7 * night
-        core.traffic.cabin.material.emissiveIntensity = 0.15 + brake * 0.6
+        const bm = core.traffic.body.material as THREE.MeshStandardMaterial
+        const cm = core.traffic.cabin.material as THREE.MeshStandardMaterial
+        bm.emissiveIntensity = 0.3 + 0.7 * night
+        cm.emissiveIntensity = 0.15 + brake * 0.6
       }
     }
 

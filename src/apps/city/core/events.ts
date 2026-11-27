@@ -29,11 +29,21 @@ export const EVENT_TYPES = [
   'building.completed',
   'operator.dispatched',
   'layout.edited',
+  'layout.version',
+  'layout.published',
   'asset.verified',
   'asset.failed',
   'mode.selected',
   'economy',
   'economy.construction',
+  // Avatar presence (R023)
+  'avatar.heartbeat',
+  'avatar.zone-change',
+  'avatar.disconnected',
+  'presence.update',
+  // OVERSTORY-CITY-R022: NPC dialogue events
+  'npc.dialogue',
+  'npc.dialogue.error',
 ] as const
 
 export type EventType = (typeof EVENT_TYPES)[number]
@@ -49,6 +59,8 @@ export interface CityEvent {
   task?: string
   mode?: string
   detail?: string
+  /** The avatar id for avatar-related events (R023). */
+  avatar?: string
   /** Where this event came from: the seeded simulation, or the live stream. */
   provenance: EventProvenance
   /** True when the event fired inside a replayed run (R029): the feed labels the replayed window. */

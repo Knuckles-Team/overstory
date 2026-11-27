@@ -314,6 +314,32 @@ export function init2D(
       ctx.fillText(ch.name, x, z - Math.max(5, scale * 1.4))
     }
 
+    // Avatar characters (R023): rendered on top of sim layer, distinct visual.
+    for (const av of world.avatars) {
+      const ax = px(av.position.x)
+      const az = pz(av.position.z)
+      // Avatars use a diamond shape (distinct from sim characters' circles).
+      ctx.fillStyle = '#ffd166' // gold — visible but not aggressive
+      ctx.beginPath()
+      ctx.moveTo(ax, az - Math.max(3, scale * 1.0))
+      ctx.lineTo(ax + Math.max(3, scale * 0.9), az)
+      ctx.lineTo(ax, az + Math.max(3, scale * 1.0))
+      ctx.lineTo(ax - Math.max(3, scale * 0.9), az)
+      ctx.closePath()
+      ctx.fill()
+      // Inner ring to distinguish from placeholder markers.
+      ctx.strokeStyle = '#ff9500'
+      ctx.lineWidth = 1
+      ctx.beginPath()
+      ctx.arc(ax, az, Math.max(2, scale * 0.5), 0, Math.PI * 2)
+      ctx.stroke()
+      // Label: visitor id or name.
+      ctx.fillStyle = '#ffd166'
+      ctx.font = `${Math.max(7, scale * 1.1)}px system-ui, sans-serif`
+      ctx.textAlign = 'center'
+      ctx.fillText(`Visitor ${av.avatarId.slice(-4)}`, ax, az - Math.max(5, scale * 1.6))
+    }
+
     // Night overlay.
     if (night > 0) {
       ctx.fillStyle = `rgba(10, 16, 38, ${0.35 * night})`

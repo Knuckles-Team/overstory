@@ -1,4 +1,4 @@
-// spec: OVERSTORY-CITY-R065, OVERSTORY-CITY-R066, OVERSTORY-CITY-R078
+// spec: OVERSTORY-CITY-R065, OVERSTORY-CITY-R066, OVERSTORY-CITY-R078, OVERSTORY-CITY-R041.1
 import { expect, test } from '@playwright/test'
 
 test.describe('Arbora City production world', () => {
@@ -213,6 +213,42 @@ test.describe('Arbora City production world', () => {
     // because it is a canvas, but it still carries the budget counters.
     if (report2d) {
       expect(report2d.floorFps).toBeGreaterThan(0)
+    }
+  })
+
+  test('approved_overviews: R041.1 visual slice with geometry-audit', async ({ page }, info) => {
+    await page.setViewportSize({ width: 1440, height: 900 })
+    await page.goto('/apps/city?demo=1')
+    await page.waitForFunction(() => !!window.__cityFidelity, undefined, { timeout: 30_000 })
+
+    const gpu = await page.evaluate(() => window.__cityFidelity!.gpu())
+    test.skip(gpu === 'no-webgl', 'R041.1 requires WebGL for the geometry-audit over the scene graph.')
+
+    // The three approved overview viewpoints: waterway, skyline, dense core.
+    // Each must capture without error and the audits must pass (including
+    // geometry-audit: no disconnected roof, wall, or window meshes).
+    const approvedViews: Array<{ name: string; ok: boolean; geometryWatertight: boolean; p95Ms: number }> = []
+    for (const view of ['waterway', 'skyline', 'dense-core'] as const) {
+      await page.evaluate((v) => window.__cityFidelity!.capture(v), view)
+      const audits = await page.evaluate(() => window.__cityFidelity!.audits())
+      expect(audits.ok, `${view} audits failed`).toBe(true)
+      expect(audits.material.ok).toBe(true)
+      expect(audits.density.ok).toBe(true)
+      // R041.1: watertight geometry (no floating roofs, walls, or windows).
+      expect(audits.geometry.watertight, `${view}: geometry-audit rejects disconnected meshes`).toBe(true)
+      const frame = await page.evaluate((n) => window.__cityFidelity!.frameTime(n), 30)
+      approvedViews.push({ name: view, ok: audits.ok, geometryWatertight: audits.geometry.watertight, p95Ms: frame.p95Ms })
+      await page.screenshot({ path: info.outputPath(`city-overview-${view}.png`), animations: 'disabled' })
+    }
+    await info.attach('city-approved-overviews.json', {
+      body: JSON.stringify(approvedViews, null, 2),
+      contentType: 'application/json',
+    })
+    // Every approved view must hold the frame budget within margin.
+    for (const v of approvedViews) {
+      expect(v.ok).toBe(true)
+      expect(v.geometryWatertight).toBe(true)
+      if (process.env.CITY_ASSERT_FPS === '1') expect(v.p95Ms).toBeLessThanOrEqual(16.7)
     }
   })
 })

@@ -624,3 +624,42 @@ class CityGateway:
         except Exception as error:
             raise _classified(error) from error
         return value
+
+    # ------------------------------------------------------------------
+    # City-state (OVERSTORY-CITY-R047)
+    # ------------------------------------------------------------------
+
+    async def get_city_state(self) -> dict[str, Any] | None:
+        """Return the city-state snapshot.
+
+        In LIVE mode this probes the Arbora fleet operations
+        ``fleet.city.presence`` (current snapshot) and
+        ``fleet.city.presence.heartbeat`` (avatar publishing). When the
+        fleet is unavailable the gateway answers ``None`` and the browser
+        falls back to simulated mode.
+        """
+
+        try:
+            value = await self._invoke('fleet.city.presence', {})
+        except Exception:
+            # No live city-state — browser will simulate.
+            return None
+        return value if isinstance(value, Mapping) else None  # type: ignore[return-value]
+
+    async def publish_heartbeat(
+        self, heartbeat: dict[str, Any]
+    ) -> dict[str, Any] | None:
+        """Publish one avatar heartbeat through the Arbora presence layer.
+
+        The gateway does not enforce subject-bound rules (the caller
+        verifies that ``avatar_id`` matches the authenticated user). When
+        the fleet is unavailable the gateway answers ``None``.
+        """
+
+        try:
+            value = await self._invoke(
+                'fleet.city.presence.heartbeat', {'heartbeat': heartbeat}
+            )
+        except Exception:
+            return None
+        return value if isinstance(value, Mapping) else None  # type: ignore[return-value]

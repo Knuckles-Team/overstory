@@ -4,6 +4,7 @@
  * and the pinned-asset lockfile. The host answers the strict normalized fleet
  * shape (OVERSTORY-CITY-R003/R017); the browser never sees anything else.
  */
+// spec: OVERSTORY-CITY-R003, OVERSTORY-CITY-R017, OVERSTORY-CITY-R021, OVERSTORY-CITY-R032
 import { z } from 'zod'
 
 export const PACK_STATUSES = ['served', 'registered_unpublished'] as const
@@ -97,6 +98,82 @@ export const layoutSavedSchema = z.object({
 export type LayoutDoc = z.infer<typeof layoutDocSchema>
 export type CityLayout = z.infer<typeof cityLayoutSchema>
 export type LayoutSaved = z.infer<typeof layoutSavedSchema>
+
+// ---- Medulla-backed layout (R021) ------------------------------------------
+
+/**
+ * A Medulla-persisted layout document with version tracking, deterministic
+ * serialization fields and world-level metadata. The browser-side twin of
+ * the host's layout document — same bounds, same version.
+ */
+export const medullaLayoutDocSchema = z.object({
+  version: z.number().int().positive(),
+  seed: z.string().optional(),
+  buildings: z
+    .array(
+      z.object({
+        id: z.string().min(1).max(200),
+        x: z.number(),
+        z: z.number(),
+        rot: z.union([z.literal(0), z.literal(90), z.literal(180), z.literal(270)]),
+        plot: z.number().int().min(0).max(1023),
+        door: z.object({ x: z.number(), z: z.number() }).nullable().optional(),
+      }),
+    )
+    .max(500),
+  roads: z
+    .array(
+      z.object({
+        id: z.string().min(1).max(200),
+        from: z.string().min(1).max(200),
+        to: z.string().min(1).max(200),
+        x1: z.number().optional(),
+        z1: z.number().optional(),
+        x2: z.number().optional(),
+        z2: z.number().optional(),
+      }),
+    )
+    .max(1000),
+  styles: z.record(z.string().min(1).max(50), z.enum(LAYOUT_ARCHETYPES)),
+  captured_at: z.string().min(1),
+  /** Monotonically increasing revision number (R021). */
+  revision: z.number().int().positive(),
+})
+
+/**
+ * A published layout — the layout document plus the Arbora-world metadata
+ * that turns a local save into a world-change event (R021).
+ */
+export const publishedLayoutSchema = z.object({
+  doc: layoutDocSchema,
+  worldKey: z.string().min(1),
+  version: z.string().min(1),
+  publishedAt: z.string().min(1),
+  accepted: z.boolean(),
+  reason: z.string().min(1).max(500).optional(),
+})
+
+/** A layout change event fired by the Medulla client (R021). */
+export const layoutEventSchema = z.object({
+  type: z.enum(['layout-save', 'layout-published', 'layout-version']),
+  version: z.string().min(1),
+  detail: z.string().max(500).optional(),
+})
+
+/** A Medulla layout key (tenant-scoped KV). */
+export const medullaLayoutKeySchema = z.object({
+  tenant: z.string().min(1),
+  key: z.string().min(1).optional(),
+})
+
+/** A Medulla layout document (with world-level metadata). */
+export type MedullaLayoutDoc = z.infer<typeof medullaLayoutDocSchema>
+/** A published layout (with Arbora-world metadata, R021). */
+export type PublishedLayoutIn = z.infer<typeof publishedLayoutSchema>
+/** A layout change event (R021). */
+export type LayoutEvent = z.infer<typeof layoutEventSchema>
+/** A Medulla layout key (R021). */
+export type MedullaLayoutKey = z.infer<typeof medullaLayoutKeySchema>
 
 export const assetsLockPinSchema = z.object({
   source_path: z.string().min(1),

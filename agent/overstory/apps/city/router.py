@@ -94,6 +94,35 @@ def _doc_to_dict(doc: LayoutDocIn) -> dict[str, Any]:
     }
 
 
+class HeartbeatIn(BaseModel):
+    """One avatar heartbeat (OVERSTORY-CITY-R047).
+
+    The gateway stores the heartbeat but does not enforce subject-bound
+    rules here — the caller (CityPage) verifies that avatar_id matches
+    the authenticated user before calling this endpoint.
+    """
+
+    avatarId: str = Field(min_length=1, max_length=200)
+    x: float = Field(ge=-200, le=200)
+    y: float = Field(ge=0, le=100)
+    z: float = Field(ge=-200, le=200)
+    heading: float = Field(ge=0, le=6.2832)  # 0..2pi radians
+    activity: str = Field(min_length=0, max_length=100)
+    timestamp: float = Field(ge=0)
+
+
+def _heartbeat_to_wire(body: HeartbeatIn) -> dict[str, Any]:
+    """Convert the Pydantic heartbeat to its snake_case wire shape."""
+
+    return {
+        'avatar_id': body.avatarId,
+        'position': {'x': body.x, 'y': body.y, 'z': body.z},
+        'heading': body.heading,
+        'activity': body.activity,
+        'timestamp': body.timestamp,
+    }
+
+
 def build_city_router(gateway: CityGateway) -> APIRouter:
     """The City routes over one fleet gateway (shared, cached)."""
 
@@ -162,6 +191,60 @@ def build_city_router(gateway: CityGateway) -> APIRouter:
             'servers': read.servers,
             'captured_at': read.captured_at,
             'cache': {'stale': False, 'age_seconds': round(read.age_seconds, 1)},
+        }
+
+    # ------------------------------------------------------------------
+    # City-state (OVERSTORY-CITY-R047)
+    # ------------------------------------------------------------------
+
+    @router.get('/state')
+    async def city_state_read() -> dict[str, Any]:
+        """The current city-state snapshot (LIVE only).
+
+        The snapshot carries a revision number, in-game clock, layout
+        revision, and entity list (AI, NPC and avatar positions,
+        headings, activity, provenance). When Arbora is unavailable the
+        route returns a 503 — the browser then shows the labelled
+        simulated fallback.
+        """
+
+        live = await gateway.get_city_state()
+        if live is None:
+            # No live state available — the browser shows simulated fallback.
+            return {
+                'revision': 1,
+                'clock': 32400,
+                'layoutRevision': 1,
+                'entities': [],
+                'live': False,
+            }
+        # Normalise the Arbora city-state response.
+        return {
+            'revision': live.get('revision', 1),
+            'clock': live.get('clock', 32400),
+            'layoutRevision': live.get('layout_revision', 1),
+            'entities': live.get('entities', []),
+            'live': True,
+        }
+
+    @router.post('/state/heartbeat')
+    async def city_state_heartbeat(body: HeartbeatIn) -> dict[str, Any]:
+        """Publish one avatar heartbeat through the city-state layer
+        (LIVE only; anonymous sandbox receives no write path).
+
+        The gateway relays the heartbeat to Arbora's presence layer.
+        A successful publish stores the heartbeat so other viewers
+        see the avatar update on their next snapshot refresh.
+        """
+
+        wire = _heartbeat_to_wire(body)
+        result = await gateway.publish_heartbeat(wire)
+        if result is None:
+            # Arbora presence unavailable — the heartbeat is not stored.
+            return {'accepted': False, 'reason': 'presence-unavailable'}
+        return {
+            'accepted': True,
+            'avatar_id': body.avatarId,
         }
 
     return router

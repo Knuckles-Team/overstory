@@ -105,19 +105,19 @@ export function initUI(world: World, renderer: CityRenderer, actions: CityAction
     els.mode.textContent = mode === 'simulated' ? 'SIMULATED' : 'LIVE'
     els.mode.className = `badge ${mode === 'simulated' ? 'sim' : 'live'}`
     // R010: the feed badge clears only when the first live event lands.
-    els.simBadge.classList.toggle('hidden', !feedFullySimulated())
+    els.simBadge!.classList.toggle('hidden', !feedFullySimulated())
     // R026: the activity mode is always labelled, and the toggle stays in
     // sync with the sim state the page wrote.
     const demo = world.activity === 'demo'
-    els.activityBadge.textContent = demo ? 'DEMO ACTIVITY' : 'QUIET ACTIVITY'
-    els.activityBadge.classList.toggle('demo', demo)
-    els.btnDemo.setAttribute('aria-pressed', String(demo))
-    els.btnDemo.textContent = demo ? 'Demo: on' : 'Demo: off'
+    els.activityBadge!.textContent = demo ? 'DEMO ACTIVITY' : 'QUIET ACTIVITY'
+    els.activityBadge!.classList.toggle('demo', demo)
+    els.btnDemo!.setAttribute('aria-pressed', String(demo))
+    els.btnDemo!.textContent = demo ? 'Demo: on' : 'Demo: off'
   }
 
   // ---- Legend (R025: derived from the one encoding table) --------------------
   function renderLegend(): void {
-    els.legend.innerHTML = legendLines()
+    els.legend!.innerHTML = legendLines()
       .map((line) => `<div class="legend-line">${escapeHtml(line)}</div>`)
       .join('')
   }
@@ -171,7 +171,7 @@ export function initUI(world: World, renderer: CityRenderer, actions: CityAction
       const bar = row.querySelector<HTMLElement>('.ctxbar > span')
       if (bar) bar.style.width = `${Math.round(ch.context)}%`
       // Roster order: appendChild moves an existing node to its place.
-      els.popList.appendChild(row)
+      els.popList!.appendChild(row)
     }
     // A replay that changed the roster drops the rows that left.
     for (const [id, row] of popRows) {
@@ -206,18 +206,18 @@ export function initUI(world: World, renderer: CityRenderer, actions: CityAction
     if (selected.kind === 'character') {
       const ch = world.characters.find((c) => c.id === selId)
       if (!ch) return
-      const state = els.inspector.querySelector<HTMLElement>('[data-slot="state"]')
+      const state = els.inspector!.querySelector<HTMLElement>('[data-slot="state"]')
       if (state) {
         state.style.color = stateColor(ch.state, ch.kind)
         state.textContent = ch.state
       }
-      const mood = els.inspector.querySelector<HTMLElement>('[data-slot="mood"]')
+      const mood = els.inspector!.querySelector<HTMLElement>('[data-slot="mood"]')
       if (mood) mood.textContent = ch.mood
-      const ctx = els.inspector.querySelector<HTMLElement>('[data-slot="context"]')
+      const ctx = els.inspector!.querySelector<HTMLElement>('[data-slot="context"]')
       if (ctx) ctx.textContent = `${Math.round(ch.context)}%`
-      const bar = els.inspector.querySelector<HTMLElement>('[data-slot="ctxbar"] > span')
+      const bar = els.inspector!.querySelector<HTMLElement>('[data-slot="ctxbar"] > span')
       if (bar) bar.style.width = `${Math.round(ch.context)}%`
-      const approval = els.inspector.querySelector<HTMLElement>('[data-slot="approval"]')
+      const approval = els.inspector!.querySelector<HTMLElement>('[data-slot="approval"]')
       if (approval && ch.task) {
         approval.textContent = ch.task.approvalRequired
           ? ch.task.state === 'pending_approval'
@@ -225,7 +225,7 @@ export function initUI(world: World, renderer: CityRenderer, actions: CityAction
             : 'required'
           : 'not required'
       }
-      const events = els.inspector.querySelector<HTMLElement>('[data-slot="events"]')
+      const events = els.inspector!.querySelector<HTMLElement>('[data-slot="events"]')
       if (events) {
         const key = `ch-e:${selected.id}:${ch.events.length}:${ch.events[ch.events.length - 1]?.detail ?? ''}`
         if (events.dataset.key !== key) {
@@ -242,17 +242,17 @@ export function initUI(world: World, renderer: CityRenderer, actions: CityAction
     }
     const b = selId in world.buildings ? world.buildings[selId] : null
     if (!b) return
-    const visits = els.inspector.querySelector<HTMLElement>('[data-slot="visits"]')
+    const visits = els.inspector!.querySelector<HTMLElement>('[data-slot="visits"]')
     if (visits) visits.textContent = String(b.visits)
-    const cProg = els.inspector.querySelector<HTMLElement>('[data-slot="cprogress"]')
+    const cProg = els.inspector!.querySelector<HTMLElement>('[data-slot="cprogress"]')
     if (cProg) {
       const plot = world.plots.find((p) => p.buildingId === b.id)
       const pct = Math.round((plot?.construction?.progress ?? 0) * 100)
       cProg.textContent = `${pct}%`
-      const bar = els.inspector.querySelector<HTMLElement>('[data-slot="cbar"] > span')
+      const bar = els.inspector!.querySelector<HTMLElement>('[data-slot="cbar"] > span')
       if (bar) bar.style.width = `${pct}%`
     }
-    const rooms = els.inspector.querySelector<HTMLElement>('[data-slot="rooms"]')
+    const rooms = els.inspector!.querySelector<HTMLElement>('[data-slot="rooms"]')
     if (rooms) {
       // Only re-render the room plan when the occupants actually changed.
       const inside = world.characters.filter((c) => c.state === 'working' && c.task?.buildingId === b.id)
@@ -276,13 +276,13 @@ export function initUI(world: World, renderer: CityRenderer, actions: CityAction
   }
 
   function renderInspector(): void {
-    if (inspectorKey() === inspectorLastKey && els.inspector.childElementCount > 0) {
+    if (inspectorKey() === inspectorLastKey && els.inspector!.childElementCount > 0) {
       patchInspector()
       return
     }
     inspectorLastKey = inspectorKey()
     if (!selected) {
-      els.inspector.innerHTML = `<div class="empty">
+      els.inspector!.innerHTML = `<div class="empty">
         <h3>Arbora City</h3>
         <p>Every character here is simulated: 14 AI agents from the harness plus 3 simulated operator
         characters. In both modes the activity is the labelled simulation.</p>
@@ -308,7 +308,7 @@ export function initUI(world: World, renderer: CityRenderer, actions: CityAction
             `<div class="evt-mini"><span class="chip-evt" style="color:${TYPE_COLORS[e.type] ?? '#888'}">${escapeHtml(e.type)}</span> ${escapeHtml(e.detail || '')}</div>`,
         )
         .join('')
-      els.inspector.innerHTML = `
+      els.inspector!.innerHTML = `
         <h3>${escapeHtml(ch.name)} <span class="chip ${ch.kind === 'npc' ? 'npc' : 'ai'}">${
           ch.kind === 'npc' ? 'SIMULATED OPERATOR' : 'AI AGENT'
         }</span></h3>
@@ -363,7 +363,7 @@ export function initUI(world: World, renderer: CityRenderer, actions: CityAction
     const simToolsNote = b.simTools
       ? '<p class="role">Tool list is the simulated set — the pack has not served its tool catalog yet.</p>'
       : ''
-    els.inspector.innerHTML = `
+    els.inspector!.innerHTML = `
       <h3>${escapeHtml(b.name)} ${b.served ? '<span class="badge live small">SERVED</span>' : ''}</h3>
       <p class="role">${escapeHtml(b.category === 'core' ? b.role : b.blurb || b.role)}</p>
       ${construction}
@@ -400,7 +400,7 @@ export function initUI(world: World, renderer: CityRenderer, actions: CityAction
   // Inspector content is rebuilt as simulation facts change. A single
   // delegated listener on the stable container keeps interior entry/exit
   // responsive without accumulating handlers or stale closures.
-  els.inspector.addEventListener('click', (event) => {
+  els.inspector!.addEventListener('click', (event) => {
     const target = event.target
     if (!(target instanceof HTMLElement)) return
     const action = target.dataset.interiorAction
@@ -440,10 +440,10 @@ export function initUI(world: World, renderer: CityRenderer, actions: CityAction
     const div = document.createElement('div')
     div.className = 'feed-item'
     div.innerHTML = `<span class="feed-time">${evt.ts !== undefined ? fmtClock(evt.ts) : ''}</span>${provenanceMarks(evt)}<span class="chip-evt" style="color:${colors};border-color:${colors}55">${escapeHtml(evt.type)}</span><span class="feed-text">${escapeHtml(evt.detail ?? '')}</span>`
-    els.feedList.prepend(div)
-    while (els.feedList.children.length > 40) {
-      const last = els.feedList.lastElementChild
-      if (last) els.feedList.removeChild(last)
+    els.feedList!.prepend(div)
+    while (els.feedList!.children.length > 40) {
+      const last = els.feedList!.lastElementChild
+      if (last) els.feedList!.removeChild(last)
     }
   }
 
@@ -466,8 +466,8 @@ export function initUI(world: World, renderer: CityRenderer, actions: CityAction
   const unsub = bus.subscribe((evt) => {
     pushFeed(evt)
     if (evt.type === 'mode.selected') {
-      els.banner.textContent = evt.detail ?? ''
-      els.banner.classList.toggle('hidden', evt.mode !== 'simulated')
+      els.banner!.textContent = evt.detail ?? ''
+      els.banner!.classList.toggle('hidden', evt.mode !== 'simulated')
       updateTopBar()
     }
     // R032: a saved layout edit re-renders the open edit panel — the free
@@ -481,45 +481,45 @@ export function initUI(world: World, renderer: CityRenderer, actions: CityAction
   })
 
   // ---- Controls ------------------------------------------------------------------
-  els.btnDispatch.addEventListener('click', () => {
+  els.btnDispatch!.addEventListener('click', () => {
     actions.dispatch()
   })
-  els.btnOverview.addEventListener('click', () => {
+  els.btnOverview!.addEventListener('click', () => {
     actions.overview()
   })
-  els.btnOnboard.addEventListener('click', () => {
+  els.btnOnboard!.addEventListener('click', () => {
     openModal()
   })
-  for (const btn of els.speedButtons) {
+  for (const btn of els.speedButtons!) {
     btn.addEventListener('click', () => {
-      for (const b of els.speedButtons) b.classList.remove('active')
+      for (const b of els.speedButtons!) b.classList.remove('active')
       btn.classList.add('active')
       actions.speed(parseFloat(btn.dataset.speed ?? '1'))
     })
   }
   // R026: the labelled demo toggle — quiet is the default.
-  els.btnDemo.addEventListener('click', () => {
+  els.btnDemo!.addEventListener('click', () => {
     actions.setActivity(world.activity === 'demo' ? 'quiet' : 'demo')
     updateTopBar()
   })
   // R042: the ambience toggle — muted until this gesture.
-  els.btnAudio.addEventListener('click', () => {
-    actions.setAudio(els.btnAudio.getAttribute('aria-pressed') !== 'true')
+  els.btnAudio!.addEventListener('click', () => {
+    actions.setAudio(els.btnAudio!.getAttribute('aria-pressed') !== 'true')
   })
   // R027: the 3D/2D view toggle — the 2D schematic is the accessible view.
   // The page owns the active view and the buttons' pressed state.
-  els.btnView2d.addEventListener('click', () => {
+  els.btnView2d!.addEventListener('click', () => {
     actions.setView('2d')
   })
-  els.btnView3d.addEventListener('click', () => {
+  els.btnView3d!.addEventListener('click', () => {
     actions.setView('3d')
   })
   // R029: the time scrubber over the recorded action history.
-  els.scrubber.addEventListener('input', () => {
-    actions.scrub(Math.max(0, Number(els.scrubber.value) || 0))
+  els.scrubber!.addEventListener('input', () => {
+    actions.scrub(Math.max(0, Number(els.scrubber!.value) || 0))
   })
   // R030: the tour can be re-opened from the control bar.
-  els.btnTour.addEventListener('click', () => {
+  els.btnTour!.addEventListener('click', () => {
     actions.startTour()
   })
 
@@ -555,7 +555,7 @@ export function initUI(world: World, renderer: CityRenderer, actions: CityAction
     const nodes = graph ? Object.values(graph.nodes).sort((a, b) => a.id.localeCompare(b.id)) : []
     const segments = graph ? Object.values(graph.segments).sort((a, b) => a.id.localeCompare(b.id)) : []
     const plotLabel = (i: number, p: (typeof world.plots)[number]): string => `Plot ${i} — (${p.x}, ${p.z})`
-    els.editPanel.innerHTML = `
+    els.editPanel!.innerHTML = `
       <div class="edit-head"><h3>Layout edits</h3><button id="city-edit-close" class="ghost" type="button">Close</button></div>
       <div class="edit-sec">
         <label class="kv"><span>Building</span></label>
@@ -612,24 +612,24 @@ export function initUI(world: World, renderer: CityRenderer, actions: CityAction
         <button data-edit-action="reset" type="button">Restore derived layout</button>
         <p class="edit-msg" role="status" aria-live="polite"></p>
       </div>`
-    const close = els.editPanel.querySelector<HTMLButtonElement>('#city-edit-close')
+    const close = els.editPanel!.querySelector<HTMLButtonElement>('#city-edit-close')
     if (close) close.focus()
   }
 
   function closeEdit(): void {
     if (!editOpen) return
     editOpen = false
-    els.btnEdit.setAttribute('aria-expanded', 'false')
-    els.editPanel.classList.add('hidden')
-    els.editPanel.innerHTML = ''
+    els.btnEdit!.setAttribute('aria-expanded', 'false')
+    els.editPanel!.classList.add('hidden')
+    els.editPanel!.innerHTML = ''
     document.removeEventListener('keydown', onEditKey)
-    els.btnEdit.focus()
+    els.btnEdit!.focus()
   }
 
   function openEdit(): void {
     editOpen = true
-    els.btnEdit.setAttribute('aria-expanded', 'true')
-    els.editPanel.classList.remove('hidden')
+    els.btnEdit!.setAttribute('aria-expanded', 'true')
+    els.editPanel!.classList.remove('hidden')
     document.addEventListener('keydown', onEditKey)
     renderEditPanel()
   }
@@ -638,7 +638,7 @@ export function initUI(world: World, renderer: CityRenderer, actions: CityAction
     if (e.key === 'Escape') closeEdit()
   }
 
-  els.btnEdit.addEventListener('click', () => {
+  els.btnEdit!.addEventListener('click', () => {
     if (editOpen) closeEdit()
     else openEdit()
   })
@@ -646,7 +646,7 @@ export function initUI(world: World, renderer: CityRenderer, actions: CityAction
   async function submitEdit(edit: LayoutEdit): Promise<void> {
     if (editBusy) return
     editBusy = true
-    const msg = els.editPanel.querySelector<HTMLElement>('.edit-msg')
+    const msg = els.editPanel!.querySelector<HTMLElement>('.edit-msg')
     if (msg) msg.textContent = 'Saving…'
     const res = await actions.layoutEdit(edit)
     editBusy = false
@@ -657,11 +657,11 @@ export function initUI(world: World, renderer: CityRenderer, actions: CityAction
   // One delegated listener per handle (the panel content is re-rendered on
   // every submit and on layout.edited, so the listeners live on the stable
   // container, not the rebuilt options).
-  els.editPanel.addEventListener('change', (e) => {
+  els.editPanel!.addEventListener('change', (e) => {
     const t = e.target
     if (t instanceof HTMLSelectElement && t.dataset.edit) editSel[t.dataset.edit] = t.value
   })
-  els.editPanel.addEventListener('click', (e) => {
+  els.editPanel!.addEventListener('click', (e) => {
     const t = e.target
     if (!(t instanceof HTMLElement)) return
     if (t.id === 'city-edit-close') {
@@ -749,26 +749,26 @@ export function initUI(world: World, renderer: CityRenderer, actions: CityAction
       </div>`
     }
     html += '</div>'
-    const panel = els.modal.firstElementChild
+    const panel = els.modal!.firstElementChild
     if (panel) {
       panel.innerHTML = html
       panel.setAttribute('role', 'dialog')
       panel.setAttribute('aria-modal', 'true')
       panel.setAttribute('aria-label', 'Onboard a connector')
     }
-    els.modal.classList.add('open')
+    els.modal!.classList.add('open')
     modalOpen = true
     document.addEventListener('keydown', onModalKey)
-    const close = els.modal.querySelector<HTMLButtonElement>('#city-modal-close')
+    const close = els.modal!.querySelector<HTMLButtonElement>('#city-modal-close')
     if (close) {
       close.addEventListener('click', () => {
         closeModal()
       })
       close.focus()
     }
-    for (const btn of els.modal.querySelectorAll<HTMLButtonElement>('.build-btn[data-id]')) {
+    for (const btn of els.modal!.querySelectorAll<HTMLButtonElement>('.build-btn[data-id]')) {
       btn.addEventListener('click', () => {
-        els.modal.classList.remove('open')
+        els.modal!.classList.remove('open')
         const id = btn.dataset.id
         if (id) actions.onboard(id)
       })
@@ -777,10 +777,10 @@ export function initUI(world: World, renderer: CityRenderer, actions: CityAction
 
   function closeModal(): void {
     if (!modalOpen) return
-    els.modal.classList.remove('open')
+    els.modal!.classList.remove('open')
     document.removeEventListener('keydown', onModalKey)
     modalOpen = false
-    els.btnOnboard.focus()
+    els.btnOnboard!.focus()
   }
 
   // ---- First-visit tour (R030) -------------------------------------------------------
@@ -829,7 +829,7 @@ export function initUI(world: World, renderer: CityRenderer, actions: CityAction
   function renderTour(): void {
     const steps = tourSteps()
     const step = steps[tourStep]
-    els.tour.innerHTML = `
+    els.tour!.innerHTML = `
       <div class="tour-card" role="dialog" aria-label="City tour, step ${tourStep + 1} of ${steps.length}">
         <h3>${escapeHtml(step.title)}</h3>
         <p>${escapeHtml(step.body)}</p>
@@ -840,12 +840,12 @@ export function initUI(world: World, renderer: CityRenderer, actions: CityAction
           }</button>
         </div>
       </div>`
-    const skip = els.tour.querySelector<HTMLButtonElement>('#city-tour-skip')
+    const skip = els.tour!.querySelector<HTMLButtonElement>('#city-tour-skip')
     if (skip)
       skip.addEventListener('click', () => {
         endTour()
       })
-    const next = els.tour.querySelector<HTMLButtonElement>('#city-tour-next')
+    const next = els.tour!.querySelector<HTMLButtonElement>('#city-tour-next')
     if (next)
       next.addEventListener('click', () => {
         const steps = tourSteps()
@@ -866,7 +866,7 @@ export function initUI(world: World, renderer: CityRenderer, actions: CityAction
 
   function endTour(): void {
     tourStep = -1
-    els.tour.innerHTML = ''
+    els.tour!.innerHTML = ''
     try {
       window.sessionStorage.setItem(TOUR_SESSION_KEY, '1')
     } catch {
@@ -878,10 +878,10 @@ export function initUI(world: World, renderer: CityRenderer, actions: CityAction
   function updateScrubber(): void {
     const last = world.actions.length ? world.actions[world.actions.length - 1].ts : world.absGameS
     const max = Math.max(0, Math.floor(last - BOOT_ABS_S))
-    els.scrubber.max = String(max)
-    if (Number(els.scrubber.value) > max) els.scrubber.value = String(max)
-    const offset = Number(els.scrubber.value) || 0
-    els.scrubberReadout.textContent =
+    els.scrubber!.max = String(max)
+    if (Number(els.scrubber!.value) > max) els.scrubber!.value = String(max)
+    const offset = Number(els.scrubber!.value) || 0
+    els.scrubberReadout!.textContent =
       offset > 0 ? `replayed ${fmtClock(BOOT_ABS_S + offset)}` : `live ${fmtClock(world.clock)}`
   }
 
@@ -923,7 +923,7 @@ export function initUI(world: World, renderer: CityRenderer, actions: CityAction
 
   // Reflect the boot-time mode in the banner (the mode.selected event fired
   // before this subscription existed).
-  if (getMode() === 'simulated') els.banner.classList.remove('hidden')
+  if (getMode() === 'simulated') els.banner!.classList.remove('hidden')
 
   renderLegend()
   updateTopBar()

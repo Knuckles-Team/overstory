@@ -29,6 +29,8 @@ export const PARITY: readonly ParityEntry[] = [
   { action: 'scrub', kind: 'view' },
   { action: 'audio', kind: 'view' },
   { action: 'dispatch', kind: 'work', gap: 'OVERSTORY-CITY-R022' },
+  { action: 'npc-dialogue', kind: 'work', gap: 'OVERSTORY-CITY-R022' },
+  { action: 'npc-nearby', kind: 'work', gap: 'OVERSTORY-CITY-R022' },
   { action: 'onboard', kind: 'work', route: '/fleet' },
   { action: 'layout-edit', kind: 'work', gap: 'OVERSTORY-CITY-R040' },
 ]

@@ -29,6 +29,7 @@ import { dressingForPlot } from './render3d/buildings'
 import { collectLabelCandidates } from './render3d/labelLayer'
 import type { world as simWorld } from './sim'
 import type { CityActions, CityFidelityCore, CityRenderDiagnostics } from './types'
+import * as THREE from 'three'
 
 /** The in-game boot clock: the city wakes at 09:00 (sim.ts). */
 const BOOT_CLOCK_S = 9 * 3600
@@ -42,6 +43,10 @@ const NIGHT_CLOCK_S = 21 * 3600
  * `actions.overview()` eases to); `district` frames the connector district;
  * `street` looks down the main grid. `close-up` and `night` are placed from
  * the live world state at capture time.
+ *
+ * R041.1 approved overview captures for the production-world visual slice:
+ * `waterway` frames the river/waterfront, `skyline` shows the horizon,
+ * `dense-core` shows the built-up centre with landmarks.
  */
 export const GOLDEN_VIEWS = {
   // Must mirror the renderer's first-frame composition: an approved overview
@@ -52,6 +57,12 @@ export const GOLDEN_VIEWS = {
   // and public furniture rather than a top-down label carpet.
   district: { cam: [-90, 42, 78] as const, target: [-50, 2, 5] as const },
   street: { cam: [-20, 5.5, 38] as const, target: [-20, 1.2, 4] as const },
+  // R041.1: approved overview captures for the production-world visual slice.
+  // Each frame must show the named element (waterway, skyline, dense core)
+  // so the visual regression cannot pass with a truncated crop.
+  waterway: { cam: [40, 30, -55] as const, target: [-10, 1.5, -40] as const },
+  skyline: { cam: [0, 80, 120] as const, target: [-8, 0, 10] as const },
+  'dense-core': { cam: [-40, 35, 40] as const, target: [-15, 2, 5] as const },
 } as const
 
 export type GoldenView = keyof typeof GOLDEN_VIEWS | 'close-up' | 'night'
@@ -97,6 +108,8 @@ export interface CityFidelityAudits {
    * generated passes it reports.
    */
   provenance: CityFidelityProvenanceAudit
+  /** R041.1: geometry-audit — no floating roofs, walls, or windows. */
+  geometry: CityFidelityGeometryAudit
   ok: boolean
 }
 
@@ -108,6 +121,16 @@ export interface CityFidelityProvenanceAudit {
   issues: SceneAuditIssue[]
   /** Every live catalog family with its instance count and source stage. */
   manifest: ProvenanceRecord[]
+}
+
+/** Geometry-audit result: disconnected meshes that violate R041.1. */
+export interface CityFidelityGeometryAudit {
+  /** Total meshes walked. */
+  totalMeshes: number
+  /** Meshes that fail the connection check (floating roofs, walls, windows). */
+  disconnected: { id: string; type: string; position: [number, number, number] }[]
+  /** Passes when every building volume is watertight (no floating roofs, walls, or windows). */
+  watertight: boolean
 }
 
 export interface CityFidelityFrameTime {
@@ -219,6 +242,59 @@ function inBlockZone(x: number, z: number, i: number, j: number): boolean {
 
 function platesOverlap(a: LabelCandidate, b: LabelCandidate): boolean {
   return a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y
+}
+
+/**
+ * Geometry-audit for R041.1: reject disconnected roof, wall, and window
+ * meshes. Walks the scene graph, collects building-part meshes tagged
+ * via userData, and checks that each has a neighbour within `maxGap`
+ * metres — floating planes mean a watertight building volume was not
+ * assembled.
+ */
+function geometryAudit(scene: THREE.Scene, maxGap = 0.8): CityFidelityGeometryAudit {
+  const meshes: {
+    obj: THREE.Object3D
+    position: [number, number, number]
+    type: string
+  }[] = []
+  scene.traverse((child) => {
+    if (child instanceof THREE.Mesh) {
+      const marker = (child as THREE.Object3D).userData.marker as string | undefined
+      if (marker) {
+        const worldPos = new THREE.Vector3()
+        child.getWorldPosition(worldPos)
+        meshes.push({
+          obj: child,
+          position: [worldPos.x, worldPos.y, worldPos.z] as [number, number, number],
+          type: marker,
+        })
+      }
+    }
+  })
+  const disconnected: CityFidelityGeometryAudit['disconnected'] = []
+  const buildingParts = new Set(['roof', 'wall', 'window', 'door', 'facade'])
+  for (const m of meshes) {
+    if (!buildingParts.has(m.type)) continue
+    let connected = false
+    for (const other of meshes) {
+      if (other === m) continue
+      const dx = m.position[0] - other.position[0]
+      const dy = m.position[1] - other.position[1]
+      const dz = m.position[2] - other.position[2]
+      if (dx * dx + dy * dy + dz * dz <= maxGap * maxGap) {
+        connected = true
+        break
+      }
+    }
+    if (!connected) {
+      disconnected.push({ id: (m.obj.name || m.obj.uuid).slice(0, 24), type: m.type, position: m.position })
+    }
+  }
+  return {
+    totalMeshes: meshes.length,
+    disconnected,
+    watertight: disconnected.length === 0,
+  }
 }
 
 export function installCityFidelity(deps: CityFidelityDeps): CityFidelityHandle {
@@ -408,6 +484,9 @@ export function installCityFidelity(deps: CityFidelityDeps): CityFidelityHandle 
       manifest: provenanceManifest(),
     }
 
+    // R041.1: reject disconnected roof, wall, and window meshes.
+    const geometry = geometryAudit(core.scene)
+
     return {
       material,
       density,
@@ -415,7 +494,14 @@ export function installCityFidelity(deps: CityFidelityDeps): CityFidelityHandle 
       backgroundBlocks,
       labels,
       provenance,
-      ok: material.ok && density.ok && sparseStreetEdges.length === 0 && overlaps === 0 && labels.underMinFont === 0,
+      geometry,
+      ok:
+        material.ok &&
+        density.ok &&
+        sparseStreetEdges.length === 0 &&
+        overlaps === 0 &&
+        labels.underMinFont === 0 &&
+        geometry.watertight,
     }
   }
 

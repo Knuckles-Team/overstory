@@ -9,6 +9,11 @@
  * primitives (terrain, sky, character rig). The catalog renderer (R067)
  * tags its placements here; until then the manifest surfaces exactly what
  * the live scene is and is not made of.
+ *
+ * OVERSTORY-CITY-R024 (asset scale-out through provenance): dynamically
+ * added assets are admitted through the same provenance tag system — a
+ * dynamic asset carries a catalog family id once its provenance chain is
+ * complete, and the audit treats it identically to a kit family.
  */
 import * as THREE from 'three'
 
@@ -147,4 +152,41 @@ function effectivelyVisible(object: THREE.Object3D): boolean {
 /** Test seam. */
 export function clearProvenance(): void {
   registry.clear()
+}
+
+// ---- Dynamic assets (OVERSTORY-CITY-R024) -----------------------------------
+
+/**
+ * Tracks which catalog families were admitted dynamically through R024
+ * scale-out (vs. the static kit).  This allows the audit surface and the
+ * debug UI to label dynamic vs. kit provenance.
+ */
+const dynamicFamilies = new Set<string>()
+
+/**
+ * Record a dynamically-added asset as a known family (R024).  Called
+ * when the provisioning pipeline completes and the asset is admitted
+ * into the catalog/lock.  The family is then treated identically to a
+ * kit family by the load-layer gate and the audit.
+ */
+export function recordDynamicFamily(familyId: string): void {
+  dynamicFamilies.add(familyId)
+}
+
+/**
+ * Whether a family was admitted dynamically through the R024 scale-out
+ * pipeline (as opposed to the static kit).
+ */
+export function isDynamicFamily(familyId: string): boolean {
+  return dynamicFamilies.has(familyId)
+}
+
+/** The set of dynamically admitted family ids (debug / test surface). */
+export function dynamicFamiliesSet(): ReadonlySet<string> {
+  return dynamicFamilies
+}
+
+/** Test seam: clear the dynamic families registry. */
+export function clearDynamicFamilies(): void {
+  dynamicFamilies.clear()
 }

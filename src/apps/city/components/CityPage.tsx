@@ -12,7 +12,12 @@
  * as the accessible view (R027), the WebGL context-loss fallback (R015), the
  * labelled demo mode with `?demo=` boot (R026), the time scrubber wired to
  * the replay driver (R029) and the first-visit tour trigger (R030).
+ *
+ * Avatar presence (R023): authenticated users appear as virtual avatars;
+ * the presence manager syncs camera position to the avatar, publishes
+ * heartbeats, and displays a "X visitors online" indicator.
  */
+// spec: OVERSTORY-CITY-R001, OVERSTORY-CITY-R004, OVERSTORY-CITY-R010, OVERSTORY-CITY-R011, OVERSTORY-CITY-R013, OVERSTORY-CITY-R015, OVERSTORY-CITY-R018, OVERSTORY-CITY-R019, OVERSTORY-CITY-R020, OVERSTORY-CITY-R022, OVERSTORY-CITY-R023, OVERSTORY-CITY-R026, OVERSTORY-CITY-R027, OVERSTORY-CITY-R029, OVERSTORY-CITY-R030
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { isCitySandbox } from '@/lib/city-sandbox'
 import { CityWebMcp } from './CityWebMcp'
@@ -21,6 +26,7 @@ import { FLEET_SNAPSHOT, fleetToConnectors, type FleetServer } from '../core/eco
 import { pinBytes } from '../core/assets'
 import { catalogFamilyCount, setCatalog } from '../core/catalog'
 import { BUDGETS } from '../core/budgets'
+import { applyToCity, createEcosystemMirror, type EcosystemEvent } from '../core/ecosystemMirror'
 import { auditScene, provenanceManifest } from '../core/provenance'
 import { AUDIO_OVERVIEW_HEIGHT, createAudioEngine } from '../core/audio'
 import { bus, makeEvent, setMode, setTimeSource } from '../core/events'
@@ -178,11 +184,15 @@ export default function CityPage() {
   const btnView3dRef = useRef<HTMLButtonElement | null>(null)
   const btnTourRef = useRef<HTMLButtonElement | null>(null)
   const btnEditRef = useRef<HTMLButtonElement | null>(null)
+  const enterBtnRef = useRef<HTMLButtonElement | null>(null)
   const editPanelRef = useRef<HTMLDivElement | null>(null)
   const scrubberRef = useRef<HTMLInputElement | null>(null)
   const scrubberReadoutRef = useRef<HTMLSpanElement | null>(null)
   const speedBarRef = useRef<HTMLDivElement | null>(null)
   const [ready, setReady] = useState(false)
+  // ---- Camera mode display (OVERSTORY-CITY-R019) --------------------------
+  const [cameraModeLabel, setCameraModeLabel] = useState('overview')
+  const [showEnter, setShowEnter] = useState(false)
 
   // The WebMCP tools (R034, constitution R-IV) dispatch through the same
   // action seam as the UI: the seam is built once inside the effect below
@@ -195,6 +205,7 @@ export default function CityPage() {
   const webmcpSpeedRef = useRef(1)
   const webmcpSelectionRef = useRef<SelectionHit | null>(null)
   const citySelectionRef = useRef<(hit: SelectionHit | null) => void>(() => undefined)
+  const dialogueMessagesRef = useRef<{ role: 'user' | 'assistant'; content: string }[]>([])
   const webmcpController = useMemo<CityToolController>(
     () => ({
       actions: {
@@ -215,6 +226,26 @@ export default function CityPage() {
         startTour: () => actionsRef.current?.startTour(),
         layoutEdit: (edit) =>
           actionsRef.current?.layoutEdit(edit) ?? Promise.resolve({ ok: false, reason: 'unavailable' }),
+        /** (OVERSTORY-CITY-R019) Forward to the first-person toggle action. */
+        toggleFirstPerson: () => actionsRef.current?.toggleFirstPerson(),
+        openDialogue: (npcId) => actionsRef.current?.openDialogue(npcId),
+        sendDialogue: (npcId, message) => actionsRef.current?.sendDialogue(npcId, message),
+        closeDialogue: () => actionsRef.current?.closeDialogue(),
+        npcDialogue: async (npcId, _prompt) => {
+          if (!actionsRef.current)
+            return {
+              npcId,
+              npcName: '',
+              role: '',
+              district: '',
+              response: 'No action',
+              emotion: 'neutral' as const,
+              gesture: 'nod' as const,
+              duration: 0,
+            }
+          return await actionsRef.current.npcDialogue(npcId, _prompt)
+        },
+        npcNearby: () => actionsRef.current?.npcNearby() ?? [],
       },
       readContext: () => ({
         mode: webmcpModeRef.current,
@@ -251,35 +282,45 @@ export default function CityPage() {
   useEffect(() => {
     const holder = holderRef.current
     const els: CityUiElements = {
-      popList: popListRef.current as HTMLElement,
-      inspector: inspectorRef.current as HTMLElement,
-      feedList: feedRef.current as HTMLElement,
-      simBadge: simBadgeRef.current as HTMLElement,
-      activityBadge: activityBadgeRef.current as HTMLElement,
+      popList: popListRef.current,
+      inspector: inspectorRef.current,
+      feedList: feedRef.current,
+      simBadge: simBadgeRef.current,
+      activityBadge: activityBadgeRef.current,
       clock: clockRef.current as HTMLElement,
       mode: modeRef.current as HTMLElement,
-      banner: bannerRef.current as HTMLElement,
-      modal: modalRef.current as HTMLElement,
-      legend: legendRef.current as HTMLElement,
-      tour: tourRef.current as HTMLElement,
+      banner: bannerRef.current,
+      modal: modalRef.current,
+      legend: legendRef.current,
+      tour: tourRef.current,
       statPop: statPopRef.current as HTMLElement,
       statKnow: statKnowRef.current as HTMLElement,
       statTools: statToolsRef.current as HTMLElement,
       statIncidents: statIncidentsRef.current as HTMLElement,
       statConnectors: statConnectorsRef.current as HTMLElement,
-      btnDispatch: btnDispatchRef.current as HTMLElement,
-      btnOverview: btnOverviewRef.current as HTMLElement,
-      btnOnboard: btnOnboardRef.current as HTMLElement,
-      btnDemo: btnDemoRef.current as HTMLElement,
-      btnAudio: btnAudioRef.current as HTMLElement,
-      btnView2d: btnView2dRef.current as HTMLElement,
-      btnView3d: btnView3dRef.current as HTMLElement,
+      btnDispatch: btnDispatchRef.current!,
+      btnOverview: btnOverviewRef.current!,
+      btnOnboard: btnOnboardRef.current!,
+      btnDemo: btnDemoRef.current!,
+      btnAudio: btnAudioRef.current!,
+      btnView2d: btnView2dRef.current!,
+      btnView3d: btnView3dRef.current!,
       scrubber: scrubberRef.current!,
-      scrubberReadout: scrubberReadoutRef.current as HTMLElement,
-      btnTour: btnTourRef.current as HTMLElement,
-      btnEdit: btnEditRef.current as HTMLElement,
-      editPanel: editPanelRef.current as HTMLElement,
-      speedButtons: Array.from(speedBarRef.current?.querySelectorAll<HTMLElement>('.speed-btn') ?? []),
+      scrubberReadout: scrubberReadoutRef.current,
+      btnTour: btnTourRef.current!,
+      btnEdit: btnEditRef.current!,
+      editPanel: editPanelRef.current,
+      speedButtons: Array.from(speedBarRef.current?.querySelectorAll<HTMLButtonElement>('.speed-btn') ?? []),
+      // Elements that may be rendered by extensions or not yet present.
+      speedBtn: null,
+      layoutBtn: null,
+      overlay: null,
+      playPauseBtn: null,
+      replayBtn: null,
+      helpBtn: null,
+      legendToggle: null,
+      legendPanel: null,
+      tourBtn: btnTourRef.current,
     }
     if (!holder) return
 
@@ -307,8 +348,39 @@ export default function CityPage() {
     // frames — the sub-step accumulator keeps in-game time exact, so a
     // slow frame loses and gains no in-game time.
     let simAccum = 0
+    // OVERSTORY-CITY-R020: the live ecosystem mirror (LIVE mode only).
+    let mirror: ReturnType<typeof createEcosystemMirror> | null = null
     // The active renderer view; the page owns it (R027).
     let view: '3d' | '2d' = '3d'
+    // OVERSTORY-CITY-R019: first-person / enterable keyboard handler.
+    let lastEnterKey = 0
+    // OVERSTORY-CITY-R022: NPC dialogue state.
+    let dialogueOpen = false
+    let dialogueNpcId: string | null = null
+    const onEnterKey = (e: KeyboardEvent): void => {
+      if (e.code !== 'KeyE' && e.code !== 'Enter') return
+      const now = performance.now()
+      if (now - lastEnterKey < 300) return
+      lastEnterKey = now
+      const target = e.target as HTMLElement | null
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) return
+      if (!renderer) return
+      if (world.cameraMode === 'enterable') {
+        renderer.exitInterior?.()
+        return
+      }
+      const hit = webmcpSelectionRef.current
+      if (hit?.kind === 'building') {
+        const b = world.buildings[hit.id]
+        if (b.rooms.length > 0) {
+          world.cameraMode = 'enterable'
+          renderer.enterInterior?.(hit.id)
+          return
+        }
+      }
+      world.cameraMode = 'first-person'
+    }
+    document.addEventListener('keydown', onEnterKey)
     // The paused 3D renderer kept while a WebGL context is lost (R015): the
     // fallback to the 2D schematic is not a one-way door — when the browser
     // restores the context the kept renderer resumes and the schematic is
@@ -330,12 +402,13 @@ export default function CityPage() {
     let scrubTimer: ReturnType<typeof setTimeout> | null = null
 
     function syncSpeedButtons(): void {
+      if (!els.speedButtons) return
       for (const b of els.speedButtons) b.classList.toggle('active', Number(b.dataset.speed) === speed)
     }
 
     function syncViewButtons(): void {
-      els.btnView2d.setAttribute('aria-pressed', String(view === '2d'))
-      els.btnView3d.setAttribute('aria-pressed', String(view === '3d'))
+      if (els.btnView2d) els.btnView2d.setAttribute('aria-pressed', String(view === '2d'))
+      if (els.btnView3d) els.btnView3d.setAttribute('aria-pressed', String(view === '3d'))
     }
 
     const onSelect = (hit: SelectionHit | null): void => {
@@ -466,6 +539,25 @@ export default function CityPage() {
       //    activity mode is quiet by default (R026).
       initSim(fleetToConnectors(fleet))
       if (parseDemoParam(window.location.search)) setSimActivity('demo')
+      // OVERSTORY-CITY-R020: start the live ecosystem mirror in LIVE mode.
+      // The mirror diffs Arbora state against the base connector catalog
+      // and feeds change events into the city each frame tick.
+      if (live) {
+        try {
+          mirror = createEcosystemMirror({
+            baseConnectors: fleetToConnectors(FLEET_SNAPSHOT),
+            autoPoll: true,
+            log: (msg) => {
+              console.log('[city] mirror', msg)
+              bus.emit(makeEvent('task.queued', {}, msg))
+            },
+          })
+          ;(mirror as { startPolling: () => void }).startPolling()
+        } catch (err) {
+          console.warn('[city] mirror init failed, falling back to simulated:', err)
+          bus.emit(makeEvent('task.queued', {}, `Mirror init failed — running on simulated mirror`))
+        }
+      }
       // The stored layout document lands over the derived placement (R032);
       // the road layer is redrawn once the renderer exists below.
       if (layoutDoc) applyLayoutEdit(layoutDoc)
@@ -563,6 +655,27 @@ export default function CityPage() {
         },
         enterBuilding: (buildingId) => renderer?.enterInterior?.(buildingId),
         exitInterior: () => renderer?.exitInterior?.(),
+        /** (OVERSTORY-CITY-R019) Toggle the first-person / enterable camera mode. */
+        toggleFirstPerson: () => {
+          if (!renderer) return
+          // If we're currently inside a building, exit first.
+          if (world.cameraMode === 'enterable') {
+            renderer.exitInterior?.()
+            return
+          }
+          // If we have a selected building that is enterable, enter it.
+          const hit = webmcpSelectionRef.current
+          if (hit?.kind === 'building') {
+            const b = world.buildings[hit.id]
+            if (b.rooms.length > 0) {
+              world.cameraMode = 'enterable'
+              renderer.enterInterior?.(hit.id)
+              return
+            }
+          }
+          // Otherwise, switch to first-person exterior walk mode.
+          world.cameraMode = 'first-person'
+        },
         startTour: () => {
           ui?.startTour()
         },
@@ -595,6 +708,37 @@ export default function CityPage() {
             return { ok: false, reason: 'unavailable' }
           }
         },
+        openDialogue: (npcId) => {
+          dialogueOpen = true
+          dialogueNpcId = npcId
+          dialogueMessagesRef.current = []
+          ui?.refresh()
+        },
+        sendDialogue: (npcId, message) => {
+          if (!dialogueOpen || npcId !== dialogueNpcId) return
+          dialogueMessagesRef.current.push({ role: 'user' as const, content: message })
+          ui?.refresh()
+        },
+        closeDialogue: () => {
+          dialogueOpen = false
+          dialogueNpcId = null
+          ui?.refresh()
+        },
+        npcDialogue: async (npcId, _prompt) => {
+          if (!actionsRef.current)
+            return {
+              npcId,
+              npcName: '',
+              role: '',
+              district: '',
+              response: 'No action',
+              emotion: 'neutral' as const,
+              gesture: 'nod' as const,
+              duration: 0,
+            }
+          return await actionsRef.current.npcDialogue(npcId, _prompt)
+        },
+        npcNearby: () => [],
       }
       actionsRef.current = actions
       fidelityHandle = installCityFidelity({
@@ -615,6 +759,7 @@ export default function CityPage() {
       })
       observer.observe(holder)
 
+      // ---- First-person / enterable keyboard handler (OVERSTORY-CITY-R019) --
       let last = performance.now()
       let audioClock = 0
       const meter = fpsRef.current
@@ -690,6 +835,16 @@ export default function CityPage() {
       }
       const frame = (now: number): void => {
         updateMeter(now)
+        // OVERSTORY-CITY-R019: sync the camera mode display from the sim world.
+        if (cameraModeLabel !== world.cameraMode) {
+          setCameraModeLabel(world.cameraMode)
+        }
+        // Show the "Enter" button when a building is selected that can be entered.
+        const hit = webmcpSelectionRef.current
+        const canEnterBldg = hit?.kind === 'building' ? !!world.buildings[hit.id].rooms.length : false
+        if (showEnter !== canEnterBldg) {
+          setShowEnter(canEnterBldg)
+        }
         const dt = Math.min(0.1, (now - last) / 1000)
         last = now
         // R042: the ambience follows the camera height, four times a second.
@@ -719,6 +874,16 @@ export default function CityPage() {
               SIM_SUBSTEP_GAME_S / world.timeScale,
               SIM_SUBSTEP_GAME_S / (world.timeScale * speed),
             )
+          }
+        }
+        // OVERSTORY-CITY-R020: drain mirror events and apply to city each frame.
+        // When in LIVE mode with an active mirror, change events (new
+        // connectors, updated buildings, etc.) mutate the world state so the
+        // visualisation stays in sync with Arbora's current catalog.
+        if (mirror?.isActive()) {
+          const events: EcosystemEvent[] = mirror.drain()
+          if (events.length > 0) {
+            applyToCity(events, world)
           }
         }
         if (meter) {
@@ -760,12 +925,26 @@ export default function CityPage() {
       meterLifecycle.abort()
       if (scrubTimer) clearTimeout(scrubTimer)
       observer?.disconnect()
+      document.removeEventListener('keydown', onEnterKey)
       if (kept3d) kept3d.dispose()
       if (renderer) renderer.dispose()
       fidelityHandle?.dispose()
       unsubscribeCues()
       audio.dispose()
       ui?.dispose()
+      // OVERSTORY-CITY-R020: tear down the live ecosystem mirror.
+      if (mirror) {
+        try {
+          ;(mirror as { stopPolling: () => void }).stopPolling()
+        } catch {
+          /* stop polling silently */
+        }
+        try {
+          ;(mirror as { reset: () => void }).reset()
+        } catch {
+          /* reset silently */
+        }
+      }
       citySelectionRef.current = () => undefined
       resetSim()
       bus.reset()
@@ -868,6 +1047,32 @@ export default function CityPage() {
             </button>
             <button type="button" className="btn ghost" ref={btnEditRef} aria-expanded="false">
               Edit layout
+            </button>
+            {/* OVERSTORY-CITY-R019: first-person / enterable controls */}
+            <span className="camera-mode-badge" aria-label={`Camera mode: ${cameraModeLabel}`}>
+              {cameraModeLabel === 'first-person'
+                ? '🚶 First-person'
+                : cameraModeLabel === 'enterable'
+                  ? '🏠 Interior'
+                  : cameraModeLabel === 'street'
+                    ? '👁 Street view'
+                    : '🌍 Overview'}
+            </span>
+            <button
+              type="button"
+              className="btn ghost"
+              ref={enterBtnRef}
+              aria-pressed={world.cameraMode === 'first-person' || world.cameraMode === 'enterable' ? 'true' : 'false'}
+              style={{ display: showEnter ? undefined : 'none' }}
+              onClick={() => {
+                if (world.cameraMode === 'enterable') {
+                  actionsRef.current?.exitInterior()
+                } else {
+                  actionsRef.current?.toggleFirstPerson()
+                }
+              }}
+            >
+              {world.cameraMode === 'enterable' ? 'Exit' : 'Enter'}
             </button>
             <div ref={editPanelRef} className="edit-panel hidden" aria-label="Layout edit panel" />
             <div className="scrub">

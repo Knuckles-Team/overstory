@@ -89,6 +89,7 @@ const AudioInput = z.object({ enabled: z.boolean() }).strict()
 const ActivityInput = z.object({ mode: z.enum(['quiet', 'demo']) }).strict()
 const ScrubInput = z.object({ offsetS: z.number().int().min(0).max(100_000) }).strict()
 const OnboardInput = z.object({ connectorId: z.string().min(1).max(200) }).strict()
+const NpcDialogueInput = z.object({ npcId: z.string().min(1).max(200), prompt: z.string().min(1).max(500) }).strict()
 
 // The layout-edit union (R032): the same bounds the UI and the host enforce.
 const LayoutEditInput = z.union([
@@ -163,6 +164,39 @@ const ContextSchema = z
     characters: z.array(ContextCharacter).max(50),
     buildings: z.array(ContextBuilding).max(200),
     recentEvents: z.array(ContextEvent).max(20),
+  })
+  .strict()
+
+// ---- NPC Dialogue output schema (R022) --------------------------------------
+
+const NpcResponse = z
+  .object({
+    npcId: z.string().min(1).max(200),
+    npcName: z.string().min(1).max(200),
+    role: z.string().min(1).max(200),
+    district: z.string().min(1).max(200),
+    response: z.string().min(1),
+    emotion: z.enum(['happy', 'sad', 'neutral', 'inquisitive']),
+    gesture: z.enum(['wave', 'nod', 'point']),
+    duration: z.number(),
+  })
+  .strict()
+
+const NpcInfoOutput = z
+  .object({
+    npcs: z
+      .array(
+        z.object({
+          npcId: z.string(),
+          npcName: z.string(),
+          role: z.string(),
+          district: z.string(),
+          available: z.boolean(),
+          position: z.object({ x: z.number(), z: z.number() }),
+          state: z.string(),
+        }),
+      )
+      .max(20),
   })
   .strict()
 
@@ -312,6 +346,24 @@ export function createCityTools(controller: CityToolController): readonly WebMcp
         const result = await actions.layoutEdit(edit)
         return result.reason ? { ok: result.ok, reason: result.reason } : { ok: result.ok }
       },
+    ),
+    // ---- NPC Dialogue tools (OVERSTORY-CITY-R022) --------------------------------
+    cityTool(
+      'npc-dialogue',
+      "Initiate a dialogue with an NPC (simulated operator character) in the city. Sends the NPC's role context and city state to the LLM via Arbora's agents.run and returns a structured response with emotion and gesture.",
+      NpcDialogueInput,
+      NpcResponse,
+      async ({ npcId, prompt }) => {
+        return await actions.npcDialogue(npcId, prompt)
+      },
+    ),
+    cityTool(
+      'npc-nearby',
+      'List NPCs (simulated operators) currently near the camera view in the city. Read-only context about available characters for dialogue.',
+      Empty,
+      NpcInfoOutput,
+      () => ({ npcs: actions.npcNearby() }),
+      true,
     ),
   ]
 }
