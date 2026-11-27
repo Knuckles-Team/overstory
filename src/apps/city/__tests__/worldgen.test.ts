@@ -33,7 +33,7 @@ import { BUILDING_POS, HOUSES, PLOTS, inWater } from '../core/layout'
 import { graphConnected, sampleRoadCurve } from '@/lib/scene3d/roads'
 
 describe('deterministic world generation', () => {
-  // spec: OVERSTORY-CITY-R059
+  // spec: OVERSTORY-CITY-R048, OVERSTORY-CITY-R048.5, OVERSTORY-CITY-R059
   it(
     'seeds a complete world: environment, map and every placement trace to a generator rule',
     { timeout: 30_000 },

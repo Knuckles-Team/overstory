@@ -2,7 +2,7 @@
  * @file mapping.test.ts
  * @description The class-to-archetype registry (OVERSTORY-CITY-R035).
  */
-// spec: OVERSTORY-CITY-R035
+// spec: OVERSTORY-CITY-R035, OVERSTORY-CITY-R048.7
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'

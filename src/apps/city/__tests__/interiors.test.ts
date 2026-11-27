@@ -6,7 +6,7 @@
  * road node to the building door, characters can walk to assigned
  * buildings, and pathfinding respects the dry-ground constraint.
  */
-// spec: OVERSTORY-CITY-R058
+// spec: OVERSTORY-CITY-R031, OVERSTORY-CITY-R048, OVERSTORY-CITY-R048.2, OVERSTORY-CITY-R048.4, OVERSTORY-CITY-R048.5, OVERSTORY-CITY-R048.7, OVERSTORY-CITY-R058
 import { describe, expect, it } from 'vitest'
 import { buildingDoor, findPath, inWater, plotDoor, HOUSES, PLOTS } from '../core/layout'
 

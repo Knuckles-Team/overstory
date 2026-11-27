@@ -6,7 +6,7 @@
  * both 2D and 3D views. Every generated parcel is dry, cleared from roads,
  * non-overlapping, and reachable from a road node.
  */
-// spec: OVERSTORY-CITY-R048.8, OVERSTORY-CITY-R048.9
+// spec: OVERSTORY-CITY-R048, OVERSTORY-CITY-R048.2, OVERSTORY-CITY-R048.3, OVERSTORY-CITY-R048.8, OVERSTORY-CITY-R048.9
 import { describe, expect, it } from 'vitest'
 import { generateFrontageSites, isDryFootprint, rectsOverlap } from '../core/worldgen'
 import { generateNetwork } from '../core/network'
