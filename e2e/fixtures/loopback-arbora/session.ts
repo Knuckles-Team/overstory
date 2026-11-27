@@ -6,7 +6,11 @@ import type { Page } from '@playwright/test'
  * start. Every operation call goes through the vite proxy to the real arbora
  * process started by `run.mjs`, unmodified.
  */
-export async function signInToSandbox(page: Page, webuiRole: 'user' | 'maintainer' = 'maintainer') {
+export async function signInToSandbox(
+  page: Page,
+  webuiRole: 'user' | 'maintainer' = 'maintainer',
+  csrfToken: string = crypto.randomUUID(),
+) {
   await page.route('**/auth/session', (route) =>
     route.fulfill({
       json: {
@@ -15,7 +19,7 @@ export async function signInToSandbox(page: Page, webuiRole: 'user' | 'maintaine
         tenant: 'local',
         webui_role: webuiRole,
         roles: ['kg:read'],
-        csrf_token: crypto.randomUUID(),
+        csrf_token: csrfToken,
       },
     }),
   )

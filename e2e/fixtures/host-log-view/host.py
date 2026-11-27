@@ -1,13 +1,14 @@
 """Sandboxed arbora host for the host-log browser journey (test only).
 
 Serves arbora's real host-log routes over real, rotating log files. The browser page
-reaches them through the fixture's same-origin proxy. A separate loopback control port
+reaches them through the fixture's same-origin proxy with its signed-in session cookie. A separate loopback control port
 lets the test emit records (to force a rotation) and revoke or restore the grant.
 Set ARBORA_CHECKOUT to an arbora source tree whose host-log routes serve version 2.
 """
 
 import asyncio
 import os
+import secrets
 import sys
 import tempfile
 import threading
@@ -25,7 +26,8 @@ from arbora.identity.ports import SessionState  # noqa: E402
 
 PAGE_ORIGIN = 'http://127.0.0.1:5207'
 HOST_PORT, CONTROL_PORT = 5209, 5208
-CREDENTIAL = 'sandbox-credential'
+# The sandbox browser session token: generated per run and handed to the test.
+SESSION_TOKEN = secrets.token_urlsafe(32)
 TENANT = 'tenant-a'
 
 
@@ -62,7 +64,7 @@ class Owners:
         self.allowed = True
 
     async def resolve_session(self, credential: str) -> SessionState:
-        if credential != CREDENTIAL:
+        if credential != SESSION_TOKEN:
             raise PermissionError('credential refused')
         return session()
 
@@ -108,6 +110,8 @@ class Control(BaseHTTPRequestHandler):
         return
 
     def do_GET(self) -> None:
+        if self.path.strip('/') == 'session':
+            return self._answer(200, SESSION_TOKEN.encode())
         self._answer(200)
 
     def do_POST(self) -> None:
@@ -125,11 +129,11 @@ class Control(BaseHTTPRequestHandler):
             return self._answer(404)
         self._answer(200)
 
-    def _answer(self, status: int) -> None:
+    def _answer(self, status: int, body: bytes = b'ok') -> None:
         self.send_response(status)
-        self.send_header('Content-Length', '2')
+        self.send_header('Content-Length', str(len(body)))
         self.end_headers()
-        self.wfile.write(b'ok')
+        self.wfile.write(body)
 
 
 threading.Thread(

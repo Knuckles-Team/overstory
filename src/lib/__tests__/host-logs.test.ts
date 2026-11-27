@@ -25,31 +25,33 @@ describe('host-logs client', () => {
     expect(refusalFor(409, { detail: 'other' }).kind).toBe('unavailable')
 
     vi.stubGlobal('fetch', answer(200, { version: 2, records: [record], cursor: 'c1', gap: false }))
-    const batch = await readHostLogs('secret', 'ref', null)
+    const batch = await readHostLogs('ref', null)
     expect(batch.records[0]).toEqual(record)
 
     const calls = (fetch as ReturnType<typeof vi.fn>).mock.calls
     const init = calls[0][1] as RequestInit
     expect(calls[0][0]).toBe('/host/logs/read')
-    expect(init.credentials).toBe('omit')
+    expect(init.credentials).toBe('same-origin')
+    // The signed-in session is the only credential: nothing is typed or sent as a header.
+    expect(new Headers(init.headers).has('Authorization')).toBe(false)
     expect(JSON.parse(init.body as string)).toEqual({ version: 2, log_ref: 'ref', cursor: null, limit: 128 })
   })
 
   it('rejects a record that lacks host metadata', async () => {
     const partial = { ...record, severity: undefined }
     vi.stubGlobal('fetch', answer(200, { version: 2, records: [partial], cursor: null, gap: false }))
-    await expect(readHostLogs('secret', 'ref', null)).rejects.toMatchObject({ kind: 'unavailable' })
+    await expect(readHostLogs('ref', null)).rejects.toMatchObject({ kind: 'unavailable' })
   })
 
   it('a refusal carries no log content', async () => {
     vi.stubGlobal('fetch', answer(409, { detail: 'retention_gap' }))
-    const error = await readHostLogs('secret', 'ref', 'old').catch((e: unknown) => e)
+    const error = await readHostLogs('ref', 'old').catch((e: unknown) => e)
     expect(error).toBeInstanceOf(HostLogRefusal)
     expect(JSON.stringify(error)).not.toContain('held-text')
   })
 
   it('reference returns the log_ref only', async () => {
     vi.stubGlobal('fetch', answer(200, { log_ref: 'r1', endpoint: 'x', ready: true }))
-    await expect(referenceHostLogs('secret')).resolves.toBe('r1')
+    await expect(referenceHostLogs()).resolves.toBe('r1')
   })
 })

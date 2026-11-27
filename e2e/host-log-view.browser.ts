@@ -1,12 +1,22 @@
+import { createHash } from 'node:crypto'
 import { test, expect, type Page } from '@playwright/test'
+import { signInToSandbox } from './fixtures/loopback-arbora/session'
 
 const control = (action: string) => fetch(`http://127.0.0.1:5208/${action}`, { method: 'POST' })
-const credential = 'sandbox-credential'
+const sessionCookie = '__Host-arbora_session'
 
-async function connect(page: Page) {
+// The no-auth sandbox session: the sandbox answers /auth/session with the session's CSRF
+// token, and the browser holds the session cookie the host issued. Nothing is typed.
+async function signIn(page: Page) {
+  const token = await (await fetch('http://127.0.0.1:5208/session')).text()
+  const csrf = createHash('sha256').update(`arbora/identity/csrf/v1\0${token}`).digest('base64url')
+  await page.context().addCookies([{ name: sessionCookie, value: token, domain: '127.0.0.1', path: '/', secure: true }])
+  await signInToSandbox(page, 'user', csrf)
+}
+
+async function open(page: Page) {
+  await signIn(page)
   await page.goto('/')
-  await page.getByLabel('Workspace log credential').fill(credential)
-  await page.getByRole('button', { name: 'Connect' }).click()
 }
 
 // spec: OVERSTORY-APPS-R054
@@ -16,7 +26,7 @@ test('retention_gap_clears_protected_content', async ({ page }) => {
   page.on('request', (request) => requests.push(new URL(request.url()).pathname))
 
   // Render the original host metadata of the first record.
-  await connect(page)
+  await open(page)
   const table = page.getByTestId('host-log-table')
   await expect(table).toBeVisible()
   const row = table.getByRole('row').filter({ hasText: 'held-text' })
@@ -26,6 +36,10 @@ test('retention_gap_clears_protected_content', async ({ page }) => {
   await expect(row.getByRole('cell').nth(3)).toHaveText(/^\d{4}-\d{2}-\d{2}T/)
   await expect(row.getByRole('cell').nth(4)).toHaveText('INFO')
   await expect(page.getByTestId('host-log-gap')).toHaveCount(0)
+  // No credential field exists: the view read from the signed-in session alone.
+  await expect(page.locator('input[type="password"]')).toHaveCount(0)
+  await expect(page.getByLabel('Workspace log credential')).toHaveCount(0)
+  await expect(page.locator('input')).toHaveCount(0)
 
   // Rotate the real log files so the held cursor is stale: arbora answers 409
   // retention_gap, the view drops what it holds and takes one fresh read.
