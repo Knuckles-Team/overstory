@@ -11,7 +11,7 @@
  * replace it with an identically-seeded instance so every bound is
  * reproducible, and they assert `Math.random` is never called in the sim.
  */
-// spec: OVERSTORY-CITY-R002, OVERSTORY-CITY-R005, OVERSTORY-CITY-R006, OVERSTORY-CITY-R007, OVERSTORY-CITY-R008, OVERSTORY-CITY-R009, OVERSTORY-CITY-R011, OVERSTORY-CITY-R012, OVERSTORY-CITY-R014, OVERSTORY-CITY-R026, OVERSTORY-CITY-R029
+// spec: OVERSTORY-CITY-R002, OVERSTORY-CITY-R005, OVERSTORY-CITY-R006, OVERSTORY-CITY-R007, OVERSTORY-CITY-R008, OVERSTORY-CITY-R009, OVERSTORY-CITY-R011, OVERSTORY-CITY-R012, OVERSTORY-CITY-R014, OVERSTORY-CITY-R026, OVERSTORY-CITY-R029, OVERSTORY-CITY-R107
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { FLEET_SNAPSHOT, connectorsByDomain, fleetToConnectors, type ConnectorDef } from '../core/ecosystem'
 import { EVENT_TYPES, bus, setTimeSource } from '../core/events'
@@ -22,6 +22,9 @@ import {
   AGENT_STATES,
   AGENT_TRANSITIONS,
   ACTION_WINDOW_GAME_S,
+  advanceSubSteps,
+  SIM_SUBSTEPS_PER_FRAME_MAX,
+  SIM_SUBSTEP_GAME_S,
   TUNING,
   canTransition,
   dispatchTask,
@@ -239,6 +242,7 @@ describe('state machine (R006)', () => {
 })
 
 describe('quiet by default (R026)', () => {
+  // spec: OVERSTORY-CITY-R026.1
   it('boots quiet: no auto-task, no wander, no patrol without an operator action', () => {
     boot()
     expect(world.activity).toBe('quiet')
@@ -420,6 +424,9 @@ describe('SC-003: construction and first visit (R008)', () => {
 })
 
 describe('day/night cycle (R009) — SC-005 full day at 4x', () => {
+  // A full-day soak: the ~2.5 minutes are in simulated wall time, but the
+  // soak still runs thousands of real simulation ticks, so it gets an
+  // explicit bound with margin for a loaded CI runner.
   it('runs a complete day at 4x in ~2.5 real minutes with all invariants holding', () => {
     boot()
     setActivity('demo') // continuous behaviour; the sleep/wake cycle itself is governed
@@ -451,7 +458,7 @@ describe('day/night cycle (R009) — SC-005 full day at 4x', () => {
     expect(world.characters.every((c) => c.context >= 0 && c.context <= 100)).toBe(true)
     // The whole day emitted only declared vocabulary.
     for (const type of types) expect(EVENT_TYPES).toContain(type)
-  })
+  }, 20_000)
 
   it('no new tasks start at night', () => {
     boot()
@@ -593,17 +600,121 @@ describe('speed and clock semantics (R012)', () => {
     expect(plot?.construction?.progress).toBe(progressBefore)
   })
 
-  it('speed scales the clock and action timers together', () => {
+  it('each declared speed scales the clock and action timers by exactly its factor', () => {
     boot()
     expect(onboardConnector('searxng-mcp')).toBe(true)
     const plot = world.plots.find((p) => p.buildingId === 'searxng-mcp')
+    for (const speed of [0.5, 1, 1.25, 1.5, 2, 4, 8, 20]) {
+      const clockBefore = world.clock
+      const progressBefore = plot?.construction?.progress ?? 0
+      // The page loop multiplies both dts by the speed: tickSim(dt*144*s, dt*s).
+      tickSim(144 * speed * STEP, speed * STEP)
+      expect(world.clock - clockBefore, `clock at ${speed}×`).toBeCloseTo(144 * speed * STEP)
+      // Construction runs in real seconds (12 s at 1×), scaled by the speed.
+      expect((plot?.construction?.progress ?? 0) - progressBefore, `construction at ${speed}×`).toBeCloseTo(
+        (speed * STEP) / 12,
+      )
+    }
+  })
+
+  it('slow motion at 0.5x halves the rate in the same mode', () => {
+    boot()
+    setActivity('demo')
     const clockBefore = world.clock
-    const progressBefore = plot?.construction?.progress ?? 0
-    // The page loop multiplies both dts by the speed: tickSim(dt*144*s, dt*s).
-    tickSim(144 * 4 * STEP, 4 * STEP)
-    expect(world.clock - clockBefore).toBeCloseTo(144 * 4 * STEP)
-    // Construction runs in real seconds (12 s at 1×), scaled by the speed.
-    expect((plot?.construction?.progress ?? 0) - progressBefore).toBeCloseTo((4 * STEP) / 12)
+    tick(60, 0.5) // 60 sub-ticks at 0.5×
+    expect(world.clock - clockBefore).toBeCloseTo(144 * STEP * 0.5 * 60)
+  })
+
+  it(
+    'a full day at 20x completes with every invariant holding',
+    { timeout: 30_000 }, // the full-day soak takes real ticks; CI runners need the headroom
+    () => {
+      boot()
+      setActivity('demo')
+      const dayStart = world.day
+      const clockStart = world.clock
+      const types = new Set<string>()
+      const unsub = bus.subscribe((e) => {
+        types.add(e.type)
+      })
+      let guard = 0
+      while ((world.day === dayStart || world.clock < clockStart) && guard++ < 30000) tick(4, 20)
+      unsub()
+      expect(world.day).toBeGreaterThan(dayStart)
+      // One in-game day at 1x is 600 real s (timeScale 144); at 20x that is 30.
+      expect(wall).toBeGreaterThan(25)
+      expect(wall).toBeLessThan(35)
+      // Nobody left the walkable ground; budgets stayed in range.
+      expect(world.characters.filter((c) => inWater(c.pos.x, c.pos.z))).toHaveLength(0)
+      expect(world.characters.every((c) => c.context >= 0 && c.context <= 100)).toBe(true)
+      // The whole day emitted only declared vocabulary.
+      for (const type of types) expect(EVENT_TYPES).toContain(type)
+    },
+  )
+
+  it('the sub-step accumulator keeps in-game time exact across frames of varying length (R012 amended)', () => {
+    const sub = SIM_SUBSTEP_GAME_S
+    const cap = SIM_SUBSTEPS_PER_FRAME_MAX
+    let pending = 0
+    let executed = 0
+    let fed = 0
+    // Frames of varying length: sub-step slivers, a frame that overflows
+    // the per-frame cap, and one huge frame.
+    for (const frame of [0.4, 1.3, 2.0, 47.9, 0.1, 100, 3.3]) {
+      fed += frame
+      const { run, pending: next } = advanceSubSteps(pending, frame, sub, cap)
+      pending = next
+      executed += run * sub
+      // No in-game time is lost or gained: executed plus the carried
+      // remainder always equals everything fed so far.
+      expect(executed + pending, 'no in-game time lost or gained').toBeCloseTo(fed, 12)
+      // The executed total is always an exact multiple of the sub-step.
+      expect(executed / sub - Math.round(executed / sub), 'exact sub-step multiple').toBeCloseTo(0, 12)
+      expect(run).toBeLessThanOrEqual(cap)
+      expect(pending).toBeGreaterThanOrEqual(0)
+    }
+    // The cap defers, it never drops: an oversized frame runs the full cap
+    // and carries the rest forward.
+    const big = advanceSubSteps(0, 100, sub, cap)
+    expect(big.run).toBe(cap)
+    expect(big.pending).toBeCloseTo(100 - cap * sub, 12)
+  })
+
+  it('replay of actions recorded during a fast run reproduces the same in-game state (R012/R029)', () => {
+    boot()
+    const t0 = world.absGameS
+    // Operate the city for 600 in-game seconds at the page's fixed sub-step
+    // — the same sub-step at every speed — dispatching a task mid-run and
+    // onboarding a connector later. The actions stamp their in-game time,
+    // not the wall-clock speed they were made at.
+    let dispatched = false
+    let onboarded = false
+    while (world.absGameS - t0 < 600) {
+      if (!dispatched && world.absGameS - t0 >= 300) {
+        expect(dispatchTask()).toBe(true)
+        dispatched = true
+      }
+      if (!onboarded && world.absGameS - t0 >= 450) {
+        expect(onboardConnector('searxng-mcp')).toBe(true)
+        onboarded = true
+      }
+      tickSim(SIM_SUBSTEP_GAME_S, SIM_SUBSTEP_GAME_S / world.timeScale)
+    }
+    const actions = world.actions.slice()
+    const live = {
+      day: world.day,
+      clock: world.clock,
+      states: world.characters.map((c) => c.state),
+    }
+    // The replay operates purely on in-game timestamps, so the speed the
+    // live run displayed at cannot change the result: same seed, same
+    // recorded actions, same fixed sub-step schedule.
+    replayRun(actions, { durationGameS: 600, dtGame: SIM_SUBSTEP_GAME_S })
+    expect(world.day).toBe(live.day)
+    expect(world.clock).toBe(live.clock)
+    expect(world.characters.map((c) => c.state)).toEqual(live.states)
+    // The re-recorded actions keep their in-game timestamps.
+    expect(world.actions).toEqual(actions)
   })
 })
 
@@ -623,5 +734,24 @@ describe('selection API (R011)', () => {
     expect(building?.tools).toContain('query')
     expect(getCharacter('not-a-citizen')).toBeUndefined()
     expect(getBuilding('not-a-building')).toBeUndefined()
+  })
+})
+
+// R107: Character commute — NPCs get a workBuilding assigned at boot,
+// and the commute method is called from tickSim when night falls.
+describe('character commute (R107)', () => {
+  it('commute() sets target and moves character toward destination', () => {
+    boot()
+    const ch = getCharacter('agent-01')!
+    const startX = ch.pos.x
+    const startZ = ch.pos.z
+    ch.commute(startX + 10, startZ + 10)
+    // commute() should set the target position and compute a path.
+    expect(ch.target).toEqual({ x: startX + 10, z: startZ + 10 })
+    expect(ch.path.length).toBeGreaterThan(0)
+    // The mood should be 'commuting'.
+    expect(ch.mood).toBe('commuting')
+    // The character should be in motion.
+    expect(ch.moving()).toBe(true)
   })
 })

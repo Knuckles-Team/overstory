@@ -7,12 +7,14 @@
 // grouped by business domain (CONNECTOR_DISTRICT) so the district's
 // geography carries meaning (OVERSTORY-CITY-R002).
 import { CONNECTOR_DISTRICT } from './ecosystem'
+import { isRegionalWater } from './worldgen'
 
 export const X_ROADS = [-80, -70, -60, -50, -40, -30, -20, -10, 0, 10, 20, 30]
 export const Z_ROADS = [-60, -50, -40, -30, -20, -10, 0, 10, 20, 30, 40, 50, 60, 70]
 export const ROAD_W = 2.6
 export const WATER_Z = 74 // shoreline
-export const GROUND_SIZE = 200
+/** Regional world extent; the serviced city occupies the central basin. */
+export const GROUND_SIZE = 900
 
 export interface Vec2 {
   x: number
@@ -37,7 +39,8 @@ export function buildingDoor(id: string): Vec2 | null {
   return project(b.x, b.z)
 }
 
-export function plotDoor(plot: Vec2): Vec2 {
+export function plotDoor(plot: Vec2 & { access?: { roadX: number; roadZ: number } }): Vec2 {
+  if (plot.access) return { x: plot.access.roadX, z: plot.access.roadZ }
   return project(plot.x, plot.z)
 }
 
@@ -90,7 +93,9 @@ export interface Park {
 
 export const PARKS: Park[] = [
   { x: 15, z: -5, trees: 5 },
-  { x: 25, z: 20, trees: 6 },
+  // Kept inside the block; the former z=20 position put this park directly
+  // on an arterial intersection and let trees occupy the carriageway.
+  { x: 5, z: 25, trees: 6 },
   { x: -5, z: -45, trees: 5 },
   { x: -45, z: 40, trees: 6 },
   { x: -65, z: -40, trees: 5 },
@@ -165,7 +170,10 @@ export function findPath(fromX: number, fromZ: number, toX: number, toZ: number)
   return out
 }
 
-// Walkable check: characters never enter water.
+// Walkable check: characters never enter water. This shares the procedural
+// island/harbour mask used by terrain and placement, so the playable boundary
+// follows the visible coastline rather than an invisible z-axis cutoff.
 export function inWater(x: number, z: number): boolean {
-  return z > WATER_Z - 0.5 && !(Math.abs(x - PIER.x) < PIER.w / 2 && z >= PIER.z0 && z <= PIER.z1)
+  const onPier = Math.abs(x - PIER.x) < PIER.w / 2 && z >= PIER.z0 && z <= PIER.z1
+  return isRegionalWater(x, z) && !onPier
 }

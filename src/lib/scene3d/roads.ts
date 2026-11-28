@@ -10,6 +10,59 @@
  * renderer; the city's scene module builds the geometry from this graph.
  */
 
+/** One centreline sample shared by the road mesh and the traffic layer. */
+export interface RoadPathSample {
+  x: number
+  z: number
+  tangentX: number
+  tangentZ: number
+}
+
+/**
+ * Deterministically sample the exact quadratic road centreline.  Traffic
+ * calls this same seam, so it can never drive a straight invisible lane
+ * while its visible asphalt bends beneath it.
+ */
+export function sampleRoadCurve(
+  x1: number,
+  z1: number,
+  x2: number,
+  z2: number,
+  curve: number,
+  id: string,
+  maxSpacing = 3.5,
+  inset = 0,
+): RoadPathSample[] {
+  const dx = x2 - x1
+  const dz = z2 - z1
+  const len = Math.hypot(dx, dz) || 1
+  const ux = dx / len
+  const uz = dz / len
+  let hash = 2166136261
+  for (let i = 0; i < id.length; i++) hash = Math.imul(hash ^ id.charCodeAt(i), 16777619)
+  const signedCurve = ((hash >>> 0) & 1 ? 1 : -1) * Math.min(len * 0.14, 2.1) * curve
+  const cx = (x1 + x2) / 2 - uz * signedCurve
+  const cz = (z1 + z2) / 2 + ux * signedCurve
+  const at = (t: number): { x: number; z: number } => {
+    const mt = 1 - t
+    return { x: mt * mt * x1 + 2 * mt * t * cx + t * t * x2, z: mt * mt * z1 + 2 * mt * t * cz + t * t * z2 }
+  }
+  const tangent = (t: number): { x: number; z: number } => ({
+    x: 2 * (1 - t) * (cx - x1) + 2 * t * (x2 - cx),
+    z: 2 * (1 - t) * (cz - z1) + 2 * t * (z2 - cz),
+  })
+  const edge = Math.min(Math.max(0, inset), len * 0.2) / len
+  const steps = Math.max(2, Math.ceil((len * (1 - edge * 2)) / maxSpacing))
+  const samples: RoadPathSample[] = []
+  for (let i = 0; i <= steps; i++) {
+    const t = edge + (1 - edge * 2) * (i / steps)
+    const p = at(t)
+    const d = tangent(t)
+    samples.push({ x: p.x, z: p.z, tangentX: d.x, tangentZ: d.z })
+  }
+  return samples
+}
+
 /** One node of the road graph. */
 export interface RoadNode {
   id: string
@@ -139,22 +192,62 @@ export interface EditVerdict {
   reason?: 'disconnects-graph' | 'overlaps-existing-segment' | 'unknown-node'
 }
 
-function segmentMidpoint(graph: RoadGraph, segment: RoadSegment): { x: number; z: number } | null {
-  if (!(segment.from in graph.nodes) || !(segment.to in graph.nodes)) return null
-  const a = graph.nodes[segment.from]
-  const b = graph.nodes[segment.to]
-  return { x: (a.x + b.x) / 2, z: (a.z + b.z) / 2 }
-}
-
-function segmentsOverlap(graph: RoadGraph, a: RoadSegment, b: RoadSegment, tolerance = 1.0): boolean {
-  // A segment between the same two nodes, in either direction, duplicates
-  // an existing segment: an overlap the edit validation must refuse.
+function segmentsOverlap(graph: RoadGraph, a: RoadSegment, b: RoadSegment): boolean {
   if (a.from === b.from && a.to === b.to) return true
   if (a.from === b.to && a.to === b.from) return true
-  const midA = segmentMidpoint(graph, a)
-  const midB = segmentMidpoint(graph, b)
-  if (!midA || !midB) return false
-  return Math.hypot(midA.x - midB.x, midA.z - midB.z) <= tolerance
+  if (!(a.from in graph.nodes) || !(a.to in graph.nodes) || !(b.from in graph.nodes) || !(b.to in graph.nodes))
+    return false
+  const a0 = graph.nodes[a.from]
+  const a1 = graph.nodes[a.to]
+  const b0 = graph.nodes[b.from]
+  const b1 = graph.nodes[b.to]
+  const shared = [a.from, a.to].find((id) => id === b.from || id === b.to)
+  if (shared) {
+    const junction = graph.nodes[shared]
+    const first = graph.nodes[a.from === shared ? a.to : a.from]
+    const second = graph.nodes[b.from === shared ? b.to : b.from]
+    const ax = first.x - junction.x
+    const az = first.z - junction.z
+    const bx = second.x - junction.x
+    const bz = second.z - junction.z
+    const product = Math.hypot(ax, az) * Math.hypot(bx, bz)
+    if (product === 0 || (ax * bx + az * bz) / product > Math.cos(Math.PI / 4)) return true
+  }
+  const clearance = (a.width + b.width) / 2
+  const junction = shared ? graph.nodes[shared] : null
+  const outsideJunction = (point: RoadPathSample): boolean =>
+    !junction || Math.hypot(point.x - junction.x, point.z - junction.z) >= clearance * 2
+  const firstPoints = sampleRoadCurve(a0.x, a0.z, a1.x, a1.z, a.curve, a.id, 1).filter(outsideJunction)
+  const secondPoints = sampleRoadCurve(b0.x, b0.z, b1.x, b1.z, b.curve, b.id, 1).filter(outsideJunction)
+  interface Point {
+    x: number
+    z: number
+  }
+  const cross = (p: Point, q: Point, r: Point): number => (q.x - p.x) * (r.z - p.z) - (q.z - p.z) * (r.x - p.x)
+  const distance = (p: Point, start: Point, end: Point): number => {
+    const dx = end.x - start.x
+    const dz = end.z - start.z
+    const lengthSq = dx * dx + dz * dz
+    const t = lengthSq ? Math.max(0, Math.min(1, ((p.x - start.x) * dx + (p.z - start.z) * dz) / lengthSq)) : 0
+    return Math.hypot(p.x - start.x - t * dx, p.z - start.z - t * dz)
+  }
+  for (let i = 1; i < firstPoints.length; i++) {
+    const p = firstPoints[i - 1]
+    const q = firstPoints[i]
+    for (let j = 1; j < secondPoints.length; j++) {
+      const r = secondPoints[j - 1]
+      const s = secondPoints[j]
+      if (cross(p, q, r) * cross(p, q, s) <= 0 && cross(r, s, p) * cross(r, s, q) <= 0) {
+        const overlapX =
+          Math.max(Math.min(p.x, q.x), Math.min(r.x, s.x)) <= Math.min(Math.max(p.x, q.x), Math.max(r.x, s.x))
+        const overlapZ =
+          Math.max(Math.min(p.z, q.z), Math.min(r.z, s.z)) <= Math.min(Math.max(p.z, q.z), Math.max(r.z, s.z))
+        if (overlapX && overlapZ) return true
+      }
+      if (Math.min(distance(p, r, s), distance(q, r, s), distance(r, p, q), distance(s, p, q)) < clearance) return true
+    }
+  }
+  return false
 }
 
 /**
@@ -201,30 +294,130 @@ export function snapToNode(graph: RoadGraph, x: number, z: number): RoadNode | n
   return best
 }
 
-/**
- * Waypoints along the live graph between two ground points (R032): both ends
- * snap to the nearest node and the graph's BFS route is walked; collinear
- * waypoints collapse so a path stays as short as the derived grid's, and the
- * destination point is appended so the walk ends exactly where it was aimed.
- * Returns null when the ends are disconnected — the caller keeps the last
- * route (a refused edit never strands a character).
- */
+/** Route along the same sampled centrelines used to render each road. */
 export function pathOn(graph: RoadGraph, fromX: number, fromZ: number, toX: number, toZ: number): number[][] | null {
-  const start = snapToNode(graph, fromX, fromZ)
-  const end = snapToNode(graph, toX, toZ)
-  if (!start || !end) return null
-  if (start.id === end.id) return [[toX, toZ]]
-  const chain = route(graph, start.id, end.id)
-  if (!chain) return null
-  const out: number[][] = []
-  for (const id of chain) {
-    if (!(id in graph.nodes)) continue
-    const node = graph.nodes[id]
-    const last = out.length ? out[out.length - 1] : null
-    if (!last || Math.hypot(last[0] - node.x, last[1] - node.z) > 0.5) out.push([node.x, node.z])
+  interface Point {
+    x: number
+    z: number
   }
-  const tail = out.length ? out[out.length - 1] : null
-  if (!tail || Math.hypot(tail[0] - toX, tail[1] - toZ) > 0.5) out.push([toX, toZ])
+  interface Edge {
+    segment: RoadSegment
+    points: Point[]
+    distances: number[]
+    length: number
+  }
+  interface Snap {
+    edge: Edge
+    distance: number
+    point: Point
+    offset: number
+  }
+  const edges: Edge[] = []
+  for (const segment of Object.values(graph.segments)) {
+    if (!(segment.from in graph.nodes) || !(segment.to in graph.nodes)) continue
+    const a = graph.nodes[segment.from]
+    const b = graph.nodes[segment.to]
+    const points = sampleRoadCurve(a.x, a.z, b.x, b.z, segment.curve, segment.id, 1.8)
+    const distances = [0]
+    for (let i = 1; i < points.length; i++) {
+      distances.push(distances[i - 1] + Math.hypot(points[i].x - points[i - 1].x, points[i].z - points[i - 1].z))
+    }
+    edges.push({ segment, points, distances, length: distances[distances.length - 1] })
+  }
+  const nearest = (x: number, z: number): Snap | null => {
+    let best: Snap | null = null
+    for (const edge of edges)
+      for (let i = 1; i < edge.points.length; i++) {
+        const a = edge.points[i - 1],
+          b = edge.points[i]
+        const dx = b.x - a.x,
+          dz = b.z - a.z
+        const lengthSq = dx * dx + dz * dz
+        const t = lengthSq ? Math.max(0, Math.min(1, ((x - a.x) * dx + (z - a.z) * dz) / lengthSq)) : 0
+        const point = { x: a.x + t * dx, z: a.z + t * dz }
+        const offset = Math.hypot(x - point.x, z - point.z)
+        if (!best || offset < best.offset)
+          best = { edge, point, offset, distance: edge.distances[i - 1] + t * Math.sqrt(lengthSq) }
+      }
+    return best
+  }
+  const start = nearest(fromX, fromZ),
+    end = nearest(toX, toZ)
+  if (!start || !end) return null
+  const slice = (edge: Edge, from: number, to: number, first: Point, last: Point): Point[] => {
+    const middle = edge.points.filter(
+      (_, i) => edge.distances[i] > Math.min(from, to) && edge.distances[i] < Math.max(from, to),
+    )
+    if (from > to) middle.reverse()
+    return [first, ...middle, last]
+  }
+  let bestPoints: Point[] | null =
+    start.edge === end.edge ? slice(start.edge, start.distance, end.distance, start.point, end.point) : null
+  let bestLength = bestPoints ? Math.abs(start.distance - end.distance) : Infinity
+  // Dijkstra from each endpoint accounts for partial edges and real road length.
+  for (const startNode of [start.edge.segment.from, start.edge.segment.to]) {
+    const startDistance = startNode === start.edge.segment.from ? start.distance : start.edge.length - start.distance
+    const distances = new Map<string, number>([[startNode, startDistance]])
+    const previous = new Map<string, { node: string; edge: Edge }>()
+    const visited = new Set<string>()
+    while (visited.size < Object.keys(graph.nodes).length) {
+      let current: string | null = null,
+        cost = Infinity
+      for (const [node, value] of distances)
+        if (!visited.has(node) && value < cost) {
+          current = node
+          cost = value
+        }
+      if (current === null) break
+      visited.add(current)
+      for (const edge of edges) {
+        const next =
+          edge.segment.from === current ? edge.segment.to : edge.segment.to === current ? edge.segment.from : null
+        if (next && cost + edge.length < (distances.get(next) ?? Infinity)) {
+          distances.set(next, cost + edge.length)
+          previous.set(next, { node: current, edge })
+        }
+      }
+    }
+    for (const endNode of [end.edge.segment.from, end.edge.segment.to]) {
+      const finishDistance = endNode === end.edge.segment.from ? end.distance : end.edge.length - end.distance
+      const total = (distances.get(endNode) ?? Infinity) + finishDistance
+      if (total >= bestLength) continue
+      const chain: { from: string; to: string; edge: Edge }[] = []
+      let cursor = endNode
+      while (cursor !== startNode) {
+        const step = previous.get(cursor)
+        if (!step) break
+        chain.unshift({ from: step.node, to: cursor, edge: step.edge })
+        cursor = step.node
+      }
+      if (cursor !== startNode) continue
+      const startAt = startNode === start.edge.segment.from ? 0 : start.edge.length
+      const endAt = endNode === end.edge.segment.from ? 0 : end.edge.length
+      const points = slice(start.edge, start.distance, startAt, start.point, graph.nodes[startNode])
+      for (const step of chain) {
+        const forward = step.from === step.edge.segment.from
+        points.push(
+          ...slice(
+            step.edge,
+            forward ? 0 : step.edge.length,
+            forward ? step.edge.length : 0,
+            graph.nodes[step.from],
+            graph.nodes[step.to],
+          ),
+        )
+      }
+      points.push(...slice(end.edge, endAt, end.distance, graph.nodes[endNode], end.point))
+      bestLength = total
+      bestPoints = points
+    }
+  }
+  if (!bestPoints) return null
+  const out: number[][] = []
+  for (const point of [...bestPoints, { x: toX, z: toZ }]) {
+    const last = out.length ? out[out.length - 1] : null
+    if (!last || Math.hypot(last[0] - point.x, last[1] - point.z) > 0.001) out.push([point.x, point.z])
+  }
   return out
 }
 

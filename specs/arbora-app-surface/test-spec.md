@@ -839,6 +839,8 @@ mutable parent storage alone is not a reason to require a new EG API.
 - `OVERSTORY-APPS-R030.13.4`: planned proof — `src/components/knowledge-graph/__tests__/GraphCanvas.scale.test.tsx::test_cluster_refusal_falls_back_with_reason`.
 - `OVERSTORY-APPS-R030.13.5`: planned proof — `e2e/graph-scale-served.spec.ts::report_records_the_five_measures`.
 - `OVERSTORY-APPS-R030.13.6`: planned proof — `e2e/graph-scale-served.spec.ts::clustered_start_expand_and_frame_target`.
+- `OVERSTORY-APPS-R030.10.10`: audit row for cross-repo dependency MEDULLA-DURABLE-KERNEL-R876; tracked in tasks.md::T299 until the medulla row lands.
+- `OVERSTORY-APPS-R030.11.7`: audit row for cross-repo dependency MEDULLA-ORCH-VOCAB-R817; tracked in tasks.md::T300 until the medulla row lands.
 
 ## Host-log view
 

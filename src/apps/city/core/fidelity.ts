@@ -22,10 +22,14 @@ import {
 import { MIN_LABEL_FONT_PX, resolveLabelSet, type LabelCandidate } from '@/lib/scene3d/labels'
 import { HOUSES, PARKS, PLOTS, X_ROADS, Z_ROADS, BUILDING_POS } from './layout'
 import { mulberry32 } from './prng'
+import { auditScene, provenanceManifest, type ProvenanceRecord, type SceneAuditIssue } from './provenance'
+import type { FrameBudgetView } from './frameBudget'
+import type { NightWindowReport } from './render3d/windowEmissive'
 import { dressingForPlot } from './render3d/buildings'
 import { collectLabelCandidates } from './render3d/labelLayer'
 import type { world as simWorld } from './sim'
-import type { CityActions, CityFidelityCore } from './types'
+import type { CityActions, CityFidelityCore, CityRenderDiagnostics } from './types'
+import * as THREE from 'three'
 
 /** The in-game boot clock: the city wakes at 09:00 (sim.ts). */
 const BOOT_CLOCK_S = 9 * 3600
@@ -39,11 +43,26 @@ const NIGHT_CLOCK_S = 21 * 3600
  * `actions.overview()` eases to); `district` frames the connector district;
  * `street` looks down the main grid. `close-up` and `night` are placed from
  * the live world state at capture time.
+ *
+ * R041.1 approved overview captures for the production-world visual slice:
+ * `waterway` frames the river/waterfront, `skyline` shows the horizon,
+ * `dense-core` shows the built-up centre with landmarks.
  */
 export const GOLDEN_VIEWS = {
-  overview: { cam: [36, 62, 108] as const, target: [-20, 1, 8] as const },
-  district: { cam: [-46, 30, 46] as const, target: [-50, 0.5, 5] as const },
-  street: { cam: [2, 6, 20] as const, target: [0, 1.2, -8] as const },
+  // Must mirror the renderer's first-frame composition: an approved overview
+  // that omits the river, waterfront or skyline is not production evidence.
+  overview: { cam: [62, 55, 112] as const, target: [-8, 2, 10] as const },
+  // Both poses are on declared road corridors, never inside the Arbora gate
+  // or a connector footprint. Their oblique view exposes façades, sidewalks
+  // and public furniture rather than a top-down label carpet.
+  district: { cam: [-90, 42, 78] as const, target: [-50, 2, 5] as const },
+  street: { cam: [-20, 5.5, 38] as const, target: [-20, 1.2, 4] as const },
+  // R041.1: approved overview captures for the production-world visual slice.
+  // Each frame must show the named element (waterway, skyline, dense core)
+  // so the visual regression cannot pass with a truncated crop.
+  waterway: { cam: [40, 30, -55] as const, target: [-10, 1.5, -40] as const },
+  skyline: { cam: [0, 80, 120] as const, target: [-8, 0, 10] as const },
+  'dense-core': { cam: [-40, 35, 40] as const, target: [-15, 2, 5] as const },
 } as const
 
 export type GoldenView = keyof typeof GOLDEN_VIEWS | 'close-up' | 'night'
@@ -82,7 +101,36 @@ export interface CityFidelityAudits {
   backgroundBlocks: string[]
   /** R012.7: the label set at the current camera. */
   labels: CityFidelityLabelAudit
+  /**
+   * R063: the asset-provenance manifest (every live catalog family with its
+   * instance count and source stage) plus the live scene audit. Joining
+   * `ok` once the catalog-first wipe (R067) removes the launch-era
+   * generated passes it reports.
+   */
+  provenance: CityFidelityProvenanceAudit
+  /** R041.1: geometry-audit — no floating roofs, walls, or windows. */
+  geometry: CityFidelityGeometryAudit
   ok: boolean
+}
+
+/** The live provenance audit over the rendered scene (R063). */
+export interface CityFidelityProvenanceAudit {
+  /** Clean when every visible mesh is a catalog family or a declared exempt primitive. */
+  clean: boolean
+  /** The unplaced meshes (launch-era generated geometry until R067). */
+  issues: SceneAuditIssue[]
+  /** Every live catalog family with its instance count and source stage. */
+  manifest: ProvenanceRecord[]
+}
+
+/** Geometry-audit result: disconnected meshes that violate R041.1. */
+export interface CityFidelityGeometryAudit {
+  /** Total meshes walked. */
+  totalMeshes: number
+  /** Meshes that fail the connection check (floating roofs, walls, windows). */
+  disconnected: { id: string; type: string; position: [number, number, number] }[]
+  /** Passes when every building volume is watertight (no floating roofs, walls, or windows). */
+  watertight: boolean
 }
 
 export interface CityFidelityFrameTime {
@@ -120,6 +168,12 @@ export interface CityFidelityHandle {
   frameTime(samples: number): Promise<CityFidelityFrameTime>
   /** The WebGL renderer string (the harness uses it to declare the GPU tier). */
   gpu(): string
+  /** The live frame-budget report (R065); null while the 2D schematic is active. */
+  budget(): FrameBudgetView | null
+  /** The live night-window resolution (R066); null while the 2D schematic is active. */
+  nightWindows(): NightWindowReport | null
+  /** View-independent diagnostics: average FPS, floor FPS, slow frames (R078). */
+  diagnostics(): CityRenderDiagnostics | null
   dispose(): void
 }
 
@@ -175,7 +229,10 @@ function parkTreePositions(): { x: number; z: number }[] {
 
 /** The scene's streetlamp rule: one pole at every other interior intersection. */
 function streetLampAt(xi: number, zi: number): boolean {
-  return xi >= 1 && zi >= 1 && xi < X_ROADS.length - 1 && zi < Z_ROADS.length - 1 && xi % 2 === 1 && zi % 2 === 1
+  const interior =
+    xi >= 1 && zi >= 1 && xi < X_ROADS.length - 1 && zi < Z_ROADS.length - 1 && xi % 2 === 1 && zi % 2 === 1
+  const waterfront = xi >= 1 && xi < X_ROADS.length - 1 && xi % 2 === 1 && zi === Z_ROADS.length - 1
+  return interior || waterfront
 }
 
 /** The street-edge zone of one block cell (a 10 m band around its edges). */
@@ -185,6 +242,59 @@ function inBlockZone(x: number, z: number, i: number, j: number): boolean {
 
 function platesOverlap(a: LabelCandidate, b: LabelCandidate): boolean {
   return a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y
+}
+
+/**
+ * Geometry-audit for R041.1: reject disconnected roof, wall, and window
+ * meshes. Walks the scene graph, collects building-part meshes tagged
+ * via userData, and checks that each has a neighbour within `maxGap`
+ * metres — floating planes mean a watertight building volume was not
+ * assembled.
+ */
+function geometryAudit(scene: THREE.Scene, maxGap = 0.8): CityFidelityGeometryAudit {
+  const meshes: {
+    obj: THREE.Object3D
+    position: [number, number, number]
+    type: string
+  }[] = []
+  scene.traverse((child) => {
+    if (child instanceof THREE.Mesh) {
+      const marker = (child as THREE.Object3D).userData.marker as string | undefined
+      if (marker) {
+        const worldPos = new THREE.Vector3()
+        child.getWorldPosition(worldPos)
+        meshes.push({
+          obj: child,
+          position: [worldPos.x, worldPos.y, worldPos.z] as [number, number, number],
+          type: marker,
+        })
+      }
+    }
+  })
+  const disconnected: CityFidelityGeometryAudit['disconnected'] = []
+  const buildingParts = new Set(['roof', 'wall', 'window', 'door', 'facade'])
+  for (const m of meshes) {
+    if (!buildingParts.has(m.type)) continue
+    let connected = false
+    for (const other of meshes) {
+      if (other === m) continue
+      const dx = m.position[0] - other.position[0]
+      const dy = m.position[1] - other.position[1]
+      const dz = m.position[2] - other.position[2]
+      if (dx * dx + dy * dy + dz * dz <= maxGap * maxGap) {
+        connected = true
+        break
+      }
+    }
+    if (!connected) {
+      disconnected.push({ id: (m.obj.name || m.obj.uuid).slice(0, 24), type: m.type, position: m.position })
+    }
+  }
+  return {
+    totalMeshes: meshes.length,
+    disconnected,
+    watertight: disconnected.length === 0,
+  }
 }
 
 export function installCityFidelity(deps: CityFidelityDeps): CityFidelityHandle {
@@ -199,6 +309,13 @@ export function installCityFidelity(deps: CityFidelityDeps): CityFidelityHandle 
 
   async function holdAt(clockS: number): Promise<void> {
     const offset = Math.max(0, clockS - BOOT_CLOCK_S)
+    // The replay lands its target clock in a single frame; the live simulation
+    // (which runs at `timeScale` in-game seconds per real second) would cross
+    // that exact clock before the settle poll can read it. Pausing holds the
+    // world on the landed frame — the hold — so the poll observes the exact
+    // clock deterministically. The caller resumes with `actions().speed` when
+    // it needs the city running again.
+    deps.actions().speed(0)
     deps.actions().scrub(offset)
     const target = (BOOT_CLOCK_S + offset) % DAY_S
     for (let i = 0; i < 400; i++) {
@@ -211,7 +328,6 @@ export function installCityFidelity(deps: CityFidelityDeps): CityFidelityHandle 
   async function capture(view: GoldenView): Promise<void> {
     const core = deps.core()
     if (!core) throw new Error('the 3D scene is not active')
-    if (view === 'night') await holdAt(NIGHT_CLOCK_S)
     let cam: readonly [number, number, number]
     let target: readonly [number, number, number]
     if (view === 'close-up') {
@@ -226,7 +342,16 @@ export function installCityFidelity(deps: CityFidelityDeps): CityFidelityHandle 
     core.camera.position.set(cam[0], cam[1], cam[2])
     core.controls.target.set(target[0], target[1], target[2])
     core.controls.update()
-    core.holdAmbient(0)
+    // Capture lighting directly. Replaying twelve simulated hours simply to
+    // get a night screenshot freezes the browser and couples visual proof to
+    // an unrelated historical-state exercise; `holdAt` remains the replay
+    // seam when a test actually needs state at a past clock.
+    core.holdAmbient(view === 'night' ? NIGHT_CLOCK_S : BOOT_CLOCK_S)
+    await new Promise<void>((resolve) => {
+      requestAnimationFrame(() => {
+        resolve()
+      })
+    })
   }
 
   async function setSchematic(): Promise<void> {
@@ -244,7 +369,14 @@ export function installCityFidelity(deps: CityFidelityDeps): CityFidelityHandle 
 
     // R012.2: the city declares its markers through `userData.marker`.
     const material = materialAudit(core.scene, {
-      isMarker: (o) => o.userData.marker !== undefined,
+      isMarker: (object) => {
+        let node: typeof object | null = object
+        while (node) {
+          if (node.userData.marker !== undefined) return true
+          node = node.parent
+        }
+        return false
+      },
     })
 
     // R012.3: mirror the scene's dressed-layout derivation over the live
@@ -340,13 +472,36 @@ export function installCityFidelity(deps: CityFidelityDeps): CityFidelityHandle 
       underMinFont: visible.filter((l) => l.height < MIN_LABEL_FONT_PX).length,
     }
 
+    // R063: the live provenance manifest and the scene audit over the
+    // rendered graph — every visible mesh must be a catalog family or a
+    // declared exempt primitive. Not yet joined to `ok`: the launch-era
+    // generated passes it reports are removed by the catalog-first wipe
+    // (R067), which lands the audit clean.
+    const audit = auditScene(core.scene)
+    const provenance: CityFidelityProvenanceAudit = {
+      clean: audit.clean,
+      issues: audit.issues,
+      manifest: provenanceManifest(),
+    }
+
+    // R041.1: reject disconnected roof, wall, and window meshes.
+    const geometry = geometryAudit(core.scene)
+
     return {
       material,
       density,
       sparseStreetEdges,
       backgroundBlocks,
       labels,
-      ok: material.ok && density.ok && sparseStreetEdges.length === 0 && overlaps === 0 && labels.underMinFont === 0,
+      provenance,
+      geometry,
+      ok:
+        material.ok &&
+        density.ok &&
+        sparseStreetEdges.length === 0 &&
+        overlaps === 0 &&
+        labels.underMinFont === 0 &&
+        geometry.watertight,
     }
   }
 
@@ -393,6 +548,21 @@ export function installCityFidelity(deps: CityFidelityDeps): CityFidelityHandle 
     return dbg ? String(gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL)) : 'unknown'
   }
 
+  /** The live frame-budget report (R065), read through the renderer's seam. */
+  function budget(): FrameBudgetView | null {
+    return deps.core()?.budget?.() ?? null
+  }
+
+  /** The live night-window resolution (R066), read through the renderer's seam. */
+  function nightWindows(): NightWindowReport | null {
+    return deps.core()?.nightWindows?.() ?? null
+  }
+
+  /** View-independent diagnostics: average FPS, floor FPS, slow frames (R078). */
+  function diagnostics(): CityRenderDiagnostics | null {
+    return deps.core()?.diagnostics?.() ?? null
+  }
+
   function dispose(): void {
     if (typeof window !== 'undefined') window.__cityFidelity = undefined
   }
@@ -406,6 +576,9 @@ export function installCityFidelity(deps: CityFidelityDeps): CityFidelityHandle 
     frameDigest,
     frameTime,
     gpu,
+    budget,
+    nightWindows,
+    diagnostics,
     dispose,
   }
   if (typeof window !== 'undefined' && import.meta.env.DEV) window.__cityFidelity = handle

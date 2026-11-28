@@ -9,12 +9,12 @@
  * scene-fidelity harness (R012.9) measures p95 frame time against, not
  * values this unit test can measure (jsdom cannot render frames).
  */
-// spec: OVERSTORY-CITY-R028
+// spec: OVERSTORY-CITY-R028, OVERSTORY-CITY-R028.2
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import * as THREE from 'three'
 import { GLTFLoader, type GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js'
-import { beforeAll, afterEach, describe, expect, it } from 'vitest'
+import { beforeAll, afterEach, describe, expect, it, vi } from 'vitest'
 import { BUDGETS } from '../core/budgets'
 import { clearPins } from '../core/assets'
 import { FLEET_SNAPSHOT, domainOf, fleetToConnectors } from '../core/ecosystem'
@@ -220,14 +220,33 @@ describe('performance budgets measured from the real scene graph (R028)', () => 
 
   it('the static city core is measured, and its geometry is real', () => {
     const core = buildCityCore(new THREE.Scene())
-    expect(core.ships.length).toBeGreaterThan(0)
+    expect(core.watercraft.hull).toBeInstanceOf(THREE.InstancedMesh)
+    expect(core.watercraft.cabin).toBeInstanceOf(THREE.InstancedMesh)
     expect(core.houseWindows.length).toBeGreaterThan(0)
-    expect(core.lampGlows.length).toBeGreaterThan(0)
+    expect(core.lampGlowMaterial).toBeInstanceOf(THREE.MeshBasicMaterial)
+    expect(core.traffic.routes).toHaveLength(28)
+    for (const trafficRoute of core.traffic.routes) {
+      expect(trafficRoute.points.length).toBeGreaterThan(12)
+      expect(trafficRoute.length).toBeGreaterThan(100)
+      const first = trafficRoute.points[0]
+      const last = trafficRoute.points[trafficRoute.points.length - 1]
+      expect(first).toBeTruthy()
+      expect(last).toBeTruthy()
+      // The vehicle route closes at the same graph node, so no single-block
+      // visual lane needs to pop a car back to its start.
+      expect(Math.hypot((first?.x ?? 0) - (last?.x ?? 0), (first?.z ?? 0) - (last?.z ?? 0))).toBeLessThan(0.01)
+    }
     // The seeded park trees mean the core carries hundreds of triangles
     // measured from the graph — not a hand-computed constant.
     const scene = new THREE.Scene()
     buildCityCore(scene)
     expect(subtreeTriangles(scene)).toBeGreaterThan(500)
+    // The regional skyline is a fixed handful of instanced façade batches,
+    // never hundreds of individual background meshes competing with the live
+    // connector district for draw calls.
+    const regional = scene.children.filter((child) => child.userData.marker === 'regional-massing')
+    expect(regional).toHaveLength(4)
+    expect(regional.every((child) => child instanceof THREE.InstancedMesh)).toBe(true)
   })
 
   it('measured triangles per building hold the budget for every building', () => {
@@ -278,6 +297,58 @@ describe('performance budgets measured from the real scene graph (R028)', () => 
       expect(subtreeTriangles(child), 'asset triangle budget').toBeLessThanOrEqual(BUDGETS.assetTriangles)
     }
     expect(rigs).toBe(world.characters.length)
+    api.dispose()
+  })
+
+  // spec: OVERSTORY-CITY-R048.6.1
+  it('releases parsed rig resources and per-character skeletons when the layer is replaced', async () => {
+    initSim(fleetToConnectors(FLEET_SNAPSHOT))
+    const scene = new THREE.Scene()
+    const geometrySpies: ReturnType<typeof vi.spyOn>[] = []
+    const materialSpies: ReturnType<typeof vi.spyOn>[] = []
+    const api = await initCharacters(scene, world, null, async (path) => {
+      const rig = await loadPinned(path)
+      const geometries = new Set<THREE.BufferGeometry>()
+      const materials = new Set<THREE.Material>()
+      rig.scene.traverse((object) => {
+        if (!(object instanceof THREE.Mesh)) return
+        geometries.add(object.geometry)
+        const owned = Array.isArray(object.material) ? object.material : [object.material]
+        for (const material of owned) materials.add(material)
+      })
+      for (const geometry of geometries) geometrySpies.push(vi.spyOn(geometry, 'dispose'))
+      for (const material of materials) materialSpies.push(vi.spyOn(material, 'dispose'))
+      return rig
+    })
+    const skeletonSpies: ReturnType<typeof vi.spyOn>[] = []
+    scene.traverse((object) => {
+      if (object instanceof THREE.SkinnedMesh) skeletonSpies.push(vi.spyOn(object.skeleton, 'dispose'))
+    })
+    expect(geometrySpies.length).toBeGreaterThan(0)
+    expect(materialSpies.length).toBeGreaterThan(0)
+    expect(skeletonSpies.length).toBeGreaterThan(0)
+    api.dispose()
+    api.dispose()
+    for (const spy of [...geometrySpies, ...materialSpies, ...skeletonSpies]) expect(spy).toHaveBeenCalledOnce()
+    expect(scene.children).toHaveLength(0)
+  })
+
+  it('uses a single lightweight character mesh at a distance and restores the rig nearby', async () => {
+    initSim(fleetToConnectors(FLEET_SNAPSHOT))
+    const scene = new THREE.Scene()
+    const camera = new THREE.PerspectiveCamera()
+    camera.position.set(0, 180, 0)
+    const api = await initCharacters(scene, world, null, loadPinned, camera)
+    const group = scene.children.find((child) => child instanceof THREE.Group) as THREE.Group
+    const distant = group.children.find((child) => child.userData.marker === 'character-distant') as THREE.Mesh
+    const rig = group.children[0]
+    api.update(0.016, 0)
+    expect(distant.visible).toBe(true)
+    expect(rig.visible).toBe(false)
+    camera.position.set(group.position.x, 5, group.position.z)
+    api.update(0.016, 0)
+    expect(distant.visible).toBe(false)
+    expect(rig.visible).toBe(true)
     api.dispose()
   })
 

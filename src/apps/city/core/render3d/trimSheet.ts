@@ -30,6 +30,13 @@ function ctx2d(c: HTMLCanvasElement): CanvasRenderingContext2D {
   return g
 }
 
+/** Canvas pixels are authored as sRGB CSS colours, never linear-light data. */
+function authoredTexture(canvas: HTMLCanvasElement): THREE.CanvasTexture {
+  const texture = new THREE.CanvasTexture(canvas)
+  texture.colorSpace = THREE.SRGBColorSpace
+  return texture
+}
+
 /** The hex of one palette role as a canvas fill style. */
 function paletteColor(role: string): string {
   return SCENE_COLORS[role].hex
@@ -60,7 +67,13 @@ export function trimSheetTexture(): THREE.CanvasTexture {
     const x0 = col * colW
     // Wall row (v 0.25–0.50): a light neutral the per-archetype tint
     // multiplies; faint floor lines and bay seams break visible tiling.
-    g.fillStyle = paletteColor('wall-datahall')
+    // The atlas columns are deliberately different material families.  The
+    // building seed picks a column, so an otherwise similar block receives
+    // a reproducible facade variation instead of the old white repetition.
+    // These are material families, not semantic role colours.  The latter
+    // are intentionally reserved for signs and live-state accents; using
+    // them as full facades is what made the city read as striped toy blocks.
+    g.fillStyle = paletteColor(['facade-ocean', 'facade-sand', 'facade-stone', 'facade-sage'][col])
     g.fillRect(x0, wallY, colW, yOf(0.25) - wallY)
     g.fillStyle = 'rgba(255,255,255,0.35)'
     g.fillRect(x0, wallY, colW, yOf(0.25) - wallY)
@@ -111,13 +124,18 @@ export function trimSheetTexture(): THREE.CanvasTexture {
   const { 'road-band': rb } = TRIM_SHEET.bands
   const yTop = yOf(rb[1])
   const yBot = yOf(rb[0])
-  g.fillStyle = paletteColor('road')
+  // The input token's base road colour was too close to tropical grass at
+  // city zoom. Keep the same family but use the authored asphalt derivative
+  // so a continuous street network reads as pavement, not green tiles.
+  g.fillStyle = paletteColor('asphalt')
   g.fillRect(0, yTop, SIZE, yBot - yTop)
   g.fillStyle = 'rgba(0,0,0,0.10)'
   for (let s = 0; s < 90; s++) g.fillRect(rand() * SIZE, yTop + rand() * (yBot - yTop), 2, 2)
-  // The ivory centre dashes (u across the width, v along the run).
-  g.fillStyle = paletteColor('road-marking')
-  for (let d = 0; d < 6; d++) g.fillRect(SIZE / 2 - 5, yTop + (yBot - yTop) * (d / 6 + 0.12), 10, (yBot - yTop) / 12)
+  // Crosswalks and junction assets own the visible white paint. A repeating
+  // centre dash on every short generated segment looked like hundreds of
+  // miniature zebra tiles from the overview, so local asphalt keeps only
+  // the dark wheel-rut cue below. Arterial lane paint lands with the future
+  // road-class mesh, not this universal atlas patch.
   // Faint wheel ruts.
   g.fillStyle = 'rgba(0,0,0,0.08)'
   g.fillRect(SIZE / 2 - 90, yTop, 4, yBot - yTop)
@@ -148,7 +166,7 @@ export function litWindowSheet(): THREE.CanvasTexture {
   for (let col = 0; col < 4; col++) {
     g.fillRect(col * colW, yOf(0.7), colW, yOf(0.5) - yOf(0.7))
   }
-  return new THREE.CanvasTexture(c)
+  return authoredTexture(c)
 }
 
 /**
@@ -170,7 +188,7 @@ export function roofFlashSheet(): THREE.CanvasTexture {
   for (let col = 0; col < 4; col++) {
     g.fillRect(col * colW, yOf(0.75), colW, yOf(0.7) - yOf(0.75))
   }
-  return new THREE.CanvasTexture(c)
+  return authoredTexture(c)
 }
 
 /** The zebra texture one crosswalk stripe uses (the road band's stripes). */
@@ -183,8 +201,23 @@ export function zebraTexture(): THREE.CanvasTexture {
   g.fillStyle = paletteColor('road-marking')
   // The stripes run across the walk (canvas u) and repeat along the run
   // (canvas v) — the orientation the crosswalk instances map the sheet with.
-  for (let s = 0; s < 4; s++) g.fillRect(4, 4 + s * 16, 56, 10)
-  return new THREE.CanvasTexture(c)
+  for (let s = 0; s < 4; s++) g.fillRect(7, 6 + s * 14, 50, 6)
+  return authoredTexture(c)
+}
+
+/** Warm concrete with joints and a darker curb edge for the public realm. */
+export function sidewalkTexture(): THREE.CanvasTexture {
+  const c = document.createElement('canvas')
+  c.width = c.height = 128
+  const g = ctx2d(c)
+  g.fillStyle = paletteColor('sidewalk')
+  g.fillRect(0, 0, 128, 128)
+  g.fillStyle = 'rgba(70,62,48,0.15)'
+  for (let x = 0; x <= 128; x += 32) g.fillRect(x, 0, 1, 128)
+  for (let y = 0; y <= 128; y += 24) g.fillRect(0, y, 128, 1)
+  g.fillStyle = paletteColor('curb')
+  g.fillRect(0, 0, 128, 5)
+  return authoredTexture(c)
 }
 
 /** The ground park map: the palette's green with a seeded subtle mottle. */
@@ -192,14 +225,45 @@ export function parkTexture(): THREE.CanvasTexture {
   const c = document.createElement('canvas')
   c.width = c.height = 256
   const g = ctx2d(c)
-  g.fillStyle = paletteColor('park')
+  g.fillStyle = paletteColor('tropical-forest')
   g.fillRect(0, 0, 256, 256)
   const rand = mulberry32(77)
   for (let s = 0; s < 400; s++) {
-    g.fillStyle = rand() > 0.5 ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'
+    g.fillStyle = rand() > 0.5 ? 'rgba(255,230,150,0.07)' : 'rgba(0,35,20,0.10)'
     g.fillRect(rand() * 256, rand() * 256, 2 + rand() * 3, 2 + rand() * 3)
   }
-  return new THREE.CanvasTexture(c)
+  return authoredTexture(c)
+}
+
+/**
+ * A macro terrain map for the regional world: grass, soil and scrub bands
+ * avoid the monochrome grey field while remaining deterministic and cheap.
+ */
+export function terrainTexture(): THREE.CanvasTexture {
+  const c = document.createElement('canvas')
+  c.width = c.height = 512
+  const g = ctx2d(c)
+  // Terrain hue is supplied by deterministic vertex biomes. This authored
+  // neutral detail map contributes grain without forcing every island region
+  // back to the same green texture.
+  g.fillStyle = paletteColor('facade-cloud')
+  g.fillRect(0, 0, 512, 512)
+  const rand = mulberry32(20261120)
+  // Turquoise is reserved for actual water surfaces; mixing it into the
+  // entire land map made the city read as a dirty, desaturated field.
+  const colors = ['rgba(60,72,64,0.22)', 'rgba(255,255,255,0.16)', 'rgba(92,72,44,0.15)']
+  for (let i = 0; i < 180; i++) {
+    g.globalAlpha = 0.3 + rand() * 0.25
+    g.fillStyle = colors[i % colors.length]
+    const x = rand() * 512
+    const y = rand() * 512
+    const r = 10 + rand() * 48
+    g.beginPath()
+    g.ellipse(x, y, r, r * (0.35 + rand() * 0.35), rand() * Math.PI, 0, Math.PI * 2)
+    g.fill()
+  }
+  g.globalAlpha = 1
+  return authoredTexture(c)
 }
 
 /** The water map: the palette's slate blue with a seeded wave line. */
@@ -207,7 +271,7 @@ export function waterTexture(): THREE.CanvasTexture {
   const c = document.createElement('canvas')
   c.width = c.height = 256
   const g = ctx2d(c)
-  g.fillStyle = paletteColor('water')
+  g.fillStyle = paletteColor('tropical-sea')
   g.fillRect(0, 0, 256, 256)
   const rand = mulberry32(11)
   g.strokeStyle = 'rgba(255,255,255,0.10)'
@@ -218,7 +282,7 @@ export function waterTexture(): THREE.CanvasTexture {
     for (let x = 0; x <= 256; x += 16) g.lineTo(x, y + Math.sin(x / 24 + w) * 3)
     g.stroke()
   }
-  return new THREE.CanvasTexture(c)
+  return authoredTexture(c)
 }
 
 /** The deck map: the palette's taupe in planks (pier, hulls, benches). */
@@ -239,7 +303,7 @@ export function woodTexture(): THREE.CanvasTexture {
     g.fillStyle = 'rgba(0,0,0,0.05)'
     g.fillRect(rand() * 128, rand() * 128, 2, 1)
   }
-  return new THREE.CanvasTexture(c)
+  return authoredTexture(c)
 }
 
 /** The hull/metal map: the palette's slate with a faint panel line. */
@@ -253,7 +317,7 @@ export function metalTexture(): THREE.CanvasTexture {
   for (let p = 0; p < 6; p++) g.fillRect(0, p * 24 + 22, 128, 2)
   g.fillStyle = 'rgba(0,0,0,0.10)'
   for (let p = 0; p < 6; p++) g.fillRect(0, p * 24, 128, 2)
-  return new THREE.CanvasTexture(c)
+  return authoredTexture(c)
 }
 
 /**
@@ -297,7 +361,7 @@ export function roadRunUVs(geometry: THREE.PlaneGeometry, lengthM: number, uIsLe
 
 /** The day sky dome gradient (the palette's day sky to the field horizon). */
 export function skyDayTexture(): THREE.CanvasTexture {
-  return skyGradient(paletteColor('sky-day'), paletteColor('wall-datahall'))
+  return skyGradient(paletteColor('tropical-sky'), '#d6f4ff')
 }
 
 /** The night sky dome gradient (the palette's night sky to the field floor). */
@@ -316,5 +380,5 @@ function skyGradient(top: string, bottom: string): THREE.CanvasTexture {
   grad.addColorStop(1, bottom)
   g.fillStyle = grad
   g.fillRect(0, 0, 4, 256)
-  return new THREE.CanvasTexture(c)
+  return authoredTexture(c)
 }

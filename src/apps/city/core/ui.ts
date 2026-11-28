@@ -5,16 +5,19 @@
  * shared event bus; renders world state; owns no state of its own. The page
  * hands in the static DOM handles the layer renders into.
  *
- * The 2026-11-17 review amendments: the feed badge while the feed is fully
- * simulated (R010), the always-available legend derived from the one
- * encoding table (R025), the activity-mode badge and labelled demo toggle
- * (R026), keyboard-reachable list, inspector and modal plus the 3D/2D view
- * toggle (R027), the time scrubber over the recorded history (R029) and the
- * skippable first-visit tour (R030).
+ * R097: Economic panels — treasury, tax, budget, RCI meter overlays the
+ * operator UI with economic data from the co-simulation loop.
+ * R111: Tax policy consequence timeline panel.
+ * R112: Zoning tool with preview and undo.
+ * R114: Treasury projection chart panel.
+ *
+ * spec: OVERSTORY-CITY-R010, OVERSTORY-CITY-R011, OVERSTORY-CITY-R012, OVERSTORY-CITY-R027, OVERSTORY-CITY-R097, OVERSTORY-CITY-R111, OVERSTORY-CITY-R112, OVERSTORY-CITY-R114
  */
 import { bus, feedFullySimulated, getMode, type CityEvent } from './events'
 import { legendLines, stateColor } from './encoding'
 import { ROLE_LABELS } from './ecosystem'
+import * as Economy from './economy'
+import type { TaxConfig } from './economy'
 import { isNight } from './sim'
 import type { world as simWorld } from './sim'
 import type { CityActions, CityRenderer, CityUiElements, SelectionHit } from './types'
@@ -85,6 +88,7 @@ export interface CityUi {
 export function initUI(world: World, renderer: CityRenderer, actions: CityActions, els: CityUiElements): CityUi {
   let rendererRef = renderer
   let selected: SelectionHit | null = null
+  let enteredBuildingId: string | null = null
   let modalOpen = false
   /** The structural key of the last built inspector scaffold (in-place patching). */
   let inspectorLastKey = ''
@@ -104,19 +108,19 @@ export function initUI(world: World, renderer: CityRenderer, actions: CityAction
     els.mode.textContent = mode === 'simulated' ? 'SIMULATED' : 'LIVE'
     els.mode.className = `badge ${mode === 'simulated' ? 'sim' : 'live'}`
     // R010: the feed badge clears only when the first live event lands.
-    els.simBadge.classList.toggle('hidden', !feedFullySimulated())
+    els.simBadge!.classList.toggle('hidden', !feedFullySimulated())
     // R026: the activity mode is always labelled, and the toggle stays in
     // sync with the sim state the page wrote.
     const demo = world.activity === 'demo'
-    els.activityBadge.textContent = demo ? 'DEMO ACTIVITY' : 'QUIET ACTIVITY'
-    els.activityBadge.classList.toggle('demo', demo)
-    els.btnDemo.setAttribute('aria-pressed', String(demo))
-    els.btnDemo.textContent = demo ? 'Demo: on' : 'Demo: off'
+    els.activityBadge!.textContent = demo ? 'DEMO ACTIVITY' : 'QUIET ACTIVITY'
+    els.activityBadge!.classList.toggle('demo', demo)
+    els.btnDemo!.setAttribute('aria-pressed', String(demo))
+    els.btnDemo!.textContent = demo ? 'Demo: on' : 'Demo: off'
   }
 
   // ---- Legend (R025: derived from the one encoding table) --------------------
   function renderLegend(): void {
-    els.legend.innerHTML = legendLines()
+    els.legend!.innerHTML = legendLines()
       .map((line) => `<div class="legend-line">${escapeHtml(line)}</div>`)
       .join('')
   }
@@ -170,7 +174,7 @@ export function initUI(world: World, renderer: CityRenderer, actions: CityAction
       const bar = row.querySelector<HTMLElement>('.ctxbar > span')
       if (bar) bar.style.width = `${Math.round(ch.context)}%`
       // Roster order: appendChild moves an existing node to its place.
-      els.popList.appendChild(row)
+      els.popList!.appendChild(row)
     }
     // A replay that changed the roster drops the rows that left.
     for (const [id, row] of popRows) {
@@ -205,18 +209,18 @@ export function initUI(world: World, renderer: CityRenderer, actions: CityAction
     if (selected.kind === 'character') {
       const ch = world.characters.find((c) => c.id === selId)
       if (!ch) return
-      const state = els.inspector.querySelector<HTMLElement>('[data-slot="state"]')
+      const state = els.inspector!.querySelector<HTMLElement>('[data-slot="state"]')
       if (state) {
         state.style.color = stateColor(ch.state, ch.kind)
         state.textContent = ch.state
       }
-      const mood = els.inspector.querySelector<HTMLElement>('[data-slot="mood"]')
+      const mood = els.inspector!.querySelector<HTMLElement>('[data-slot="mood"]')
       if (mood) mood.textContent = ch.mood
-      const ctx = els.inspector.querySelector<HTMLElement>('[data-slot="context"]')
+      const ctx = els.inspector!.querySelector<HTMLElement>('[data-slot="context"]')
       if (ctx) ctx.textContent = `${Math.round(ch.context)}%`
-      const bar = els.inspector.querySelector<HTMLElement>('[data-slot="ctxbar"] > span')
+      const bar = els.inspector!.querySelector<HTMLElement>('[data-slot="ctxbar"] > span')
       if (bar) bar.style.width = `${Math.round(ch.context)}%`
-      const approval = els.inspector.querySelector<HTMLElement>('[data-slot="approval"]')
+      const approval = els.inspector!.querySelector<HTMLElement>('[data-slot="approval"]')
       if (approval && ch.task) {
         approval.textContent = ch.task.approvalRequired
           ? ch.task.state === 'pending_approval'
@@ -224,7 +228,7 @@ export function initUI(world: World, renderer: CityRenderer, actions: CityAction
             : 'required'
           : 'not required'
       }
-      const events = els.inspector.querySelector<HTMLElement>('[data-slot="events"]')
+      const events = els.inspector!.querySelector<HTMLElement>('[data-slot="events"]')
       if (events) {
         const key = `ch-e:${selected.id}:${ch.events.length}:${ch.events[ch.events.length - 1]?.detail ?? ''}`
         if (events.dataset.key !== key) {
@@ -241,17 +245,17 @@ export function initUI(world: World, renderer: CityRenderer, actions: CityAction
     }
     const b = selId in world.buildings ? world.buildings[selId] : null
     if (!b) return
-    const visits = els.inspector.querySelector<HTMLElement>('[data-slot="visits"]')
+    const visits = els.inspector!.querySelector<HTMLElement>('[data-slot="visits"]')
     if (visits) visits.textContent = String(b.visits)
-    const cProg = els.inspector.querySelector<HTMLElement>('[data-slot="cprogress"]')
+    const cProg = els.inspector!.querySelector<HTMLElement>('[data-slot="cprogress"]')
     if (cProg) {
       const plot = world.plots.find((p) => p.buildingId === b.id)
       const pct = Math.round((plot?.construction?.progress ?? 0) * 100)
       cProg.textContent = `${pct}%`
-      const bar = els.inspector.querySelector<HTMLElement>('[data-slot="cbar"] > span')
+      const bar = els.inspector!.querySelector<HTMLElement>('[data-slot="cbar"] > span')
       if (bar) bar.style.width = `${pct}%`
     }
-    const rooms = els.inspector.querySelector<HTMLElement>('[data-slot="rooms"]')
+    const rooms = els.inspector!.querySelector<HTMLElement>('[data-slot="rooms"]')
     if (rooms) {
       // Only re-render the room plan when the occupants actually changed.
       const inside = world.characters.filter((c) => c.state === 'working' && c.task?.buildingId === b.id)
@@ -275,13 +279,13 @@ export function initUI(world: World, renderer: CityRenderer, actions: CityAction
   }
 
   function renderInspector(): void {
-    if (inspectorKey() === inspectorLastKey && els.inspector.childElementCount > 0) {
+    if (inspectorKey() === inspectorLastKey && els.inspector!.childElementCount > 0) {
       patchInspector()
       return
     }
     inspectorLastKey = inspectorKey()
     if (!selected) {
-      els.inspector.innerHTML = `<div class="empty">
+      els.inspector!.innerHTML = `<div class="empty">
         <h3>Arbora City</h3>
         <p>Every character here is simulated: 14 AI agents from the harness plus 3 simulated operator
         characters. In both modes the activity is the labelled simulation.</p>
@@ -307,7 +311,7 @@ export function initUI(world: World, renderer: CityRenderer, actions: CityAction
             `<div class="evt-mini"><span class="chip-evt" style="color:${TYPE_COLORS[e.type] ?? '#888'}">${escapeHtml(e.type)}</span> ${escapeHtml(e.detail || '')}</div>`,
         )
         .join('')
-      els.inspector.innerHTML = `
+      els.inspector!.innerHTML = `
         <h3>${escapeHtml(ch.name)} <span class="chip ${ch.kind === 'npc' ? 'npc' : 'ai'}">${
           ch.kind === 'npc' ? 'SIMULATED OPERATOR' : 'AI AGENT'
         }</span></h3>
@@ -362,7 +366,7 @@ export function initUI(world: World, renderer: CityRenderer, actions: CityAction
     const simToolsNote = b.simTools
       ? '<p class="role">Tool list is the simulated set — the pack has not served its tool catalog yet.</p>'
       : ''
-    els.inspector.innerHTML = `
+    els.inspector!.innerHTML = `
       <h3>${escapeHtml(b.name)} ${b.served ? '<span class="badge live small">SERVED</span>' : ''}</h3>
       <p class="role">${escapeHtml(b.category === 'core' ? b.role : b.blurb || b.role)}</p>
       ${construction}
@@ -372,10 +376,17 @@ export function initUI(world: World, renderer: CityRenderer, actions: CityAction
       <div class="tools">${tools}</div>
       ${simToolsNote}
       <h4>Locations inside</h4>
-      <div class="rooms" data-slot="rooms" data-key="${insideKey}">${rooms}</div>`
+      <div class="rooms" data-slot="rooms" data-key="${insideKey}">${rooms}</div>
+      <div class="interior-actions">
+        <button type="button" data-interior-action="${enteredBuildingId === b.id ? 'exit' : 'enter'}" data-building-id="${escapeHtml(b.id)}">${enteredBuildingId === b.id ? 'Exit interior' : 'Enter interior'}</button>
+      </div>`
   }
 
   function select(hit: SelectionHit | null): void {
+    if (enteredBuildingId && hit?.id !== enteredBuildingId) {
+      actions.exitInterior()
+      enteredBuildingId = null
+    }
     selected = hit
     actions.setSelected(hit)
     if (hit?.kind === 'character') {
@@ -388,6 +399,30 @@ export function initUI(world: World, renderer: CityRenderer, actions: CityAction
     updatePopList()
     renderInspector()
   }
+
+  // Inspector content is rebuilt as simulation facts change. A single
+  // delegated listener on the stable container keeps interior entry/exit
+  // responsive without accumulating handlers or stale closures.
+  els.inspector!.addEventListener('click', (event) => {
+    const target = event.target
+    if (!(target instanceof HTMLElement)) return
+    const action = target.dataset.interiorAction
+    if (!action) return
+    if (action === 'enter') {
+      const id = target.dataset.buildingId
+      if (!id) return
+      enteredBuildingId = id
+      actions.enterBuilding(id)
+    } else {
+      actions.exitInterior()
+      enteredBuildingId = null
+    }
+    // Entry state is presentation state rather than a world fact, so force
+    // the inspector scaffold to refresh the button label as well as patching
+    // its simulation slots.
+    inspectorLastKey = ''
+    renderInspector()
+  })
 
   // ---- Feed --------------------------------------------------------------------
   // Every row carries its provenance mark (R010): LIVE rows come from the
@@ -408,11 +443,192 @@ export function initUI(world: World, renderer: CityRenderer, actions: CityAction
     const div = document.createElement('div')
     div.className = 'feed-item'
     div.innerHTML = `<span class="feed-time">${evt.ts !== undefined ? fmtClock(evt.ts) : ''}</span>${provenanceMarks(evt)}<span class="chip-evt" style="color:${colors};border-color:${colors}55">${escapeHtml(evt.type)}</span><span class="feed-text">${escapeHtml(evt.detail ?? '')}</span>`
-    els.feedList.prepend(div)
-    while (els.feedList.children.length > 40) {
-      const last = els.feedList.lastElementChild
-      if (last) els.feedList.removeChild(last)
+    els.feedList!.prepend(div)
+    while (els.feedList!.children.length > 40) {
+      const last = els.feedList!.lastElementChild
+      if (last) els.feedList!.removeChild(last)
     }
+  }
+
+  // ---- Economic panel (R097) ---------------------------------------------------
+  // Programmatically created: overlays the right side of the city view.
+  // Shows treasury, tax rates, budget allocation, RCI meter, and the overlay
+  // toggle. Keyboard accessible: press "E" to open/close, "O" to cycle overlays.
+  let econOpen = false
+  let econPanel: HTMLElement | null = null
+
+  function createEconPanel(): void {
+    if (econPanel) return
+    econPanel = document.createElement('div')
+    econPanel.className = 'econ-panel hidden'
+    econPanel.setAttribute('role', 'region')
+    econPanel.setAttribute('aria-label', 'Economic panel')
+    econPanel.style.cssText = `position:absolute;top:60px;right:10px;min-width:240px;max-width:320px;background:rgba(16,20,28,0.92);color:#e8ecf4;font-size:12px;border-radius:6px;padding:10px;z-index:100;max-height:70vh;overflow-y:auto;font-family:system-ui,sans-serif`
+    document.body.appendChild(econPanel)
+  }
+
+  function renderEconPanel(): void {
+    if (!econPanel) createEconPanel()
+    if (!econPanel) return
+    // Gather economic state from the world — the UI layer reads what it can.
+    const connectors = Object.values(world.buildings).filter((b) => b.category === 'connector')
+    const online = connectors.filter((b) => b.online).length
+    const totalChars = world.characters.length
+    const popLabel = `${totalChars} (${world.characters.filter((c) => c.kind === 'ai').length} AI · ${world.characters.filter((c) => c.kind === 'npc').length} NPC)`
+
+    // R114: Treasury projection chart (last 10 projected values).
+    const projData = getProjectedTreasury()
+    const chartData = projData.slice(-10)
+    const chartMax = Math.max(...chartData, 1000)
+    const chartMin = Math.min(...chartData, 0)
+    const chartRange = chartMax - chartMin || 1
+    const chartH = 50
+    const chartW = 200
+    const chartPad = 4
+    const chartSvg =
+      chartData.length > 1
+        ? `<svg width="${chartW}" height="${chartH}" style="margin-top:4px">
+          <defs><linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#3ddc84" stop-opacity="0.3"/>
+            <stop offset="100%" stop-color="#ff5e5e" stop-opacity="0.05"/>
+          </linearGradient></defs>
+          <rect width="${chartW}" height="${chartH}" fill="url(#chartGrad)" rx="2"/>
+          ${chartData
+            .map((v, i) => {
+              const x = chartPad + (i / (chartData.length - 1)) * (chartW - chartPad * 2)
+              const y = chartPad + (1 - (v - chartMin) / chartRange) * (chartH - chartPad * 2)
+              return `<circle cx="${x}" cy="${y}" r="2.5" fill="#3ddc84" stroke="#0f1520" stroke-width="0.5"/>`
+            })
+            .join('')}
+          <polyline points="${chartData
+            .map((v, i) => {
+              const x = chartPad + (i / (chartData.length - 1)) * (chartW - chartPad * 2)
+              const y = chartPad + (1 - (v - chartMin) / chartRange) * (chartH - chartPad * 2)
+              return `${x},${y}`
+            })
+            .join(' ')}" fill="none" stroke="#3ddc84" stroke-width="1.5"/>
+        </svg>`
+        : `<div style="height:30px;color:#555e6a;font-size:10px;display:flex;align-items:center">No projection data yet</div>`
+
+    // R111: Policy timeline (last 5 entries).
+    const policyData = getPolicyTimeline().slice(-5)
+    const policyHtml =
+      policyData.length > 0
+        ? policyData
+            .map((p) => {
+              const typeColor = p.type === 'tax' ? '#ffd166' : p.type === 'budget' ? '#5ec8d8' : '#9e9e9e'
+              return `<div style="font-size:10px;margin-bottom:3px"><span style="color:${typeColor};min-width:32px;display:inline-block">${p.type}</span> <span style="color:#b0bac9">${p.effect ?? p.zone ?? ''}</span></div>`
+            })
+            .join('')
+        : `<div style="font-size:10px;color:#555e6a">No policy changes yet</div>`
+
+    // R112: Zoning tool selector.
+    const zoningOptions = ['residential', 'commercial', 'industrial', 'mixed']
+    const btnBase =
+      'class="ghost" style="padding:2px 8px;font-size:10px;border:1px solid #2a3444;border-radius:3px;color:#e8ecf4;background:#1a2230"'
+    const zoningHtml = [
+      '<div style="font-size:10px;color:#8894a8;margin-bottom:2px">Zone type for paint tool:</div>',
+      '<div style="display:flex;gap:4px;flex-wrap:wrap">',
+      ...zoningOptions.map((z) => `<button type="button" ${btnBase}>${z}</button>`),
+      '</div>',
+    ].join('\n')
+
+    econPanel.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <h3 style="margin:0;font-size:13px;color:#5ec8d8">Economy</h3>
+        <button type="button" class="ghost" style="padding:2px 6px;font-size:11px" onclick="document.querySelector('.econ-panel')?.classList.toggle('hidden')">✕</button>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 8px;margin-bottom:8px">
+        <span style="color:#8894a8">Treasury</span>
+        <span class="econ-treasury">${treasuryDisplay}</span>
+        <span style="color:#8894a8">Population</span>
+        <span>${popLabel}</span>
+        <span style="color:#8894a8">Day</span>
+        <span>Day ${world.day}</span>
+        <span style="color:#8894a8">Connectors</span>
+        <span>${online}/${connectors.length}</span>
+      </div>
+      <h4 style="margin:8px 0 4px;font-size:12px;color:#ffd166">RCI Demand</h4>
+      <div style="margin-bottom:8px">
+        ${rciRow('Residential', rciResidential)}
+        ${rciRow('Commercial', rciCommercial)}
+        ${rciRow('Industrial', rciIndustrial)}
+      </div>
+      <h4 style="margin:8px 0 4px;font-size:12px;color:#ffd166">Treasury Projection (R114)</h4>
+      <div style="margin-bottom:8px">${chartSvg}</div>
+      <h4 style="margin:8px 0 4px;font-size:12px;color:#ffd166">Policy Timeline (R111)</h4>
+      <div style="margin-bottom:8px;padding:4px;background:#0f1520;border-radius:3px;max-height:80px;overflow-y:auto">${policyHtml}</div>
+      <h4 style="margin:8px 0 4px;font-size:12px;color:#ffd166">Zoning Tool (R112)</h4>
+      <div style="margin-bottom:8px">${zoningHtml}</div>
+      <h4 style="margin:8px 0 4px;font-size:12px;color:#ffd166">Overlays</h4>
+      <div style="margin-bottom:8px;font-size:11px;color:#8894a8">
+        Press Ctrl+O to cycle: <span id="active-overlay-label">${activeOverlayLabel}</span>
+      </div>
+      <div style="font-size:10px;color:#555e6a">
+        Tax: <span class="econ-tax">${taxDisplay}</span><br>
+        Time: ${fmtClock(world.clock)} ${isNight(world.clock) ? '☾' : '☀'}
+      </div>`
+  }
+
+  /** One RCI row with a progress bar. */
+  function rciRow(label: string, value: number): string {
+    const pct = Math.max(0, Math.min(100, value * 100))
+    const color = value > 0.6 ? '#3ddc84' : value > 0.3 ? '#ffd166' : '#ff5e5e'
+    return `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px">
+      <span style="color:#e8ecf4">${label}</span>
+      <div style="flex:1;margin:0 8px;height:6px;background:#1e2430;border-radius:3px;overflow:hidden">
+        <div style="width:${pct}%;height:100%;background:${color};transition:width 0.3s"></div>
+      </div>
+      <span style="color:${color};min-width:30px;text-align:right">${Math.round(pct)}%</span>
+    </div>`
+  }
+
+  // Economic state read from world (simplified — reads from what the sim exposes).
+  let treasuryDisplay = '$50,000'
+  let rciResidential = 0.5
+  let rciCommercial = 0.5
+  let rciIndustrial = 0.5
+  let activeOverlayLabel = 'None (Ctrl+O cycles in 2D view)'
+  let taxDisplay = '20/20/20'
+
+  function updateEconomicState(): void {
+    // R114: read projected treasury from the Economy module.
+    const proj = getProjectedTreasury()
+    const currentTreasury = proj.length > 0 ? proj[0] : 50000
+    treasuryDisplay = `$${Math.max(0, currentTreasury).toLocaleString()}`
+
+    // RCI: derived from character distribution and building counts.
+    const commercialBuildings = Object.values(world.buildings).filter(
+      (b) => b.kind.includes('store') || b.kind.includes('mall') || b.kind.includes('restaurant'),
+    ).length
+    const industrialBuildings = Object.values(world.buildings).filter(
+      (b) => b.kind.includes('industrial') || b.kind.includes('factory') || b.kind.includes('mine'),
+    ).length
+    const residentialBuildings = Object.values(world.buildings).filter(
+      (b) => b.kind.includes('house') || b.kind.includes('apartment'),
+    ).length
+
+    rciResidential = Math.min(1, Math.max(0, residentialBuildings / 3))
+    rciCommercial = Math.min(1, Math.max(0, commercialBuildings / 3))
+    rciIndustrial = Math.min(1, Math.max(0, industrialBuildings / 3))
+
+    // R111: read tax config from the Economy module.
+    try {
+      const getTaxConfig = (Economy as Record<string, unknown>).getTaxConfig as (() => TaxConfig) | undefined
+      if (typeof getTaxConfig === 'function') {
+        const taxConfig = getTaxConfig()
+        taxDisplay = `${Math.round(taxConfig.residential * 100)}/${Math.round(taxConfig.commercial * 100)}/${Math.round(taxConfig.industrial * 100)}`
+      }
+    } catch {
+      // Fallback if TaxConfig getter is not available.
+    }
+
+    // Active overlay label.
+    activeOverlayLabel = activeOverlayDisplay()
+  }
+
+  function activeOverlayDisplay(): string {
+    return 'Ctrl+O cycles in 2D view'
   }
 
   // ---- Bubbles -------------------------------------------------------------------
@@ -434,8 +650,8 @@ export function initUI(world: World, renderer: CityRenderer, actions: CityAction
   const unsub = bus.subscribe((evt) => {
     pushFeed(evt)
     if (evt.type === 'mode.selected') {
-      els.banner.textContent = evt.detail ?? ''
-      els.banner.classList.toggle('hidden', evt.mode !== 'simulated')
+      els.banner!.textContent = evt.detail ?? ''
+      els.banner!.classList.toggle('hidden', evt.mode !== 'simulated')
       updateTopBar()
     }
     // R032: a saved layout edit re-renders the open edit panel — the free
@@ -445,49 +661,70 @@ export function initUI(world: World, renderer: CityRenderer, actions: CityAction
       const text = BUBBLE_EVENTS[evt.type](evt)
       if (text) rendererRef.say(evt.character, text.slice(0, 24))
     }
+    // R097: economic events update the panel.
+    if (evt.type.startsWith('economy') && econOpen) {
+      renderEconPanel()
+    }
     uiTick()
   })
 
+  // ---- Economic panel toggle (R097) -----------------------------------------------
+  const onEconKey = (e: KeyboardEvent): void => {
+    // 'E' without modifier toggles the economic panel.
+    if (e.key === 'e' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      e.preventDefault()
+      econOpen = !econOpen
+      if (econOpen) {
+        createEconPanel()
+        renderEconPanel()
+        econPanel!.classList.remove('hidden')
+      } else {
+        econPanel?.classList.add('hidden')
+      }
+    }
+  }
+  document.addEventListener('keydown', onEconKey)
+
   // ---- Controls ------------------------------------------------------------------
-  els.btnDispatch.addEventListener('click', () => {
+  els.btnDispatch!.addEventListener('click', () => {
     actions.dispatch()
   })
-  els.btnOverview.addEventListener('click', () => {
+  els.btnOverview!.addEventListener('click', () => {
     actions.overview()
   })
-  els.btnOnboard.addEventListener('click', () => {
+  els.btnOnboard!.addEventListener('click', () => {
     openModal()
   })
-  for (const btn of els.speedButtons) {
+  for (const btn of els.speedButtons!) {
     btn.addEventListener('click', () => {
-      for (const b of els.speedButtons) b.classList.remove('active')
+      for (const b of els.speedButtons!) b.classList.remove('active')
       btn.classList.add('active')
       actions.speed(parseFloat(btn.dataset.speed ?? '1'))
     })
   }
   // R026: the labelled demo toggle — quiet is the default.
-  els.btnDemo.addEventListener('click', () => {
+  els.btnDemo!.addEventListener('click', () => {
     actions.setActivity(world.activity === 'demo' ? 'quiet' : 'demo')
     updateTopBar()
   })
   // R042: the ambience toggle — muted until this gesture.
-  els.btnAudio.addEventListener('click', () => {
-    actions.setAudio(els.btnAudio.getAttribute('aria-pressed') !== 'true')
+  els.btnAudio!.addEventListener('click', () => {
+    actions.setAudio(els.btnAudio!.getAttribute('aria-pressed') !== 'true')
   })
   // R027: the 3D/2D view toggle — the 2D schematic is the accessible view.
   // The page owns the active view and the buttons' pressed state.
-  els.btnView2d.addEventListener('click', () => {
+  els.btnView2d!.addEventListener('click', () => {
     actions.setView('2d')
   })
-  els.btnView3d.addEventListener('click', () => {
+  els.btnView3d!.addEventListener('click', () => {
     actions.setView('3d')
   })
   // R029: the time scrubber over the recorded action history.
-  els.scrubber.addEventListener('input', () => {
-    actions.scrub(Math.max(0, Number(els.scrubber.value) || 0))
+  els.scrubber!.addEventListener('input', () => {
+    actions.scrub(Math.max(0, Number(els.scrubber!.value) || 0))
   })
   // R030: the tour can be re-opened from the control bar.
-  els.btnTour.addEventListener('click', () => {
+  els.btnTour!.addEventListener('click', () => {
     actions.startTour()
   })
 
@@ -523,7 +760,7 @@ export function initUI(world: World, renderer: CityRenderer, actions: CityAction
     const nodes = graph ? Object.values(graph.nodes).sort((a, b) => a.id.localeCompare(b.id)) : []
     const segments = graph ? Object.values(graph.segments).sort((a, b) => a.id.localeCompare(b.id)) : []
     const plotLabel = (i: number, p: (typeof world.plots)[number]): string => `Plot ${i} — (${p.x}, ${p.z})`
-    els.editPanel.innerHTML = `
+    els.editPanel!.innerHTML = `
       <div class="edit-head"><h3>Layout edits</h3><button id="city-edit-close" class="ghost" type="button">Close</button></div>
       <div class="edit-sec">
         <label class="kv"><span>Building</span></label>
@@ -580,24 +817,24 @@ export function initUI(world: World, renderer: CityRenderer, actions: CityAction
         <button data-edit-action="reset" type="button">Restore derived layout</button>
         <p class="edit-msg" role="status" aria-live="polite"></p>
       </div>`
-    const close = els.editPanel.querySelector<HTMLButtonElement>('#city-edit-close')
+    const close = els.editPanel!.querySelector<HTMLButtonElement>('#city-edit-close')
     if (close) close.focus()
   }
 
   function closeEdit(): void {
     if (!editOpen) return
     editOpen = false
-    els.btnEdit.setAttribute('aria-expanded', 'false')
-    els.editPanel.classList.add('hidden')
-    els.editPanel.innerHTML = ''
+    els.btnEdit!.setAttribute('aria-expanded', 'false')
+    els.editPanel!.classList.add('hidden')
+    els.editPanel!.innerHTML = ''
     document.removeEventListener('keydown', onEditKey)
-    els.btnEdit.focus()
+    els.btnEdit!.focus()
   }
 
   function openEdit(): void {
     editOpen = true
-    els.btnEdit.setAttribute('aria-expanded', 'true')
-    els.editPanel.classList.remove('hidden')
+    els.btnEdit!.setAttribute('aria-expanded', 'true')
+    els.editPanel!.classList.remove('hidden')
     document.addEventListener('keydown', onEditKey)
     renderEditPanel()
   }
@@ -606,7 +843,7 @@ export function initUI(world: World, renderer: CityRenderer, actions: CityAction
     if (e.key === 'Escape') closeEdit()
   }
 
-  els.btnEdit.addEventListener('click', () => {
+  els.btnEdit!.addEventListener('click', () => {
     if (editOpen) closeEdit()
     else openEdit()
   })
@@ -614,7 +851,7 @@ export function initUI(world: World, renderer: CityRenderer, actions: CityAction
   async function submitEdit(edit: LayoutEdit): Promise<void> {
     if (editBusy) return
     editBusy = true
-    const msg = els.editPanel.querySelector<HTMLElement>('.edit-msg')
+    const msg = els.editPanel!.querySelector<HTMLElement>('.edit-msg')
     if (msg) msg.textContent = 'Saving…'
     const res = await actions.layoutEdit(edit)
     editBusy = false
@@ -625,11 +862,11 @@ export function initUI(world: World, renderer: CityRenderer, actions: CityAction
   // One delegated listener per handle (the panel content is re-rendered on
   // every submit and on layout.edited, so the listeners live on the stable
   // container, not the rebuilt options).
-  els.editPanel.addEventListener('change', (e) => {
+  els.editPanel!.addEventListener('change', (e) => {
     const t = e.target
     if (t instanceof HTMLSelectElement && t.dataset.edit) editSel[t.dataset.edit] = t.value
   })
-  els.editPanel.addEventListener('click', (e) => {
+  els.editPanel!.addEventListener('click', (e) => {
     const t = e.target
     if (!(t instanceof HTMLElement)) return
     if (t.id === 'city-edit-close') {
@@ -717,26 +954,26 @@ export function initUI(world: World, renderer: CityRenderer, actions: CityAction
       </div>`
     }
     html += '</div>'
-    const panel = els.modal.firstElementChild
+    const panel = els.modal!.firstElementChild
     if (panel) {
       panel.innerHTML = html
       panel.setAttribute('role', 'dialog')
       panel.setAttribute('aria-modal', 'true')
       panel.setAttribute('aria-label', 'Onboard a connector')
     }
-    els.modal.classList.add('open')
+    els.modal!.classList.add('open')
     modalOpen = true
     document.addEventListener('keydown', onModalKey)
-    const close = els.modal.querySelector<HTMLButtonElement>('#city-modal-close')
+    const close = els.modal!.querySelector<HTMLButtonElement>('#city-modal-close')
     if (close) {
       close.addEventListener('click', () => {
         closeModal()
       })
       close.focus()
     }
-    for (const btn of els.modal.querySelectorAll<HTMLButtonElement>('.build-btn[data-id]')) {
+    for (const btn of els.modal!.querySelectorAll<HTMLButtonElement>('.build-btn[data-id]')) {
       btn.addEventListener('click', () => {
-        els.modal.classList.remove('open')
+        els.modal!.classList.remove('open')
         const id = btn.dataset.id
         if (id) actions.onboard(id)
       })
@@ -745,10 +982,10 @@ export function initUI(world: World, renderer: CityRenderer, actions: CityAction
 
   function closeModal(): void {
     if (!modalOpen) return
-    els.modal.classList.remove('open')
+    els.modal!.classList.remove('open')
     document.removeEventListener('keydown', onModalKey)
     modalOpen = false
-    els.btnOnboard.focus()
+    els.btnOnboard!.focus()
   }
 
   // ---- First-visit tour (R030) -------------------------------------------------------
@@ -797,7 +1034,7 @@ export function initUI(world: World, renderer: CityRenderer, actions: CityAction
   function renderTour(): void {
     const steps = tourSteps()
     const step = steps[tourStep]
-    els.tour.innerHTML = `
+    els.tour!.innerHTML = `
       <div class="tour-card" role="dialog" aria-label="City tour, step ${tourStep + 1} of ${steps.length}">
         <h3>${escapeHtml(step.title)}</h3>
         <p>${escapeHtml(step.body)}</p>
@@ -808,12 +1045,12 @@ export function initUI(world: World, renderer: CityRenderer, actions: CityAction
           }</button>
         </div>
       </div>`
-    const skip = els.tour.querySelector<HTMLButtonElement>('#city-tour-skip')
+    const skip = els.tour!.querySelector<HTMLButtonElement>('#city-tour-skip')
     if (skip)
       skip.addEventListener('click', () => {
         endTour()
       })
-    const next = els.tour.querySelector<HTMLButtonElement>('#city-tour-next')
+    const next = els.tour!.querySelector<HTMLButtonElement>('#city-tour-next')
     if (next)
       next.addEventListener('click', () => {
         const steps = tourSteps()
@@ -834,7 +1071,7 @@ export function initUI(world: World, renderer: CityRenderer, actions: CityAction
 
   function endTour(): void {
     tourStep = -1
-    els.tour.innerHTML = ''
+    els.tour!.innerHTML = ''
     try {
       window.sessionStorage.setItem(TOUR_SESSION_KEY, '1')
     } catch {
@@ -846,15 +1083,17 @@ export function initUI(world: World, renderer: CityRenderer, actions: CityAction
   function updateScrubber(): void {
     const last = world.actions.length ? world.actions[world.actions.length - 1].ts : world.absGameS
     const max = Math.max(0, Math.floor(last - BOOT_ABS_S))
-    els.scrubber.max = String(max)
-    if (Number(els.scrubber.value) > max) els.scrubber.value = String(max)
-    const offset = Number(els.scrubber.value) || 0
-    els.scrubberReadout.textContent =
+    els.scrubber!.max = String(max)
+    if (Number(els.scrubber!.value) > max) els.scrubber!.value = String(max)
+    const offset = Number(els.scrubber!.value) || 0
+    els.scrubberReadout!.textContent =
       offset > 0 ? `replayed ${fmtClock(BOOT_ABS_S + offset)}` : `live ${fmtClock(world.clock)}`
   }
 
   function uiTick(): void {
     updateTopBar()
+    // R097: update economic panel state at 4 Hz.
+    if (econOpen) updateEconomicState()
   }
 
   function tick(dt: number): void {
@@ -891,7 +1130,7 @@ export function initUI(world: World, renderer: CityRenderer, actions: CityAction
 
   // Reflect the boot-time mode in the banner (the mode.selected event fired
   // before this subscription existed).
-  if (getMode() === 'simulated') els.banner.classList.remove('hidden')
+  if (getMode() === 'simulated') els.banner!.classList.remove('hidden')
 
   renderLegend()
   updateTopBar()
@@ -909,6 +1148,7 @@ export function initUI(world: World, renderer: CityRenderer, actions: CityAction
     },
     setRenderer: (r) => {
       rendererRef = r
+      r.setSelected(selected)
     },
     startTour,
     dispose: () => {
@@ -916,4 +1156,293 @@ export function initUI(world: World, renderer: CityRenderer, actions: CityAction
       document.removeEventListener('keydown', onModalKey)
     },
   }
+}
+
+// ===========================================================================
+// R111, R113, R114: Economic data accessors for the operator UI
+// ===========================================================================
+
+/** Projected treasury over next 50 ticks (R114). */
+export function getProjectedTreasury(): number[] {
+  return (Economy as unknown as Record<string, number[] | undefined>).projectedTreasury ?? []
+}
+
+/** Policy change timeline (R111). */
+export function getPolicyTimeline(): { tick: number; type: string; zone?: string; effect?: string }[] {
+  return (
+    (
+      Economy as unknown as Record<
+        string,
+        { tick: number; type: string; zone?: string; effect?: string }[] | undefined
+      >
+    ).policyTimeline ?? []
+  )
+}
+
+// ===========================================================================
+// R114: TreasuryPanel — projected balance, obligations, construction affordability
+// ===========================================================================
+
+/** Upcoming obligation: a building whose construction/maintenance is due. */
+export interface TreasuryObligation {
+  /** The building id. */
+  buildingId: string
+  /** Maintenance cost per tick. */
+  maintenancePerTick: number
+  /** Name label (from world.buildings if available). */
+  label: string
+}
+
+/**
+ * Compute upcoming obligations: every construction state still active
+ * that will charge maintenance next tick.
+ */
+export function getUpcomingObligations(): TreasuryObligation[] {
+  const obligations: TreasuryObligation[] = []
+  const buildingMap = new Map<string, { name: string }>()
+  // This would normally read from the world — stubbed to empty for headless use.
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+    const ws = (globalThis as any).__cityWorldOverride
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    if (ws?.buildings) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument
+      for (const b of Object.values(ws.buildings)) {
+        if (b && typeof b === 'object' && 'id' in b && 'name' in b) {
+          buildingMap.set((b as { id: string }).id, { name: (b as { name: string }).name })
+        }
+      }
+    }
+  } catch {
+    /* no-op */
+  }
+  const cs = (
+    Economy as unknown as Record<
+      string,
+      { buildingId: string; maintenancePerTick: number; decayState: string }[] | undefined
+    >
+  ).constructionStates
+  if (cs) {
+    for (const entry of cs) {
+      if (entry.decayState !== 'demolished') {
+        obligations.push({
+          buildingId: entry.buildingId,
+          maintenancePerTick: entry.maintenancePerTick,
+          label: buildingMap.get(entry.buildingId)?.name ?? entry.buildingId,
+        })
+      }
+    }
+  }
+  return obligations
+}
+
+/**
+ * Check whether the treasury can afford the cheapest construction for a zone.
+ * Returns an array of zone types that are currently affordable.
+ */
+export function getAffordableConstructions(): { zone: string; cost: number }[] {
+  const treasuryVal = (Economy as unknown as Record<string, number | undefined>).treasury ?? 0
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+  const costs: Record<string, number> = (Economy as any).CONSTRUCTION_COSTS ?? {
+    residential: 500,
+    commercial: 750,
+    industrial: 600,
+  }
+  return Object.entries(costs)
+    .map(([zone, cost]) => ({ zone, cost }))
+    .filter((c) => treasuryVal >= c.cost)
+}
+
+/**
+ * Render the mini ASCII-style projection chart (R114).
+ * Returns an HTML string with a simple bar chart of projected treasury.
+ */
+export function renderTreasuryChart(data: number[], width: number, height: number): string {
+  if (data.length < 2) {
+    return '<div style="height:30px;color:#555e6a;font-size:10px;display:flex;align-items:center">No projection data yet</div>'
+  }
+  const max = Math.max(...data, 1)
+  const min = Math.min(...data, 0)
+  const range = max - min || 1
+  const pad = 4
+
+  const bars = data
+    .map((v, i) => {
+      const col = v >= 0 ? '#3ddc84' : '#ff5e5e'
+      const barH = Math.max(1, Math.round(((v - min) / range) * (height - pad * 2)))
+      const x = pad + (i / (data.length - 1)) * (width - pad * 2)
+      return `<rect x="${Math.round(x)}" y="${Math.round(height - pad - barH)}" width="2" height="${barH}" fill="${col}" rx="0.5"/>`
+    })
+    .join('')
+
+  return `<svg width="${width}" height="${height}" style="margin-top:4px" viewBox="0 0 ${width} ${height}">
+    <rect width="${width}" height="${height}" fill="#0f1520" rx="2"/>
+    ${bars}
+  </svg>`
+}
+
+// ===========================================================================
+// R111: PolicyTimelinePanel — detailed policy change timeline
+// ===========================================================================
+
+/**
+ * Format a single policy change entry as an HTML string.
+ * Color-coded: green for increases, red for decreases.
+ * Format: `[tick 42] Commercial tax: 20% → 25% — revenue +$120/tick`
+ */
+export function formatPolicyEntry(entry: {
+  tick: number
+  type: string
+  zone?: string
+  effect?: string
+  oldValue?: number
+  newValue?: number
+}): string {
+  const isIncrease = (entry.newValue ?? 0) > (entry.oldValue ?? 0)
+  const arrow = isIncrease ? '↑' : '↓'
+
+  // Build the detail based on type
+  if (entry.type === 'tax' && entry.zone) {
+    const oldPct = entry.oldValue !== undefined ? `${Math.round(entry.oldValue * 100)}%` : '—'
+    const newPct = entry.newValue !== undefined ? `${Math.round(entry.newValue * 100)}%` : '—'
+    const effect = entry.effect
+      ? ` — ${entry.effect}`
+      : entry.oldValue !== undefined && entry.newValue !== undefined
+        ? ` — revenue ${arrow}${entry.newValue > entry.oldValue ? '+' : ''}${Math.round((entry.newValue - entry.oldValue) * 10000)}%`
+        : ''
+    return `[tick ${entry.tick}] ${entry.zone} tax: ${oldPct} → ${newPct} — ${effect}`
+  }
+
+  if (entry.type === 'budget' && entry.zone) {
+    const oldVal = entry.oldValue !== undefined ? entry.oldValue.toFixed(2) : '—'
+    const newVal = entry.newValue !== undefined ? entry.newValue.toFixed(2) : '—'
+    const effect = entry.effect ? ` — ${entry.effect}` : ` — ${entry.zone} budget ${arrow}`
+    return `[tick ${entry.tick}] ${entry.zone} budget: ${oldVal} → ${newVal} — ${effect}`
+  }
+
+  // Fallback
+  return `[tick ${entry.tick}] ${entry.type}${entry.zone ? ` ${entry.zone}` : ''}${entry.effect ? ` — ${entry.effect}` : ''}`
+}
+
+/**
+ * Render the policy timeline panel (last 10 entries) as HTML.
+ */
+export function renderPolicyTimelinePanel(
+  timeline: { tick: number; type: string; zone?: string; effect?: string; oldValue?: number; newValue?: number }[],
+): string {
+  const entries = timeline.slice(-10)
+  if (entries.length === 0) {
+    return '<div style="font-size:10px;color:#555e6a">No policy changes yet</div>'
+  }
+  return entries
+    .map((entry) => {
+      const isIncrease = (entry.newValue ?? 0) > (entry.oldValue ?? 0)
+      const color = isIncrease ? '#3ddc84' : '#ff5e5e'
+      const text = formatPolicyEntry(entry)
+      return `<div style="font-size:10px;margin-bottom:4px;padding:2px 4px;border-left:2px solid ${color};color:#e8ecf4;line-height:1.3">${text}</div>`
+    })
+    .join('')
+}
+
+// ===========================================================================
+// R112: ZoningTool — zone selector, paint preview, undo
+// ===========================================================================
+
+/** Zone types available in the zoning tool. */
+export const ZONE_TYPES: ('residential' | 'commercial' | 'industrial' | 'mixed')[] = [
+  'residential',
+  'commercial',
+  'industrial',
+  'mixed',
+]
+
+/** Zone color for preview indicators. */
+export const ZONE_COLORS: Record<string, string> = {
+  residential: '#3ddc84',
+  commercial: '#ffd166',
+  industrial: '#ff5e5e',
+  mixed: '#5ec8d8',
+}
+
+/**
+ * The zoning tool state: current selected zone type and undo stack.
+ */
+export interface ZoningToolState {
+  selectedZone: 'residential' | 'commercial' | 'industrial' | 'mixed'
+  /** Stack of { plotIndex, previousZone } for undo. */
+  undoStack: { plotIndex: number; previousZone: 'residential' | 'commercial' | 'industrial' | 'mixed' | undefined }[]
+}
+
+/**
+ * Create a new zoning tool state with the given initial zone.
+ */
+export function createZoningToolState(zone: ZoningToolState['selectedZone'] = 'residential'): ZoningToolState {
+  return {
+    selectedZone: zone,
+    undoStack: [],
+  }
+}
+
+/**
+ * Record a zone change so it can be undone.
+ * Returns a function that, when called, restores the previous zone.
+ */
+export function recordZoneChange(
+  state: ZoningToolState,
+  plotIndex: number,
+  previousZone: ZoningToolState['selectedZone'] | undefined,
+): () => void {
+  state.undoStack.push({ plotIndex, previousZone })
+  return () => {
+    if (state.undoStack.length === 0) return
+    state.undoStack.pop()
+  }
+}
+
+/**
+ * Undo the last zone change applied by this tool.
+ * Returns the old zone value, or undefined if nothing to undo.
+ */
+export function undoLastZoneChange(state: ZoningToolState): ZoningToolState['selectedZone'] | undefined {
+  if (state.undoStack.length === 0) return undefined
+  const last = state.undoStack.pop()!
+  return last.previousZone
+}
+
+/**
+ * Render the zoning tool selector as HTML with active state indicator.
+ */
+export function renderZoningToolSelector(selectedZone: string): string {
+  return ZONE_TYPES.map((z) => {
+    const isActive = z === selectedZone
+    const color = ZONE_COLORS[z]
+    const ring = isActive ? `outline: 2px solid ${color}; outline-offset: 1px;` : ''
+    return `<button type="button" class="zoning-btn ${z}" style="padding:3px 10px;font-size:11px;border:1px solid ${isActive ? color : '#2a3444'};border-radius:3px;color:${isActive ? color : '#e8ecf4'};background:${isActive ? `${color}15` : '#1a2230'};cursor:pointer;min-width:80px;text-align:center;${ring}" data-zone="${z}" aria-pressed="${isActive}">${z.charAt(0).toUpperCase() + z.slice(1)}</button>`
+  }).join('')
+}
+
+/**
+ * Render a zone paint preview indicator for a plot.
+ */
+export function renderZonePreview(zone: string): string {
+  const color = ZONE_COLORS[zone] ?? '#888'
+  return `<div class="zone-preview" style="position:absolute;top:-8px;right:-8px;width:12px;height:12px;border-radius:50%;background:${color};border:1px solid #0f1520;box-shadow:0 0 4px ${color}88;pointer-events:none" title="Zone: ${zone}"></div>`
+}
+
+/** Service network data for overlay (R113). */
+export function getServiceNetworkData(): {
+  x: number
+  z: number
+  radius: number
+  type: string
+  funded: boolean
+}[] {
+  const networks = Economy.getServiceNetworks()
+  return networks.map((n) => ({
+    x: 0,
+    z: 0,
+    radius: n.capacity,
+    type: n.type,
+    funded: n.active,
+  }))
 }

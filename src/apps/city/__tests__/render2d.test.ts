@@ -9,10 +9,11 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import { FLEET_SNAPSHOT, fleetToConnectors } from '../core/ecosystem'
 import { init2D, supportsWebGL } from '../core/render2d'
-import { initSim, resetSim, world } from '../core/sim'
+import { initSim, resetSim, tickSim, world } from '../core/sim'
 
-function installRecording2D(): { texts: string[]; rects: number; restore: () => void } {
+function installRecording2D(): { texts: string[]; rects: number; images: number[][]; restore: () => void } {
   const texts: string[] = []
+  const images: number[][] = []
   let rects = 0
   const original = HTMLCanvasElement.prototype.getContext
   HTMLCanvasElement.prototype.getContext = function getContext(
@@ -27,6 +28,7 @@ function installRecording2D(): { texts: string[]; rects: number; restore: () => 
           if (prop in t) return (t as Record<string, unknown>)[prop as string]
           if (prop === 'fillText') return (text: unknown) => texts.push(String(text))
           if (prop === 'fillRect') return () => rects++
+          if (prop === 'drawImage') return (_image: unknown, ...args: number[]) => images.push(args)
           return () => undefined
         },
       }) as unknown as RenderingContext
@@ -39,6 +41,7 @@ function installRecording2D(): { texts: string[]; rects: number; restore: () => 
   return {
     texts,
     rects,
+    images,
     restore: () => {
       HTMLCanvasElement.prototype.getContext = original
     },
@@ -78,6 +81,67 @@ describe('init2D (R015)', () => {
     resetSim()
   })
 
+  it('renders shared traffic without advancing or resetting the simulation', () => {
+    initSim(fleetToConnectors(FLEET_SNAPSHOT))
+    tickSim(1, 0.05)
+    const fleet = world.traffic
+    expect(fleet?.routes.length).toBe(28)
+    const before = fleet!.routes.map((route) => route.motion.distance)
+    const { restore } = installRecording2D()
+    const container = document.createElement('div')
+    document.body.appendChild(container)
+    try {
+      const first = init2D(container, world, { onSelect: () => undefined })
+      first.render(0.05)
+      first.dispose()
+      const second = init2D(container, world, { onSelect: () => undefined })
+      second.render(0.05)
+      expect(world.traffic).toBe(fleet)
+      expect(fleet!.routes.map((route) => route.motion.distance)).toEqual(before)
+      tickSim(1, 0.05)
+      expect(fleet!.routes.some((route, i) => route.motion.distance !== before[i])).toBe(true)
+      second.dispose()
+    } finally {
+      container.remove()
+      restore()
+    }
+  })
+
+  it('fits the full 3D ground extent and zooms around the pointer', () => {
+    initSim(fleetToConnectors(FLEET_SNAPSHOT))
+    const { images, restore } = installRecording2D()
+    const container = document.createElement('div')
+    Object.defineProperty(container, 'clientWidth', { value: 900 })
+    Object.defineProperty(container, 'clientHeight', { value: 900 })
+    document.body.appendChild(container)
+    try {
+      const renderer = init2D(container, world, { onSelect: () => undefined })
+      renderer.render(0.016)
+      expect(images.at(-1)).toEqual([0, 0, 900, 900])
+      renderer.setViewport?.({ x: 120, z: -80, verticalSpan: 180 })
+      expect(renderer.getViewport?.()).toEqual({ x: 120, z: -80, verticalSpan: 180 })
+      renderer.overview()
+      renderer.render(0.016)
+      const canvas = container.querySelector('canvas')!
+      canvas.dispatchEvent(new WheelEvent('wheel', { deltaY: -500, clientX: 450, clientY: 450, cancelable: true }))
+      renderer.render(0.016)
+      expect(images.at(-1)![2]).toBeGreaterThan(900)
+      const beforePan = images.at(-1)![0]
+      canvas.dispatchEvent(new PointerEvent('pointerdown', { clientX: 450, clientY: 450 }))
+      canvas.dispatchEvent(new PointerEvent('pointermove', { clientX: 500, clientY: 450 }))
+      canvas.dispatchEvent(new PointerEvent('pointerup', { clientX: 500, clientY: 450 }))
+      renderer.render(0.016)
+      expect(images.at(-1)![0]).toBeCloseTo(beforePan + 50)
+      renderer.overview()
+      renderer.render(0.016)
+      expect(images.at(-1)![2]).toBe(900)
+      renderer.dispose()
+    } finally {
+      container.remove()
+      restore()
+    }
+  })
+
   it('renders the same city graph the 3D view uses', () => {
     initSim(fleetToConnectors(FLEET_SNAPSHOT))
     const { texts, restore } = installRecording2D()
@@ -85,8 +149,10 @@ describe('init2D (R015)', () => {
       const container = document.createElement('div')
       document.body.appendChild(container)
       const renderer = init2D(container, world, { onSelect: () => undefined })
-      expect(container.children).toHaveLength(1)
-      expect((container.firstChild as HTMLElement | null)?.tagName).toBe('CANVAS')
+      // 2D renderer + economic overlay canvas (R096).
+      expect(container.children).toHaveLength(2)
+      // The first child is the main 2D canvas; the second is the overlay.
+      expect((container.children[0] as HTMLElement | null)?.tagName).toBe('CANVAS')
 
       renderer.render(0.016)
       // Every character of the shared world is drawn with its name.
@@ -154,10 +220,10 @@ describe('init2D (R015)', () => {
       })
       renderer.onResize(800, 600)
       const canvas = container.firstChild as HTMLCanvasElement
-      // With the fitted view (scale 4, world centre at 490,260) the arbora
-      // landmark at (0,0) is under that pointer; every character spawns on
-      // a 4.5 m radius (> 16 px pick bound) around it.
-      const center = { clientX: 490, clientY: 260 }
+      // At full-island zoom, hide the nearby character markers to target the
+      // building at the common world origin in the middle of the canvas.
+      for (const character of world.characters) character.visible = false
+      const center = { clientX: 400, clientY: 300 }
       canvas.dispatchEvent(new PointerEvent('pointerdown', { clientX: center.clientX, clientY: center.clientY }))
       canvas.dispatchEvent(new PointerEvent('pointerup', { clientX: center.clientX, clientY: center.clientY }))
       expect(hit).toEqual({ kind: 'building', id: 'arbora' })

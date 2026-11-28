@@ -51,6 +51,20 @@ describe('layout-edit (R032)', () => {
     return { buildingId: b.id, fromPlot, freePlot }
   }
 
+  // spec: OVERSTORY-CITY-R048.9.1
+  it('rejects a bank-straddling connector in both interactive and saved layouts', () => {
+    const { buildingId, freePlot } = fixture()
+    const graph = derivedRoadGraph()
+    Object.assign(world.plots[freePlot], { x: 33, z: 0 })
+    const edit = { kind: 'move-building', buildingId, plot: freePlot, rotation: 0 } as const
+    expect(validateEdit(edit, world, graph)).toEqual({ ok: false, reason: 'building-hits-water' })
+    const doc = nextDocument(emptyLayoutOverride(), edit, world)
+    expect(validateDocument(doc, world, graph)).toMatchObject({
+      ok: false,
+      reasons: [expect.stringContaining('foundation or entrance intersects water')],
+    })
+  })
+
   it('override_round_trip: two viewers applying one document serialize identically', () => {
     const { buildingId, freePlot } = fixture()
     const graph = world.roadGraph
@@ -108,6 +122,15 @@ describe('layout-edit (R032)', () => {
     // The moved building's door re-projected from its new plot.
     const aB = world.buildings[buildingId]
     expect(aB.door).toEqual(a.door)
+  })
+
+  it('refuses a drawn road whose carriageway or pedestrian verge would cut through a building', () => {
+    fixture()
+    const graph = world.roadGraph!
+    // This diagonal crosses the first connector parcel centred at (-25, -55)
+    // rather than following an existing grid segment.
+    const verdict = validateEdit({ kind: 'add-road', from: 'n5:0', to: 'n6:1' }, world, graph)
+    expect(verdict).toEqual({ ok: false, reason: 'road-hits-building' })
   })
 
   it('refuses a road edit that would disconnect the graph', () => {

@@ -6,4 +6,6 @@ interface ImportMetaEnv {
   // is typed `string | undefined` instead of vite/client's default
   // `ImportMetaEnv` index signature, which types every key as `any`.
   readonly VITE_IDE_ORIGIN?: string
+  /** Explicit, local-only no-auth posture for the city design sandbox. */
+  readonly VITE_CITY_SANDBOX?: string
 }

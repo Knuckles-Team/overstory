@@ -11,11 +11,13 @@
  * (parks, plazas, lots); construction sites run the R012.5 sequence with
  * the scaffold gated by phase. Colours that encode a fact come from the
  * one encoding table (R025).
+ * R101: demand markers draw ghost low-opacity buildings on empty lots.
+ * R102: building economic health modulates wall colour/roughness (R102).
  */
-// spec: OVERSTORY-CITY-R031, OVERSTORY-CITY-R025
+// spec: OVERSTORY-CITY-R031, OVERSTORY-CITY-R025, OVERSTORY-CITY-R066, OVERSTORY-CITY-R101, OVERSTORY-CITY-R102
 import * as THREE from 'three'
 import { SequenceRunner } from '@/lib/scene3d/sequences'
-import { buildingAsset, mulberry32, propAsset, type DistrictArchetype } from '@/lib/scene3d/generators'
+import { ARCHITECTURE, buildingAsset, mulberry32, propAsset, type DistrictArchetype } from '@/lib/scene3d/generators'
 import { SCENE_COLORS, TRIM_SHEET } from '@/lib/scene3d/palette'
 import { PLOT_W } from '../layout'
 import { domainOf } from '../ecosystem'
@@ -23,6 +25,16 @@ import { encodingColor } from '../encoding'
 import { bus } from '../events'
 import { isMesh } from './scene'
 import { litWindowSheet, remapUVs, roofFlashSheet, trimSheetTexture } from './trimSheet'
+import {
+  buildingFunctionFor,
+  createWindowEmissive,
+  remapWindowUvForOccupancy,
+  type NightWindowReport,
+  type WindowEmissiveHandle,
+  type OccupancyState,
+  occupancyMultiplier,
+} from './windowEmissive'
+import { isScheduledNight } from '../activity'
 import type { world as SimWorld } from '../sim'
 
 export type World = typeof SimWorld
@@ -36,12 +48,25 @@ interface LandmarkBits {
   tip?: THREE.Mesh
 }
 
+/** The wall multiplier for an economic health in [0, 1]: a healthy building keeps its colour, a failing one darkens. */
+export function healthTint(health: number): number {
+  return 0.35 + 0.65 * Math.max(0, Math.min(1, health))
+}
+
 interface BuildingEntry {
   group: THREE.Group
   body: THREE.Object3D
   mats: THREE.MeshStandardMaterial[]
   /** The kit's wall material — the 'lit-windows' channel (R025). */
   wallMat: THREE.MeshStandardMaterial | null
+  /** The archetype wall colour the economic-health tint multiplies (R102). */
+  wallBase?: THREE.Color
+  /** The economic health the wall was last tinted for. */
+  tintedFor?: number
+  /** Neutral glass material; the only building surface lit by live work. */
+  windowMat?: THREE.MeshStandardMaterial | null
+  /** The window-emissive resolver (R066): per-window schedule occupancy. */
+  winEmissive?: WindowEmissiveHandle | null
   /** The kit's roof material — the 'error-flash' channel (R025). */
   roofMat: THREE.MeshStandardMaterial | null
   /** The archetype the kit was built with (R032: a district style change rebuilds it). */
@@ -49,7 +74,9 @@ interface BuildingEntry {
   /** The door mat mesh (R032: it re-anchors to the door while the building moves). */
   doorMat?: THREE.Mesh | null
   /** The kit's wall and roof geometries (freed when the entry is disposed). */
+  coreGeo?: THREE.BufferGeometry | null
   wallGeo?: THREE.BufferGeometry | null
+  windowGeo?: THREE.BufferGeometry | null
   roofGeo?: THREE.BufferGeometry | null
   /** The move/rotation tween in flight (R032); null when settled. */
   mv?: { fx: number; fz: number; fr: number; t: number; dur: number } | null
@@ -115,14 +142,25 @@ const DOMAIN_ARCHETYPE: Record<string, DistrictArchetype> = {
   general: 'workshop',
 }
 
+/** Low-chroma building finishes; domain/role colours belong on details. */
+const ARCHETYPE_FINISH: Record<DistrictArchetype, string> = {
+  gateway: 'facade-stone',
+  datahall: 'facade-ocean',
+  workshop: 'facade-sand',
+  storehouse: 'facade-stone',
+  studio: 'facade-sage',
+  docks: 'facade-cloud',
+}
+
 /**
  * Split the kit geometry into a wall geometry and a roof geometry by the
  * trim sheet's roof row (v 0.70–0.75). The building generator pushes
- * separate vertices per part, so every triangle sits wholly in one region
- * and the split is exact: the roof gets its own material (the
- * 'error-flash' channel) and the wall keeps the 'lit-windows' one.
+ * roof, neutral glass and wall rows. Classification is per triangle rather
+ * than per vertex so shared band boundaries cannot produce mixed indices.
  */
-function splitWallRoof(geometry: THREE.BufferGeometry): [THREE.BufferGeometry, THREE.BufferGeometry] {
+function splitWallRoof(
+  geometry: THREE.BufferGeometry,
+): [THREE.BufferGeometry, THREE.BufferGeometry, THREE.BufferGeometry] {
   const pos = geometry.getAttribute('position')
   const uv = geometry.getAttribute('uv')
   const idx = geometry.getIndex()
@@ -130,29 +168,40 @@ function splitWallRoof(geometry: THREE.BufferGeometry): [THREE.BufferGeometry, T
   const ROOF_V1 = 0.751
   const wallPos: number[] = []
   const wallUv: number[] = []
+  const windowPos: number[] = []
+  const windowUv: number[] = []
   const roofPos: number[] = []
   const roofUv: number[] = []
-  const wallMap = new Int32Array(pos.count).fill(-1)
-  const roofMap = new Int32Array(pos.count).fill(-1)
-  for (let i = 0; i < pos.count; i++) {
-    const v = uv.getY(i)
-    const roof = v >= ROOF_V0 && v <= ROOF_V1
-    const map = roof ? roofMap : wallMap
-    const pArr = roof ? roofPos : wallPos
-    const uvArr = roof ? roofUv : wallUv
-    map[i] = pArr.length / 3
-    pArr.push(pos.getX(i), pos.getY(i), pos.getZ(i))
-    uvArr.push(uv.getX(i), v)
-  }
   const wallIdx: number[] = []
+  const windowIdx: number[] = []
   const roofIdx: number[] = []
   if (idx) {
+    const maps = [
+      new Int32Array(pos.count).fill(-1),
+      new Int32Array(pos.count).fill(-1),
+      new Int32Array(pos.count).fill(-1),
+    ]
+    const positions = [wallPos, windowPos, roofPos]
+    const uvs = [wallUv, windowUv, roofUv]
+    const indices = [wallIdx, windowIdx, roofIdx]
     for (let i = 0; i < idx.count; i += 3) {
       const a = idx.getX(i)
-      const roof = roofMap[a] >= 0
-      const map = roof ? roofMap : wallMap
-      const out = roof ? roofIdx : wallIdx
-      out.push(map[a], map[idx.getX(i + 1)], map[idx.getX(i + 2)])
+      const b = idx.getX(i + 1)
+      const c = idx.getX(i + 2)
+      const v = (uv.getY(a) + uv.getY(b) + uv.getY(c)) / 3
+      const kind = v >= ROOF_V0 && v <= ROOF_V1 ? 2 : v >= 0.499 && v <= 0.701 ? 1 : 0
+      const map = maps[kind]
+      const pArr = positions[kind]
+      const uvArr = uvs[kind]
+      const out = indices[kind]
+      for (const source of [a, b, c]) {
+        if (map[source] < 0) {
+          map[source] = pArr.length / 3
+          pArr.push(pos.getX(source), pos.getY(source), pos.getZ(source))
+          uvArr.push(uv.getX(source), uv.getY(source))
+        }
+        out.push(map[source])
+      }
     }
   }
   const build = (pArr: number[], uvArr: number[], idxArr: number[]): THREE.BufferGeometry => {
@@ -163,7 +212,7 @@ function splitWallRoof(geometry: THREE.BufferGeometry): [THREE.BufferGeometry, T
     g.computeVertexNormals()
     return g
   }
-  return [build(wallPos, wallUv, wallIdx), build(roofPos, roofUv, roofIdx)]
+  return [build(wallPos, wallUv, wallIdx), build(windowPos, windowUv, windowIdx), build(roofPos, roofUv, roofIdx)]
 }
 
 export interface BuildingsApi {
@@ -171,11 +220,18 @@ export interface BuildingsApi {
   syncBuildings(): void
   /** One frame of building, plot and construction updates. */
   update(dtReal: number, timeAcc: number): void
+  /** The live night-window resolution over every kit building (R066). */
+  nightWindows(clockS: number): NightWindowReport
   /** Detach from the scene and release this layer's GPU resources. */
   dispose(): void
 }
 
-export function createBuildings(scene: THREE.Scene, world: World, markerRoot: THREE.Object3D | null): BuildingsApi {
+export function createBuildings(
+  scene: THREE.Scene,
+  world: World,
+  markerRoot: THREE.Object3D | null,
+  groundHeight: (x: number, z: number) => number = () => 0,
+): BuildingsApi {
   const buildingGroups = new Map<string, BuildingEntry>()
   const constructionGroups = new Map<string, ConstructionEntry>()
   const dressingGroups = new Map<string, THREE.Group>()
@@ -197,6 +253,11 @@ export function createBuildings(scene: THREE.Scene, world: World, markerRoot: TH
   const wallTemplate = new THREE.MeshStandardMaterial({
     map: trimTex,
     roughness: 0.9,
+    // Kit facades are thin exterior panels. Rendering both sides prevents a
+    // reversed bay winding from erasing an entire wall from the overview.
+    // The panels remain opaque and depth-writing, so this does not create a
+    // transparent-window artifact.
+    side: THREE.DoubleSide,
     emissive: 0xffffff,
     emissiveMap: litSheet,
     emissiveIntensity: 0,
@@ -204,8 +265,19 @@ export function createBuildings(scene: THREE.Scene, world: World, markerRoot: TH
   const roofTemplate = new THREE.MeshStandardMaterial({
     map: trimTex,
     roughness: 0.9,
+    // Roof slabs use the same exterior-panel convention as façades.
+    side: THREE.DoubleSide,
     emissive: 0xffffff,
     emissiveMap: roofSheet,
+    emissiveIntensity: 0,
+  })
+  const windowTemplate = new THREE.MeshStandardMaterial({
+    map: trimTex,
+    roughness: 0.32,
+    metalness: 0.08,
+    color: SCENE_COLORS['window-glass'].hex,
+    emissive: 0xffffff,
+    emissiveMap: litSheet,
     emissiveIntensity: 0,
   })
   const propMat = new THREE.MeshStandardMaterial({ map: trimTex, roughness: 0.95 })
@@ -252,16 +324,70 @@ export function createBuildings(scene: THREE.Scene, world: World, markerRoot: TH
       footprint: [b.w, b.d],
       floors,
     })
-    const [wallGeo, roofGeo] = splitWallRoof(asset.geometry)
+    const [wallGeo, windowGeo, roofGeo] = splitWallRoof(asset.geometry)
     const wallMat = wallTemplate.clone()
+    const windowMat = windowTemplate.clone()
     const roofMat = roofTemplate.clone()
+    // The facade kit is intentionally detailed in thin bays, but it cannot
+    // be the building's only structure: even a valid camera angle then lets
+    // the viewer see through a window band or a gap between bays.  Put a
+    // slightly inset, opaque mass behind the kit.  This gives every building
+    // four real walls and a ceiling while keeping the facade/roof channels in
+    // front, free of z-fighting.
+    const floorHeight = ARCHITECTURE[archetype].floorH
+    // A building's mass uses a coherent architectural finish.  The semantic
+    // archetype colour remains available for small signage and state details,
+    // but never tints a complete glass/wall field into a toy-like role colour.
+    const wallColor = paletteHex(ARCHETYPE_FINISH[archetype])
+    wallMat.color.setHex(wallColor)
+    // The window bands become a per-building occupancy texture (R066): one
+    // row per storey, one column per facade bay, resolved from the activity
+    // schedule (R050) at frame rate. The UV remap pins each window panel to
+    // its own cell; one texture per building, created here once.
+    const baysX = Math.max(2, Math.round(b.w / 3))
+    const baysZ = Math.max(2, Math.round(b.d / 3))
+    remapWindowUvForOccupancy(windowGeo, { floors, floorH: floorHeight, baysX, baysZ, col: seed % 4 })
+    const winEmissive = createWindowEmissive({
+      seed,
+      fn: buildingFunctionFor(archetype),
+      floors,
+      cols: Math.max(baysX, baysZ),
+      color: encodingColor('lit-windows'),
+      /** R103: initial occupancy state from the model. */
+      occupancyState: b.occupancyState,
+    })
+    windowMat.emissiveMap = winEmissive.texture
+    const coreGeo = new THREE.BoxGeometry(
+      Math.max(0.25, b.w - 0.16),
+      Math.max(0.25, floors * floorHeight - 0.1),
+      Math.max(0.25, b.d - 0.16),
+    )
+    remapUVs(coreGeo, WALL_PATCH[0], WALL_PATCH[1], WALL_PATCH[2], WALL_PATCH[3])
+    const coreMat = new THREE.MeshStandardMaterial({ map: trimTex, roughness: 0.94 })
+    coreMat.color.setHex(wallColor)
+    // R102: economic health modulates wall colour and roughness.
+    const health = b.economicHealth ?? 0.7
+    // Healthy buildings stay bright (green tint); distressed buildings shift toward red and become rough.
+    const r_val = Math.round(255 * (1 - health * 0.6))
+    const g_val = Math.round(255 * (0.3 + health * 0.7))
+    const b_val = Math.round(255 * (0.3 + health * 0.4))
+    const healthColor = new THREE.Color(`rgb(${r_val},${g_val},${b_val})`)
+    coreMat.color.lerp(healthColor, 0.35)
+    coreMat.roughness = 0.94 - health * 0.3 // healthy = smoother
     const body = new THREE.Group()
+    const core = new THREE.Mesh(coreGeo, coreMat)
+    core.position.y = (floors * floorHeight - 0.1) / 2
+    core.castShadow = true
+    core.receiveShadow = true
     const wall = new THREE.Mesh(wallGeo, wallMat)
     wall.castShadow = true
     wall.receiveShadow = true
+    const windows = new THREE.Mesh(windowGeo, windowMat)
+    windows.castShadow = true
+    windows.receiveShadow = true
     const roof = new THREE.Mesh(roofGeo, roofMat)
     roof.castShadow = true
-    body.add(wall, roof)
+    body.add(core, wall, windows, roof)
     body.userData.entity = { kind: 'building', id: b.id }
     g.add(body)
     // Door mat on the road (the shared trim sheet's road band).
@@ -274,20 +400,25 @@ export function createBuildings(scene: THREE.Scene, world: World, markerRoot: TH
       doorMatMesh.position.set(b.door.x - b.x, 0.035, b.door.z - b.z)
       g.add(doorMatMesh)
     }
-    g.position.set(b.x, 0, b.z)
+    g.position.set(b.x, groundHeight(b.x, b.z), b.z)
     g.rotation.y = (b.rot * Math.PI) / 180
     scene.add(g)
     const entry: BuildingEntry = {
       group: g,
       body,
-      mats: [wallMat, roofMat],
+      mats: [coreMat, wallMat, windowMat, roofMat],
       wallMat,
+      wallBase: wallMat.color.clone(),
+      windowMat,
+      winEmissive,
       roofMat,
       archetype,
       doorMat: doorMatMesh,
+      coreGeo,
       wallGeo,
+      windowGeo,
       roofGeo,
-      height: floors * 3.2,
+      height: floors * floorHeight,
     }
     buildingGroups.set(b.id, entry)
     return entry
@@ -305,8 +436,11 @@ export function createBuildings(scene: THREE.Scene, world: World, markerRoot: TH
     const old = buildingGroups.get(id)
     if (!old) return
     scene.remove(old.group)
+    old.coreGeo?.dispose()
     old.wallGeo?.dispose()
+    old.windowGeo?.dispose()
     old.roofGeo?.dispose()
+    old.winEmissive?.dispose()
     old.mats.forEach((m) => {
       m.dispose()
     })
@@ -482,7 +616,7 @@ export function createBuildings(scene: THREE.Scene, world: World, markerRoot: TH
       }
     }
 
-    g.position.set(b.x, 0, b.z)
+    g.position.set(b.x, groundHeight(b.x, b.z), b.z)
     scene.add(g)
     buildingGroups.set(b.id, {
       group: g,
@@ -499,7 +633,7 @@ export function createBuildings(scene: THREE.Scene, world: World, markerRoot: TH
   // ---- Construction rig -----------------------------------------------------
   function makeConstruction(plot: World['plots'][number]): ConstructionEntry {
     const g = new THREE.Group()
-    g.position.set(plot.x, 0, plot.z)
+    g.position.set(plot.x, groundHeight(plot.x, plot.z), plot.z)
     const h = 5.5
     const scaffoldMat = new THREE.MeshStandardMaterial({ map: trimTex, roughness: 0.85 })
     scaffoldMat.color.setHex(encodingColor('scaffolding')) // the 'scaffolding' channel (R025)
@@ -592,6 +726,21 @@ export function createBuildings(scene: THREE.Scene, world: World, markerRoot: TH
     return { group: g, scaffold, slabs, armP, cable, hookBlock, marker, runner }
   }
 
+  function disposeConstruction(entry: ConstructionEntry): void {
+    scene.remove(entry.group)
+    const geometries = new Set<THREE.BufferGeometry>()
+    const materials = new Set<THREE.Material>()
+    entry.group.traverse((object) => {
+      if (!isMesh(object) || object.userData.marker === 'construction-marker') return
+      geometries.add(object.geometry)
+      const material = object.material
+      if (Array.isArray(material)) material.forEach((item) => materials.add(item))
+      else materials.add(material)
+    })
+    for (const geometry of geometries) geometry.dispose()
+    for (const material of materials) material.dispose()
+  }
+
   // ---- Dressed blocks (undressed plots: parks, plazas, lots) -----------------
   const dressingPatchGeo = new THREE.PlaneGeometry(8, 8)
   const parkMat = new THREE.MeshStandardMaterial({ map: trimTex, roughness: 1 })
@@ -602,7 +751,7 @@ export function createBuildings(scene: THREE.Scene, world: World, markerRoot: TH
 
   function makeDressing(plot: World['plots'][number]): THREE.Group {
     const g = new THREE.Group()
-    g.position.set(plot.x, 0, plot.z)
+    g.position.set(plot.x, groundHeight(plot.x, plot.z), plot.z)
     const kind = dressingForPlot(plot.x, plot.z)
     const patch = new THREE.Mesh(
       kind === 'plaza' ? plazaPatchGeo : dressingPatchGeo,
@@ -636,7 +785,11 @@ export function createBuildings(scene: THREE.Scene, world: World, markerRoot: TH
   }
 
   // ---- Planned-plot markers (every registered pack keeps a visible marker) ---
-  const plotMarkerGeo = new THREE.PlaneGeometry(PLOT_W - 0.4, PLOT_W - 0.4)
+  // Reserved connectors used to paint a nearly full-plot translucent square
+  // for every future building, producing the pale checkerboard at city zoom.
+  // A compact site beacon carries the same state without obscuring streets,
+  // terrain or neighbouring parcels.
+  const plotMarkerGeo = new THREE.RingGeometry(0.34, 0.54, 12)
   const plotMarkerMat = new THREE.MeshBasicMaterial({
     color: encodingColor('scaffolding'),
     transparent: true,
@@ -647,6 +800,10 @@ export function createBuildings(scene: THREE.Scene, world: World, markerRoot: TH
 
   // ---- Commit pulses at the vault ---------------------------------------------
   const pulses: { mesh: THREE.Mesh; t: number }[] = []
+  // Reuse this small accumulator every frame.  A fresh object at 60 Hz is
+  // individually cheap but becomes a persistent young-generation pressure
+  // when the simulation is left running for hours.
+  const inFlight = new Map<string, number>()
   const pulseGeo = new THREE.RingGeometry(1.1, 1.5, 32)
   const unsubPulse = bus.subscribe((evt) => {
     if (evt.type === 'knowledge.committed') {
@@ -659,7 +816,12 @@ export function createBuildings(scene: THREE.Scene, world: World, markerRoot: TH
       })
       const ring = new THREE.Mesh(pulseGeo, mat)
       ring.rotation.x = -Math.PI / 2
-      ring.position.set(-15, 0.3, -15)
+      if (!('medulla' in world.buildings)) {
+        mat.dispose()
+        return
+      }
+      const vault = world.buildings.medulla
+      ring.position.set(vault.x, groundHeight(vault.x, vault.z) + 0.3, vault.z)
       ring.userData.marker = 'commit-pulse'
       scene.add(ring)
       pulses.push({ mesh: ring, t: 0 })
@@ -713,11 +875,11 @@ export function createBuildings(scene: THREE.Scene, world: World, markerRoot: TH
     // 'lit-windows' channel (R025): one working agent per building is one
     // in-flight tool call; nothing else lights the windows — no night floor,
     // no flash mixed in (one channel, one fact).
-    const inFlight: Record<string, number> = {}
+    inFlight.clear()
     for (const c of world.characters) {
       if (c.state === 'working' && c.task?.buildingId) {
         const bid = c.task.buildingId
-        inFlight[bid] = (inFlight[bid] ?? 0) + 1
+        inFlight.set(bid, (inFlight.get(bid) ?? 0) + 1)
       }
     }
 
@@ -726,9 +888,27 @@ export function createBuildings(scene: THREE.Scene, world: World, markerRoot: TH
       const b = id in world.buildings ? world.buildings[id] : null
       if (!b) continue
       if (entry.wallBoost) entry.wallBoost = Math.max(0, entry.wallBoost - dtReal)
-      if (entry.wallMat) {
-        const calls = inFlight[id] ?? 0
-        entry.wallMat.emissiveIntensity = Math.min(1.5, calls * 0.45) + (entry.wallBoost ?? 0) * 0.75
+      if (entry.windowMat) {
+        const calls = inFlight.get(id) ?? 0
+        // The lit-windows channel (R025/R066): the per-window grid resolves
+        // from the activity schedule (R050) at frame rate, and the in-flight
+        // work lights its deterministic cells on top — a building with live
+        // work is never dark.
+        // R103: tell the emissive to follow the model's occupancy state.
+        if (entry.winEmissive) {
+          entry.winEmissive.setOccupancyState(b.occupancyState)
+          entry.winEmissive.update(timeAcc, calls)
+        }
+        // R103: modulate emissive intensity by occupancy state from the model.
+        // A declining/abandoned building dims regardless of in-flight work.
+        const occMult = occupancyMultiplier(b.occupancyState)
+        const scheduleGlow = entry.winEmissive?.anyLit ? 1 : 0
+        entry.windowMat.emissiveIntensity =
+          Math.max(scheduleGlow * occMult, Math.min(1.5, calls * 0.45) * occMult) + (entry.wallBoost ?? 0) * 0.75
+        // R103: abandoned buildings have broken windows (completely dark).
+        if (b.occupancyState === 'abandoned') {
+          entry.windowMat.emissiveIntensity = 0
+        }
       }
       // 'error-flash' channel (R025): while a recent error is fresh the roof
       // lights up in the table's red (the roof sheet is painted in it).
@@ -791,6 +971,7 @@ export function createBuildings(scene: THREE.Scene, world: World, markerRoot: TH
         const e = k < 0.5 ? 4 * k * k * k : 1 - (-2 * k + 2) ** 3 / 2
         gpos.x = mv.fx + (b.x - mv.fx) * e
         gpos.z = mv.fz + (b.z - mv.fz) * e
+        gpos.y = groundHeight(gpos.x, gpos.z)
         entry.group.rotation.y = mv.fr + (targetRot - mv.fr) * e
         if (entry.doorMat && b.door) {
           entry.doorMat.position.set(b.door.x - gpos.x, 0.035, b.door.z - gpos.z)
@@ -811,6 +992,11 @@ export function createBuildings(scene: THREE.Scene, world: World, markerRoot: TH
         while (targetRot - fr > Math.PI) fr += Math.PI * 2
         while (targetRot - fr < -Math.PI) fr -= Math.PI * 2
         entry.mv = { fx: gpos.x, fz: gpos.z, fr, t: 0, dur: 0.9 }
+      }
+      // R102: tint the wall once per change of economic health, as a multiplier on the archetype colour.
+      if (entry.wallMat && entry.wallBase && b.economicHealth !== undefined && entry.tintedFor !== b.economicHealth) {
+        entry.wallMat.color.copy(entry.wallBase).multiplyScalar(healthTint(b.economicHealth))
+        entry.tintedFor = b.economicHealth
       }
     }
 
@@ -898,23 +1084,7 @@ export function createBuildings(scene: THREE.Scene, world: World, markerRoot: TH
       } else if (constructionGroups.has(key)) {
         const done = constructionGroups.get(key)
         if (done) {
-          scene.remove(done.group)
-          const geos = new Set<THREE.BufferGeometry>()
-          const mats = new Set<THREE.Material>()
-          done.group.traverse((o) => {
-            if (isMesh(o)) {
-              geos.add(o.geometry)
-              const m = o.material
-              if (Array.isArray(m)) m.forEach((mm) => mats.add(mm))
-              else mats.add(m)
-            }
-          })
-          geos.forEach((g2) => {
-            g2.dispose()
-          })
-          mats.forEach((m2) => {
-            m2.dispose()
-          })
+          disposeConstruction(done)
         }
         constructionGroups.delete(key)
         // Reveal the finished building with a pop and lights on (the
@@ -940,8 +1110,44 @@ export function createBuildings(scene: THREE.Scene, world: World, markerRoot: TH
     }
   }
 
+  /** The live night-window resolution (R066): every kit building's grid,
+   * resolved at the given clock, as per-floor occupancy and a fingerprint. */
+  function nightWindows(clockS: number): NightWindowReport {
+    const samples = []
+    for (const [id, entry] of buildingGroups) {
+      if (!entry.winEmissive || !entry.archetype) continue
+      const fn = buildingFunctionFor(entry.archetype)
+      const win = entry.winEmissive
+      samples.push({
+        id,
+        family: entry.archetype,
+        fn,
+        floors: win.floors,
+        cols: win.cols,
+        perFloor: [...win.perFloor],
+        fingerprint: win.fingerprint,
+      })
+    }
+    return {
+      clockS,
+      night: isScheduledNight(clockS),
+      samples,
+      /** R103: forward occupancy state to the emissive handle. */
+      setOccupancyState(buildingId: string, state: OccupancyState | null): void {
+        const entry = buildingGroups.get(buildingId)
+        if (entry?.winEmissive) entry.winEmissive.setOccupancyState(state)
+      },
+    }
+  }
+
   function dispose(): void {
     unsubPulse()
+    for (const pulse of pulses) {
+      scene.remove(pulse.mesh)
+      const materials = Array.isArray(pulse.mesh.material) ? pulse.mesh.material : [pulse.mesh.material]
+      for (const material of materials) material.dispose()
+    }
+    pulses.length = 0
     for (const fig of queueFigs) scene.remove(fig)
     queueFigs.length = 0
     queueFigGeo.dispose()
@@ -950,12 +1156,32 @@ export function createBuildings(scene: THREE.Scene, world: World, markerRoot: TH
     reservedMarkers.clear()
     for (const g of dressingGroups.values()) scene.remove(g)
     dressingGroups.clear()
-    for (const c of constructionGroups.values()) scene.remove(c.group)
+    for (const c of constructionGroups.values()) disposeConstruction(c)
     constructionGroups.clear()
+    const geometries = new Set<THREE.BufferGeometry>()
+    const materials = new Set<THREE.Material>()
+    for (const entry of buildingGroups.values()) {
+      scene.remove(entry.group)
+      entry.winEmissive?.dispose()
+      entry.group.traverse((object) => {
+        if (!isMesh(object)) return
+        geometries.add(object.geometry)
+        const material = object.material
+        if (Array.isArray(material)) material.forEach((item) => materials.add(item))
+        else materials.add(material)
+      })
+    }
+    for (const geometry of geometries) geometry.dispose()
+    for (const material of materials) material.dispose()
+    buildingGroups.clear()
     plotMarkerGeo.dispose()
     plotMarkerMat.dispose()
     pulseGeo.dispose()
+    for (const geometry of [dressingPatchGeo, plazaPatchGeo, treeGeo, benchGeo, signGeo, binGeo]) geometry.dispose()
+    for (const material of [wallTemplate, windowTemplate, roofTemplate, propMat, doorMat, parkMat, plazaMat])
+      material.dispose()
+    for (const texture of [trimTex, litSheet, roofSheet]) texture.dispose()
   }
 
-  return { syncBuildings, update, dispose }
+  return { syncBuildings, update, nightWindows, dispose }
 }

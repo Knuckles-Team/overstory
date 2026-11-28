@@ -21,7 +21,7 @@ from __future__ import annotations
 from typing import Any, Literal
 
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from .gateway import CityGateway, CityUnavailable
 
@@ -94,6 +94,23 @@ def _doc_to_dict(doc: LayoutDocIn) -> dict[str, Any]:
     }
 
 
+class HeartbeatIn(BaseModel):
+    """One avatar heartbeat (OVERSTORY-CITY-R047): exactly Arbora's fields.
+
+    ``expected_revision`` fences the write against the snapshot revision the
+    viewer last read; ``x``, ``y`` and ``heading`` are the move. There is no
+    subject field: Arbora binds the verified caller, and the closed model
+    refuses anything else.
+    """
+
+    model_config = ConfigDict(extra='forbid', populate_by_name=True)
+
+    expectedRevision: int = Field(ge=0)
+    x: float = Field(ge=-200, le=200)
+    y: float = Field(ge=-200, le=200)
+    heading: float = Field(ge=0, le=6.2832)  # 0..2pi radians
+
+
 def build_city_router(gateway: CityGateway) -> APIRouter:
     """The City routes over one fleet gateway (shared, cached)."""
 
@@ -163,5 +180,50 @@ def build_city_router(gateway: CityGateway) -> APIRouter:
             'captured_at': read.captured_at,
             'cache': {'stale': False, 'age_seconds': round(read.age_seconds, 1)},
         }
+
+    # ------------------------------------------------------------------
+    # City-state (OVERSTORY-CITY-R047)
+    # ------------------------------------------------------------------
+
+    @router.get('/state')
+    async def city_state_read() -> dict[str, Any]:
+        """The served city-state snapshot.
+
+        It carries the revision, the simulated time, the layout revision and
+        the entity list. When Arbora is unavailable the route answers the
+        stated 503; the browser then shows the labelled simulated fallback.
+        """
+
+        try:
+            live = await gateway.get_city_state()
+        except CityUnavailable as error:
+            raise HTTPException(status_code=503, detail=str(error)) from error
+        return {
+            'revision': live['revision'],
+            'simulatedAt': live.get('simulated_at'),
+            'layoutRevision': live.get('layout_revision', 0),
+            'entities': live.get('entities', []),
+            'live': True,
+        }
+
+    @router.post('/state/heartbeat')
+    async def city_state_heartbeat(body: HeartbeatIn) -> dict[str, Any]:
+        """Publish the caller's own avatar move through Arbora presence.
+
+        The body is forwarded as exactly Arbora's heartbeat params. A typed
+        Arbora refusal passes its code through; an absent presence layer is
+        the stated 503 and nothing is stored.
+        """
+
+        try:
+            receipt = await gateway.publish_heartbeat(
+                expected_revision=body.expectedRevision,
+                x=body.x,
+                y=body.y,
+                heading=body.heading,
+            )
+        except CityUnavailable as error:
+            raise HTTPException(status_code=503, detail=str(error)) from error
+        return {'accepted': True, 'revision': receipt.get('revision')}
 
     return router

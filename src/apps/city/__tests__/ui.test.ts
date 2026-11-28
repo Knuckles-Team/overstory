@@ -36,10 +36,27 @@ const noopActions: CityActions = {
   speed: () => undefined,
   setActivity: () => undefined,
   setAudio: () => undefined,
+  enterBuilding: () => undefined,
+  exitInterior: () => undefined,
   setView: () => undefined,
   scrub: () => undefined,
   startTour: () => undefined,
   layoutEdit: async () => ({ ok: true }),
+  toggleFirstPerson: () => undefined,
+  openDialogue: () => undefined,
+  sendDialogue: () => undefined,
+  closeDialogue: () => undefined,
+  npcDialogue: async () => ({
+    npcId: '',
+    npcName: '',
+    role: '',
+    district: '',
+    response: '',
+    emotion: 'neutral' as const,
+    gesture: 'nod' as const,
+    duration: 0,
+  }),
+  npcNearby: () => [],
 }
 
 function makeEls(): CityUiElements {
@@ -47,6 +64,17 @@ function makeEls(): CityUiElements {
     const e = document.createElement(tag)
     document.body.appendChild(e)
     return e
+  }
+  function btn(): HTMLButtonElement {
+    const b = document.createElement('button')
+    document.body.appendChild(b)
+    return b
+  }
+  function input(type = 'text'): HTMLInputElement {
+    const i = document.createElement('input')
+    i.type = type
+    document.body.appendChild(i)
+    return i
   }
   return {
     popList: el('ol'),
@@ -65,19 +93,28 @@ function makeEls(): CityUiElements {
     statTools: el('span'),
     statIncidents: el('span'),
     statConnectors: el('span'),
-    btnDispatch: el('button'),
-    btnOverview: el('button'),
-    btnOnboard: el('button'),
-    btnDemo: el('button'),
-    btnAudio: el('button'),
-    btnView2d: el('button'),
-    btnView3d: el('button'),
-    scrubber: document.createElement('input'),
+    btnDispatch: btn(),
+    btnOverview: btn(),
+    btnOnboard: btn(),
+    btnDemo: btn(),
+    btnAudio: btn(),
+    btnView2d: btn(),
+    btnView3d: btn(),
+    scrubber: input('range'),
     scrubberReadout: el('span'),
-    btnTour: el('button'),
-    btnEdit: el('button'),
+    btnTour: btn(),
+    btnEdit: btn(),
     editPanel: el('div'),
     speedButtons: [],
+    speedBtn: btn(),
+    layoutBtn: btn(),
+    overlay: el('div'),
+    playPauseBtn: btn(),
+    replayBtn: btn(),
+    helpBtn: btn(),
+    legendToggle: btn(),
+    legendPanel: el('div'),
+    tourBtn: btn(),
   }
 }
 
@@ -100,13 +137,13 @@ afterEach(() => {
 describe('population list (R027: in place, never rebuilt)', () => {
   it('creates each row once and patches it in place across 4 Hz refreshes', () => {
     const ui = initUI(world, fakeRenderer(), noopActions, els!)
-    const rows = Array.from(els!.popList.children)
+    const rows = Array.from(els!.popList!.children)
     expect(rows).toHaveLength(world.characters.length)
     const first = rows[0]
     // Two panel refreshes (each over the 250 ms budget): same node instances.
     ui.tick(0.3)
     ui.tick(0.3)
-    const again = Array.from(els!.popList.children)
+    const again = Array.from(els!.popList!.children)
     expect(again).toHaveLength(world.characters.length)
     expect(again[0]).toBe(first) // node identity: no rebuild
     // The dynamic parts track the world: a state change re-colors the dot.
@@ -126,11 +163,11 @@ describe('population list (R027: in place, never rebuilt)', () => {
     const ui = initUI(world, fakeRenderer(), noopActions, els!)
     const ch = world.characters[0]
     ui.select({ kind: 'character', id: ch.id })
-    const row = els!.popList.querySelector<HTMLElement>(`[data-id="${ch.id}"]`)
+    const row = els!.popList!.querySelector<HTMLElement>(`[data-id="${ch.id}"]`)
     expect(row?.classList.contains('selected')).toBe(true)
     ui.tick(0.3)
     ui.tick(0.3)
-    const same = els!.popList.querySelector<HTMLElement>(`[data-id="${ch.id}"]`)
+    const same = els!.popList!.querySelector<HTMLElement>(`[data-id="${ch.id}"]`)
     expect(same).toBe(row) // the selection did not move to a new node
     expect(same?.classList.contains('selected')).toBe(true)
     ui.select(null)
@@ -139,11 +176,33 @@ describe('population list (R027: in place, never rebuilt)', () => {
 })
 
 describe('inspector (in-place patching)', () => {
+  it('enters and exits a selected building through the stable inspector action', () => {
+    const calls: string[] = []
+    const actions: CityActions = {
+      ...noopActions,
+      enterBuilding: (id) => calls.push(`enter:${id}`),
+      exitInterior: () => calls.push('exit'),
+    }
+    const ui = initUI(world, fakeRenderer(), actions, els!)
+    const building = Object.values(world.buildings)[0]
+    expect(building).toBeTruthy()
+    if (!building) return
+    ui.select({ kind: 'building', id: building.id })
+    const enter = els!.inspector!.querySelector<HTMLButtonElement>('[data-interior-action="enter"]')
+    expect(enter?.textContent).toBe('Enter interior')
+    enter?.click()
+    expect(calls).toEqual([`enter:${building.id}`])
+    const exit = els!.inspector!.querySelector<HTMLButtonElement>('[data-interior-action="exit"]')
+    exit?.click()
+    expect(calls).toEqual([`enter:${building.id}`, 'exit'])
+    ui.dispose()
+  })
+
   it('patches the dynamic slots instead of rebuilding the scaffold', () => {
     const ui = initUI(world, fakeRenderer(), noopActions, els!)
     const ch = world.characters[0]
     ui.select({ kind: 'character', id: ch.id })
-    const stateBefore = els!.inspector.querySelector<HTMLElement>('[data-slot="state"]')
+    const stateBefore = els!.inspector!.querySelector<HTMLElement>('[data-slot="state"]')
     expect(stateBefore?.textContent).toBe(ch.state)
     // Change the world, refresh: same scaffold node, patched value.
     if (ch.state === 'idle') ch.state = 'tasked'
@@ -151,11 +210,11 @@ describe('inspector (in-place patching)', () => {
     ch.mood = 'test mood'
     ch.context = 42
     ui.tick(0.3)
-    const state = els!.inspector.querySelector<HTMLElement>('[data-slot="state"]')
+    const state = els!.inspector!.querySelector<HTMLElement>('[data-slot="state"]')
     expect(state).toBe(stateBefore) // no rebuild
     expect(state?.textContent).toBe(ch.state)
-    expect(els!.inspector.querySelector<HTMLElement>('[data-slot="mood"]')?.textContent).toBe('test mood')
-    expect(els!.inspector.querySelector<HTMLElement>('[data-slot="context"]')?.textContent).toBe('42%')
+    expect(els!.inspector!.querySelector<HTMLElement>('[data-slot="mood"]')?.textContent).toBe('test mood')
+    expect(els!.inspector!.querySelector<HTMLElement>('[data-slot="context"]')?.textContent).toBe('42%')
     ui.dispose()
   })
 
@@ -163,12 +222,12 @@ describe('inspector (in-place patching)', () => {
     const ui = initUI(world, fakeRenderer(), noopActions, els!)
     const ch = world.characters[0]
     ui.select({ kind: 'character', id: ch.id })
-    const eventsBefore = els!.inspector.querySelector<HTMLElement>('[data-slot="events"]')
+    const eventsBefore = els!.inspector!.querySelector<HTMLElement>('[data-slot="events"]')
     ui.tick(0.3)
-    expect(els!.inspector.querySelector<HTMLElement>('[data-slot="events"]')).toBe(eventsBefore)
+    expect(els!.inspector!.querySelector<HTMLElement>('[data-slot="events"]')).toBe(eventsBefore)
     ch.events.push({ type: 'task.queued', detail: 'new event' })
     ui.tick(0.3)
-    const events = els!.inspector.querySelector<HTMLElement>('[data-slot="events"]')
+    const events = els!.inspector!.querySelector<HTMLElement>('[data-slot="events"]')
     expect(events).toBe(eventsBefore) // same container
     expect(events?.textContent).toContain('new event')
     ui.dispose()
@@ -179,7 +238,7 @@ describe('feed rows carry the bus-stamped marks (R010/R029)', () => {
   it('every row shows its provenance mark: SIM for the simulation', () => {
     const ui = initUI(world, fakeRenderer(), noopActions, els!)
     bus.emit({ type: 'task.queued', detail: 'simulated row', provenance: 'simulated' })
-    const rows = els!.feedList.querySelectorAll('.feed-item')
+    const rows = els!.feedList!.querySelectorAll('.feed-item')
     const row = rows[0] // the newest row is prepended
     expect(row.querySelector('.prov-chip.sim')?.textContent).toBe('SIM')
     expect(row.querySelector('.prov-chip.live')).toBeNull()
@@ -190,7 +249,7 @@ describe('feed rows carry the bus-stamped marks (R010/R029)', () => {
   it('a live-injected row is marked LIVE', () => {
     const ui = initUI(world, fakeRenderer(), noopActions, els!)
     expect(injectLive({ type: 'tool.call', detail: 'from the fleet' })).toBe(true)
-    const rows = els!.feedList.querySelectorAll('.feed-item')
+    const rows = els!.feedList!.querySelectorAll('.feed-item')
     const row = rows[0] // the newest row is prepended
     expect(row.querySelector('.prov-chip.live')?.textContent).toBe('LIVE')
     expect(row.querySelector('.prov-chip.sim')).toBeNull()
@@ -205,7 +264,7 @@ describe('feed rows carry the bus-stamped marks (R010/R029)', () => {
     } finally {
       setReplaying(false)
     }
-    const rows = els!.feedList.querySelectorAll('.feed-item')
+    const rows = els!.feedList!.querySelectorAll('.feed-item')
     const row = rows[0] // the newest row is prepended
     expect(row.querySelector('.prov-chip.replay')?.textContent).toBe('REPLAY')
     // The provenance mark stays honest too: the replayed world is simulated.

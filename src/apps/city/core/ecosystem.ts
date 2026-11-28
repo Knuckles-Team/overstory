@@ -1,4 +1,4 @@
-// Ecosystem data for Arbora City.
+// Ecosystem data for Arbora City (OVERSTORY-CITY-R020).
 //
 // The connector catalog is the Arbora fleet (fleet.catalog.list), not a
 // curated list: served packs are online buildings, registered-unpublished

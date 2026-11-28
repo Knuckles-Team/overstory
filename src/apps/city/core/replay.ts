@@ -27,6 +27,7 @@ import {
   onboardConnector,
   resetSim,
   setSimRandom,
+  setTrafficSeed,
   tickSim,
   world,
   type RecordedAction,
@@ -83,6 +84,7 @@ export function replayRun(actions: RecordedAction[], opts: ReplayOptions = {}): 
   // events stream into the live feed while the world state is replaced.
   resetSim()
   setSimRandom(mulberry32(seed))
+  setTrafficSeed(seed)
   setTimeSource(() => world.clock)
 
   const events: CityEvent[] = []

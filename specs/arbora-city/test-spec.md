@@ -61,9 +61,15 @@ Governing spec: [spec.md](spec.md).
     wakes; no new tasks start at night; the in-game clock runs at
     timeScale 144 (one day = ten real minutes at 1×); no character leaves
     walkable ground. Bound: `// spec: OVERSTORY-CITY-R009`.
-  - describe `speed and clock semantics (R012)`: speed scales the clock
-    and the action timers together; pause freezes both. Bound:
-    `// spec: OVERSTORY-CITY-R012`.
+  - describe `speed and clock semantics (R012)`: the declared speed set
+    (0.5×, 1×, 1.25×, 1.5×, 2×, 4×, 8×, 20×) and pause each scale the
+    clock and the action timers by exactly their factor; 0.5× slow
+    motion halves the rate in the same mode; a full day at 20×
+    completes with every invariant holding (no character leaves
+    walkable ground, no visible reset); the fixed sub-step accumulator
+    keeps in-game time exact across frames of varying length; a speed
+    change never alters the in-game state at a given in-game time.
+    Bound: `// spec: OVERSTORY-CITY-R012`.
   - describe `selection API (R011)`: selecting a character or building
     returns its record. Bound: `// spec: OVERSTORY-CITY-R011`.
   - describe `quiet and demo (R026)`: in quiet mode no task, wander or
@@ -132,13 +138,15 @@ Governing spec: [spec.md](spec.md).
     authority) and exposes the full renderer handle.
     Bound: `// spec: OVERSTORY-CITY-R015`.
 - `src/apps/city/__tests__/CityPage.test.tsx`
-  - describe `parseSpeedParam (R012)`: parses the accepted speeds and
-    defaults to 1×.
+  - describe `parseSpeedParam (R012)`: parses the full speed set —
+    0.5, 1, 1.25, 1.5, 2, 4, 8, 20 and pause (0) — and falls back to
+    1× when the value is absent or invalid.
   - describe `mode decision (R014)`: boots `LIVE` when the host serves
     the fleet; falls back to `SIMULATED` with a stated banner when the
-    fleet read fails; verifies every pinned asset at startup (18 verified
-    events, no failures); lists the connectors from the live fleet in
-    the onboard modal. Bound: `// spec: OVERSTORY-CITY-R014`.
+    fleet read fails; verifies every pinned asset at startup (one
+    verified event per lockfile pin on the event bus, no failures);
+    lists the connectors from the live fleet in the onboard modal.
+    Bound: `// spec: OVERSTORY-CITY-R014`.
   - describe `context loss (R015)`: a `webglcontextlost` that is not
     restored swaps the renderer to the 2D schematic — no dead canvas; a
     `webglcontextrestored` resumes the 3D renderer; both listeners are
@@ -338,3 +346,97 @@ LANDED: every test above green on the branch with the build and pre-commit
 gates passing. VERIFIED additionally requires the headless browser proof
 against a live host plus the lockfile audit, recorded in
 `checklists/requirements.md`.
+
+## Modular asset pack acceptance
+
+These cases are planned. Bind tests to the full requirement IDs when implemented.
+
+- OVERSTORY-CITY-R001.1: `src/lib/__tests__/city-sandbox.test.ts::requires an explicit development flag and a loopback origin` verifies opt-in and route scope. `e2e/city-sandbox.browser.ts::opens the anonymous demo from the Overstory landing page` aborts session lookup and observes browser-local registration.
+- OVERSTORY-CITY-R001.2.1: `e2e/city-sandbox.browser.ts::opens the anonymous demo from the Overstory landing page` follows the link and verifies the demo UI.
+- OVERSTORY-CITY-R028.1: `e2e/city-sandbox.browser.ts::reports browser FPS and the 60 FPS target when debug is enabled` waits for measured data and the budget status. R028 reference-hardware performance is measured separately.
+- OVERSTORY-CITY-R048.5.1: `src/apps/city/__tests__/worldgen.test.ts::uses one continuous island boundary rather than a rectangular world cutoff` checks wet and dry samples across the rendered island's boundary. `src/apps/city/__tests__/waterways.test.ts` also checks conservative depth rejection, generated wet route segments, and bounded, continuous vessel motion; bridge clearances, actual bathymetry and refresh persistence remain unverified.
+- OVERSTORY-CITY-R048.6.1: `src/apps/city/__tests__/sceneSoak.test.ts::holds scene-object and texture references steady through ten minutes of idle demo frames` counts retained scene objects and texture references across 36,000 scripted updates. The browser harness separately records frame times and fixed day/night poses.
+- Local sandbox baseline at 1440 × 900 in headless Chromium with SwiftShader passed the material and density audits. A 60-frame sample measured 268.3 ms p50 and 340.2 ms p95. The measurement records software rendering. Hardware qualification and the browser soak remain open under R048.6.
+- OVERSTORY-CITY-R048.9.1: `src/apps/city/__tests__/worldgen.test.ts::refuses a river through a foundation even when its center and corners are dry` checks the interior of the footprint and its rotated form. The layout regression also refuses a bank-straddling connector from both an edit and a saved override.
+- OVERSTORY-CITY-R031.1: planned `e2e/city-production-world.browser.ts::daylight_contrast` verifies readable day materials and fallback.
+- OVERSTORY-CITY-R041.1: planned `e2e/city-production-world.browser.ts::production_world_slice` qualifies the composed regional views.
+- OVERSTORY-CITY-R047: planned `e2e/city-production-world.browser.ts::shared_city_state` compares admitted snapshots across two viewers and refresh.
+
+| Requirement | Required checks |
+| --- | --- |
+| `OVERSTORY-CITY-R048.1` | Check the full catalog — launch families plus the extension catalog — as unique, independently addressable families. Reject missing provenance, hash mismatch, duplicate ID, invalid dimensions, incompatible sockets and unsafe bounds. Rebuild the same pack twice and compare normalized outputs. Every catalog entry must match its lock entry (file, digest, byte count), and every kit file in the lock must have a catalog entry (catalog-integrity check in `catalog.test.ts`). |
+| `OVERSTORY-CITY-R048.2` | Capture every recipe in an asset review scene at a common scale. Compare silhouettes, frontage, window rhythm and roofs. Check opaque shells, trim UVs, near props, day/night glass and emissive separation. Verify that part changes do not alter live encoding. |
+| `OVERSTORY-CITY-R048.3` | Exercise straight, curved, skewed, sloped and joined profiles with shared seam coordinates. Verify no visible holes, coplanar paint or flipped crossings. Refuse dry-road water crossings, park overlap, blocked sidewalks and deck clearance violations. Require lanes across valid bridges and no phantom turn at an overpass. Follow bus, compact and truck routes through multiple blocks. Detect visible resets or implausible speeds. |
+| `OVERSTORY-CITY-R048.4` | Reach every declared room from a valid threshold and return to the original building exterior. Refuse stale IDs, absent portals and blocked paths. Test room reuse, keyboard and WebMCP parity, repeated entry, view changes, context loss and resource cleanup. |
+| `OVERSTORY-CITY-R048.5` | View the entire perimeter and sample each coast family. Test terrain continuity across tile seams, dry foundations near the shore and navigable routes through a delta and beneath a bridge. Refuse shallow routes and support/boat intersections. |
+| `OVERSTORY-CITY-R048.6` | Pair fixed-seed before/after views at comparable zoom, exposure and time. Review aerial day/night, storefront and fuel forecourt, park/shelter, suburban/rural, canal crossing, coastline and all interior recipes. Include lowest-quality readability and 2D fallback. Record exact revision and device/GPU/browser/resolution/tier. Run the 10-minute steady-state and 15-minute active/onboarding measurements under R048. Collect frame-time p50/p95, draw calls, geometry, texture bytes and heap trends after warmup. Compare teardown after chunk churn and repeated room entry/exit. Record missed targets explicitly. |
+| `OVERSTORY-CITY-R048.7` | Compare each landmark silhouette and its rooms. Verify connector category override, unknown fallback, unpublished placeholder and stable ID. Enter Medulla and follow a permitted recall to the correct modality. Verify unavailable or unadmitted values remain undisclosed. Compare UI and WebMCP selection and entry. |
+| `OVERSTORY-CITY-R048.8` | Repeat generation with shuffled input and tile order. Exercise reuse of one corridor by several relationships and physical access with zero semantic links. Validate curved polygon lots, dry footprints, doorway reachability, driveway swept space, stop accessibility, overpass separation and bridge limits. Force an impossible route and a conflicting pinned edit. Verify diagnostic output and unchanged accepted revision. |
+| `OVERSTORY-CITY-R048.9` | Verify initial playability, connected drainage and identical generation for the same recipe version. Replay identical growth events through refresh with duplicate and stale events. Reject coastal corner overlap, water crossing a dry-corner footprint, submerged support and a flooded entrance. Preserve pins and unrelated IDs. |
+| `OVERSTORY-CITY-R048.10` | Seat every infrastructure landmark family on its district lot and compare silhouettes: watch tower, cooling structure, gantry, yard track, canopy and forecourt must read the use at street height. Verify catalog provenance, digests and export QA reports. |
+| `OVERSTORY-CITY-R048.11` | Review every commerce, entertainment and recreation family at street height: frontage, signage, queue and forecourt. Check the stadium and theme park against parcel clearance and pedestrian capacity at their scale. |
+| `OVERSTORY-CITY-R048.12` | Review the industry, farming and settlement families; verify mining and oil/gas read as working sites and the datacenter as secure infrastructure. Compare the five skyscraper forms across a seeded core district for distinct height and crown variance. |
+| `OVERSTORY-CITY-R048.13` | View the full island and sample each wild biome. Verify shoreline, bank and river-bend modules compose with the seeded hydrology, that wild terrain stays outside the serviced basin, and that dry-ground checks still refuse construction in wild water. |
+| `OVERSTORY-CITY-R048.14` | Ground every fleet family: wheels or gear touch the corridor, vehicles face forward, lights occupy declared positions. Check trains and aircraft against rail-track, runway and taxiway sizing. |
+| `OVERSTORY-CITY-R048.15` | Exercise every advanced class in level-aware profiles: 4/6/8-lane highways and freeways, toll portals, country and dirt roads, one-way, two-lane, asymmetric sections, tree boulevards, bridges, viaducts, flyover ramps and a double-stacked interchange. Verify ramps create no phantom routing nodes and deck, support, lane, pedestrian and navigation clearance hold in three dimensions. |
+| `OVERSTORY-CITY-R048.16` | Run deterministic traffic: queue growth and dissipation at reds and bottlenecks, no overlap, clipping or visible reset inside a lane, and the frame budget at review density. Confirm the stop, signal and yield families are the only authority for lane state. |
+| `OVERSTORY-CITY-R048.17` | Route one journey per modality between named destinations: a train ride, a bus transfer, a flight and a sidewalk walk. Assert each journey stays on its corridor through connected 3D geometry and that all modalities share one route graph. |
+| `OVERSTORY-CITY-R001.2` | Navigate from signed-in Apps and the anonymous sandbox landing surface. Verify keyboard access, browser back, unavailable fleet fallback and inactive sandbox behavior. Confirm an unauthorized viewer gains no protected access. |
+| `OVERSTORY-CITY-R049` | Review the civilian pack at street scale: at least twelve variants with distinct body, attire and palette; every variant on the shared rig with the full clip set; variants populate sidewalks, terraces and queues under the schedule. Verify catalog entries, lock licenses and QA budgets. |
+| `OVERSTORY-CITY-R050` | Scrub the clock through a full day per building kind: occupancy follows the schedule (homes at night, offices in working hours, commerce at shopping hours, parks at leisure), window emissive follows occupancy, and quiet mode holds. Replay the same seed and assert identical placement; assert a different seed differs. |
+| `OVERSTORY-CITY-R051` | Seat every civic anchor on its district lot and read its use at street height (city hall, courthouse, school, university, waste-recycling, substation, the education suite, government and public-services buildings; parks, fountains, statues and monuments on their plaza, lot and verge sockets). Place the street-life families on declared sockets under their district recipes and verify no pedestrian path is blocked; verify interactive nodes receive scheduled citizens. |
+| `OVERSTORY-CITY-R052` | Compare species and seasonal palettes across districts; measure wind sway at the frame budget on a seeded capture; verify the low-tier static path renders without motion and without extra pools. |
+| `OVERSTORY-CITY-R053` | Capture night with occupancy lights, vehicle lights, neon glow and smoke; capture the rain state with puddle specular response; assert lighting state comes only from day/night and weather, and the texture and frame budgets hold. |
+| `OVERSTORY-CITY-R054` | Follow a bird, a pet and a vessel across the island: each stays on its corridor, the vessel uses the shared water route with bounded speed, and the waterfront shows scheduled occupancy. |
+| `OVERSTORY-CITY-R055` | Walk the zoom ladder per district: each district layer dominates in its band, new vehicle cues fire, the mix stays inside the cap, and no audio file ships. |
+| `OVERSTORY-CITY-R056` | Generate a seeded block with two or three tiers: height, material and density vary by tier and seed; corner variants fill triangular gaps; under-construction, run-down and upgraded states render their declared props and channels and bind to operational facts where one exists. |
+| `OVERSTORY-CITY-R057` | Capture street level per district: clutter density matches the recipe, the same seed reproduces it, and no declared pedestrian path is blocked. |
+| `OVERSTORY-CITY-R058` | Enter a café and a clinic: occupants match the exterior occupancy, are visible through windows at city zoom, and keyboard, pointer, WebMCP, 2D and context-loss lifecycles hold per the R048.4 contract. |
+| `OVERSTORY-CITY-R059` | Generate two complete worlds from two seeds: environment, map, biome and terrain all derive from the seed; the same seed reproduces the identical manifest, a different seed differs, and no placed element traces to anything other than a generator rule. |
+| `OVERSTORY-CITY-R060` | The road, rail, water and pedestrian networks come from the network solver: connected, level-aware and complete against the district recipes; rail and water routes appear only where the terrain provides them; no hand-laid segment survives in the manifest. |
+| `OVERSTORY-CITY-R061` | Every generated map carries rural, suburban and city-center tiers; zone-based spawns follow the tier recipes for density, height and program; deterministic under the seed and different between seeds. |
+| `OVERSTORY-CITY-R062` | A full-manifest sweep finds zero overlapping footprints or envelopes between any two placed elements; nature is placed first and displaced along infrastructure paths; dry-ground and water rules hold at every placement. |
+| `OVERSTORY-CITY-R063` | Every asset the city loads is a pinned Blender-original kit family with matching digest; the non-kit pins are exactly the shared rig and the marker cube; catalog, lock and disk stay in integrity at the full family count. In the rendered scene: the provenance audit lists every visible mesh with a catalog family id or an explicit exempt declaration, and no launch-era generated geometry remains. |
+| `OVERSTORY-CITY-R067` | The rendered world contains no launch-era generated geometry: overview and street captures show catalog road, building, prop, landscape and vehicle families; water is the continuous procedural coastline surface, not a painted rectangle; the provenance manifest covers every placed model. |
+| `OVERSTORY-CITY-R068` | Every absorbed landmark and interior family has a catalog entry with source, digest and budgets; the renderer loads them from the catalog; the provenance audit lists them by family id; review renders match the launch silhouettes at street height. |
+| `OVERSTORY-CITY-R069` | A seeded day produces a balanced ledger with income and expense attributable to named districts and activities; the treasury tracks it; the same seed replays identically; economic events surface in the feed and the WebMCP surface. |
+| `OVERSTORY-CITY-R070` | Demand curves vary by zone and seed; spawn is demand-gated; a zoning edit through the user layer changes subsequent spawns; determinism holds. |
+| `OVERSTORY-CITY-R071` | Population, happiness, unemployment and education evolve per district under the seed; coverage gaps lower happiness; population counts match the scheduled activity. |
+| `OVERSTORY-CITY-R072` | Land values respond to declared adjacency changes; the RCI overlay matches the model; the 2D view agrees with the 3D overlay; determinism under the seed. |
+| `OVERSTORY-CITY-R073` | Placing a service family covers its radius; an uncovered district decays; removing the service reverses it; maintenance hits the ledger; coverage recomputes after placement changes. |
+| `OVERSTORY-CITY-R074` | Production appears as visible logistics traffic on valid routes; consumption draws goods down; an imbalance shifts demand; impossible goods routes are refused. |
+| `OVERSTORY-CITY-R075` | Congestion lowers adjacent commercial income and service reliability; relief restores them; the same seed replays identical congestion and income; the debug view reports the measured congestion. |
+| `OVERSTORY-CITY-R076` | A placement debits the treasury by the declared construction cost; a standing building accrues maintenance; an under-funded building decays to its state variant; the inspector shows per-building costs. |
+| `OVERSTORY-CITY-R077` | Over a seeded world, every entity, placement, road and water feature in the 3D scene has a 1:1 counterpart in the 2D view at the same world coordinates and state encoding and vice versa (zero unmatched or divergent entries); the 2D view renders the full procedural world, not a bare plot schematic; a view switch mid-movement preserves identity, position, route, selection and focus with no duplicate tick, renderer or leaked context. |
+| `OVERSTORY-CITY-R078` | A sustained full-scale soak in each view records at least 120 FPS average with a 60 FPS floor; the debug view reports the same measured figures per view; low-tier and reduced-motion paths hold the floor in both views. |
+| `OVERSTORY-CITY-R079` | Demand above a zone threshold places a building on an empty lot and debits the treasury; demand below the threshold refuses placement even with empty lots; treasury depletion prevents construction; the same seed replays identical placement decisions; `construction.placed` and `construction.refused` events appear in the feed. |
+| `OVERSTORY-CITY-R080` | Placing a commercial building creates jobs; unemployed residents commute and happiness drops proportional to congestion; a district with no jobs loses population; high employment raises wages and commercial demand; the same seed replays identical labour trajectories; per-district labour breakdown is inspectable. |
+| `OVERSTORY-CITY-R081` | Each service type has a declared radius and capacity; coverage collapses when capacity is exceeded; under-funding stops production; a power outage reduces industrial production; a fire without fire service produces fire events; coverage recomputes after a layout edit; per-service breakdown is inspectable. |
+| `OVERSTORY-CITY-R082` | A production halt raises the price; at high price consumption drops and happiness falls; a surplus lowers the price and produces export income; the price signal suppresses commercial income at high levels; the same seed replays identical price trajectories. |
+| `OVERSTORY-CITY-R083` | Tax rate changes affect the next tick's revenue; budget changes alter service funding; an extreme tax rate (40 %) causes immediate population loss; the RCI meter shows the tax impact; WebMCP tools expose all controls; determinism under the seed. |
+| `OVERSTORY-CITY-R084` | Placing a park next to a lot increases its value; placing an industrial zone next to residential decreases value; a waterfront lot is worth more than an equivalent inland lot; the per-lot value responds to adjacency changes within a tick; the same seed replays identical value trajectories. |
+| `OVERSTORY-CITY-R085` | Congestion on a main road suppresses adjacent commercial income; adding a parallel road reduces congestion and restores income; a bottleneck causes service delays; the congestion state is measurable in the debug view; determinism under the seed. |
+| `OVERSTORY-CITY-R086` | Construction cost debits the treasury immediately; a district under its maintenance obligation loses a building to decay; the treasury panel shows the projected balance; the inspector shows per-building cost; a refunded demolition does not occur; determinism under the seed. |
+| `OVERSTORY-CITY-R087` | Arterial-adjacent lots are commercial; residential-street lots are residential; boundary lots can be mixed-use; rezoning a lot changes subsequent placements; the same seed replays identical zoning; the 2D and 3D zoning views agree. |
+| `OVERSTORY-CITY-R088` | A full economic tick fires all 11 sub-steps in the correct order; each sub-step's events appear on the bus; the same seed replays the identical tick; speed changes (0.5×–20×) yield the same in-game state for the same in-game duration; a dropped frame does not lose or gain an economy tick. |
+| `OVERSTORY-CITY-R064` | Car, plane, train and boat routes are accepted only when every constraint — connectivity, clearance, depth, level — holds; a blocked route is refused, never patched; the same seed replays the same accept/refuse decisions. |
+| `OVERSTORY-CITY-R065` | A sustained full-scale soak records at least 120 FPS average with a 60 FPS floor; the debug view reports the same measured figures; low-tier and reduced-motion paths hold the floor. |
+| `OVERSTORY-CITY-R066` | At night, skyscraper windows resolve per-floor occupancy from the schedule at frame rate, two buildings of the same family differ at the same instant, and the frame budget holds with every window live. |
+
+For R015, R027, R048.8 and R048.9, generate at least two different seeds and compare the complete placement manifest against both views. Verify that map assets originate from the recipe or explicit saved user pins, that changed seeds do not retain legacy fixed placements, and that each building has dry, unobstructed road and pedestrian access. Capture the full island in each view and compare world-coordinate positions and metres per visible span. During movement, switch repeatedly between views and exercise context loss and restoration: assert continuous entity identity, position, route, selection and camera focus; no duplicate tick, renderer or leaked context; and no flash of an empty view. Test reduced-motion mode separately. Measure the transition and normal rendering against the existing 60 FPS budget on the reference device.
+
+For R048.5, exercise a seeded vessel journey between connected berths across multiple water edges. Sample the entire hull envelope for land, depth, channel width and bridge clearances; refuse a route when any constraint fails. Assert bounded speed, acceleration and turn rate in real time at each simulation speed, no fixed-radius ocean orbit or visible reset, and the same vessel state in 2D and 3D across view switches and supported reconnects. Test a landlocked berth and a too-deep draft without inventing a route.
+
+## Review fixes (2026-11-28)
+
+- `OVERSTORY-CITY-R037.1`: proof — `src/apps/city/__tests__/trafficLaneGraph.test.ts::reassigns only when the vehicle set changes and leaves every position alone`.
+- `OVERSTORY-CITY-R014.1`: proof — `src/apps/city/__tests__/trafficLaneGraph.test.ts::never calls Math.random or Date.now in src/apps/city/core`.
+- `OVERSTORY-CITY-R037.2`: proof — `src/apps/city/__tests__/trafficLaneGraph.test.ts::moves at most speed x dt x 1.1 between frames around every corner of every route`.
+- `OVERSTORY-CITY-R037.3`: proof — `src/apps/city/__tests__/trafficLaneGraph.test.ts::refuses a missing leg with an error instead of drawing a chord across the blocks`.
+- `OVERSTORY-CITY-R026.1`: proof — `src/apps/city/__tests__/sim.test.ts::boots quiet: no auto-task, no wander, no patrol without an operator action`.
+- `OVERSTORY-CITY-R053.1`: proof — `src/apps/city/__tests__/sceneInstances.test.ts::lights the brakes of the car at a stop line and no other`.
+- `OVERSTORY-CITY-R102.1`: proof — `src/apps/city/__tests__/buildingHealth.test.ts::tints once as a multiplier on the archetype colour and never overwrites per frame`.
+- `OVERSTORY-CITY-R101.1`: proof — `src/apps/city/__tests__/buildingHealth.test.ts::are rebuilt each economy tick, never accumulated`.
+- `OVERSTORY-CITY-R047.1`: proof — `agent/overstory/__tests__/test_city_presence.py::test_the_heartbeat_sends_exactly_arboras_params`.
+- `OVERSTORY-CITY-R013.1`: proof — `src/apps/city/__tests__/CityPage.test.tsx::verifies only the pins the renderer loads at startup; the kit is registered, then verified on demand (R013.1)`.
+- `OVERSTORY-CITY-R048.8.1`: proof — `src/apps/city/__tests__/worldgen.test.ts::keeps a point off the real carriageway and lets one through where the chord ran`.

@@ -47,10 +47,27 @@ function controller(): CityToolController {
     speed: vi.fn(),
     setActivity: vi.fn(),
     setAudio: vi.fn(),
+    enterBuilding: vi.fn(),
+    exitInterior: vi.fn(),
     setView: vi.fn(),
     scrub: vi.fn(),
     startTour: vi.fn(),
+    toggleFirstPerson: vi.fn(),
     layoutEdit: vi.fn(async (_edit: LayoutEdit) => ({ ok: true })),
+    openDialogue: vi.fn(),
+    sendDialogue: vi.fn(),
+    closeDialogue: vi.fn(),
+    npcDialogue: vi.fn(async () => ({
+      npcId: '',
+      npcName: '',
+      role: '',
+      district: '',
+      response: '',
+      emotion: 'neutral' as const,
+      gesture: 'nod' as const,
+      duration: 5,
+    })),
+    npcNearby: vi.fn(() => []),
   }
   return { actions, readContext: () => context }
 }
@@ -79,6 +96,9 @@ describe('city_webmcp_surface', () => {
       'overstory.apps.city.dispatch',
       'overstory.apps.city.onboard',
       'overstory.apps.city.layout-edit',
+      // OVERSTORY-CITY-R022: NPC dialogue tools
+      'overstory.apps.city.npc-dialogue',
+      'overstory.apps.city.npc-nearby',
     ])
     for (const t of tools) {
       expect(t.capability?.outputSchema, `${t.name} must carry a capability output schema`).toBeTruthy()
@@ -198,6 +218,9 @@ describe('city_webmcp_surface', () => {
       dispatch: 'local-ui-mutation',
       onboard: 'local-ui-mutation',
       'layout-edit': 'local-ui-mutation',
+      // OVERSTORY-CITY-R022
+      'npc-dialogue': 'local-ui-mutation',
+      'npc-nearby': 'read',
     })
   })
 

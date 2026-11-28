@@ -39,17 +39,84 @@ export const SCENE_COLORS: Record<string, SceneColor> = {
     token: '--primary', // # sanitizer:ignore - CSS design-token name, not a secret
     derivation: 'direct — the core landmark carries the brand green',
   },
-  'wall-datahall': { hex: '#e6ebe1', token: '--secondary', derivation: 'direct' }, // # sanitizer:ignore - CSS design-token name, not a secret
-  'wall-workshop': { hex: '#655946', token: '--chart-5', derivation: 'direct — the warm taupe of the trades' }, // # sanitizer:ignore - CSS design-token name, not a secret
-  'wall-storehouse': { hex: '#c5cfc1', token: '--border', derivation: 'direct' }, // # sanitizer:ignore - CSS design-token name, not a secret
-  'wall-studio': { hex: '#dde9d8', token: '--accent', derivation: 'direct' }, // # sanitizer:ignore - CSS design-token name, not a secret
-  'wall-docks': { hex: '#b5c5ab', token: '--atmosphere-sage', derivation: 'direct' }, // # sanitizer:ignore - CSS design-token name, not a secret
+  'wall-datahall': {
+    hex: '#35b9c9',
+    token: '--glass-field-blue', // # sanitizer:ignore - CSS design-token name, not a secret
+    derivation: 'brightened aqua civic facade derivative',
+  }, // # sanitizer:ignore - CSS design-token name, not a secret
+  'wall-workshop': { hex: '#cf7a32', token: '--chart-3', derivation: 'sunlit mango trades facade derivative' }, // # sanitizer:ignore - CSS design-token name, not a secret
+  'wall-storehouse': {
+    hex: '#d35e58',
+    token: '--destructive', // # sanitizer:ignore - CSS design-token name, not a secret
+    derivation: 'softened coral service facade derivative',
+  },
+  'wall-studio': { hex: '#87b85a', token: '--primary', derivation: 'sunlit lime studio facade derivative' }, // # sanitizer:ignore - CSS design-token name, not a secret
+  'wall-docks': { hex: '#2d9db7', token: '--chart-2', derivation: 'bright harbour-aqua docks facade derivative' }, // # sanitizer:ignore - CSS design-token name, not a secret
   'window-glass': { hex: '#87aaba', token: '--glass-field-blue', derivation: 'direct — the glass from the field' }, // # sanitizer:ignore - CSS design-token name, not a secret
   roof: { hex: '#111111', token: '--foreground', derivation: 'direct — the dark roofline carries the silhouette' }, // # sanitizer:ignore - CSS design-token name, not a secret
   road: { hex: '#738170', token: '--input', derivation: 'direct — the slate-sage asphalt' }, // # sanitizer:ignore - CSS design-token name, not a secret
+  sidewalk: {
+    hex: '#c9bea4',
+    token: '--atmosphere-light', // # sanitizer:ignore - CSS design-token name, not a secret
+    derivation: 'weathered warm-concrete derivative for walkable public realm',
+  },
+  curb: {
+    hex: '#9c927c',
+    token: '--atmosphere-sage', // # sanitizer:ignore - CSS design-token name, not a secret
+    derivation: 'shadowed concrete curb derivative',
+  },
+  asphalt: {
+    hex: '#46524f',
+    token: '--input', // # sanitizer:ignore - CSS design-token name, not a secret
+    derivation: 'darkened charcoal-sage asphalt derivative for legible streets',
+  },
   'road-marking': { hex: '#f7f8f2', token: '--card', derivation: 'direct — the ivory markings' }, // # sanitizer:ignore - CSS design-token name, not a secret
   water: { hex: '#2a5c75', token: '--chart-2', derivation: 'direct' }, // # sanitizer:ignore - CSS design-token name, not a secret
   park: { hex: '#b5c5ab', token: '--atmosphere-sage', derivation: 'direct' }, // # sanitizer:ignore - CSS design-token name, not a secret
+  'tropical-sky': {
+    hex: '#54bfe3',
+    token: '--glass-field-blue', // # sanitizer:ignore - CSS design-token name, not a secret
+    derivation: 'brightened Caribbean daytime sky derivative',
+  },
+  'tropical-sea': { hex: '#167ca8', token: '--chart-2', derivation: 'saturated shallow-water derivative' }, // # sanitizer:ignore - CSS design-token name, not a secret
+  'tropical-forest': { hex: '#207c50', token: '--primary', derivation: 'sunlit tropical foliage derivative' }, // # sanitizer:ignore - CSS design-token name, not a secret
+  'tropical-grass': { hex: '#5da55f', token: '--primary', derivation: 'sunlit coastal grassland derivative' }, // # sanitizer:ignore - CSS design-token name, not a secret
+  'tropical-trunk': { hex: '#8d5a35', token: '--chart-5', derivation: 'warm coastal palm-trunk derivative' }, // # sanitizer:ignore - CSS design-token name, not a secret
+  'tropical-sun': { hex: '#ffc65a', token: '--chart-3', derivation: 'warm Caribbean sun derivative' }, // # sanitizer:ignore - CSS design-token name, not a secret
+  'terrain-grass': { hex: '#5da55f', token: '--primary', derivation: 'sunlit island grassland terrain derivative' }, // # sanitizer:ignore - CSS design-token name, not a secret
+  'terrain-jungle': { hex: '#2d7044', token: '--primary', derivation: 'dense jungle canopy terrain derivative' }, // # sanitizer:ignore - CSS design-token name, not a secret
+  'terrain-sand': { hex: '#d6bd78', token: '--atmosphere-light', derivation: 'dry island sand terrain derivative' }, // # sanitizer:ignore - CSS design-token name, not a secret
+  'terrain-canyon': { hex: '#a86e46', token: '--chart-3', derivation: 'weathered canyon terrain derivative' }, // # sanitizer:ignore - CSS design-token name, not a secret
+  'terrain-alpine': { hex: '#748181', token: '--glass-field-blue', derivation: 'cool alpine rock terrain derivative' }, // # sanitizer:ignore - CSS design-token name, not a secret
+  'terrain-snow': { hex: '#edf1e9', token: '--card', derivation: 'high peak snow terrain derivative' }, // # sanitizer:ignore - CSS design-token name, not a secret
+  // Architectural finishes deliberately sit below role accents in chroma.
+  // Roles remain legible through signs, state and activity, not by turning a
+  // whole office block into emergency-red glass or a solid toy-colour box.
+  'facade-cloud': {
+    hex: '#ded9cb',
+    token: '--atmosphere-light', // # sanitizer:ignore - CSS design-token name, not a secret
+    derivation: 'warm limestone architectural finish derivative',
+  },
+  'facade-stone': {
+    hex: '#b7ad99',
+    token: '--atmosphere-sage', // # sanitizer:ignore - CSS design-token name, not a secret
+    derivation: 'weathered concrete architectural finish derivative',
+  },
+  'facade-sage': {
+    hex: '#a9bd9e',
+    token: '--primary', // # sanitizer:ignore - CSS design-token name, not a secret
+    derivation: 'muted tropical stucco architectural finish derivative',
+  },
+  'facade-ocean': {
+    hex: '#829ba0',
+    token: '--glass-field-blue', // # sanitizer:ignore - CSS design-token name, not a secret
+    derivation: 'desaturated coastal metal architectural finish derivative',
+  },
+  'facade-sand': {
+    hex: '#c69d6d',
+    token: '--chart-3', // # sanitizer:ignore - CSS design-token name, not a secret
+    derivation: 'sun-warmed sand plaster architectural finish derivative',
+  },
   'role-operations': { hex: '#245f70', token: '--ring', derivation: 'direct — blue reads as the control layer' }, // # sanitizer:ignore - CSS design-token name, not a secret
   'role-maintenance': { hex: '#78520a', token: '--chart-3', derivation: 'direct — ochre reads as the trades' }, // # sanitizer:ignore - CSS design-token name, not a secret
   'role-security': { hex: '#963f37', token: '--destructive', derivation: 'direct — the guard accent' }, // # sanitizer:ignore - CSS design-token name, not a secret

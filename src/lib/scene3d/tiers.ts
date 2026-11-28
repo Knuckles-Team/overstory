@@ -28,9 +28,8 @@ export interface QualityTier {
   shadowMapSize: number
   /**
    * The frame-time budget (ms) this tier must hold at p95. Exceeding it drops
-   * the scene to the next declared tier (R012.1). The high tier's 16.7 ms is
-   * the 60 fps budget and the low tier's 33 ms the 30 fps mobile/integrated
-   * budget (R012.9).
+   * the scene to the next declared tier (R012.1). Every tier targets the
+   * 16.7 ms / 60 fps interaction cadence; lower tiers remove visual passes.
    */
   maxFrameMs: number
 }
@@ -72,8 +71,8 @@ export const TIERS: Record<TierName, QualityTier> = {
       sky: true,
     },
     shadowMapSize: 1024,
-    // A middle budget between the high and low targets.
-    maxFrameMs: 25,
+    // The default interactive tier targets 60 fps.
+    maxFrameMs: 16.7,
   },
   low: {
     name: 'low',
@@ -88,8 +87,8 @@ export const TIERS: Record<TierName, QualityTier> = {
       sky: true,
     },
     shadowMapSize: 512,
-    // 30 fps on integrated graphics (R012.9).
-    maxFrameMs: 33,
+    // Last-resort quality still targets 60 fps.
+    maxFrameMs: 16.7,
   },
 }
 

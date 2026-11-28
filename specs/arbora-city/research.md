@@ -83,3 +83,32 @@ Resolution: no. Browsers block it before a user gesture and it surprises an oper
 
 Question: R012.9 golden viewpoints.
 Resolution: still blocked on the Arbora no-auth rows (`ARBORA-IDENTITY-R004.7.3`, `ARBORA-FLEET-R085`) and the engine content-pack refusal. The local simulated capture harness is planned in R031 and R012.9 and is not claimed done here.
+
+## Production-world review of 2026-11-20
+
+The [2026-11-21 screenshot audit](asset-pack.md#screenshot-audit) compares three reference city views, two current city views and eleven detailed kit references. The seven pasted notes have identical contents. Their 4 m grid and library suggestions are design candidates. This draft adopts local module dimensions and freeform, road-relative placement. The supplied screenshots establish the visual bar even though the linked video could not be inspected.
+
+Question: can the current procedural city be called production-grade or be
+compared visually with a commercial city builder?
+
+Resolution: no. It is a systems visualization with a legible interaction
+model, not yet a composed game world. The observed scene has a repetitive
+road grid, sparse district differentiation, weak horizon composition, flat
+terrain, and incomplete building silhouettes. Rendering correctness and
+frame pacing repairs do not substitute for authored visual hierarchy.
+
+The durable design decision is R041.1: build one production-world vertical
+slice before broadening the map. It must prove a dense core, skyline, terrain,
+waterfront, river or canal, bridges, boats, sky and ambient flight, plus
+watertight building geometry. The three approved overview cameras are the
+review artifact. No direct asset or design copying from commercial games is
+permitted; R013 and R046 remain the provenance gate.
+
+Question: why do character locations reset and disagree between viewers?
+
+Resolution: the current `initSim` creates a browser-local roster and the page
+disposes it on unmount. The stored layout is shared, but the character state
+is not. R047 moves the source of truth to Medulla through Arbora's revisioned
+city-state operation. Snapshot cadence stays bounded; visual interpolation is
+local only. Human avatars can update only their own virtual location. Physical
+location is out of scope and must never enter the city state.

@@ -23,8 +23,9 @@ export const BUDGETS = {
   textureMemoryMB: 32,
   fpsIntegrated: 60,
   fpsMobile: 30,
-  // Load (R028 amendment 2026-11-20): the whole shipped city, one streamed chunk.
-  initialLoadBytes: 5 * 1024 * 1024,
+  // Load (R016 amended 2026-11-25): the full pinned set — character pins
+  // plus the original city kit — totals under 8 MB (one streamed chunk).
+  initialLoadBytes: 8 * 1024 * 1024,
   chunkBytes: 200 * 1024,
   chunkDrawCalls: 50,
   chunkMemoryMB: 8,

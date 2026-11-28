@@ -65,8 +65,8 @@ export const ARCHITECTURE: Record<DistrictArchetype, { floorH: number; parapet: 
 /**
  * Generate one building (R012.10): a clean, low-poly mass per the
  * archetype — storeys stacked from the footprint, a seed-driven bay
- * rhythm on the facades, per-storey window bands and the archetype's
- * roof (flat, with a parapet rim where declared). Every UV maps onto the
+ * rhythm on the facades, recessed windows, cornice bands, sparse balconies
+ * and a varied roof deck. Every UV maps onto the
  * building's trim-sheet region: the lower half is the wall material, the
  * band above it the windows, the top row the roof — so the material is a
  * single authored PBR set (R012.2), never flat-colour boxes.
@@ -113,6 +113,7 @@ export function buildingAsset(params: BuildingParams): BuildingAsset {
   const hw = w / 2
   const hd = d / 2
   const bandH = floorH * (1 - arch.windowBand) // wall portion of the storey
+  const windowInset = Math.min(0.12, Math.max(0.055, Math.min(w, d) * 0.018))
 
   /**
    * One wall panel: the cyclic corners A, B (bottom edge) and D, C (top
@@ -142,6 +143,49 @@ export function buildingAsset(params: BuildingParams): BuildingAsset {
     quad(a, b, c, dd)
   }
 
+  /** A thin projecting band makes consecutive floors read as architecture. */
+  const cornice = (y0: number, y1: number, overhang: number): void => {
+    const x0 = -hw - overhang
+    const x1 = hw + overhang
+    const z0 = -hd - overhang
+    const z1 = hd + overhang
+    panel(x0, z1, x1, z1, y0, y1, 0, 1, 0.42, 0.5)
+    panel(x1, z0, x0, z0, y0, y1, 0, 1, 0.42, 0.5)
+    panel(x1, z1, x1, z0, y0, y1, 0, 1, 0.42, 0.5)
+    panel(x0, z0, x0, z1, y0, y1, 0, 1, 0.42, 0.5)
+  }
+
+  /** One physical slab on the outward facade, not a billboard decal. */
+  const balcony = (x0: number, x1: number, z: number, y: number): void => {
+    const depth = 0.42
+    const [u0, v0] = auv(0.1, 0.4)
+    const [u1, v1] = auv(0.9, 0.48)
+    const a = push(x0, y, z, u0, v0)
+    const b = push(x1, y, z, u1, v0)
+    const c = push(x1, y, z + depth, u1, v1)
+    const d0 = push(x0, y, z + depth, u0, v1)
+    quad(a, b, c, d0)
+  }
+
+  /** A compact rooftop equipment box with real sides and a roof cap. */
+  const roofPlant = (cx: number, cz: number, w0: number, d0: number, y0: number, h: number): void => {
+    const x0 = cx - w0 / 2
+    const x1 = cx + w0 / 2
+    const z0 = cz - d0 / 2
+    const z1 = cz + d0 / 2
+    panel(x0, z1, x1, z1, y0, y0 + h, 0.12, 0.88, 0.42, 0.5)
+    panel(x1, z0, x0, z0, y0, y0 + h, 0.12, 0.88, 0.42, 0.5)
+    panel(x1, z1, x1, z0, y0, y0 + h, 0.12, 0.88, 0.42, 0.5)
+    panel(x0, z0, x0, z1, y0, y0 + h, 0.12, 0.88, 0.42, 0.5)
+    const [u0, v0] = auv(0.12, 0.9)
+    const [u1, v1] = auv(0.88, 1)
+    const a = push(x0, y0 + h, z1, u0, v0)
+    const b = push(x1, y0 + h, z1, u1, v0)
+    const c = push(x1, y0 + h, z0, u1, v1)
+    const d = push(x0, y0 + h, z0, u0, v1)
+    quad(a, b, c, d)
+  }
+
   // Each storey: a wall band and a window band per bay, on all four walls.
   // The corner order per face is chosen so the normal faces the street
   // (verified per face: front +z, back -z, right +x, left -x).
@@ -157,9 +201,32 @@ export function buildingAsset(params: BuildingParams): BuildingAsset {
       panel(x0 + shrink, hd, x1 - shrink, hd, y0, yWall, b / baysX, (b + 1) / baysX, 0, 0.5)
       // Back face (z = -hd, outward -z): corners in -x order.
       panel(x1 - shrink, -hd, x0 + shrink, -hd, y0, yWall, b / baysX, (b + 1) / baysX, 0, 0.5)
-      // Window bands (upper part of the storey), the same corners.
-      panel(x0 + shrink, hd, x1 - shrink, hd, yWall, yTop, b / baysX, (b + 1) / baysX, 0.5, 0.9)
-      panel(x1 - shrink, -hd, x0 + shrink, -hd, yWall, yTop, b / baysX, (b + 1) / baysX, 0.5, 0.9)
+      // Window bands recess behind the wall face, making real reveals that
+      // catch the existing sun/shadow pipeline rather than painted stripes.
+      panel(
+        x0 + shrink,
+        hd - windowInset,
+        x1 - shrink,
+        hd - windowInset,
+        yWall,
+        yTop,
+        b / baysX,
+        (b + 1) / baysX,
+        0.5,
+        0.9,
+      )
+      panel(
+        x1 - shrink,
+        -hd + windowInset,
+        x0 + shrink,
+        -hd + windowInset,
+        yWall,
+        yTop,
+        b / baysX,
+        (b + 1) / baysX,
+        0.5,
+        0.9,
+      )
     }
     for (let b = 0; b < baysZ; b++) {
       const z0 = -hd + (b * d) / baysZ
@@ -169,8 +236,34 @@ export function buildingAsset(params: BuildingParams): BuildingAsset {
       panel(hw, z1 - shrink, hw, z0 + shrink, y0, yWall, b / baysZ, (b + 1) / baysZ, 0, 0.5)
       // Left face (x = -hw, outward -x): corners in +z order.
       panel(-hw, z0 + shrink, -hw, z1 - shrink, y0, yWall, b / baysZ, (b + 1) / baysZ, 0, 0.5)
-      panel(hw, z1 - shrink, hw, z0 + shrink, yWall, yTop, b / baysZ, (b + 1) / baysZ, 0.5, 0.9)
-      panel(-hw, z0 + shrink, -hw, z1 - shrink, yWall, yTop, b / baysZ, (b + 1) / baysZ, 0.5, 0.9)
+      panel(
+        hw - windowInset,
+        z1 - shrink,
+        hw - windowInset,
+        z0 + shrink,
+        yWall,
+        yTop,
+        b / baysZ,
+        (b + 1) / baysZ,
+        0.5,
+        0.9,
+      )
+      panel(
+        -hw + windowInset,
+        z0 + shrink,
+        -hw + windowInset,
+        z1 - shrink,
+        yWall,
+        yTop,
+        b / baysZ,
+        (b + 1) / baysZ,
+        0.5,
+        0.9,
+      )
+    }
+    if ((f + Math.floor(variation * 2)) % 2 === 1 || f === floors - 1) cornice(yTop - 0.16, yTop, 0.1)
+    if (['studio', 'workshop', 'docks'].includes(archetype) && f > 0 && (f + seed) % 2 === 0) {
+      balcony(-w * 0.28, w * 0.28, hd, yWall + 0.05)
     }
   }
 
@@ -184,6 +277,28 @@ export function buildingAsset(params: BuildingParams): BuildingAsset {
   const rC = push(hw, yRoof, -hd, rfu1, rfuHi)
   const rD = push(-hw, yRoof, -hd, rfu0, rfuHi)
   quad(rA, rB, rC, rD)
+
+  // A seed-gated recessed roof deck gives a second silhouette at skyline
+  // distance. It uses the same atlas and stays inside the kit's budget.
+  if (floors > 1 && variation > 0.28) {
+    const deckInset = Math.min(w, d) * (0.13 + variation * 0.07)
+    const deckH = 0.32 + variation * 0.38
+    const dx0 = -hw + deckInset
+    const dx1 = hw - deckInset
+    const dz0 = -hd + deckInset
+    const dz1 = hd - deckInset
+    panel(dx0, dz1, dx1, dz1, yRoof, yRoof + deckH, 0, 1, 0.42, 0.5)
+    panel(dx1, dz0, dx0, dz0, yRoof, yRoof + deckH, 0, 1, 0.42, 0.5)
+    panel(dx1, dz1, dx1, dz0, yRoof, yRoof + deckH, 0, 1, 0.42, 0.5)
+    panel(dx0, dz0, dx0, dz1, yRoof, yRoof + deckH, 0, 1, 0.42, 0.5)
+    const [du0, dv0] = auv(0.08, 0.9)
+    const [du1, dv1] = auv(0.92, 1)
+    const a = push(dx0, yRoof + deckH, dz1, du0, dv0)
+    const b = push(dx1, yRoof + deckH, dz1, du1, dv0)
+    const c = push(dx1, yRoof + deckH, dz0, du1, dv1)
+    const d0 = push(dx0, yRoof + deckH, dz0, du0, dv1)
+    quad(a, b, c, d0)
+  }
 
   // The parapet rim (declared per archetype): a low wall around the roof
   // edge, mapped onto the top of the wall row.
@@ -212,6 +327,23 @@ export function buildingAsset(params: BuildingParams): BuildingAsset {
     const gC = push(-hw, yP1, hd, pu1, pvHi)
     const gD = push(-hw, yP1, -hd, pu0, pvHi)
     quad(gA, gB, gC, gD) // left edge, -x
+  }
+
+  // Rooftop mechanical plant and a shallow street canopy are cheap modular
+  // forms with disproportionate silhouette payoff. Their seeded placement
+  // keeps every building reproducible while avoiding the same empty roof on
+  // every block.
+  if (floors > 1) {
+    const unitW = Math.max(0.75, Math.min(w * 0.28, 2.1))
+    const unitD = Math.max(0.65, Math.min(d * 0.24, 1.8))
+    roofPlant((variation - 0.5) * w * 0.22, (rand() - 0.5) * d * 0.2, unitW, unitD, yRoof + 0.04, 0.48)
+    if (floors >= 3 && variation > 0.52)
+      roofPlant(-w * 0.2, d * 0.16, Math.max(0.58, unitW * 0.66), Math.max(0.52, unitD * 0.7), yRoof + 0.04, 0.36)
+  }
+  if (['workshop', 'studio', 'docks'].includes(archetype)) {
+    const canopyY = Math.min(2.45, floorH * 0.72)
+    const canopyDepth = Math.min(0.72, d * 0.12)
+    panel(-w * 0.28, hd + canopyDepth, w * 0.28, hd + canopyDepth, canopyY - 0.12, canopyY, 0.14, 0.86, 0.42, 0.5)
   }
 
   const geometry = new THREE.BufferGeometry()

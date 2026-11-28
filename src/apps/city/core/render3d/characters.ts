@@ -22,6 +22,7 @@ import { SCENE_COLORS } from '@/lib/scene3d/palette'
 import type { GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { bus, makeEvent } from '../events'
 import { RIG_PATH, type RoleId } from '../ecosystem'
+import { tagExempt } from '../provenance'
 import { bubbleTexture } from './labels'
 import { isMesh } from './scene'
 import type { world as SimWorld } from '../sim'
@@ -29,13 +30,19 @@ import type { world as SimWorld } from '../sim'
 export type World = typeof SimWorld
 type Character = (typeof SimWorld.characters)[number]
 
+/** City-world metres: a person is roughly 1.72 m tall, never a landmark. */
+const HUMAN_HEIGHT_M = 1.72
+
 /** One character on the shared rig: its clone, mixer, blender and bubble. */
 interface CharacterEntry {
   ch: Character
   group: THREE.Group
   root: THREE.Object3D
+  distant: THREE.Mesh
   blender: ClipBlenderApi | null
   materials: THREE.Material[]
+  /** A ground halo keeps every person findable in a large city overview. */
+  halo: THREE.Mesh<THREE.RingGeometry, THREE.MeshBasicMaterial>
   bubble: THREE.Sprite
   lastBubbleText: string | null
   bubbleTimer: number
@@ -49,6 +56,13 @@ export interface CharactersApi {
   say(charId: string, text: string): void
   /** Detach from the scene and release this layer's GPU resources. */
   dispose(): void
+  /**
+   * Update avatar character positions each frame (R023).
+   * Avatars use a special marker mesh (gold diamond) instead of the rig.
+   */
+  updateAvatars(dtReal: number, _timeAcc: number): void
+  /** Release GPU resources for the avatar marker layer. */
+  disposeAvatars(): void
 }
 
 /**
@@ -87,13 +101,37 @@ function tintForRole(root: THREE.Object3D, role: RoleId): THREE.Material[] {
   return clones
 }
 
+/**
+ * Imported GLBs are authored in many unit systems.  Normalize every shared
+ * rig clone from its actual bounds, then put its feet on the ground.  This
+ * keeps agents human-scale beside 3–4 m storeys and makes a bad source scale
+ * impossible to turn a robot into a building-sized prop.
+ */
+function normalizeToHumanScale(root: THREE.Object3D): void {
+  root.updateMatrixWorld(true)
+  const bounds = new THREE.Box3().setFromObject(root)
+  const height = bounds.max.y - bounds.min.y
+  if (!Number.isFinite(height) || height < 0.001) return
+  const factor = HUMAN_HEIGHT_M / height
+  root.scale.multiplyScalar(factor)
+  root.position.y -= bounds.min.y * factor
+}
+
 export async function initCharacters(
   scene: THREE.Scene,
   world: World,
   markerRoot: THREE.Object3D | null,
   loadPinnedGLB: (url: string) => Promise<GLTF>,
+  camera?: THREE.Camera,
+  groundHeight: (x: number, z: number) => number = () => 0,
 ): Promise<CharactersApi> {
   const characters = new Map<string, CharacterEntry>()
+  const presenceGeo = new THREE.RingGeometry(0.42, 0.58, 16)
+  const distantGeo = new THREE.CapsuleGeometry(0.24, 1.15, 3, 6)
+  const distantMaterials = new Map<RoleId, THREE.MeshStandardMaterial>()
+  // The loader parses a fresh GLB for each layer; this layer owns its source.
+  let rigSource: THREE.Object3D | null = null
+  let disposed = false
 
   /**
    * One character on a placeholder rig (the rig pin failed, R010): the
@@ -103,12 +141,15 @@ export async function initCharacters(
   function makePlaceholder(ch: Character): { group: THREE.Group; root: THREE.Object3D } {
     const body = markerRoot
       ? markerRoot.clone(true)
-      : new THREE.Mesh(new THREE.BoxGeometry(0.7, 1.4, 0.7), new THREE.MeshStandardMaterial({ color: 0xff8c42 }))
+      : new THREE.Mesh(
+          new THREE.BoxGeometry(0.42, HUMAN_HEIGHT_M, 0.42),
+          new THREE.MeshStandardMaterial({ color: 0xff8c42 }),
+        )
     if (markerRoot) {
-      body.scale.setScalar(1.5)
-      body.position.y = 0.3
+      body.scale.setScalar(1)
+      body.position.y = 0
     } else {
-      body.position.y = 0.7
+      body.position.y = HUMAN_HEIGHT_M / 2
     }
     const root = new THREE.Group()
     root.add(body)
@@ -128,6 +169,7 @@ export async function initCharacters(
     let clips: RigClips | null = null
     try {
       rig = await loadPinnedGLB(RIG_PATH)
+      rigSource = rig.scene
       clips = completeClipSet(rig.scene, rig.animations)
     } catch (err) {
       console.warn('[city] shared rig load failed:', RIG_PATH, err)
@@ -155,6 +197,7 @@ export async function initCharacters(
           if (isMesh(o)) o.castShadow = true
           o.userData.charId = ch.id
         })
+        normalizeToHumanScale(root)
         const mixer = new THREE.AnimationMixer(root)
         // The fail beat is one-shot: it clamps at its end (a failed agent
         // holds the fall, it does not replay it).
@@ -166,22 +209,64 @@ export async function initCharacters(
         group = made.group
         root = made.root
         placeholder = true
+        normalizeToHumanScale(root)
       }
+
+      // Character rigs have their own pinned-asset QA.  This parent marker
+      // keeps their untextured rig pieces and speech UI out of the city-kit
+      // material audit, which governs architecture and public-realm surfaces.
+      group.userData.marker = 'character-rig'
+      // Provenance (R063): the shared character rig is the declared non-kit
+      // pin — the scene audit accepts it under the exempt primitive tag.
+      tagExempt(group, 'character-rig')
+
+      let distantMaterial = distantMaterials.get(ch.role)
+      if (!distantMaterial) {
+        distantMaterial = new THREE.MeshStandardMaterial({
+          color: SCENE_COLORS[`role-${ch.role}`].hex,
+          roughness: 0.75,
+        })
+        distantMaterials.set(ch.role, distantMaterial)
+      }
+      const distant = new THREE.Mesh(distantGeo, distantMaterial)
+      distant.position.y = HUMAN_HEIGHT_M / 2
+      distant.visible = false
+      distant.userData.charId = ch.id
+      distant.userData.marker = 'character-distant'
+      group.add(distant)
 
       const bubble = new THREE.Sprite(
         new THREE.SpriteMaterial({ map: null, depthWrite: false, transparent: true, opacity: 0 }),
       )
       bubble.scale.set(2.2, 0.4, 1)
-      bubble.position.y = 2.75
+      bubble.position.y = HUMAN_HEIGHT_M + 0.38
       bubble.visible = false
       group.add(bubble)
+      const roleColor = SCENE_COLORS[`role-${ch.role}`].hex
+      const halo = new THREE.Mesh(
+        presenceGeo,
+        new THREE.MeshBasicMaterial({
+          color: roleColor,
+          transparent: true,
+          opacity: ch.kind === 'npc' ? 0.78 : 0.54,
+          depthWrite: false,
+        }),
+      )
+      halo.rotation.x = -Math.PI / 2
+      halo.position.y = 0.08
+      // Markers are intentionally untextured semantic affordances, exempt
+      // from the surface-material audit like the selected-character ring.
+      halo.userData.marker = 'character-presence'
+      group.add(halo)
       scene.add(group)
       characters.set(ch.id, {
         ch,
         group,
         root,
+        distant,
         blender,
         materials,
+        halo,
         bubble,
         lastBubbleText: null,
         bubbleTimer: 0,
@@ -195,6 +280,10 @@ export async function initCharacters(
     entry.lastBubbleText = text
     entry.bubbleTimer = 2.6
     const mat = entry.bubble.material
+    // Speech text is rasterized to a fresh canvas texture.  Release the old
+    // one before replacing it; otherwise an active city leaks one GPU texture
+    // per utterance and its frame time worsens as the demo runs.
+    mat.map?.dispose()
     mat.map = bubbleTexture(text)
     mat.needsUpdate = true
     entry.bubble.visible = true
@@ -207,18 +296,22 @@ export async function initCharacters(
       const ch = entry.ch
       entry.group.visible = ch.visible
       if (!ch.visible) continue
-      entry.group.position.set(ch.pos.x, 0, ch.pos.z)
+      entry.group.position.set(ch.pos.x, groundHeight(ch.pos.x, ch.pos.z), ch.pos.z)
       entry.group.rotation.y = ch.facing
+      const isDistant = !!camera && camera.position.distanceToSquared(entry.group.position) > 65 * 65
+      entry.root.visible = !isDistant
+      entry.distant.visible = isDistant
       if (entry.blender) {
         // The state → clip mapping and the ≤0.25 s crossfade are the
         // shared rig's policy (R012.4); the city only names the state.
         entry.blender.playState(ch.state)
-        entry.blender.update(dtReal)
+        if (!isDistant) entry.blender.update(dtReal)
       } else if (entry.placeholder) {
         // A placeholder is still alive (never frozen): a gentle sway on
         // the inner root, the outer group keeping the sim's facing.
         entry.root.rotation.y = Math.sin(timeAcc * 0.6) * 0.15
       }
+      entry.halo.material.opacity = (ch.kind === 'npc' ? 0.62 : 0.42) + 0.18 * (0.5 + 0.5 * Math.sin(timeAcc * 3.2))
       if (entry.bubbleTimer > 0) {
         entry.bubbleTimer -= dtReal
         if (entry.bubbleTimer <= 0) entry.bubble.visible = false
@@ -232,19 +325,128 @@ export async function initCharacters(
   }
 
   function dispose(): void {
+    if (disposed) return
+    disposed = true
     for (const entry of characters.values()) {
       scene.remove(entry.group)
       entry.blender?.dispose()
       entry.bubble.material.map?.dispose()
       entry.bubble.material.dispose()
-      // Only the per-character material clones are released; the shared
-      // rig geometry stays with the loader's cache.
+      entry.halo.material.dispose()
+      // Rig clones share geometry with their parsed source but own their
+      // materials and skeletons. Fallback boxes own their own geometry too.
+      entry.root.traverse((object) => {
+        if (object instanceof THREE.SkinnedMesh) object.skeleton.dispose()
+        if (entry.placeholder && !markerRoot && isMesh(object)) {
+          object.geometry.dispose()
+          const materials = Array.isArray(object.material) ? object.material : [object.material]
+          for (const material of materials) material.dispose()
+        }
+      })
       for (const m of entry.materials) m.dispose()
     }
     characters.clear()
+    presenceGeo.dispose()
+    distantGeo.dispose()
+    for (const material of distantMaterials.values()) material.dispose()
+    if (rigSource) {
+      const geometries = new Set<THREE.BufferGeometry>()
+      const materials = new Set<THREE.Material>()
+      const textures = new Set<THREE.Texture>()
+      rigSource.traverse((object) => {
+        if (!isMesh(object)) return
+        geometries.add(object.geometry)
+        if (object instanceof THREE.SkinnedMesh) object.skeleton.dispose()
+        const sourceMaterial = object.material as THREE.Material | THREE.Material[]
+        const ownedMaterials = Array.isArray(sourceMaterial) ? sourceMaterial : [sourceMaterial]
+        for (const material of ownedMaterials) materials.add(material)
+      })
+      for (const material of materials) {
+        for (const value of Object.values(material as unknown as Record<string, unknown>))
+          if (value instanceof THREE.Texture) textures.add(value as THREE.Texture)
+        material.dispose()
+      }
+      for (const geometry of geometries) geometry.dispose()
+      for (const texture of textures) texture.dispose()
+      rigSource = null
+    }
+  }
+
+  // ---- Avatar marker mesh (R023) -------------------------------------------
+  // Human visitor avatars use a distinct marker (gold diamond) instead of the
+  // shared rig — they sit on top of the sim layer and follow camera position.
+  const avatarGeo = new THREE.ConeGeometry(0.35, 0.6, 4)
+  avatarGeo.rotateY(Math.PI / 4)
+  const avatarMat = new THREE.MeshStandardMaterial({
+    color: 0xffd166,
+    roughness: 0.5,
+    emissive: 0x332200,
+    emissiveIntensity: 0.3,
+  })
+  const avatarRingGeo = new THREE.RingGeometry(0.2, 0.35, 12)
+  const avatarRingMat = new THREE.MeshBasicMaterial({
+    color: 0xff9500,
+    transparent: true,
+    opacity: 0.7,
+    side: THREE.DoubleSide,
+    depthWrite: false,
+  })
+  const avatarEntries = new Map<string, THREE.Group>()
+
+  function updateAvatars(_dtReal: number, timeAcc: number): void {
+    // Add or update avatar markers for current world.avatars.
+    const currentIds = new Set<string>()
+    for (const av of world.avatars) {
+      currentIds.add(av.avatarId)
+      let group = avatarEntries.get(av.avatarId)
+      if (!group) {
+        group = new THREE.Group()
+        const cone = new THREE.Mesh(avatarGeo, avatarMat)
+        cone.position.y = HUMAN_HEIGHT_M / 2
+        group.add(cone)
+        const ring = new THREE.Mesh(avatarRingGeo, avatarRingMat)
+        ring.rotation.x = -Math.PI / 2
+        ring.position.y = 0.08
+        group.add(ring)
+        scene.add(group)
+        avatarEntries.set(av.avatarId, group)
+      }
+      group.visible = true
+      group.position.set(av.position.x, groundHeight(av.position.x, av.position.z), av.position.z)
+      group.rotation.y = av.heading
+      // Gentle vertical bob for presence.
+      const bob = Math.sin(timeAcc * 2.5 + parseFloat(av.avatarId) * 0.7) * 0.05
+      group.children.forEach((c, i) => {
+        if (i === 0) (c as THREE.Mesh).position.y = HUMAN_HEIGHT_M / 2 + bob
+      })
+    }
+    // Remove avatars that are no longer present.
+    for (const [id, group] of avatarEntries) {
+      if (!currentIds.has(id)) {
+        scene.remove(group)
+        group.children.forEach((c) => {
+          if (c instanceof THREE.Mesh) {
+            if (c.geometry !== avatarGeo) {
+              const geo = c.geometry as { dispose: () => void }
+              geo.dispose()
+            }
+            const mat = c.material as unknown as { dispose?: () => void } | undefined
+            if (typeof mat?.dispose === 'function') mat.dispose()
+          }
+        })
+        avatarEntries.delete(id)
+      }
+    }
+  }
+
+  function disposeAvatars(): void {
+    for (const [, group] of avatarEntries) {
+      scene.remove(group)
+    }
+    avatarEntries.clear()
   }
 
   await loadCharacters()
 
-  return { update, say, dispose }
+  return { update, say, dispose, updateAvatars, disposeAvatars }
 }

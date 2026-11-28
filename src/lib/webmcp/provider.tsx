@@ -20,6 +20,7 @@ import {
 } from 'react'
 import { WebMcpControl } from '@/components/webmcp/WebMcpControl'
 import type { Identity } from '@/lib/auth'
+import { isAnonymousCitySandboxRoute } from '@/lib/city-sandbox'
 import { usePageContextEnvelope } from '@/lib/page-context'
 import {
   createUnavailableWebMcpRegistration,
@@ -90,20 +91,6 @@ function useVisibleWebMcpAdapter(): WebMcpAdapter | null {
   const visible = useSyncExternalStore(subscribeDocumentVisibility, documentIsVisible, () => false)
   const adapter = useMemo(() => detectWebMcpAdapter(), [])
   return visible ? adapter : null
-}
-
-function providerEnabled(options: {
-  adapter: WebMcpAdapter | null
-  identity: Identity
-  identityLoading: boolean
-  publicContext: PublicPageContext | null
-}): boolean {
-  return (
-    Boolean(options.adapter) &&
-    !options.identityLoading &&
-    !options.identity.needsSignIn &&
-    Boolean(options.publicContext)
-  )
 }
 
 function remoteControlEligible(enabled: boolean, identity: Identity): boolean {
@@ -201,7 +188,8 @@ export function WebMcpProvider({
   const publicContext = useMemo(() => publicContextOrNull(pageContext), [pageContext])
   const identityKey = identityFingerprint(identity)
   const contextKey = contextFingerprint(pageContext)
-  const enabled = providerEnabled({ adapter, identity, identityLoading, publicContext })
+  const sandbox = isAnonymousCitySandboxRoute(publicContext?.view)
+  const enabled = Boolean(adapter && publicContext) && (sandbox || (!identityLoading && !identity.needsSignIn))
   const registrationKey = `${enabled ? 'enabled' : 'disabled'}:${identityKey}:${contextKey}`
   const registry = useMemo(
     () => createRegistry(documentId, identityKey, identity, publicContext),
@@ -211,7 +199,7 @@ export function WebMcpProvider({
     () => new WebMcpControlChannel({ registry, armClient: attendedArmClient }),
     [attendedArmClient, registry],
   )
-  const remoteEligible = remoteControlEligible(enabled, identity)
+  const remoteEligible = !sandbox && remoteControlEligible(enabled, identity)
   const lifecycleMarkers = useRef(new WeakMap<ActiveWebMcpRegistry, object>())
 
   const register = useCallback(
@@ -222,7 +210,10 @@ export function WebMcpProvider({
   )
 
   const runtime = useMemo<WebMcpRuntime>(() => ({ registrationKey, register }), [registrationKey, register])
-  const rootTools = useMemo(() => createRootTools(enabled, pageContext, identity), [enabled, identity, pageContext])
+  const rootTools = useMemo(
+    () => createRootTools(enabled && !sandbox, pageContext, identity),
+    [enabled, identity, pageContext, sandbox],
+  )
 
   useEffect(() => {
     if (!enabled || rootTools.length === 0) return undefined

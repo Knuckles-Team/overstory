@@ -76,7 +76,9 @@ export function applyTier(surfaces: PipelineSurfaces, tier: TierName): void {
   if (passes.shadows) sun.shadow.mapSize.set(declared.shadowMapSize, declared.shadowMapSize)
   sun.castShadow = passes.shadows
   renderer.toneMapping = passes.toneMapping ? THREE.ACESFilmicToneMapping : THREE.NoToneMapping
-  renderer.toneMappingExposure = 1.0
+  // Daylight uses room IBL plus a directional sun. A slight exposure headroom
+  // preserves material and roof detail instead of clipping it to white.
+  renderer.toneMappingExposure = 0.78
   renderer.outputColorSpace = THREE.SRGBColorSpace
   if (!passes.environment) scene.environment = null
   scene.fog = passes.fog ? scene.fog : null
@@ -104,7 +106,9 @@ export function sunFromClock(timeAcc: number, sun: PipelineSun): void {
   const azimuth = Math.cos(angle)
   if (elevation > -0.12) {
     sun.position.set(azimuth * 110, Math.max(8, elevation * 110), 30)
-    sun.color.setHex(elevation < 0.25 ? 0xffb37a : 0xfff2d8)
+    // A clear Caribbean day carries a warm gold, rather than a neutral white
+    // fill that flattens the saturated coast and foliage below it.
+    sun.color.setHex(elevation < 0.25 ? 0xffb37a : 0xffc65a)
     sun.intensity = 1.3
   } else {
     sun.position.set(-azimuth * 110, 70, 30)
@@ -120,6 +124,7 @@ export function sunFromClock(timeAcc: number, sun: PipelineSun): void {
  */
 export class FrameTimeTracker {
   private samples: number[] = []
+  private sorted: number[] = []
   private readonly capacity: number
 
   constructor(capacity = 120) {
@@ -130,19 +135,30 @@ export class FrameTimeTracker {
   record(ms: number): void {
     if (!Number.isFinite(ms) || ms < 0) return
     this.samples.push(ms)
-    if (this.samples.length > this.capacity) this.samples.shift()
+    let low = 0
+    let high = this.sorted.length
+    while (low < high) {
+      const middle = Math.floor((low + high) / 2)
+      if (this.sorted[middle] < ms) low = middle + 1
+      else high = middle
+    }
+    this.sorted.splice(low, 0, ms)
+    if (this.samples.length > this.capacity) {
+      const expired = this.samples.shift()
+      if (expired !== undefined) this.sorted.splice(this.sorted.indexOf(expired), 1)
+    }
   }
 
   /** The p95 frame time in ms, or null until 30 frames are recorded. */
   p95(): number | null {
     if (this.samples.length < 30) return null
-    const sorted = [...this.samples].sort((a, b) => a - b)
-    const idx = Math.min(sorted.length - 1, Math.max(0, Math.ceil(0.95 * sorted.length) - 1))
-    return sorted[idx]
+    const idx = Math.min(this.sorted.length - 1, Math.max(0, Math.ceil(0.95 * this.sorted.length) - 1))
+    return this.sorted[idx]
   }
 
   reset(): void {
     this.samples = []
+    this.sorted = []
   }
 }
 
@@ -186,7 +202,7 @@ export interface ScenePipeline {
   updateEnvironment(timeAcc: number): void
   /** Record the ended frame; drop the tier when its budget is exceeded. */
   endFrame(frameMs: number): void
-  /** One rendered frame through the composer. */
+  /** One rendered frame through the composer, or directly at the low tier. */
   renderFrame(): void
   onResize(width: number, height: number): void
   dispose(): void
@@ -195,7 +211,7 @@ export interface ScenePipeline {
 /** Build the real WebGL renderer for the browser path. */
 function realRenderer(container: HTMLElement): PipelineRenderer {
   const renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: 'high-performance' })
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.25))
   renderer.domElement.style.display = 'block'
   container.appendChild(renderer.domElement)
   return renderer
@@ -297,7 +313,12 @@ export function createScenePipeline(container: HTMLElement, opts: ScenePipelineO
       setTier(selectTier(tracker.p95(), tier, override))
     },
     renderFrame(): void {
-      composer.render()
+      // Low tier has no AO, bloom or FXAA. Rendering it through the composer
+      // still allocates and blits full-screen targets, an especially costly
+      // no-op on integrated GPUs. The renderer already owns tone mapping and
+      // sRGB output, so direct render preserves the legible low-tier look.
+      if (tier === 'low') renderer.render(scene, camera)
+      else composer.render()
     },
     onResize(width: number, height: number): void {
       camera.aspect = width / height

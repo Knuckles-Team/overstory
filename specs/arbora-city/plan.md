@@ -513,6 +513,79 @@ per-edit imperative state:
   second viewer reads the same city, cache semantics, stated 503s,
   typed-refusal pass-through, strict normalization, 422s).
 
+#### 2026-11-23: The asset catalog is open — scope expansion
+
+The 66-family launch catalog was a production target, not a cap. The city
+needs the kit to grow with district, infrastructure and transport need, so
+the catalog is now open: the launch families are the floor, and extension
+families are added as the seeded world demands them. The [extension
+catalog](asset-pack.md#extension-catalog-2026-11-23-scope-expansion) in
+asset-pack.md adds stable family IDs across nine domains, and the scope
+lands as new child rows:
+
+| Domain | Row |
+|---|---|
+| Infrastructure landmarks (police station, firehouse, hospital, energy and water plants, funeral home, train/bus stations, airport, shipyard, train yard, nuclear and coal plants) | R048.10 |
+| Commerce, entertainment, recreation (movie theater, arcade, restaurant, mall, clothing and furniture stores, fast food, pier carnival, carnival, theme park, stadium) | R048.11 |
+| Industry, farming, settlement, skyline variance (ore plant, mining, oil/gas, datacenter, office campus, farms, market, orchards, suburban and rural housing, five skyscraper forms with height and crown variance) | R048.12 |
+| Wild terrain (forest, lake, river, desert, jungle, recreational lake) | R048.13 |
+| Transport fleet (fire truck, police van/SUV/helicopter, hearse, cargo and passenger trains, small/medium/large aircraft) | R048.14 |
+| Advanced road classes and grade separation (4/6/8-lane highways and freeways, tollways, country and dirt roads, one-way, two-lane, asymmetric, tree boulevards, bridges, viaducts, flyover ramps, double-stacked interchanges, rail track, runways) | R048.15 |
+| Traffic control, lane management, real flow with buildup (stop signs, stop lights, yield signs, queueing, dissipation) | R048.16 |
+| Multimodal NPC/AI/human routes (train, bus, plane, walking over sidewalks and paths) | R048.17 |
+
+Decisions:
+
+- **Spec first, assets second.** Every extension domain is a tracked spec
+  row before it is built; the Blender pipeline stages are resource-batched
+  (scene cleared between batches, modest review renders) and follow the row
+  order. The "66 families" number in R048.2's acceptance becomes "all
+  catalog families" against the open catalog.
+- **Engine-side behavior stays engine-side.** Lane management, traffic
+  buildup and the multimodal route graph (R048.16, R048.17) are simulation
+  and graph work, not asset families; the pack supplies the signs,
+  signals, lane geometry and corridors they run on.
+- **Gates unchanged.** Extension families pass the same authoring protocol
+  (R-G10), budgets (R-G7) and license gate as launch families; the open
+  catalog adds no new governance.
+
+#### 2026-11-24: The living-city amendment (R049–R058)
+
+The 2026-11-24 external review compared the PR against a
+living-simulation benchmark (diverse people, activity schedules,
+street life, atmosphere, lived-in detail). The extension catalog
+(R048.10–R048.17) covers the named building, road and vehicle
+families; the review's remaining gaps land as new rows — specified,
+not scheduled:
+
+| Review gap | Row |
+|---|---|
+| Diverse human character pack (variants, shared clip set) | R049 |
+| Time-of-day activity scheduling, occupancy-driven lights | R050 |
+| Civic anchors (city hall, courthouse, school, university, waste-recycling, substation) and street-life / micro-prop families (utility poles and boxes, meters, vending, bicycles, playground set, scaffold and crane) | R051 |
+| Tree species, seasonal palettes, deterministic wind sway | R052 |
+| Occupancy lights, vehicle lights, night glow, smoke, rain and puddles | R053 |
+| Seagulls, pets, vessels on real water routes, waterfront occupancy | R054 |
+| District soundscape layers and new vehicle event cues | R055 |
+| Density and economic tiers, corner lots, construction / run-down / upgraded states | R056 |
+| Lived-in clutter and micro-detail at per-district density | R057 |
+| Populated interiors consistent with exterior activity | R058 |
+
+Decisions:
+
+- **Spec first.** The rows land with planned test bindings; asset rows
+  follow the resource-batched Blender stages, simulation rows extend the
+  existing `sim.ts`, `traffic.ts`, `audio.ts` and `render3d/` modules.
+  No row reopens a shipped gate.
+- **Catalog domains, not new governance.** The new families ride the
+  existing extension catalog, budgets and license gate (R-G7, R-G10);
+  launch families `prop.shelter`, `prop.market-stall`, `prop.recreation`
+  (swing frame) and `prop.construction-zone` (cones and barriers) stay
+  covered, and `arch.bay-corner` already serves the corner frontages.
+- **Engine-side stays engine-side.** Scheduling, sound and weather are
+  simulation and renderer work; the pack supplies the geometry and
+  materials they animate.
+
 ### Rejected alternatives
 
 - **Server-side rendered frames (WebRTC/WebGPU stream):** server GPU cost
@@ -620,3 +693,187 @@ Design. `graphFacts.ts` types the facts and carries the labelled bundled neighbo
 Phases by owner. Medulla: R004 to R007. Arbora: R086 to R088. Overstory: this delivery implements the pure evaluation and its tests against the labelled fixture. Wiring the derived layout into the renderers waits for the served reads.
 
 Build contract: the budgets in `budgets.ts` are gates (initial load 5 MB, chunk 200 KB, draw-call and memory caps). Tests read the table.
+
+#### 2026-11-20: Anonymous city sandbox and daylight contrast repair
+
+The city sandbox is an explicit Vite build posture, not an authentication
+bypass. `VITE_CITY_SANDBOX=1` makes only `/apps/city` public and noindex,
+allows only browser-local City WebMCP registration without a session, and
+retains the labelled simulated fleet fallback. It never enables served
+operations, remote attended control, or an authenticated role.
+
+The daylight review found a white, artifacted 3D image. The repair keeps the
+existing procedural kit. It corrects canvas texture colour spaces, applies
+the output pass after all image-space passes, limits bloom to emissive detail,
+and reduces image-based light and fog washout. A browser capture measures
+highlight coverage so a near-white canvas cannot satisfy the fidelity claim.
+
+### 2026-11-20: Authoritative city state and production-world direction (R041.1, R047)
+
+The browser is no longer the city authority. Arbora admits the City read and
+the subject-bound human heartbeat. Medulla owns the durable, revisioned state.
+Overstory hydrates one snapshot for all viewers and interpolates its positions
+between bounded updates. It never writes an AI or NPC position. The anonymous
+sandbox gets a separate simulated tenant and has no write route.
+
+```text
+Medulla durable city state (revision N)
+  -> Arbora fleet.city.presence
+  -> Overstory /api/apps/city/state
+  -> City state reducer
+  -> 2D and 3D renderers
+```
+
+The production-world vertical slice has a concrete visual bar: a dense core,
+district hierarchy, mountains or hills, an ocean or waterfront, a river or
+canal, bridges, boats, atmospheric sky, ambient flight, streets with curb and
+prop detail, and watertight architecture. This is an original Arbora world,
+not a copy of commercial game assets. The three approved overview cameras and
+the geometry audit are release evidence; the R028 60 fps target is a gate.
+
+Cross-repo seams: the pending Arbora city-state producer must serve the revisioned snapshot and
+the subject-bound heartbeat. Medulla's pending durable city-state contract
+fact contract and must land before R047 implementation. The existing R041
+generators own visual composition; no presentation requirement belongs in the
+repository constitution.
+
+### 2026-11-21 modular asset pack delivery
+
+The [catalog and assembly contract](asset-pack.md) carries the 16-image audit and proposed launch inventory. Start with a versioned catalog and validation fixtures. Build a vertical slice with a curved block, a fuel station, a reused storefront bay, a shelter and moving vehicles. Include one furnished interior in the slice. Expand recipes after reviewing that composition in day and night.
+
+**Build contract.** Reuse the asset lock, original-source records, trim and palette library, scene pipeline, budgets and fidelity harness. Bake reusable pieces where that reduces browser work. Package only validated assets. Record content hashes and normalized recipe digests per release. Keep older pinned IDs resolvable or provide an explicit migration.
+
+**Production caller chain.** The existing City route loads the recipe and catalog. World generation and layout validation resolve terrain, road profiles, lots and module placements. The renderer consumes this output for batches, lanes and selective room loading. UI and WebMCP call the same City actions. A renderer may degrade detail while retaining selection, meaning and the 2D view.
+
+**Cross-repo seams.** Overstory owns visuals, deterministic browser presentation, local demo behavior and view controls. Arbora remains the authority for served city state under R047. Meristem and Medulla remain behind their existing service contracts. This pack needs no new served operation for reference-scene or anonymous sandbox qualification. Authoritative position persistence continues under its existing row.
+
+**Delivery slices.** T074 defines the contract. T075–T076 prove the street and architecture together. T077 adds building entry, then T078 qualifies the regional setting. T079 qualifies the combined pack. Each slice retains the existing simulated and live provenance separation.
+
+**Ecosystem districts.** The [landmark and road-led district design](ecosystem-districts.md) defines the T080 and T081 slices. T080 consumes the mapping registry and existing asset and entry contracts. T081 consumes the 3D road profile and regional terrain. Validate their shared reference scene through the existing City route. Use the anonymous demo for synthetic fixtures and admitted Arbora responses for served-data qualification.
+
+One task per row, producer first (see [tasks.md](tasks.md)): T001–T003
+build the world producers (district, landmarks, population); T004–T005 the
+asset verification and event seams; T006–T012 the simulation behavior
+(lifecycle, operators, construction, day/night, selection, speed, 2D
+fallback); T013–T014 the host read and the mode decision; T015–T018 the
+route wiring, credential whitelist and unmount safety. T019–T024 are the
+follow-on rows: specified, no v1 code, no schedule. T025–T041 are the
+2026-11-17 review amendments and the fidelity rows R031–R033; T042–T053
+are the 2026-11-18 re-review amendments — one task per amended row — and
+land in this delivery with the R031–R033 rebuild: the host read first
+(T042), then the sim and the renderers (T043–T053). Verification evidence
+(tests, build chunk report, lockfile audit) is recorded per row in
+[checklists/requirements.md](checklists/requirements.md).
+
+#### 2026-11-25: The civic catalog extension (R051) and the pinned-weight budget (R016)
+
+The 2026-11-25 session extends the civic and community catalog with the
+remaining requested families: parks (standard, child, nature, dog, skate),
+the education suite (daycare, middle, high, community college — the school
+and university anchors stay covered), public water features (five fountain
+styles), statues and monuments (figure and group memorial, obelisk, war
+memorial, commemorative arch), and the government and public-services
+buildings (post office, library, government office, civic center — police
+station and firehouse stay with the R048.10 infrastructure landmarks).
+They scope under R051, not new rows; the extension catalog gains five
+domains and the authoring pipeline two stages (stage16 parks/education,
+stage17 public). The open catalog's weight crosses the launch-era 5 MB
+pinned budget, so R016 is amended: the full pinned set totals under 8 MB,
+with the character pins themselves staying under 0.5 MB. A new
+catalog-integrity test binds the catalog and the lock (R048.1).
+
+#### 2026-11-25: The fully procedural city engine (R059–R066)
+
+The 2026-11-24 request for a fully procedural, zone-based city engine
+lands as eight new rows on 2026-11-25 — specified, not scheduled.
+
+Rows: R059 fully procedural generation (no hard-coded or hard-placed
+assets; seeded environment, map, biome and terrain), R060 procedural
+networks (roads, rail, water routes and walking paths from the network
+solver), R061 density tiers (rural, suburban, city center) with
+zone-based building spawn, R062 nature-first placement with no overlap
+(nature displaced for infrastructure), R063 Blender-only asset hygiene,
+R064 route validation for car, plane, train and boat routes (refused,
+never patched), R065 the 120 FPS average / 60 FPS floor frame budget
+auditable in the debug view, and R066 engine-side dynamic night windows
+on occupied towers.
+
+They build on the procedural foundations already specified — R039 seeded
+growth, R041 generate-first, R048.8/R048.9 network and island generation,
+R050 activity scheduling, R053 emissives, R056 tiers — and the
+212-family Blender-authored catalog (R048.10–R048.15, R051) supplies the
+asset vocabulary the generator draws from.
+
+#### 2026-11-25: Review — the hard-coded world is wiped; the world renders from the catalog
+
+The 2026-11-25 review of the PR's browser captures found that the
+rendered world was still the launch-era generated world — massing
+buildings with procedural facades, ribbon roads, painted water
+rectangles, generated street furniture — and that none of the 212
+catalog families appeared in any capture. The catalog had been
+authored, locked and QA'd, but the renderer was never rewired to use it.
+Decision: the hard-coded world is removed and the world renders
+catalog-first (R067) — the fully procedural landscape first (R059,
+R048.5), then the procedural network (R060) as catalog road and
+hydrology families, then buildings (R061) as catalog building families,
+with water as the continuous procedural coastline surface, never a
+painted rectangle. Launch building assets with lasting value — the
+seven core landmark silhouettes and the furnished landmark interiors —
+are absorbed into the kit as original, refined Blender families and
+rendered only from the catalog (R068). R063 gains live enforcement: the
+runtime records an asset-provenance manifest (family id, instance count,
+source stage per placed model), surfaces it in the debug view and the
+fidelity harness, and an audit of the rendered scene rejects any visible
+mesh that is neither a catalog family nor a declared exempt primitive.
+
+The same review asked that the city-builder systems — demand, zoning,
+taxes, budgets, service coverage, production and logistics, population,
+land value, congestion feedback, construction and maintenance costs —
+be scoped. They land as eight new rows, specified not scheduled: the
+economic loop (R069), demand and zoning (R070), the population economy
+(R071), land value and the RCI meter (R072), service coverage and
+consumption (R073), production and goods logistics (R074), traffic and
+economic feedback (R075), and intake, construction and maintenance
+costs (R076). The human character pack (R049), the activity scheduler
+(R050), real traffic (R048.16/R048.17), atmosphere (R053/R055) and
+street life and interiors (R057/R058) were already scoped by the
+living-city amendment and remain follow-on tasks.
+
+#### 2026-11-25 (late): The speed set extends to 0.5×–20× with slow motion
+
+The same review asked that the engine support speed-ups up to 20× and
+slow motion. R012 is amended in place: the speed control exposes the
+declared set 0.5×, 1×, 1.25×, 1.5×, 2×, 4×, 8×, 20× plus pause (the
+previous pause / 1× / 2× / 4× set is subsumed), `?speed=` accepts the
+same values, and the WebMCP speed tool carries the same set. Speed
+scales the in-game clock, the activity schedule and every action timer
+by the same factor; slow motion is simply 0.5× — a reduced rate in the
+same mode, not a separate feature. The engine holds every invariant at
+both extremes: the frame loop converts real elapsed time × speed ×
+timeScale into in-game time and executes it as a bounded number of
+fixed simulation sub-steps under a declared per-sub-step ceiling, so
+at 20× several sub-steps run per frame and the remainder accumulates —
+a dropped frame loses and gains no in-game time — which keeps
+per-step movement, scheduling and traffic integration inside the
+bounds the renderer and route rules already assume. A speed change is
+recorded as an operator action, so a replay produces the same in-game
+state regardless of the speed it ran at. Implementation lands in T133.
+
+#### 2026-11-25 (later): The 2D map and the 3D scene are one world
+
+The same review asked that the 2D map and the 3D scene be fully 1:1
+synchronised — both projecting from the same underlying environment and
+map metadata — and that the engine run equally well in both. Two new
+rows: R077 makes the 2D schematic and the 3D scene two projections of
+the one world model (the seeded environment, the generated networks
+and every placed element with its live state). Neither view owns
+geometry or state of its own; every visible fact in either view derives
+from the shared model through the same encoding table, so the views can
+never disagree. The 2D view renders the full procedural world —
+landscape, biomes, water, network, placements — not a bare plot
+schematic, and a projection-parity audit proves the 1:1 content at any
+instant (matching entries, world coordinates and state encoding in
+both directions, identity preserved across a view switch). R078 holds
+the frame budget view-independent: the 120/60 bar of R065 applies
+whichever view is active, with per-view measurement in the debug view
+so the parity is auditable. Implementation lands in T134–T135.

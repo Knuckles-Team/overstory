@@ -5,7 +5,7 @@ This page fixes the palette, the rendering approach, the scale and proportion
 sheets, the architectural vocabulary per district archetype, and the lighting
 moods. The machine-readable half of this guide — the palette with token
 provenance, the archetype vocabulary, the trim-sheet layout, the budgets and
-the material sets — lives in [`src/lib/scene3d/palette.ts`](../src/lib/scene3d/palette.ts),
+the material sets — lives in [`src/lib/scene3d/palette.ts`](https://github.com/Knuckles-Team/overstory/blob/main/src/lib/scene3d/palette.ts),
 and the asset lock check
 (`src/lib/scene3d/__tests__/assets.test.ts::style_guide_conformance`)
 verifies the locked assets against it. The page and the module are one
@@ -35,7 +35,7 @@ graph.
 ## Palette
 
 Every scene colour derives from a browser design token in
-[`src/index.css`](../src/index.css) (documented in the
+[`src/index.css`](https://github.com/Knuckles-Team/overstory/blob/main/src/index.css) (documented in the
 [design system](design-system.md)) — a direct copy or a declared derivative.
 A colour that is not in this table does not enter the scene.
 

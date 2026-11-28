@@ -16,6 +16,11 @@
         0.78,
         0.98
       ]
+    },
+    "characters": {
+      "id": "civilian-pack",
+      "note": "R049: 12 civilian variants over shared rigged base",
+      "count": 12
     }
   },
   "entries": [
@@ -31,7 +36,7 @@
         "floors": 5
       },
       "seed": 101,
-      "hash": 3868194911,
+      "hash": 7605353,
       "budget": {
         "triangles": 4000
       }
@@ -48,7 +53,7 @@
         "floors": 3
       },
       "seed": 102,
-      "hash": 21302679,
+      "hash": 3506450673,
       "budget": {
         "triangles": 4000
       }
@@ -65,7 +70,7 @@
         "floors": 2
       },
       "seed": 103,
-      "hash": 650302775,
+      "hash": 1495077259,
       "budget": {
         "triangles": 4000
       }
@@ -82,7 +87,7 @@
         "floors": 2
       },
       "seed": 104,
-      "hash": 2683423239,
+      "hash": 2564697511,
       "budget": {
         "triangles": 4000
       }
@@ -99,7 +104,7 @@
         "floors": 4
       },
       "seed": 105,
-      "hash": 492444331,
+      "hash": 3203620847,
       "budget": {
         "triangles": 4000
       }
@@ -116,7 +121,7 @@
         "floors": 1
       },
       "seed": 106,
-      "hash": 3717253815,
+      "hash": 3822719421,
       "budget": {
         "triangles": 4000
       }

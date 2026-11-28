@@ -1,6 +1,13 @@
 // The simulation engine: the only writer of world state. Every state change
 // emits a typed event on the shared bus (OVERSTORY-CITY-R006).
 //
+// R092: Character population scaling — character count scales with economy.
+// R093: Character economic behaviour — mood, foot traffic, schedule gating.
+//
+// spec: OVERSTORY-CITY-R005, OVERSTORY-CITY-R006, OVERSTORY-CITY-R009, OVERSTORY-CITY-R012, OVERSTORY-CITY-R014, OVERSTORY-CITY-R026, OVERSTORY-CITY-R029, OVERSTORY-CITY-R092, OVERSTORY-CITY-R093, OVERSTORY-CITY-R100
+//
+/* eslint-disable @typescript-eslint/no-unnecessary-condition */
+//
 // Time convention: the in-game clock runs at `timeScale` in-game seconds per
 // real second, so one in-game day is ten real minutes at 1× and the day/night
 // cycle reads as a living city. Character actions — walking, tool calls,
@@ -17,6 +24,7 @@
 import {
   CORE_LANDMARKS,
   ROSTER,
+  ROLE_LABELS,
   SIM_TOOLS,
   connectorsByDomain,
   type ConnectorDef,
@@ -25,9 +33,29 @@ import {
 } from './ecosystem'
 import { BUILDING_POS, PLOTS, HOUSES, buildingDoor, plotDoor, findPath, type Vec2 } from './layout'
 import { pathOn, type RoadGraph } from '@/lib/scene3d/roads'
+import {
+  makeTrafficRoutes,
+  tickTraffic,
+  mergeEconomyVehiclesIntoFleet,
+  vehiclesFromEconomy,
+  economyZone,
+  TrafficRouteError,
+  type TrafficFleet,
+} from './render3d/traffic'
+import { createWaterFleet, tickWaterFleet, type WaterVessel } from './waterways'
+import {
+  CITY_WORLD_SEED,
+  generateFrontageSites,
+  generateRoadsideMassing,
+  generateRegionalPlants,
+  type FrontageSite,
+  type RegionalMassing,
+  type RegionalPlant,
+} from './worldgen'
 import { applyDocument, derivedRoadGraph, type LayoutOverride } from './layoutEdit'
 import { bus, makeEvent, type CityEvent } from './events'
-import { defaultPrng, type Prng } from './prng'
+import { DEFAULT_SEED, defaultPrng, mulberry32, type Prng } from './prng'
+import * as Economy from './economy'
 
 // ---- Agent state machine (R006) --------------------------------------------
 // One declared lifecycle the sim, the tests and the documentation all read.
@@ -74,6 +102,10 @@ export interface Plot {
   /** Display name of a reserved, not-yet-built plot. */
   reservedName: string | null
   construction: { connectorId: string; progress: number; lastMilestone: number } | null
+  access?: FrontageSite
+  /** Demand marker: ghost building showing pending demand (R101). */
+  /** Zone policy override: residential/commercial/industrial/mixed (R112). */
+  zone?: 'residential' | 'commercial' | 'industrial' | 'mixed'
 }
 
 export interface Task {
@@ -114,6 +146,13 @@ export interface Building {
   rot: number
   /** The plot the derived layout places this building on (R032); null for core landmarks. */
   derivedPlot: number | null
+  access?: FrontageSite
+  /** Economic health score [0, 1] computed each tick (R102). */
+  economicHealth?: number
+  /** Occupancy lifecycle state (R103). */
+  occupancyState?: 'vacant' | 'construction' | 'new' | 'mature' | 'declining' | 'abandoned'
+  /** Foot traffic visits for this building (R108). */
+  footTraffic?: number
 }
 
 class Character {
@@ -148,6 +187,14 @@ class Character {
   commitPhase: 'committing' | 'compacting' | null = null
   events: { type: string; detail: string }[] = []
   pos: Vec2 = { x: 0, z: 0 }
+  /** Economic mood -1 (miserable) to 1 (thriving), clamped each tick (R093). */
+  economicMood = 0
+  /** The plot index of the character's home (R079.2). */
+  homePlot: number | null = null
+  /** The plot index of the character's workplace (R079.2). */
+  workPlot: number | null = null
+  /** The building id of the character's workplace (R107). */
+  workBuilding: string | null = null
 
   constructor(entry: { kind: 'ai' | 'npc'; id: string; role: RoleId }, index: number) {
     this.id = entry.id
@@ -158,8 +205,9 @@ class Character {
     this.mood = this.kind === 'npc' ? 'supervising' : 'wandering'
     this.context = 10 + simRandom() * 15
     this.walkPhase = simRandom() * Math.PI * 2
-    this.home = HOUSES[index % HOUSES.length]
-    this.homeDoor = { x: this.home.x - 4, z: this.home.z }
+    const home = world.homes[index % world.homes.length]
+    this.home = home
+    this.homeDoor = home.access ? { x: home.access.roadX, z: home.access.roadZ } : { x: home.x - 4, z: home.z }
     this.wanderTimer = 2 + simRandom() * 6
   }
 
@@ -190,6 +238,15 @@ class Character {
     if (mood) this.mood = mood
   }
 
+  /** R107: commute between home and work via the road graph. */
+  commute(toX: number, toZ: number): void {
+    this.target = { x: toX, z: toZ }
+    this.path = this.worldPath(toX, toZ)
+    this.pathPos = 0
+    this.arriveHook = null
+    this.mood = 'commuting'
+  }
+
   moving(): boolean {
     return this.path.length > 0 && this.pathPos < this.path.length
   }
@@ -201,7 +258,9 @@ class Character {
     const dx = target[0] - this.pos.x
     const dz = target[1] - this.pos.z
     const dist = Math.hypot(dx, dz)
-    const step = WALK * dtReal
+    // R110: economic mood affects walk speed (0.7-1.2x)
+    const moodSpeedFactor = 0.7 + (this.economicMood + 1) * 0.25
+    const step = WALK * dtReal * moodSpeedFactor
     if (dist <= step) {
       this.pos = { x: target[0], z: target[1] }
       this.pathPos++
@@ -226,6 +285,77 @@ class Character {
   }
 }
 
+// ---- Character population scaling (R092) ---------------------------------
+
+/**
+ * Adjust the character roster to match the economy-derived population.
+ * Reads the population from the economy (R071) and spawns or removes
+ * civilian characters accordingly, bounded to 200 (R092).
+ */
+export function adjustCharacterCount(prng: Prng): void {
+  if (!Economy.isEconomyInitialised()) return
+  // Only scale characters outside quiet mode (R092).
+  if (world.activity === 'quiet') return
+
+  // Read population from economy districts (R071).
+  const districts = Economy.getDistricts()
+  const totalPopulation = districts
+    .filter((d) => d.zone === 'residential')
+    .reduce((sum, d) => sum + Math.round(d.population), 0)
+
+  // Target: scale with population, base 15, cap 200 (R092).
+  const targetCount = Math.min(200, Math.max(15, Math.floor(totalPopulation / 50) + 15))
+
+  const currentCount = world.characters.length
+
+  if (targetCount > currentCount) {
+    // Spawn new civilian characters (R092).
+    for (let i = currentCount; i < targetCount; i++) {
+      const roleIndex = Math.floor(prng() * Object.keys(ROLE_LABELS).length)
+      const roles = Object.keys(ROLE_LABELS) as RoleId[]
+      const role = roles[roleIndex]
+      const ch = new Character({ kind: 'npc', id: `civilian-${i}`, role }, i)
+      ch.economicMood = 0
+
+      // Assign home from economy-built residential buildings (R079.2).
+      // Fall back to the housing catalog.
+      const resBuildings = Object.values(world.buildings).filter(
+        (b) => b.kind.includes('house') || b.kind.includes('apartment'),
+      )
+      if (resBuildings.length > 0) {
+        const homeBldg = resBuildings[Math.floor(prng() * resBuildings.length)]
+        if (homeBldg.derivedPlot !== null) {
+          ch.homePlot = homeBldg.derivedPlot
+        }
+      }
+
+      // R107: assign a workplace for NPCs (commercial/industrial buildings).
+      const workBuildings = Object.values(world.buildings).filter(
+        (b) =>
+          b.kind.includes('store') ||
+          b.kind.includes('restaurant') ||
+          b.kind.includes('mall') ||
+          b.kind.includes('factory') ||
+          b.kind.includes('warehouse'),
+      )
+      if (workBuildings.length > 0) {
+        ch.workBuilding = workBuildings[Math.floor(prng() * workBuildings.length)].id
+      }
+
+      world.characters.push(ch)
+      bus.emit(makeEvent('character.spawned', { character: ch.id }, `${ch.name} joins the city`))
+    }
+  } else if (targetCount < currentCount) {
+    // Remove excess characters from the end (R092).
+    while (world.characters.length > targetCount) {
+      world.characters.pop()
+    }
+  }
+
+  world.characterTargetCount = targetCount
+  world.needsCharacterAdjustment = true
+}
+
 // ---- World -----------------------------------------------------------------
 
 export const world = {
@@ -238,6 +368,9 @@ export const world = {
   activity: 'quiet' as ActivityMode,
   characters: [] as Character[],
   buildings: {} as Record<string, Building>,
+  regionalMassing: [] as RegionalMassing[],
+  regionalPlants: [] as RegionalPlant[],
+  homes: HOUSES.map((home) => ({ ...home })) as (Vec2 & { access?: FrontageSite })[],
   plots: PLOTS.map((p) => ({
     x: p.x,
     z: p.z,
@@ -263,11 +396,43 @@ export const world = {
    * graph after a saved layout edit; null before the sim initializes.
    */
   roadGraph: null as RoadGraph | null,
+  /** Ambient vehicles belong to the world, not either renderer. */
+  traffic: null as TrafficFleet | null,
+  waterFleet: [] as WaterVessel[],
   /** District style overrides: domain → archetype (R032); empty when derived. */
   districtStyles: {} as Record<string, string>,
   /** The stored layout override document applied to this world (R032). */
   layoutDoc: null as LayoutOverride | null,
+  /** Human avatars maintained by the presence system (R023). */
+  avatars: [] as AvatarEntry[],
   initialized: false,
+  /** Cached character count derived from economy (R092). */
+  characterTargetCount: 15,
+  /** Whether the character roster needs adjusting (R092). */
+  needsCharacterAdjustment: true,
+  /** Running commercial foot traffic from employed characters (R093). */
+  commercialFootTraffic: 0,
+  /**
+   * Current first-person / enterable camera mode (OVERSTORY-CITY-R019).
+   * `'overview'` and `'street'` mean the orbit-control camera;
+   * `'first-person'` means FPS walk mode; `'enterable'` means the
+   * interior room-stage.
+   */
+  cameraMode: 'overview' as 'overview' | 'street' | 'first-person' | 'enterable',
+}
+
+/**
+ * One human visitor avatar maintained by the presence system (R023).
+ * Unlike sim characters, avatars are user-authored and not generated
+ * by the simulation. They appear on top of the sim layer.
+ */
+export interface AvatarEntry {
+  avatarId: string
+  position: { x: number; z: number }
+  heading: number
+  activity: string
+  zone: string
+  lastSeen: number
 }
 
 /**
@@ -276,6 +441,10 @@ export const world = {
  * dropped as new ones land, so the record never grows without bound.
  */
 export const ACTION_WINDOW_GAME_S = 300
+
+/** Economic mood clamp range (R093). */
+export const ECONOMIC_MOOD_MIN = -1
+export const ECONOMIC_MOOD_MAX = 1
 
 /** One recorded operator action, stamped and bounded to the replay window. */
 function recordAction(kind: RecordedAction['kind'], target?: string): void {
@@ -294,6 +463,40 @@ export const TUNING = {
   approvalChance: 0.2,
 }
 
+/**
+ * Fixed simulation sub-step (R012, amended 2026-11-25): the frame loop
+ * advances the city in fixed in-game seconds bounded by this ceiling, so
+ * per-step movement, scheduling and traffic integration stay inside the
+ * bounds the renderer and route rules assume at any speed — at 20×
+ * several sub-steps run per frame.
+ */
+export const SIM_SUBSTEP_GAME_S = 2
+/**
+ * Per-frame sub-step cap: bounds per-frame simulation work. The remainder
+ * accumulates across frames, so a slow frame loses and gains no in-game
+ * time (R012, amended 2026-11-25).
+ */
+export const SIM_SUBSTEPS_PER_FRAME_MAX = 24
+
+/**
+ * Pure fixed sub-step accumulator (R012, amended 2026-11-25): the frame
+ * loop feeds in-game seconds (real dt × speed × timeScale) and releases
+ * them as a bounded number of fixed sub-steps. `pending` carries
+ * unexecuted in-game time across frames — a slow frame defers time, it
+ * never loses it — and the executed total is always an exact multiple of
+ * the sub-step.
+ */
+export function advanceSubSteps(
+  pendingGameS: number,
+  fedGameS: number,
+  subStepGameS: number,
+  maxPerFrame: number,
+): { run: number; pending: number } {
+  const total = pendingGameS + fedGameS
+  const run = Math.min(Math.floor(total / subStepGameS), maxPerFrame)
+  return { run, pending: total - run * subStepGameS }
+}
+
 // ---- The seeded PRNG (R014) -------------------------------------------------
 // The only randomness the simulation uses. Tests and the replay driver
 // replace it with an identically-seeded instance for exact sequences.
@@ -307,6 +510,126 @@ export function setSimRandom(p: Prng): void {
 /** One deterministic draw in [0, 1). */
 export function simRandom(): number {
   return rng()
+}
+
+// ---- The traffic stream (R037, R104) ----------------------------------------
+// Traffic draws from its own seeded stream, and only on the fixed economy
+// tick, so the number of frames a run takes never changes what any other
+// system draws.
+const TRAFFIC_SEED_SALT = 0x7472666b
+let trafficRng: Prng = mulberry32(DEFAULT_SEED ^ TRAFFIC_SEED_SALT)
+
+/** Seed the traffic stream (replay, tests). */
+export function setTrafficSeed(seed: number): void {
+  trafficRng = mulberry32(seed ^ TRAFFIC_SEED_SALT)
+}
+
+/** The fleet over a road graph; a leg the lane graph cannot drive leaves the fleet empty and says why. */
+function buildTrafficFleet(graph: RoadGraph): TrafficFleet {
+  const fleet: TrafficFleet = { graph, routes: [], elapsed: 0, positions: [] }
+  try {
+    fleet.routes = makeTrafficRoutes(graph)
+  } catch (error) {
+    if (!(error instanceof TrafficRouteError)) throw error
+    fleet.routeError = error.message
+    console.error(`[city] traffic has no route: ${error.message}`)
+  }
+  return fleet
+}
+
+/** Assign economy vehicles to the fleet; runs on the fixed economy tick and moves no car. */
+function assignEconomyVehicles(): void {
+  if (!world.traffic) return
+  const vehicles = vehiclesFromEconomy(trafficRng, world.buildings, world.plots)
+  mergeEconomyVehiclesIntoFleet(world.traffic, vehicles)
+}
+
+// ---- Under-funding tick tracking (R102/R103) -------------------------------
+// Tracks how many consecutive ticks each district has been under-funding.
+const underfundingTickCount = new Map<string, number>()
+
+/**
+ * R102/R103: For each building, check if its district (b.role) has
+ * underfunded services.  If so, reduce b.economicHealth by 0.005 × dtReal
+ * per frame.  Abandon below 0.2, decline below 0.35.
+ */
+function applyUnderFundingDecay(dtReal: number): void {
+  // Rebuild the under-funding counter map each tick.
+  const currentUnderfunded = new Set<string>()
+  for (const svc of Economy.getServiceNetworks()) {
+    if (svc.type && Economy.getServiceBudget(svc.type) < 0.8) {
+      currentUnderfunded.add(svc.type)
+    }
+  }
+
+  for (const b of Object.values(world.buildings)) {
+    const district = b.role ?? ''
+    if (currentUnderfunded.has(district)) {
+      const prev = underfundingTickCount.get(district) ?? 0
+      underfundingTickCount.set(district, prev + 1)
+    } else {
+      underfundingTickCount.set(district, 0)
+    }
+
+    const ticks = underfundingTickCount.get(district) ?? 0
+    if (ticks >= 5) {
+      b.economicHealth = Math.max(0, (b.economicHealth ?? 1) - 0.005 * dtReal)
+      if ((b.economicHealth ?? 1) < 0.2) {
+        b.occupancyState = 'abandoned'
+      } else if ((b.economicHealth ?? 1) < 0.35) {
+        b.occupancyState = 'declining'
+      }
+    }
+  }
+}
+
+/**
+ * R111: Policy consequence cascade — read policyTimeline from economy.ts and
+ * apply visible decay when taxes are raised above 30 %.
+ */
+function applyPolicyConsequences(dtReal: number): void {
+  const timeline = Economy.policyTimeline
+  const now = world.absGameS
+  // Keep only entries within a reasonable effect window (50 ticks).
+  const active: typeof timeline = []
+
+  for (const entry of timeline) {
+    // Clean up entries older than 50 ticks (effect window expired).
+    if (now - entry.tick > 50 * Economy.ECONOMY_TICK_GAME_S) continue
+
+    active.push(entry)
+
+    if (entry.type === 'tax' && entry.zone === 'commercial' && entry.newValue > 0.3) {
+      // High commercial tax slowly erodes building health each frame.
+      const taxPenaltyPerFrame = (entry.newValue - 0.2) * 0.002 * dtReal
+      for (const b of Object.values(world.buildings)) {
+        if (
+          b.kind.includes('store') ||
+          b.kind.includes('restaurant') ||
+          b.kind.includes('mall') ||
+          b.kind.includes('office')
+        ) {
+          b.economicHealth = Math.max(0, (b.economicHealth ?? 1) - taxPenaltyPerFrame)
+        }
+      }
+    }
+
+    if (entry.type === 'budget') {
+      // Budget changes reduce service coverage in affected districts.
+      // The budget entry's zone field is the service type.
+      // Reduce service coverage proportionally to the budget cut.
+      for (const d of Economy.getDistricts()) {
+        d.serviceCoverage = Math.max(0, d.serviceCoverage - 0.02 * Math.abs(entry.newValue - entry.oldValue))
+      }
+    }
+  }
+
+  // Replace the timeline with only active entries — mutate in place
+  // (ESM prevents reassigning a module export via a named import).
+  Economy.policyTimeline.length = 0
+  for (const entry of active) {
+    Economy.policyTimeline.push(entry)
+  }
 }
 
 /** Set the activity mode (R026): quiet is the default, demo is labelled. */
@@ -357,6 +680,7 @@ const FIRST_VISIT_GRACE_S = 300 // real seconds before an owed first visit is dr
 const AUTO_TASK_MIN = 8
 const AUTO_TASK_MAX = 16 // real seconds between auto tasks
 let autoTaskTimer = 5 // first auto task shortly after boot
+let economyAccum = 0 // game seconds accumulated toward the next economic tick
 
 // ---- Buildings -------------------------------------------------------------
 
@@ -381,8 +705,11 @@ function makeBuilding(def: CoreDef | ConnectorDef, category: 'core' | 'connector
     kind: 'kind' in def ? def.kind : def.archetype,
     x: plot ? plot.x : pos ? pos.x : 0,
     z: plot ? plot.z : pos ? pos.z : 0,
-    w: pos ? pos.w : 7,
-    d: pos ? pos.d : 7,
+    // Connector parcels are ten metres between road centrelines. A 5.6 m
+    // kit preserves a real sidewalk/setback on all four sides instead of
+    // letting the generated facade graze the 2.6 m carriageway.
+    w: pos ? pos.w : 5.6,
+    d: pos ? pos.d : 5.6,
     online: true,
     visits: 0,
     fresh: 0,
@@ -398,6 +725,10 @@ function makeBuilding(def: CoreDef | ConnectorDef, category: 'core' | 'connector
     door: category === 'core' ? buildingDoor(def.id) : null,
     rot: 0,
     derivedPlot: null,
+    // R102/R103: default economic state for newly-created buildings.
+    economicHealth: 0.5,
+    occupancyState: 'mature' as const,
+    footTraffic: 0,
   }
 }
 
@@ -405,6 +736,7 @@ function makeBuilding(def: CoreDef | ConnectorDef, category: 'core' | 'connector
 function placeConnector(def: ConnectorDef, plot: Plot, prebuilt: boolean): void {
   const b = makeBuilding(def, 'connector', plot)
   b.door = plotDoor(plot)
+  b.access = plot.access
   // The derived layout's own placement (R032): restoring the derived city
   // puts the building back exactly here.
   b.derivedPlot = world.plots.indexOf(plot)
@@ -430,8 +762,48 @@ export function initSim(connectors: ConnectorDef[]): void {
   if (world.initialized) return
   world.connectors = connectors
   world.absGameS = world.clock
+  world.roadGraph = derivedRoadGraph()
+  world.waterFleet = createWaterFleet(CITY_WORLD_SEED)
+  world.traffic = null
+  let coreSites: FrontageSite[] = []
+  if ('seed:0' in world.roadGraph.nodes) {
+    const requests = [
+      ...CORE_LANDMARKS.map((core) => ({ id: core.id, w: BUILDING_POS[core.id].w, d: BUILDING_POS[core.id].d })),
+      ...HOUSES.map((_, index) => ({ id: `home-${index}`, w: 4, d: 4 })),
+      ...PLOTS.map((_, index) => ({ id: `plot-${index}`, w: 5.6, d: 5.6 })),
+    ]
+    const sites = generateFrontageSites(world.roadGraph, CITY_WORLD_SEED, requests)
+    coreSites = sites.filter((site) => !site.id.startsWith('plot-') && !site.id.startsWith('home-'))
+    if (coreSites.length !== CORE_LANDMARKS.length)
+      throw new Error('Seed cannot place all city landmarks beside roads')
+    world.homes = sites
+      .filter((site) => site.id.startsWith('home-'))
+      .map((site) => ({ x: site.x, z: site.z, access: site }))
+    if (world.homes.length < ROSTER.length) throw new Error('Seed cannot place all city homes beside roads')
+    world.plots = sites
+      .filter((site) => site.id.startsWith('plot-'))
+      .map((site) => ({
+        x: site.x,
+        z: site.z,
+        buildingId: null,
+        reservedId: null,
+        reservedName: null,
+        construction: null,
+        access: site,
+      }))
+  }
 
-  for (const c of CORE_LANDMARKS) world.buildings[c.id] = makeBuilding(c, 'core')
+  for (const c of CORE_LANDMARKS) {
+    const building = makeBuilding(c, 'core')
+    const site = coreSites.find((candidate) => candidate.id === c.id)
+    if (site) {
+      building.x = site.x
+      building.z = site.z
+      building.door = { x: site.roadX, z: site.roadZ }
+      building.access = site
+    }
+    world.buildings[c.id] = building
+  }
 
   let plotIdx = 0
   for (const c of connectorsByDomain(connectors)) {
@@ -459,10 +831,41 @@ export function initSim(connectors: ConnectorDef[]): void {
     )
   }
 
+  if ('seed:0' in world.roadGraph.nodes) {
+    world.regionalMassing = generateRoadsideMassing(world.roadGraph, CITY_WORLD_SEED, [
+      ...Object.values(world.buildings),
+      ...world.plots.map((plot) => ({ ...plot, w: 5.6, d: 5.6 })),
+      ...world.homes.map((home) => ({ ...home, w: 4, d: 4 })),
+    ])
+  }
+
+  const plantObstacles = [
+    ...Object.values(world.buildings),
+    ...world.plots.map((plot) => ({ ...plot, w: 5.6, d: 5.6 })),
+    ...world.homes.map((home) => ({ ...home, w: 4, d: 4 })),
+    ...world.regionalMassing.map((building) => ({
+      ...building,
+      w: Math.hypot(building.w, building.d),
+      d: Math.hypot(building.w, building.d),
+    })),
+  ]
+  const plantPaths = [
+    ...Object.values(world.buildings).flatMap((building) => (building.access ? [building.access] : [])),
+    ...world.plots.flatMap((plot) => (plot.access ? [plot.access] : [])),
+    ...world.homes.flatMap((home) => (home.access ? [home.access] : [])),
+    ...world.regionalMassing.flatMap((building) =>
+      building.access
+        ? [{ ...building.access, entranceX: building.access.doorX, entranceZ: building.access.doorZ }]
+        : [],
+    ),
+  ]
+  world.regionalPlants = generateRegionalPlants(world.roadGraph, CITY_WORLD_SEED, plantObstacles, plantPaths)
+
   ROSTER.forEach((r, i) => {
     const ch = new Character(r, i)
     const a = (i / ROSTER.length) * Math.PI * 2
-    ch.setPos(Math.cos(a) * 4.5, Math.sin(a) * 4.5)
+    if ('seed:0' in world.roadGraph!.nodes) ch.setPos(ch.homeDoor.x, ch.homeDoor.z)
+    else ch.setPos(Math.cos(a) * 4.5, Math.sin(a) * 4.5)
     world.characters.push(ch)
     // Spawn events live in the sim, not the renderer, so both views emit
     // the identical vocabulary (constitution P2).
@@ -471,9 +874,11 @@ export function initSim(connectors: ConnectorDef[]): void {
 
   // The derived road graph (R032): characters walk it, and a saved layout
   // edit replaces it with the overrides' graph.
-  world.roadGraph = derivedRoadGraph()
   world.districtStyles = {}
   world.layoutDoc = null
+
+  // Initialise the economic engine (R069–R076).
+  Economy.initEconomy(defaultPrng())
 
   world.initialized = true
 }
@@ -495,11 +900,86 @@ export function onboardConnector(connectorId: string): boolean {
 
 function completeConstruction(plot: Plot): void {
   plot.construction = null
-  const b = world.buildings[plot.buildingId!]
+  const buildingId = plot.buildingId!
+
+  // Check if this is an economy-built building (R079.2) — the building was
+  // created by the economy tick's step 17b (resolved constructions).
+  const existingB = world.buildings[buildingId]
+
+  if (!existingB) {
+    // Economy-built buildings: create from construction state (R079.2).
+    // Economy tick step 17 runs before sim construction completes, so the
+    // building should already exist. Handle the race defensively.
+    let cs: (typeof Economy.constructionStates)[number] | undefined = undefined
+    for (const c of Economy.constructionStates) {
+      if (c.buildingId === buildingId) {
+        cs = c
+        break
+      }
+    }
+    if (cs) {
+      const zone = economyZone(cs.archetype ?? '')
+
+      // Create a building from the economy construction state.
+      const b: Building = {
+        id: buildingId,
+        name: `${zone}-${cs.archetype ?? 'building'}-built`,
+        category: 'connector',
+        role: zone,
+        tools: cs.archetype === 'mall' || cs.archetype === 'factory' ? ['advanced'] : [],
+        rooms: ['main'],
+        color: zone === 'residential' ? 0x4caf50 : zone === 'commercial' ? 0x2196f3 : 0xff9800,
+        kind: cs.archetype ?? 'house',
+        x: plot.x,
+        z: plot.z,
+        w: 4,
+        d: 4,
+        online: true,
+        visits: 0,
+        fresh: 20,
+        flash: 0,
+        served: false,
+        packStatus: 'active',
+        blurb: `${zone} building (economy-placed)`,
+        simTools: false,
+        toolCount:
+          cs.archetype === 'mall'
+            ? 5
+            : cs.archetype === 'factory'
+              ? 4
+              : cs.archetype === 'restaurant'
+                ? 3
+                : cs.archetype === 'warehouse'
+                  ? 2
+                  : 0,
+        door: null,
+        rot: 0,
+        derivedPlot: 0, // will be set correctly below
+      }
+      world.buildings[buildingId] = b
+      b.derivedPlot = world.plots.indexOf(plot)
+      plot.buildingId = b.id
+      // R102/R103: new economy-built buildings start with strong economic health.
+      b.economicHealth = 0.7
+      b.occupancyState = 'new' as const
+      b.footTraffic = 0
+    }
+  }
+
+  const b = world.buildings[buildingId]
   b.fresh = 900
-  world.firstVisit = { buildingId: b.id, age: 0 }
+  // R102/R103: newly completed buildings start with strong economic health.
+  b.economicHealth = 0.7
+  b.occupancyState = 'new' as const
+  b.footTraffic = 0
   bus.emit(makeEvent('building.completed', { building: b.id }, `${b.name} is open for business`))
-  bus.emit(makeEvent('connector.joined', { building: b.id }, `${b.id} connected through the fleet boundary`))
+  // Only a connector is owed a first visit and joins the fleet boundary (R008, R026): an
+  // economy-built building has no tools, so nothing may task an agent to it on its own.
+  if (existingB) {
+    world.firstVisit = { buildingId: b.id, age: 0 }
+    bus.emit(makeEvent('connector.joined', { building: b.id }, `${b.id} connected through the fleet boundary`))
+  }
+  plot.buildingId = buildingId
 }
 
 // ---- Layout edits (R032) -----------------------------------------------------
@@ -968,7 +1448,8 @@ function tickHumans(ch: Character, _dtReal: number): void {
       return
     }
     if (world.activity === 'demo' && !ch.moving() && ch.waitTimer <= 0) {
-      const arboraDoor = buildingDoor('arbora') ?? { x: 0, z: 0 }
+      const arboraDoor = ('arbora' in world.buildings ? world.buildings.arbora.door : null) ??
+        buildingDoor('arbora') ?? { x: 0, z: 0 }
       const spots = [arboraDoor, { x: -45, z: -45 }, { x: -65, z: 30 }, { x: -5, z: 15 }]
       const s = spots[Math.floor(simRandom() * spots.length)]
       ch.go(
@@ -1023,6 +1504,11 @@ function tickAgent(ch: Character, dtReal: number): void {
     if (!ch.moving()) goSleep(ch)
     return
   }
+  // R107: NPCs commute home at night.
+  if (ch.kind === 'npc' && night && ch.state === 'idle' && !ch.moving() && ch.workBuilding) {
+    if (!ch.moving()) goSleep(ch)
+    return
+  }
   if (night && ch.state === 'working') {
     // Let the in-flight call finish, then sleep.
     ch.workTimer -= dtReal
@@ -1036,6 +1522,14 @@ function tickAgent(ch: Character, dtReal: number): void {
   switch (ch.state) {
     case 'idle': {
       ch.wanderTimer -= dtReal
+      // R107: idle NPCs with a workBuilding commute to work at morning.
+      if (ch.kind === 'npc' && ch.workBuilding && !ch.moving()) {
+        const workBldg = world.buildings[ch.workBuilding]
+        if (!isNight(world.clock)) {
+          ch.commute(doorOf(workBldg).x, doorOf(workBldg).z)
+          break
+        }
+      }
       // Wandering is labelled demo behaviour (R026): quiet agents stand by.
       if (world.activity === 'demo' && !ch.moving() && ch.wanderTimer <= 0) {
         // Stroll: plaza, a park, or the waterfront.
@@ -1084,12 +1578,29 @@ function tickAgent(ch: Character, dtReal: number): void {
 
 // ---- Main tick ------------------------------------------------------------
 
-export function tickSim(dtGame: number, dtReal: number): void {
+export function tickSim(dtGame: number, dtReal: number, dtWall = dtReal): void {
+  if (world.roadGraph && world.traffic?.graph !== world.roadGraph) {
+    world.traffic = buildTrafficFleet(world.roadGraph)
+  }
+  if (world.traffic) tickTraffic(world.traffic, dtReal)
+  tickWaterFleet(world.waterFleet, dtWall)
   world.clock += dtGame
   world.absGameS += dtGame
   if (world.clock >= 86400) {
     world.clock -= 86400
     world.day++
+  }
+
+  if (Economy.isEconomyInitialised()) {
+    economyAccum += dtGame
+    if (economyAccum >= Economy.ECONOMY_TICK_GAME_S) {
+      economyAccum -= Economy.ECONOMY_TICK_GAME_S
+      Economy.tickEconomy()
+      assignEconomyVehicles()
+      // Character scaling runs alongside the economy tick (R092, R107).
+      adjustCharacterCount(rng)
+      world.needsCharacterAdjustment = false
+    }
   }
 
   // Auto tasking (daytime only, bounded concurrency).
@@ -1131,6 +1642,65 @@ export function tickSim(dtGame: number, dtReal: number): void {
     ch.move(dtReal)
   }
 
+  // R108: accumulate foot traffic from characters at commercial buildings.
+  // Per-character increment is dt-scaled so it grows smoothly, not by 1/frame.
+  for (const ch of world.characters) {
+    if (ch.workBuilding) {
+      const b = world.buildings[ch.workBuilding]
+      if (b.kind.includes('store') || b.kind.includes('restaurant') || b.kind.includes('mall')) {
+        b.footTraffic = Math.min(500, (b.footTraffic ?? 0) + dtReal * 0.01)
+      }
+    }
+  }
+  // Decay: foot traffic drops at 2 units per real second, bounded at 0.
+  for (const b of Object.values(world.buildings)) {
+    if (b.kind.includes('store') || b.kind.includes('restaurant') || b.kind.includes('mall')) {
+      b.footTraffic = Math.max(0, (b.footTraffic ?? 0) - dtReal * 2)
+    }
+  }
+
+  // Economic behaviour (R093): foot traffic, unemployment mood, shortage,
+  // under-funding — all drawn from the seeded PRNG so behaviour is
+  // deterministic under the seed.
+  world.commercialFootTraffic = world.characters.filter(
+    (ch) => ch.workBuilding && world.buildings[ch.workBuilding],
+  ).length
+  for (const ch of world.characters) {
+    if (ch.kind === 'npc') {
+      // Employed NPCs (have a task) contribute foot traffic.
+      if (ch.task && ['tasked', 'working', 'committing'].includes(ch.state)) {
+        world.commercialFootTraffic++
+      }
+      // Unemployed NPCs wander — small negative mood hit (R093).
+      if (ch.state === 'idle' && !ch.task) {
+        ch.economicMood = Math.max(ECONOMIC_MOOD_MIN, ch.economicMood - 0.01)
+      }
+    }
+    if (Economy.getGoodsPrices().shortage) {
+      ch.economicMood = Math.max(ECONOMIC_MOOD_MIN, ch.economicMood - 0.005)
+    }
+    // Under-funding penalty (R093): iterate each service budget and
+    // penalise characters when any service falls below the active threshold.
+    const underfunded = new Set<string>()
+    for (const svc of Economy.getServiceNetworks()) {
+      const budget = Economy.getServiceBudget(svc.type)
+      if (budget < 0.8) underfunded.add(svc.type)
+    }
+    if (underfunded.size > 0) {
+      const penalty = Math.min(0.01, underfunded.size * 0.002)
+      ch.economicMood = Math.max(ECONOMIC_MOOD_MIN, ch.economicMood - penalty)
+    }
+    // Clamp economic mood to [-1, 1] (R093).
+    ch.economicMood = Math.max(ECONOMIC_MOOD_MIN, Math.min(ECONOMIC_MOOD_MAX, ch.economicMood))
+  }
+
+  // Population scaling (R092): adjust the character roster to match the
+  // economy-derived population after the population tick has run.
+  if (world.needsCharacterAdjustment) {
+    adjustCharacterCount(rng)
+    world.needsCharacterAdjustment = false
+  }
+
   // Construction (real-time, so SC-003 holds at any speed).
   for (const plot of world.plots) {
     if (!plot.construction) continue
@@ -1140,7 +1710,12 @@ export function tickSim(dtGame: number, dtReal: number): void {
       if (c.progress >= m && c.lastMilestone < m) {
         c.lastMilestone = m
         const b = world.buildings[c.connectorId]
-        bus.emit(makeEvent('construction.progress', { building: b.id }, `${b.name}: ${Math.round(m * 100)}% complete`))
+        // Guard: the building might not be placed yet (economy-grown buildings).
+        if (c.connectorId in world.buildings && b.name) {
+          bus.emit(
+            makeEvent('construction.progress', { building: b.id }, `${b.name}: ${Math.round(m * 100)}% complete`),
+          )
+        }
       }
     }
     if (c.progress >= 1) completeConstruction(plot)
@@ -1157,6 +1732,15 @@ export function tickSim(dtGame: number, dtReal: number): void {
     if (b.fresh > 0) b.fresh = Math.max(0, b.fresh - dtReal)
     if (b.flash > 0) b.flash = Math.max(0, b.flash - dtReal * 0.8)
   }
+
+  // R102/R103: economic health and occupancy state transitions are driven
+  // by the economic model (economy.ts), not by this frame loop.
+  applyUnderFundingDecay(dtReal)
+
+  // R111: policy consequence cascade — apply visible decay for high taxes
+  // and budget changes.  Run after building decay so the health delta is
+  // visible on the same tick.
+  applyPolicyConsequences(dtReal)
 }
 
 // ---- Accessors (selection API, UI, tests) ----------------------------------
@@ -1177,6 +1761,9 @@ export function resetSim(): void {
   world.activity = 'quiet'
   world.characters = []
   world.buildings = {}
+  world.regionalMassing = []
+  world.regionalPlants = []
+  world.homes = HOUSES.map((home) => ({ ...home }))
   world.plots = PLOTS.map((p) => ({
     x: p.x,
     z: p.z,
@@ -1192,9 +1779,18 @@ export function resetSim(): void {
   world.connectors = []
   world.overflow = []
   world.roadGraph = null
+  world.traffic = null
+  setTrafficSeed(DEFAULT_SEED)
+  world.waterFleet = []
   world.districtStyles = {}
   world.layoutDoc = null
+  world.avatars = []
   world.initialized = false
+  world.characterTargetCount = 15
+  world.needsCharacterAdjustment = true
+  world.commercialFootTraffic = 0
   autoTaskTimer = 5
+  economyAccum = 0
   taskSeq = 0
+  Economy.clearEconomy()
 }

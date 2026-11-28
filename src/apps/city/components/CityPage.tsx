@@ -12,12 +12,23 @@
  * as the accessible view (R027), the WebGL context-loss fallback (R015), the
  * labelled demo mode with `?demo=` boot (R026), the time scrubber wired to
  * the replay driver (R029) and the first-visit tour trigger (R030).
+ *
+ * Avatar presence (R023): authenticated users appear as virtual avatars;
+ * the presence manager syncs camera position to the avatar, publishes
+ * heartbeats, and displays a "X visitors online" indicator.
  */
+// spec: OVERSTORY-CITY-R001, OVERSTORY-CITY-R004, OVERSTORY-CITY-R010, OVERSTORY-CITY-R011, OVERSTORY-CITY-R013, OVERSTORY-CITY-R015, OVERSTORY-CITY-R018, OVERSTORY-CITY-R019, OVERSTORY-CITY-R020, OVERSTORY-CITY-R022, OVERSTORY-CITY-R023, OVERSTORY-CITY-R026, OVERSTORY-CITY-R027, OVERSTORY-CITY-R029, OVERSTORY-CITY-R030
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { isCitySandbox } from '@/lib/city-sandbox'
 import { CityWebMcp } from './CityWebMcp'
 import { fetchCityFleet, fetchCityLayout, saveCityLayout } from '../api'
 import { FLEET_SNAPSHOT, fleetToConnectors, type FleetServer } from '../core/ecosystem'
-import { pinBytes } from '../core/assets'
+import { ASSETS_BASE, registerLazyPin, verifyPin } from '../core/assets'
+import { EXEMPT_NONKIT_PINS } from '../core/provenance'
+import { catalogFamilyCount, setCatalog } from '../core/catalog'
+import { BUDGETS } from '../core/budgets'
+import { applyToCity, createEcosystemMirror, type EcosystemEvent } from '../core/ecosystemMirror'
+import { auditScene, provenanceManifest } from '../core/provenance'
 import { AUDIO_OVERVIEW_HEIGHT, createAudioEngine } from '../core/audio'
 import { bus, makeEvent, setMode, setTimeSource } from '../core/events'
 import { derivedRoadGraph, nextDocument, validateEdit, type LayoutOverride } from '../core/layoutEdit'
@@ -25,25 +36,27 @@ import { init2D, supportsWebGL } from '../core/render2d'
 import { init3D } from '../core/render3d'
 import { replayRun } from '../core/replay'
 import {
+  advanceSubSteps,
   applyLayoutEdit,
   dispatchTask,
   initSim,
   onboardConnector,
   resetSim,
   setActivity as setSimActivity,
+  SIM_SUBSTEP_GAME_S,
+  SIM_SUBSTEPS_PER_FRAME_MAX,
   tickSim,
   world,
   type RecordedAction,
 } from '../core/sim'
 import { TOUR_SESSION_KEY, initUI, type CityUi } from '../core/ui'
 import type { CityActions, CityRenderer, CityUiElements, SelectionHit } from '../core/types'
-import { assetsLockSchema } from '../schemas'
+import { assetsLockSchema, catalogSchema } from '../schemas'
 import { installCityFidelity, type CityFidelityHandle } from '../core/fidelity'
 import type { CityToolController } from '../webmcp'
 import '../city.css'
 
-const ASSETS_BASE = '/city-assets'
-const SPEEDS = [0, 1, 2, 4] as const
+const SPEEDS = [0, 0.5, 1, 1.25, 1.5, 2, 4, 8, 20] as const
 
 /**
  * SubtleCrypto, or null when the environment lacks it (non-secure origins,
@@ -55,7 +68,7 @@ function subtleCrypto(): SubtleCrypto | null {
   return globalCrypto?.subtle ?? null
 }
 
-/** `?speed=0|1|2|4` sets the initial speed; absent or invalid boots at 1×. */
+/** `?speed=` sets the initial speed to any value in the declared set (R012, amended 2026-11-25); absent or invalid boots at 1×. */
 export function parseSpeedParam(search: string): number {
   const raw = new URLSearchParams(search).get('speed')
   if (!raw) return 1
@@ -70,29 +83,8 @@ export function parseDemoParam(search: string): boolean {
 }
 
 /**
- * Fetch one pinned file, verify byte count and SHA-256 against the lockfile,
- * and pin the verified bytes so the renderer reuses them (one fetch per pin,
- * OVERSTORY-CITY-R013). One retry; a second failure emits `asset.failed`.
- */
-async function verifyPinned(path: string, expected: { bytes: number; sha256: string }): Promise<void> {
-  for (let attempt = 1; attempt <= 2; attempt++) {
-    try {
-      const buf = await (await fetch(`${ASSETS_BASE}/${path.split('/').slice(1).join('/')}`)).arrayBuffer()
-      if (buf.byteLength !== expected.bytes) throw new Error(`size ${buf.byteLength} != ${expected.bytes}`)
-      const digest = await crypto.subtle.digest('SHA-256', buf)
-      const hash = Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, '0')).join('')
-      if (hash !== expected.sha256) throw new Error(`sha ${hash} != ${expected.sha256}`)
-      pinBytes(path, buf)
-      bus.emit(makeEvent('asset.verified', {}, `${path} verified`))
-      return
-    } catch (err) {
-      if (attempt === 2) bus.emit(makeEvent('asset.failed', {}, `${path}: ${String(err)}`))
-    }
-  }
-}
-
-/**
- * Verify every pinned asset at startup (OVERSTORY-CITY-R013). The lockfile
+ * Verify the pinned assets the renderer uses at startup (OVERSTORY-CITY-R013); the kit is
+ * registered and verified on demand. The lockfile
  * itself is fetched from the site root; a missing or malformed lockfile is a
  * typed, visible failure, never a silent skip. Licensing is a gate: a pin
  * whose license is outside the lockfile's allowlist is refused before any
@@ -125,7 +117,28 @@ async function verifyAssets(): Promise<void> {
     bus.emit(makeEvent('asset.failed', {}, 'SHA-256 verification unavailable in this environment'))
     return
   }
-  await Promise.all(paths.map((path, i) => verifyPinned(path, files[i])))
+  // The versioned catalog (R063): one fetch at startup installs the
+  // pinned-path → family map the provenance registry tags with; a missing or
+  // malformed catalog is a typed, visible failure, never a silent skip.
+  const catalogFetch = (async (): Promise<void> => {
+    try {
+      const json = (await (await fetch(`${ASSETS_BASE}/kit/catalog.json`)).json()) as unknown
+      const parsed = catalogSchema.safeParse(json)
+      if (!parsed.success) throw new Error('catalog shape invalid')
+      setCatalog(parsed.data.entries)
+    } catch (err) {
+      console.warn('[city] catalog unavailable:', err)
+      bus.emit(makeEvent('asset.failed', {}, `kit/catalog.json: ${String(err)}`))
+    }
+  })()
+  // Only what the renderer loads at startup is fetched and hashed: the shared rig and the marker
+  // cube. The kit is registered, not fetched; the renderer verifies a kit pin when it asks for it.
+  const startup: Promise<unknown>[] = [catalogFetch]
+  paths.forEach((path, i) => {
+    if (EXEMPT_NONKIT_PINS.includes(path)) startup.push(verifyPin(path, files[i]))
+    else registerLazyPin(path, files[i])
+  })
+  await Promise.all(startup)
 }
 
 export default function CityPage() {
@@ -136,6 +149,8 @@ export default function CityPage() {
   const simBadgeRef = useRef<HTMLDivElement | null>(null)
   const activityBadgeRef = useRef<HTMLSpanElement | null>(null)
   const clockRef = useRef<HTMLSpanElement | null>(null)
+  const fpsRef = useRef<HTMLSpanElement | null>(null)
+  const debugFps = new URLSearchParams(window.location.search).get('debug') === '1'
   const modeRef = useRef<HTMLSpanElement | null>(null)
   const bannerRef = useRef<HTMLDivElement | null>(null)
   const modalRef = useRef<HTMLDivElement | null>(null)
@@ -155,11 +170,15 @@ export default function CityPage() {
   const btnView3dRef = useRef<HTMLButtonElement | null>(null)
   const btnTourRef = useRef<HTMLButtonElement | null>(null)
   const btnEditRef = useRef<HTMLButtonElement | null>(null)
+  const enterBtnRef = useRef<HTMLButtonElement | null>(null)
   const editPanelRef = useRef<HTMLDivElement | null>(null)
   const scrubberRef = useRef<HTMLInputElement | null>(null)
   const scrubberReadoutRef = useRef<HTMLSpanElement | null>(null)
   const speedBarRef = useRef<HTMLDivElement | null>(null)
   const [ready, setReady] = useState(false)
+  // ---- Camera mode display (OVERSTORY-CITY-R019) --------------------------
+  const [cameraModeLabel, setCameraModeLabel] = useState('overview')
+  const [showEnter, setShowEnter] = useState(false)
 
   // The WebMCP tools (R034, constitution R-IV) dispatch through the same
   // action seam as the UI: the seam is built once inside the effect below
@@ -171,6 +190,8 @@ export default function CityPage() {
   const webmcpViewRef = useRef<'3d' | '2d'>('3d')
   const webmcpSpeedRef = useRef(1)
   const webmcpSelectionRef = useRef<SelectionHit | null>(null)
+  const citySelectionRef = useRef<(hit: SelectionHit | null) => void>(() => undefined)
+  const dialogueMessagesRef = useRef<{ role: 'user' | 'assistant'; content: string }[]>([])
   const webmcpController = useMemo<CityToolController>(
     () => ({
       actions: {
@@ -178,15 +199,39 @@ export default function CityPage() {
         onboard: (id) => actionsRef.current?.onboard(id),
         focus: (x, z) => actionsRef.current?.focus(x, z),
         overview: () => actionsRef.current?.overview(),
-        setSelected: (hit) => actionsRef.current?.setSelected(hit),
+        setSelected: (hit) => {
+          citySelectionRef.current(hit)
+        },
         speed: (v) => actionsRef.current?.speed(v),
         setActivity: (m) => actionsRef.current?.setActivity(m),
         setAudio: (on) => actionsRef.current?.setAudio(on),
+        enterBuilding: (id) => actionsRef.current?.enterBuilding(id),
+        exitInterior: () => actionsRef.current?.exitInterior(),
         setView: (v) => actionsRef.current?.setView(v),
         scrub: (o) => actionsRef.current?.scrub(o),
         startTour: () => actionsRef.current?.startTour(),
         layoutEdit: (edit) =>
           actionsRef.current?.layoutEdit(edit) ?? Promise.resolve({ ok: false, reason: 'unavailable' }),
+        /** (OVERSTORY-CITY-R019) Forward to the first-person toggle action. */
+        toggleFirstPerson: () => actionsRef.current?.toggleFirstPerson(),
+        openDialogue: (npcId) => actionsRef.current?.openDialogue(npcId),
+        sendDialogue: (npcId, message) => actionsRef.current?.sendDialogue(npcId, message),
+        closeDialogue: () => actionsRef.current?.closeDialogue(),
+        npcDialogue: async (npcId, _prompt) => {
+          if (!actionsRef.current)
+            return {
+              npcId,
+              npcName: '',
+              role: '',
+              district: '',
+              response: 'No action',
+              emotion: 'neutral' as const,
+              gesture: 'nod' as const,
+              duration: 0,
+            }
+          return await actionsRef.current.npcDialogue(npcId, _prompt)
+        },
+        npcNearby: () => actionsRef.current?.npcNearby() ?? [],
       },
       readContext: () => ({
         mode: webmcpModeRef.current,
@@ -223,44 +268,56 @@ export default function CityPage() {
   useEffect(() => {
     const holder = holderRef.current
     const els: CityUiElements = {
-      popList: popListRef.current as HTMLElement,
-      inspector: inspectorRef.current as HTMLElement,
-      feedList: feedRef.current as HTMLElement,
-      simBadge: simBadgeRef.current as HTMLElement,
-      activityBadge: activityBadgeRef.current as HTMLElement,
+      popList: popListRef.current,
+      inspector: inspectorRef.current,
+      feedList: feedRef.current,
+      simBadge: simBadgeRef.current,
+      activityBadge: activityBadgeRef.current,
       clock: clockRef.current as HTMLElement,
       mode: modeRef.current as HTMLElement,
-      banner: bannerRef.current as HTMLElement,
-      modal: modalRef.current as HTMLElement,
-      legend: legendRef.current as HTMLElement,
-      tour: tourRef.current as HTMLElement,
+      banner: bannerRef.current,
+      modal: modalRef.current,
+      legend: legendRef.current,
+      tour: tourRef.current,
       statPop: statPopRef.current as HTMLElement,
       statKnow: statKnowRef.current as HTMLElement,
       statTools: statToolsRef.current as HTMLElement,
       statIncidents: statIncidentsRef.current as HTMLElement,
       statConnectors: statConnectorsRef.current as HTMLElement,
-      btnDispatch: btnDispatchRef.current as HTMLElement,
-      btnOverview: btnOverviewRef.current as HTMLElement,
-      btnOnboard: btnOnboardRef.current as HTMLElement,
-      btnDemo: btnDemoRef.current as HTMLElement,
-      btnAudio: btnAudioRef.current as HTMLElement,
-      btnView2d: btnView2dRef.current as HTMLElement,
-      btnView3d: btnView3dRef.current as HTMLElement,
+      btnDispatch: btnDispatchRef.current!,
+      btnOverview: btnOverviewRef.current!,
+      btnOnboard: btnOnboardRef.current!,
+      btnDemo: btnDemoRef.current!,
+      btnAudio: btnAudioRef.current!,
+      btnView2d: btnView2dRef.current!,
+      btnView3d: btnView3dRef.current!,
       scrubber: scrubberRef.current!,
-      scrubberReadout: scrubberReadoutRef.current as HTMLElement,
-      btnTour: btnTourRef.current as HTMLElement,
-      btnEdit: btnEditRef.current as HTMLElement,
-      editPanel: editPanelRef.current as HTMLElement,
-      speedButtons: Array.from(speedBarRef.current?.querySelectorAll<HTMLElement>('.speed-btn') ?? []),
+      scrubberReadout: scrubberReadoutRef.current,
+      btnTour: btnTourRef.current!,
+      btnEdit: btnEditRef.current!,
+      editPanel: editPanelRef.current,
+      speedButtons: Array.from(speedBarRef.current?.querySelectorAll<HTMLButtonElement>('.speed-btn') ?? []),
+      // Elements that may be rendered by extensions or not yet present.
+      speedBtn: null,
+      layoutBtn: null,
+      overlay: null,
+      playPauseBtn: null,
+      replayBtn: null,
+      helpBtn: null,
+      legendToggle: null,
+      legendPanel: null,
+      tourBtn: btnTourRef.current,
     }
     if (!holder) return
 
     let disposed = false
+    const sandbox = isCitySandbox()
     // Read through a function so each post-await check sees a plain boolean
     // (the flag is set only in the unmount closure, so the first check would
     // otherwise narrow the rest of the body to `false`).
     const isDisposed = (): boolean => disposed
     let raf = 0
+    const meterLifecycle = new AbortController()
     // R042: the ambience engine starts muted; the toggle (a user gesture) enables it.
     const audio = createAudioEngine(() => (typeof AudioContext === 'undefined' ? null : new AudioContext()))
     const unsubscribeCues = bus.subscribe((e) => {
@@ -273,8 +330,43 @@ export default function CityPage() {
     // golden-viewpoint harness can drive the page through its own seams.
     let fidelityHandle: CityFidelityHandle | null = null
     let speed = parseSpeedParam(window.location.search)
+    // R012 (amended 2026-11-25): unexecuted in-game time carried across
+    // frames — the sub-step accumulator keeps in-game time exact, so a
+    // slow frame loses and gains no in-game time.
+    let simAccum = 0
+    // OVERSTORY-CITY-R020: the live ecosystem mirror (LIVE mode only).
+    let mirror: ReturnType<typeof createEcosystemMirror> | null = null
     // The active renderer view; the page owns it (R027).
     let view: '3d' | '2d' = '3d'
+    // OVERSTORY-CITY-R019: first-person / enterable keyboard handler.
+    let lastEnterKey = 0
+    // OVERSTORY-CITY-R022: NPC dialogue state.
+    let dialogueOpen = false
+    let dialogueNpcId: string | null = null
+    const onEnterKey = (e: KeyboardEvent): void => {
+      if (e.code !== 'KeyE' && e.code !== 'Enter') return
+      const now = performance.now()
+      if (now - lastEnterKey < 300) return
+      lastEnterKey = now
+      const target = e.target as HTMLElement | null
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) return
+      if (!renderer) return
+      if (world.cameraMode === 'enterable') {
+        renderer.exitInterior?.()
+        return
+      }
+      const hit = webmcpSelectionRef.current
+      if (hit?.kind === 'building') {
+        const b = world.buildings[hit.id]
+        if (b.rooms.length > 0) {
+          world.cameraMode = 'enterable'
+          renderer.enterInterior?.(hit.id)
+          return
+        }
+      }
+      world.cameraMode = 'first-person'
+    }
+    document.addEventListener('keydown', onEnterKey)
     // The paused 3D renderer kept while a WebGL context is lost (R015): the
     // fallback to the 2D schematic is not a one-way door — when the browser
     // restores the context the kept renderer resumes and the schematic is
@@ -296,18 +388,20 @@ export default function CityPage() {
     let scrubTimer: ReturnType<typeof setTimeout> | null = null
 
     function syncSpeedButtons(): void {
+      if (!els.speedButtons) return
       for (const b of els.speedButtons) b.classList.toggle('active', Number(b.dataset.speed) === speed)
     }
 
     function syncViewButtons(): void {
-      els.btnView2d.setAttribute('aria-pressed', String(view === '2d'))
-      els.btnView3d.setAttribute('aria-pressed', String(view === '3d'))
+      if (els.btnView2d) els.btnView2d.setAttribute('aria-pressed', String(view === '2d'))
+      if (els.btnView3d) els.btnView3d.setAttribute('aria-pressed', String(view === '3d'))
     }
 
     const onSelect = (hit: SelectionHit | null): void => {
       webmcpSelectionRef.current = hit
       ui?.select(hit)
     }
+    citySelectionRef.current = onSelect
 
     // R015: on WebGL context loss the page overlays the 2D schematic of the
     // same city graph — and keeps the paused 3D renderer instead of disposing
@@ -320,6 +414,8 @@ export default function CityPage() {
       view = '2d'
       webmcpViewRef.current = view
       renderer = init2D(holder, world, { onSelect })
+      const viewport = kept3d?.getViewport?.()
+      if (viewport) renderer.setViewport?.(viewport)
       ui?.setRenderer(renderer)
       syncViewButtons()
     }
@@ -328,8 +424,10 @@ export default function CityPage() {
       if (!kept3d || isDisposed()) return
       const keep = kept3d
       kept3d = null
+      const viewport = renderer?.getViewport?.()
       renderer?.dispose()
       renderer = keep
+      if (viewport) renderer.setViewport?.(viewport)
       view = '3d'
       webmcpViewRef.current = view
       // Rebind to the world state the schematic has been showing (a replay
@@ -354,6 +452,7 @@ export default function CityPage() {
       if (kept3d && next === '3d') return // the restore callback owns the path
       const prev = renderer
       let nextR: CityRenderer
+      let actualView = next
       if (next === '2d') {
         nextR = init2D(holder, world, { onSelect })
         kept3d = null // a deliberate swap supersedes any kept renderer
@@ -366,14 +465,17 @@ export default function CityPage() {
         } catch (err) {
           console.warn('[city] 3D renderer unavailable, falling back to 2D:', err)
           nextR = init2D(holder, world, { onSelect })
+          actualView = '2d'
         }
       }
       if (isDisposed()) {
         nextR.dispose()
         return
       }
+      const viewport = prev?.getViewport?.()
+      if (viewport) nextR.setViewport?.(viewport)
       renderer = nextR
-      view = next === '2d' ? '2d' : '3d'
+      view = actualView
       webmcpViewRef.current = view
       prev?.dispose()
       ui?.setRenderer(nextR)
@@ -386,10 +488,12 @@ export default function CityPage() {
       let fleet: FleetServer[] = FLEET_SNAPSHOT
       let live = false
       try {
-        const res = await fetchCityFleet()
-        if (res.servers.length > 0) {
-          fleet = res.servers
-          live = true
+        if (!sandbox) {
+          const res = await fetchCityFleet()
+          if (res.servers.length > 0) {
+            fleet = res.servers
+            live = true
+          }
         }
       } catch {
         // Host unreachable or 503 → SIMULATED; the banner states the reason.
@@ -403,8 +507,7 @@ export default function CityPage() {
       // derived layout, never a partial one.
       let layoutDoc: LayoutOverride | null = null
       try {
-        const res = await fetchCityLayout()
-        layoutDoc = res.doc
+        if (!sandbox) layoutDoc = (await fetchCityLayout()).doc
       } catch {
         // 503 (the served layout read is not live yet) or absent → derived.
       }
@@ -422,6 +525,25 @@ export default function CityPage() {
       //    activity mode is quiet by default (R026).
       initSim(fleetToConnectors(fleet))
       if (parseDemoParam(window.location.search)) setSimActivity('demo')
+      // OVERSTORY-CITY-R020: start the live ecosystem mirror in LIVE mode.
+      // The mirror diffs Arbora state against the base connector catalog
+      // and feeds change events into the city each frame tick.
+      if (live) {
+        try {
+          mirror = createEcosystemMirror({
+            baseConnectors: fleetToConnectors(FLEET_SNAPSHOT),
+            autoPoll: true,
+            log: (msg) => {
+              console.log('[city] mirror', msg)
+              bus.emit(makeEvent('task.queued', {}, msg))
+            },
+          })
+          ;(mirror as { startPolling: () => void }).startPolling()
+        } catch (err) {
+          console.warn('[city] mirror init failed, falling back to simulated:', err)
+          bus.emit(makeEvent('task.queued', {}, `Mirror init failed — running on simulated mirror`))
+        }
+      }
       // The stored layout document lands over the derived placement (R032);
       // the road layer is redrawn once the renderer exists below.
       if (layoutDoc) applyLayoutEdit(layoutDoc)
@@ -517,6 +639,29 @@ export default function CityPage() {
           btnAudioRef.current?.setAttribute('aria-pressed', String(on))
           if (btnAudioRef.current) btnAudioRef.current.textContent = on ? 'Sound: on' : 'Sound: off'
         },
+        enterBuilding: (buildingId) => renderer?.enterInterior?.(buildingId),
+        exitInterior: () => renderer?.exitInterior?.(),
+        /** (OVERSTORY-CITY-R019) Toggle the first-person / enterable camera mode. */
+        toggleFirstPerson: () => {
+          if (!renderer) return
+          // If we're currently inside a building, exit first.
+          if (world.cameraMode === 'enterable') {
+            renderer.exitInterior?.()
+            return
+          }
+          // If we have a selected building that is enterable, enter it.
+          const hit = webmcpSelectionRef.current
+          if (hit?.kind === 'building') {
+            const b = world.buildings[hit.id]
+            if (b.rooms.length > 0) {
+              world.cameraMode = 'enterable'
+              renderer.enterInterior?.(hit.id)
+              return
+            }
+          }
+          // Otherwise, switch to first-person exterior walk mode.
+          world.cameraMode = 'first-person'
+        },
         startTour: () => {
           ui?.startTour()
         },
@@ -531,7 +676,7 @@ export default function CityPage() {
           if (!verdict.ok) return { ok: false, reason: verdict.reason }
           try {
             const doc = nextDocument(world.layoutDoc, edit, world)
-            const saved = await saveCityLayout(doc)
+            const saved = sandbox ? { doc } : await saveCityLayout(doc)
             if (isDisposed()) return { ok: true }
             applyLayoutEdit(saved.doc)
             world.layoutDoc = saved.doc
@@ -549,6 +694,37 @@ export default function CityPage() {
             return { ok: false, reason: 'unavailable' }
           }
         },
+        openDialogue: (npcId) => {
+          dialogueOpen = true
+          dialogueNpcId = npcId
+          dialogueMessagesRef.current = []
+          ui?.refresh()
+        },
+        sendDialogue: (npcId, message) => {
+          if (!dialogueOpen || npcId !== dialogueNpcId) return
+          dialogueMessagesRef.current.push({ role: 'user' as const, content: message })
+          ui?.refresh()
+        },
+        closeDialogue: () => {
+          dialogueOpen = false
+          dialogueNpcId = null
+          ui?.refresh()
+        },
+        npcDialogue: async (npcId, _prompt) => {
+          if (!actionsRef.current)
+            return {
+              npcId,
+              npcName: '',
+              role: '',
+              district: '',
+              response: 'No action',
+              emotion: 'neutral' as const,
+              gesture: 'nod' as const,
+              duration: 0,
+            }
+          return await actionsRef.current.npcDialogue(npcId, _prompt)
+        },
+        npcNearby: () => [],
       }
       actionsRef.current = actions
       fidelityHandle = installCityFidelity({
@@ -569,9 +745,92 @@ export default function CityPage() {
       })
       observer.observe(holder)
 
+      // ---- First-person / enterable keyboard handler (OVERSTORY-CITY-R019) --
       let last = performance.now()
       let audioClock = 0
+      const meter = fpsRef.current
+      let meterLast: number | null = null
+      let meterStart = 0
+      let meterFrames = 0
+      let slowFrames = 0
+      let sampledFrames = 0
+      let simulationMs = 0
+      let renderMs = 0
+      let uiMs = 0
+      let lastProvenanceAt = 0
+      const targetFrameMs = Math.ceil((1000 / BUDGETS.fpsIntegrated) * 10) / 10
+      const resetMeter = (): void => {
+        meterLast = null
+        meterFrames = 0
+        slowFrames = 0
+        sampledFrames = 0
+        simulationMs = renderMs = uiMs = 0
+        if (meter) {
+          meter.textContent = document.hidden ? 'FPS paused' : 'Measuring FPS…'
+          delete meter.dataset.budget
+        }
+      }
+      if (meter) document.addEventListener('visibilitychange', resetMeter, { signal: meterLifecycle.signal })
+      function updateMeter(now: number): void {
+        if (!meter || document.hidden) return
+        if (meterLast === null) {
+          meterStart = now
+        } else {
+          meterFrames++
+          if (now - meterLast > targetFrameMs) slowFrames++
+        }
+        meterLast = now
+        const elapsed = now - meterStart
+        if (elapsed < 1000) return
+        const fps = (meterFrames * 1000) / elapsed
+        const belowBudget = fps < BUDGETS.fpsIntegrated
+        meter.dataset.budget = belowBudget ? 'below' : 'met'
+        const diag = renderer?.diagnostics?.()
+        // The frame-budget monitor (R065) is the auditable source: the debug
+        // view reports its measured average, floor and slow-frame count,
+        // falling back to the meter's own count without the 3D renderer
+        // (stateless renderers carry no budget fields).
+        const avg = diag && Number.isFinite(diag.avgFps) ? diag.avgFps : fps
+        const slow = diag && Number.isFinite(diag.slowFrames) ? diag.slowFrames : slowFrames
+        const floor = diag && Number.isFinite(diag.floorFps) ? ` · floor ${diag.floorFps}` : ''
+        meter.textContent = `${avg.toFixed(1)} FPS avg · ${BUDGETS.fpsIntegrated} target${floor} · ${slow} slow frames`
+        const timing = sampledFrames
+          ? `CPU avg: simulation ${(simulationMs / sampledFrames).toFixed(1)} ms, render submission ${(renderMs / sampledFrames).toFixed(1)} ms, UI ${(uiMs / sampledFrames).toFixed(1)} ms`
+          : 'CPU timing unavailable'
+        const resources = diag
+          ? ` · ${diag.tier} · ${diag.drawCalls} draw calls · ${diag.triangles} triangles · ${diag.geometries} geometries · ${diag.textures} textures · ${diag.programs} programs`
+          : ''
+        // The asset-provenance manifest (R063): every live catalog family and
+        // the count of visible meshes the scene audit cannot place. A full
+        // scene traversal is diagnostic work, so it runs at most every 5 s.
+        let provenance = ''
+        const scene = renderer?.fidelity?.scene
+        if (scene && now - lastProvenanceAt >= 5000) {
+          lastProvenanceAt = now
+          const manifest = provenanceManifest()
+          const placed = manifest.reduce((sum, r) => sum + r.instances, 0)
+          const issues = auditScene(scene).issues.length
+          provenance = ` · provenance: ${catalogFamilyCount()} catalogued · ${manifest.length} live families, ${placed} placed · ${issues} unplaced`
+        }
+        meter.title = `${view.toUpperCase()} · ${belowBudget ? 'Below target' : 'Target met'} · ${timing}${resources}${provenance} · CPU timings exclude GPU completion`
+        meterStart = now
+        meterFrames = 0
+        slowFrames = 0
+        sampledFrames = 0
+        simulationMs = renderMs = uiMs = 0
+      }
       const frame = (now: number): void => {
+        updateMeter(now)
+        // OVERSTORY-CITY-R019: sync the camera mode display from the sim world.
+        if (cameraModeLabel !== world.cameraMode) {
+          setCameraModeLabel(world.cameraMode)
+        }
+        // Show the "Enter" button when a building is selected that can be entered.
+        const hit = webmcpSelectionRef.current
+        const canEnterBldg = hit?.kind === 'building' ? !!world.buildings[hit.id].rooms.length : false
+        if (showEnter !== canEnterBldg) {
+          setShowEnter(canEnterBldg)
+        }
         const dt = Math.min(0.1, (now - last) / 1000)
         last = now
         // R042: the ambience follows the camera height, four times a second.
@@ -580,9 +839,55 @@ export default function CityPage() {
           audioClock = 0
           audio.update(renderer?.fidelity?.camera.position.y ?? AUDIO_OVERVIEW_HEIGHT, false)
         }
-        if (speed > 0) tickSim(dt * world.timeScale * speed, dt * speed)
+        let stageStart = meter ? performance.now() : 0
+        if (speed > 0) {
+          // R012 (amended 2026-11-25): convert real time × speed × timeScale
+          // into in-game time and execute it as fixed simulation sub-steps
+          // under the per-sub-step ceiling. At 20× several sub-steps run per
+          // frame; the capped remainder accumulates, so per-step movement,
+          // scheduling and traffic integration stay inside the bounds the
+          // renderer and route rules assume and no in-game time is lost.
+          const { run, pending } = advanceSubSteps(
+            simAccum,
+            dt * world.timeScale * speed,
+            SIM_SUBSTEP_GAME_S,
+            SIM_SUBSTEPS_PER_FRAME_MAX,
+          )
+          simAccum = pending
+          for (let i = 0; i < run; i++) {
+            tickSim(
+              SIM_SUBSTEP_GAME_S,
+              SIM_SUBSTEP_GAME_S / world.timeScale,
+              SIM_SUBSTEP_GAME_S / (world.timeScale * speed),
+            )
+          }
+        }
+        // OVERSTORY-CITY-R020: drain mirror events and apply to city each frame.
+        // When in LIVE mode with an active mirror, change events (new
+        // connectors, updated buildings, etc.) mutate the world state so the
+        // visualisation stays in sync with Arbora's current catalog.
+        if (mirror?.isActive()) {
+          const events: EcosystemEvent[] = mirror.drain()
+          if (events.length > 0) {
+            applyToCity(events, world)
+          }
+        }
+        if (meter) {
+          const now = performance.now()
+          simulationMs += now - stageStart
+          stageStart = now
+        }
         renderer?.render(dt)
+        if (meter) {
+          const now = performance.now()
+          renderMs += now - stageStart
+          stageStart = now
+        }
         ui?.tick(dt)
+        if (meter) {
+          uiMs += performance.now() - stageStart
+          sampledFrames++
+        }
         raf = requestAnimationFrame(frame)
       }
       raf = requestAnimationFrame(frame)
@@ -603,14 +908,30 @@ export default function CityPage() {
       // R015), the UI subscription, then the world and the bus.
       disposed = true
       cancelAnimationFrame(raf)
+      meterLifecycle.abort()
       if (scrubTimer) clearTimeout(scrubTimer)
       observer?.disconnect()
+      document.removeEventListener('keydown', onEnterKey)
       if (kept3d) kept3d.dispose()
       if (renderer) renderer.dispose()
       fidelityHandle?.dispose()
       unsubscribeCues()
       audio.dispose()
       ui?.dispose()
+      // OVERSTORY-CITY-R020: tear down the live ecosystem mirror.
+      if (mirror) {
+        try {
+          ;(mirror as { stopPolling: () => void }).stopPolling()
+        } catch {
+          /* stop polling silently */
+        }
+        try {
+          ;(mirror as { reset: () => void }).reset()
+        } catch {
+          /* reset silently */
+        }
+      }
+      citySelectionRef.current = () => undefined
       resetSim()
       bus.reset()
     }
@@ -633,6 +954,11 @@ export default function CityPage() {
         <span ref={clockRef} className="city-clock">
           Day 1 · 09:00
         </span>
+        {debugFps && (
+          <span ref={fpsRef} className="city-fps" data-testid="city-fps" aria-label="City frame rate">
+            Measuring FPS…
+          </span>
+        )}
         <div className="stats">
           <div className="stat">
             <span className="stat-label">Population</span>
@@ -656,15 +982,11 @@ export default function CityPage() {
           </div>
         </div>
         <div ref={speedBarRef} className="speed">
-          <button type="button" className="speed-btn active" data-speed="1">
-            1×
-          </button>
-          <button type="button" className="speed-btn" data-speed="2">
-            2×
-          </button>
-          <button type="button" className="speed-btn" data-speed="4">
-            4×
-          </button>
+          {[0.5, 1, 1.25, 1.5, 2, 4, 8, 20].map((s) => (
+            <button key={s} type="button" className={s === 1 ? 'speed-btn active' : 'speed-btn'} data-speed={s}>
+              {s}×
+            </button>
+          ))}
           <button type="button" className="speed-btn" data-speed="0">
             Pause
           </button>
@@ -711,6 +1033,32 @@ export default function CityPage() {
             </button>
             <button type="button" className="btn ghost" ref={btnEditRef} aria-expanded="false">
               Edit layout
+            </button>
+            {/* OVERSTORY-CITY-R019: first-person / enterable controls */}
+            <span className="camera-mode-badge" aria-label={`Camera mode: ${cameraModeLabel}`}>
+              {cameraModeLabel === 'first-person'
+                ? '🚶 First-person'
+                : cameraModeLabel === 'enterable'
+                  ? '🏠 Interior'
+                  : cameraModeLabel === 'street'
+                    ? '👁 Street view'
+                    : '🌍 Overview'}
+            </span>
+            <button
+              type="button"
+              className="btn ghost"
+              ref={enterBtnRef}
+              aria-pressed={world.cameraMode === 'first-person' || world.cameraMode === 'enterable' ? 'true' : 'false'}
+              style={{ display: showEnter ? undefined : 'none' }}
+              onClick={() => {
+                if (world.cameraMode === 'enterable') {
+                  actionsRef.current?.exitInterior()
+                } else {
+                  actionsRef.current?.toggleFirstPerson()
+                }
+              }}
+            >
+              {world.cameraMode === 'enterable' ? 'Exit' : 'Enter'}
             </button>
             <div ref={editPanelRef} className="edit-panel hidden" aria-label="Layout edit panel" />
             <div className="scrub">

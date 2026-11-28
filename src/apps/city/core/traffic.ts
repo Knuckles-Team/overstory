@@ -30,7 +30,6 @@ export interface Traffic {
   dropped: number
 }
 
-/** The event types that move along roads and what moves. */
 const MOVING: Readonly<Record<string, Mover['kind'] | undefined>> = {
   'tool.call': 'vehicle',
   'tool.result': 'vehicle',

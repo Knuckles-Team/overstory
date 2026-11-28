@@ -9,15 +9,92 @@
  */
 // spec: OVERSTORY-DESIGN-R012.6
 import { describe, expect, it } from 'vitest'
-import { crosswalksFor, deriveRoadGraph, graphConnected, route } from '../roads'
+import { crosswalksFor, deriveRoadGraph, graphConnected, pathOn, route } from '../roads'
 import type { RoadGraph } from '../roads'
 import { validateRoadEdit } from '../roads'
+import { sampleRoadCurve } from '@/apps/city/core/render3d/roads'
 
 // The bundled fixture grid (the city's layout road grid, in metres).
 const X_ROADS = [-80, -70, -60, -50, -40, -30, -20, -10, 0, 10, 20, 30]
 const Z_ROADS = [-60, -50, -40, -30, -20, -10, 0, 10, 20, 30, 40, 50, 60, 70]
 
 describe('the road network (R012.6)', () => {
+  // spec: OVERSTORY-CITY-R032
+  it('rejects curved roads that meet again beyond their shared junction', () => {
+    const horizontal = sampleRoadCurve(0, 0, 20, 0, 1, 'horizontal', 1)
+    const vertical = sampleRoadCurve(0, 0, 0, 20, 1, 'vertical', 1)
+    const horizontalBend = horizontal[Math.floor(horizontal.length / 2)].z > 0 ? 10 : -10
+    const verticalBend = vertical[Math.floor(vertical.length / 2)].x > 0 ? 10 : -10
+    const graph: RoadGraph = {
+      nodes: {
+        a: { id: 'a', x: 0, z: 0, kind: 'intersection' },
+        b: { id: 'b', x: 20, z: 0, kind: 'endpoint' },
+        c: { id: 'c', x: 0, z: 20, kind: 'endpoint' },
+      },
+      segments: { horizontal: { id: 'horizontal', from: 'a', to: 'b', curve: horizontalBend, width: 0.2 } },
+    }
+    expect(
+      validateRoadEdit(graph, {
+        kind: 'add-segment',
+        segment: { id: 'vertical', from: 'a', to: 'c', curve: verticalBend, width: 0.2 },
+      }),
+    ).toEqual({ ok: false, reason: 'overlaps-existing-segment' })
+  })
+
+  // spec: OVERSTORY-CITY-R032
+  it('rejects a crossing on the bowed part of a curved road', () => {
+    const curve = sampleRoadCurve(0, 0, 20, 0, 1, 'curved', 1)
+    const midpoint = curve[Math.floor(curve.length / 2)]
+    const graph: RoadGraph = {
+      nodes: {
+        a: { id: 'a', x: 0, z: 0, kind: 'endpoint' },
+        b: { id: 'b', x: 20, z: 0, kind: 'endpoint' },
+        c: { id: 'c', x: midpoint.x, z: midpoint.z - 0.3, kind: 'endpoint' },
+        d: { id: 'd', x: midpoint.x, z: midpoint.z + 0.3, kind: 'endpoint' },
+      },
+      segments: { curved: { id: 'curved', from: 'a', to: 'b', curve: 1, width: 0.1 } },
+    }
+    expect(Math.abs(midpoint.z)).toBeGreaterThan(0.3)
+    expect(
+      validateRoadEdit(graph, {
+        kind: 'add-segment',
+        segment: { id: 'crossing', from: 'c', to: 'd', curve: 0, width: 0.1 },
+      }),
+    ).toEqual({ ok: false, reason: 'overlaps-existing-segment' })
+  })
+
+  // spec: OVERSTORY-DESIGN-R012.6, OVERSTORY-CITY-R032
+  it('rejects crossing and overlapping road corridors but permits shared junctions', () => {
+    const graph: RoadGraph = {
+      nodes: {
+        a: { id: 'a', x: 0, z: 0, kind: 'intersection' },
+        b: { id: 'b', x: 20, z: 0, kind: 'endpoint' },
+        c: { id: 'c', x: 4, z: -8, kind: 'endpoint' },
+        d: { id: 'd', x: 4, z: 12, kind: 'endpoint' },
+        e: { id: 'e', x: 0, z: 1, kind: 'endpoint' },
+        f: { id: 'f', x: 20, z: 1, kind: 'endpoint' },
+        g: { id: 'g', x: 0, z: 10, kind: 'endpoint' },
+      },
+      segments: { main: { id: 'main', from: 'a', to: 'b', curve: 0, width: 2.6 } },
+    }
+    const verdict = (from: string, to: string) =>
+      validateRoadEdit(graph, { kind: 'add-segment', segment: { id: 'new', from, to, width: 2.6, curve: 0 } })
+    expect(verdict('c', 'd')).toEqual({ ok: false, reason: 'overlaps-existing-segment' })
+    expect(verdict('e', 'f')).toEqual({ ok: false, reason: 'overlaps-existing-segment' })
+    expect(verdict('a', 'g')).toEqual({ ok: true })
+  })
+
+  it('uses one deterministic curved centreline for asphalt and traffic', () => {
+    const samples = sampleRoadCurve(0, 0, 20, 0, 1, 'traffic-proof', 2)
+    expect(samples.length).toBeGreaterThan(8)
+    // The curve is real geometry, not a rectangular texture illusion.
+    expect(samples.some((sample) => Math.abs(sample.z) > 0.1)).toBe(true)
+    // Endpoint continuity means a route can hand a car between segments
+    // without teleporting it to a hidden straight-lane origin.
+    expect(samples[0]).toMatchObject({ x: 0, z: 0 })
+    expect(samples[samples.length - 1]).toMatchObject({ x: 20, z: 0 })
+  })
+
   it('network_and_edits: the generated graph is connected, every intersection has crosswalks, and an edit is refused when it disconnects the graph and otherwise persists and re-routes', () => {
     const graph = deriveRoadGraph(X_ROADS, Z_ROADS)
     // The generated grid is connected.
@@ -83,5 +160,41 @@ describe('the road network (R012.6)', () => {
     expect(route(next, 'n0:0', 'n2:0')).toBeNull()
     // The remaining connected pair still routes.
     expect(route(next, 'n1:0', 'n2:0')).not.toBeNull()
+  })
+})
+
+describe('road-centreline movement (R032)', () => {
+  const graph: RoadGraph = {
+    nodes: {
+      a: { id: 'a', x: 0, z: 0, kind: 'endpoint' },
+      b: { id: 'b', x: 40, z: 0, kind: 'intersection' },
+      c: { id: 'c', x: 40, z: 30, kind: 'endpoint' },
+      d: { id: 'd', x: 100, z: 0, kind: 'endpoint' },
+      e: { id: 'e', x: 120, z: 0, kind: 'endpoint' },
+    },
+    segments: {
+      ab: { id: 'ab', from: 'a', to: 'b', curve: 1, width: 4 },
+      bc: { id: 'bc', from: 'b', to: 'c', curve: 0, width: 4 },
+      de: { id: 'de', from: 'd', to: 'e', curve: 0, width: 4 },
+    },
+  }
+  it('follows curved road samples instead of jumping between intersections', () => {
+    const points = sampleRoadCurve(0, 0, 40, 0, 1, 'ab', 1.8)
+    const start = points[5]
+    const path = pathOn(graph, start.x, start.z, 40, 20)
+    expect(path).not.toBeNull()
+    expect(path!.some(([x, z]) => x > start.x && x < 39 && Math.abs(z) > 0.2)).toBe(true)
+    expect(path!.some(([x, z]) => Math.abs(x - 40) < 0.001 && Math.abs(z) < 0.001)).toBe(true)
+    expect(path!.at(-1)).toEqual([40, 20])
+  })
+  it('uses the portion of one edge between two points without detouring through a node', () => {
+    const points = sampleRoadCurve(0, 0, 40, 0, 1, 'ab', 1.8)
+    const start = points[5],
+      end = points[12]
+    const path = pathOn(graph, start.x, start.z, end.x, end.z)!
+    expect(path.every(([x]) => x >= start.x - 0.001 && x <= end.x + 0.001)).toBe(true)
+  })
+  it('does not invent a connection between disconnected road components', () => {
+    expect(pathOn(graph, 40, 20, 110, 0)).toBeNull()
   })
 })

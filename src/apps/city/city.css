@@ -31,6 +31,15 @@
 }
 
 /* ---- Top bar ---------------------------------------------------------------- */
+.city-fps {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.city-fps[data-budget='below'] {
+  color: #ffb178;
+}
+
 .city-topbar {
   display: flex;
   align-items: center;
@@ -138,6 +147,12 @@
   color: var(--city-gold);
   border-color: var(--city-gold);
   background: rgba(255, 209, 102, 0.12);
+}
+/* OVERSTORY-CITY-R023: visitor presence badge. */
+.badge.visitors {
+  color: var(--city-gold);
+  border-color: var(--city-gold);
+  background: rgba(255, 209, 102, 0.15);
 }
 
 /* ---- Stage ------------------------------------------------------------------- */
@@ -687,4 +702,142 @@
 }
 .pop-row:focus-visible {
   background: rgba(55, 208, 195, 0.14);
+}
+
+/* ---- NPC Dialogue overlay (OVERSTORY-CITY-R022) ------------------------------- */
+.city-dialogue-overlay {
+  position: fixed;
+  right: 310px;
+  bottom: 14px;
+  z-index: 55;
+  pointer-events: auto;
+}
+
+.city-dialogue-panel {
+  width: 380px;
+  max-height: 420px;
+  background: var(--city-panel);
+  border: 1px solid var(--city-accent);
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.45);
+}
+
+.dialogue-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--city-panel-border);
+  background: rgba(55, 208, 195, 0.06);
+}
+
+.dialogue-npc-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.dialogue-npc-name {
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--city-accent);
+}
+
+.dialogue-npc-role {
+  font-size: 10.5px;
+  color: var(--city-text-dim);
+}
+
+.dialogue-npc-list {
+  display: flex;
+  gap: 4px;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--city-panel-border);
+  overflow-x: auto;
+  flex-wrap: nowrap;
+}
+
+.npc-list-item {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--city-panel-border);
+  color: var(--city-text);
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 11px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.npc-list-item.active {
+  background: rgba(55, 208, 195, 0.14);
+  border-color: var(--city-accent);
+  color: var(--city-accent);
+}
+
+.npc-list-item:hover {
+  background: rgba(55, 208, 195, 0.08);
+}
+
+.dialogue-response {
+  padding: 12px 14px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--city-text);
+  overflow-y: auto;
+  flex: 1;
+  min-height: 60px;
+  max-height: 200px;
+  border-bottom: 1px solid var(--city-panel-border);
+}
+
+.dialogue-emotion {
+  display: inline-block;
+  margin-right: 6px;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.dialogue-response-text {
+  font-style: italic;
+}
+
+.dialogue-loading {
+  padding: 12px 14px;
+  font-size: 12px;
+  color: var(--city-text-dim);
+  font-style: italic;
+  border-bottom: 1px solid var(--city-panel-border);
+}
+
+.dialogue-input-form {
+  display: flex;
+  gap: 6px;
+  padding: 10px 14px;
+}
+
+.dialogue-input {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--city-panel-border);
+  border-radius: 8px;
+  padding: 8px 12px;
+  color: var(--city-text);
+  font-size: 12.5px;
+  outline: none;
+}
+
+.dialogue-input:focus {
+  border-color: var(--city-accent);
+}
+
+.dialogue-input:disabled {
+  opacity: 0.5;
+}
+
+.dialogue-input::placeholder {
+  color: var(--city-text-dim);
 }

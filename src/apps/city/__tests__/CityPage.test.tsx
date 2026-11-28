@@ -14,17 +14,23 @@
  * asserting, then unmounts so the effect cleanup runs and no bus ring,
  * world state or in-flight boot leaks into the next test.
  */
-// spec: OVERSTORY-CITY-R012, OVERSTORY-CITY-R013, OVERSTORY-CITY-R014, OVERSTORY-CITY-R015, OVERSTORY-CITY-R018, OVERSTORY-CITY-R026, OVERSTORY-CITY-R027, OVERSTORY-CITY-R029, OVERSTORY-CITY-R030
+// spec: OVERSTORY-CITY-R012, OVERSTORY-CITY-R013, OVERSTORY-CITY-R014, OVERSTORY-CITY-R015, OVERSTORY-CITY-R018, OVERSTORY-CITY-R026, OVERSTORY-CITY-R027, OVERSTORY-CITY-R029, OVERSTORY-CITY-R030, OVERSTORY-CITY-R063
+import { ensurePinned, lazyPinPaths } from '../core/assets'
+import { EXEMPT_NONKIT_PINS } from '../core/provenance'
 import { readFileSync } from 'node:fs'
 import { webcrypto } from 'node:crypto'
 import { join } from 'node:path'
+import * as THREE from 'three'
 import { beforeAll, describe, expect, it, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import CityPage, { parseDemoParam, parseSpeedParam } from '../components/CityPage'
 import { init3D } from '../core/render3d'
-import { tickSim, world } from '../core/sim'
+import { SIM_SUBSTEP_GAME_S, tickSim, world } from '../core/sim'
+import { bus } from '../core/events'
 import { TOUR_SESSION_KEY } from '../core/ui'
-import type { CityRenderer } from '../core/types'
+import { catalogFamily, catalogFamilyCount } from '../core/catalog'
+import { clearProvenance, tagExempt, tagPlacement } from '../core/provenance'
+import type { CityFidelityCore, CityRenderer } from '../core/types'
 
 vi.mock('../core/render3d', () => ({ init3D: vi.fn() }))
 
@@ -32,6 +38,14 @@ const PUBLIC_DIR = join(__dirname, '..', '..', '..', '..', 'public')
 
 function lockJson(): Record<string, unknown> {
   return JSON.parse(readFileSync(join(PUBLIC_DIR, 'city-assets', 'assets.lock.json'), 'utf8')) as Record<
+    string,
+    unknown
+  >
+}
+
+/** The real versioned catalog on disk (the runtime catalog, R063). */
+function catalogJson(): Record<string, unknown> {
+  return JSON.parse(readFileSync(join(PUBLIC_DIR, 'city-assets', 'kit', 'catalog.json'), 'utf8')) as Record<
     string,
     unknown
   >
@@ -54,8 +68,12 @@ function fakeRenderer(): CityRenderer {
   }
 }
 
-/** Install the fetch double: fleet endpoint, lockfile (optionally mutated) and asset bytes. */
-function installFetch(mode: 'live' | 'simulated', lockOverride?: Record<string, unknown>): void {
+/** Install the fetch double: fleet endpoint, lockfile (optionally mutated), catalog and asset bytes. */
+function installFetch(
+  mode: 'live' | 'simulated',
+  lockOverride?: Record<string, unknown>,
+  catalogOverride?: unknown,
+): void {
   const lock = lockOverride ?? lockJson()
   global.fetch = vi.fn(async (input: RequestInfo | URL) => {
     const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url
@@ -85,6 +103,13 @@ function installFetch(mode: 'live' | 'simulated', lockOverride?: Record<string, 
     }
     if (url.startsWith('/city-assets/assets.lock.json')) {
       return { ok: true, status: 200, json: () => Promise.resolve(lock) } as unknown as Response
+    }
+    if (url.startsWith('/city-assets/kit/catalog.json')) {
+      return {
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve(catalogOverride ?? catalogJson()),
+      } as unknown as Response
     }
     if (url.startsWith('/city-assets/')) {
       const rel = url.replace(/^\/city-assets\//, '')
@@ -128,14 +153,73 @@ async function bootCity(mode: 'live' | 'simulated', path = '/apps/city') {
 }
 
 describe('speed and demo URL params (R012/R026)', () => {
-  it('parseSpeedParam: parses the accepted speeds and defaults to 1x', () => {
-    expect(parseSpeedParam('?speed=4')).toBe(4)
-    expect(parseSpeedParam('?speed=0')).toBe(0)
-    expect(parseSpeedParam('?speed=2')).toBe(2)
+  it('reports CPU stages and renderer resources in debug mode', async () => {
+    let frame: FrameRequestCallback | null = null
+    const raf = vi.spyOn(globalThis, 'requestAnimationFrame').mockImplementation((callback) => {
+      frame = callback
+      return 1
+    })
+    const renderer = fakeRenderer()
+    renderer.diagnostics = () => ({
+      tier: 'low',
+      drawCalls: 25,
+      triangles: 900,
+      geometries: 12,
+      textures: 4,
+      programs: 3,
+      avgFps: 58.4,
+      floorFps: 57,
+      slowFrames: 9,
+    })
+    // The provenance line (R063) walks the live scene: one catalog placement,
+    // one exempt primitive and one unplaced launch-era mesh.
+    clearProvenance()
+    const scene = new THREE.Scene()
+    const placed = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshBasicMaterial())
+    tagPlacement(placed, 'building.skyscraper-slab', 'scripts/asset-kit/stage06_buildings.py')
+    scene.add(placed)
+    const ground = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial())
+    tagExempt(ground, 'terrain')
+    scene.add(ground)
+    const rogue = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshBasicMaterial())
+    scene.add(rogue)
+    renderer.fidelity = { scene } as unknown as CityFidelityCore
+    vi.mocked(init3D).mockResolvedValue(renderer)
+    const view = await bootCity('simulated', '/apps/city?debug=1')
+    try {
+      const runFrame = (time: number) => {
+        const callback = frame as FrameRequestCallback | null
+        if (!callback) throw new Error('city frame was not scheduled')
+        callback(time)
+      }
+      runFrame(10000)
+      runFrame(11010)
+      const meter = screen.getByTestId('city-fps')
+      expect(meter.title).toContain('CPU avg: simulation')
+      expect(meter.title).toContain('25 draw calls')
+      expect(meter.title).toContain('12 geometries')
+      expect(meter.title).toContain('CPU timings exclude GPU completion')
+      // The live provenance summary (R063): the installed catalog count,
+      // the live families with their placed instances, and the meshes the
+      // scene audit cannot place.
+      const catalogCount = (catalogJson() as { entries: unknown[] }).entries.length
+      expect(meter.title).toContain(`${catalogCount} catalogued`)
+      expect(meter.title).toContain('1 live families, 1 placed · 1 unplaced')
+    } finally {
+      view.unmount()
+      raf.mockRestore()
+    }
+  })
+  it('parseSpeedParam: parses the declared speed set and defaults to 1x', () => {
+    for (const s of [0, 0.5, 1, 1.25, 1.5, 2, 4, 8, 20]) {
+      expect(parseSpeedParam(`?speed=${s}`), `speed ${s}`).toBe(s)
+    }
     expect(parseSpeedParam('')).toBe(1)
     expect(parseSpeedParam('?speed=')).toBe(1)
     expect(parseSpeedParam('?speed=bogus')).toBe(1)
-    expect(parseSpeedParam('?speed=8')).toBe(1)
+    expect(parseSpeedParam('?speed=3')).toBe(1)
+    expect(parseSpeedParam('?speed=16')).toBe(1)
+    expect(parseSpeedParam('?speed=-2')).toBe(1)
   })
 
   it('parseDemoParam: ?demo=1|true boots labelled demo, absent or invalid boots quiet', () => {
@@ -145,6 +229,55 @@ describe('speed and demo URL params (R012/R026)', () => {
     expect(parseDemoParam('?demo=0')).toBe(false)
     expect(parseDemoParam('?demo=false')).toBe(false)
     expect(parseDemoParam('?demo=bogus')).toBe(false)
+  })
+
+  it('exposes the declared speed set as buttons (0.5x-20x plus pause, R012 amended)', async () => {
+    const view = await bootCity('simulated')
+    try {
+      const speeds = Array.from(document.querySelectorAll<HTMLButtonElement>('.speed-btn')).map((b) =>
+        Number(b.dataset.speed),
+      )
+      expect([...speeds].sort((a, b) => a - b)).toEqual([0, 0.5, 1, 1.25, 1.5, 2, 4, 8, 20])
+    } finally {
+      view.unmount()
+    }
+  })
+
+  it('the frame loop executes in-game time as fixed sub-steps at the selected speed (R012 amended)', async () => {
+    let frame: FrameRequestCallback | null = null
+    const raf = vi.spyOn(globalThis, 'requestAnimationFrame').mockImplementation((callback) => {
+      frame = callback
+      return 1
+    })
+    vi.mocked(init3D).mockResolvedValue(fakeRenderer())
+    const view = await bootCity('simulated', '/apps/city?speed=20')
+    try {
+      // Drive frames at a controlled cadence: 10 ms apart, so each frame
+      // feeds 0.01 * 144 * 20 = 28.8 in-game seconds at 20x.
+      let t = performance.now() + 100 // start clear of the mount instant
+      const step = (ms: number) => {
+        const callback = frame as FrameRequestCallback | null
+        if (!callback) throw new Error('city frame was not scheduled')
+        t += ms
+        callback(t)
+      }
+      // The first frame's dt includes the wall gap since mount (bounded by
+      // the 0.1 s clamp); after it the cadence is exact.
+      step(10)
+      const before = world.clock
+      for (let i = 0; i < 30; i++) step(10)
+      const advance = world.clock - before
+      // The advance is an exact multiple of the fixed sub-step (2 s). The
+      // controlled 30 frames feed 300 ms * 144 * 20 = 864 in-game seconds
+      // and the bounded first-frame carry at most 0.1 s * 144 * 20 more;
+      // at most one sub-step stays in the accumulator.
+      expect(advance / SIM_SUBSTEP_GAME_S - Math.round(advance / SIM_SUBSTEP_GAME_S)).toBeCloseTo(0, 12)
+      expect(advance).toBeGreaterThanOrEqual(864 - SIM_SUBSTEP_GAME_S)
+      expect(advance).toBeLessThanOrEqual(864 + 0.1 * 144 * 20 + SIM_SUBSTEP_GAME_S)
+    } finally {
+      view.unmount()
+      raf.mockRestore()
+    }
   })
 })
 
@@ -204,16 +337,34 @@ describe('mode decision (R014)', () => {
     }
   })
 
-  it('verifies every pinned asset at startup (R013): the shared rig + marker verified, no failures', async () => {
+  // spec: OVERSTORY-CITY-R013.1
+  it('verifies only the pins the renderer loads at startup; the kit is registered, then verified on demand (R013.1)', async () => {
+    const lock = lockJson() as { files: Record<string, unknown> }
+    const pins = Object.keys(lock.files)
+    const startupPins = pins.filter((path) => EXEMPT_NONKIT_PINS.includes(path))
+    const kitPins = pins.filter((path) => !EXEMPT_NONKIT_PINS.includes(path))
+    expect(kitPins.length).toBeGreaterThan(0)
+    const seen: string[] = []
+    const unsub = bus.subscribe((e) => {
+      seen.push(e.type)
+    })
     const view = await bootCity('live')
     try {
-      await vi.waitFor(() => {
-        const chips = Array.from(document.querySelectorAll('.feed-item .chip-evt')).map((el) => el.textContent)
-        expect(chips.filter((t) => t === 'asset.verified')).toHaveLength(2)
-      })
-      const chips = Array.from(document.querySelectorAll('.feed-item .chip-evt')).map((el) => el.textContent)
-      expect(chips.some((t) => t === 'asset.failed')).toBe(false)
+      // Boot awaits verification before it completes. The bus is the authority.
+      expect(seen.filter((t) => t === 'asset.verified')).toHaveLength(startupPins.length)
+      expect(seen.some((t) => t === 'asset.failed')).toBe(false)
+      const glbFetches = (global.fetch as ReturnType<typeof vi.fn>).mock.calls
+        .map(([u]) => String(u))
+        .filter((u) => u.endsWith('.glb'))
+      expect(glbFetches.every((u) => u.includes('/characters/') || u.includes('marker-cube'))).toBe(true)
+      expect(lazyPinPaths()).toHaveLength(kitPins.length)
+      // The renderer asks for one kit pin: it is fetched and verified now, once.
+      expect(await ensurePinned(kitPins[0])).not.toBeNull()
+      expect(await ensurePinned(kitPins[0])).not.toBeNull()
+      expect(seen.filter((t) => t === 'asset.verified')).toHaveLength(startupPins.length + 1)
+      expect(lazyPinPaths()).toHaveLength(kitPins.length - 1)
     } finally {
+      unsub()
       view.unmount()
     }
   })
@@ -258,6 +409,54 @@ describe('mode decision (R014)', () => {
       expect(names.some((n) => n.startsWith('Alpha'))).toBe(true)
       expect(names.some((n) => n.startsWith('Beta'))).toBe(true)
     } finally {
+      view.unmount()
+    }
+  })
+})
+
+describe('asset provenance (R063): the runtime records and surfaces the live manifest', () => {
+  it('installs the versioned catalog at startup: every kit family resolves by pinned path', async () => {
+    const entries = (catalogJson() as { entries: { id: string; file: string; source: string }[] }).entries
+    const view = await bootCity('simulated')
+    try {
+      expect(
+        (global.fetch as ReturnType<typeof vi.fn>).mock.calls.some(([u]) =>
+          String(u).includes('/city-assets/kit/catalog.json'),
+        ),
+        'the catalog is fetched at startup',
+      ).toBe(true)
+      expect(catalogFamilyCount(), 'the full family count is installed').toBe(entries.length)
+      for (const entry of entries.slice(0, 5)) {
+        expect(catalogFamily(`city-assets/${entry.file}`)).toEqual({ id: entry.id, source: entry.source })
+      }
+      // The two exempt non-kit pins carry no catalog family.
+      expect(catalogFamily('city-assets/characters/robot-expressive.glb')).toBeNull()
+      expect(catalogFamily('city-assets/marker-cube.glb')).toBeNull()
+    } finally {
+      view.unmount()
+    }
+  })
+
+  it('a malformed catalog is a typed, visible failure, never a silent skip', async () => {
+    installFetch('simulated', undefined, { entries: 'not-an-array' })
+    window.history.replaceState(null, '', '/apps/city')
+    const failures: string[] = []
+    const unsub = bus.subscribe((e) => {
+      if (e.type === 'asset.failed') failures.push(e.detail ?? '')
+    })
+    const view = render(<CityPage />)
+    try {
+      await vi.waitFor(
+        () => {
+          expect(document.querySelector('.city-booting')).toBeNull()
+        },
+        { timeout: 15_000 },
+      )
+      // The page still boots: the catalog failure is a visible event, not
+      // a silent skip and not a boot abort.
+      expect(failures.some((d) => d.includes('kit/catalog.json'))).toBe(true)
+    } finally {
+      unsub()
       view.unmount()
     }
   })
@@ -382,11 +581,16 @@ describe('keyboard accessibility (R027)', () => {
 
   it('the 3D/2D toggle is keyboard operable and swaps the renderer', async () => {
     const renderer = fakeRenderer()
+    renderer.getViewport = vi.fn(() => ({ x: 40, z: -30, verticalSpan: 200 }))
+    renderer.setViewport = vi.fn()
     ;(init3D as ReturnType<typeof vi.fn>).mockResolvedValue(renderer)
     const view = await bootCity('simulated')
     try {
       const btn2d = screen.getByRole('button', { name: '2D view' })
       const btn3d = screen.getByRole('button', { name: '3D view' })
+      const holder = document.querySelector('.city-holder') as HTMLElement
+      Object.defineProperty(holder, 'clientWidth', { value: 800, configurable: true })
+      Object.defineProperty(holder, 'clientHeight', { value: 600, configurable: true })
       expect(btn2d.getAttribute('aria-pressed')).toBe('false')
       expect(btn3d.getAttribute('aria-pressed')).toBe('true')
       // Keyboard activation of the toggle (R027: no mouse-only control).
@@ -401,8 +605,11 @@ describe('keyboard accessibility (R027)', () => {
       })
       // The 3D renderer was torn down; the 2D schematic (a canvas) is up.
       expect(renderer.dispose).toHaveBeenCalledTimes(1)
-      const holder = document.querySelector('.city-holder') as HTMLElement
       expect(holder.querySelector('canvas')).not.toBeNull()
+      btn3d.click()
+      await vi.waitFor(() => {
+        expect(renderer.setViewport).toHaveBeenCalledWith({ x: 40, z: -30, verticalSpan: 200 })
+      })
     } finally {
       view.unmount()
     }
@@ -442,12 +649,13 @@ describe('WebGL context loss and restore (R015)', () => {
       // and the paused renderer was not disposed (the fallback is not a
       // one-way door).
       const holder = document.querySelector('.city-holder') as HTMLElement
-      expect(holder.querySelectorAll('canvas')).toHaveLength(2)
+      // 3D canvas + 2D schematic canvas + economic overlay canvas (R096).
+      expect(holder.querySelectorAll('canvas')).toHaveLength(3)
       expect(renderer.dispose).not.toHaveBeenCalled()
       // A manual 3D toggle is ignored while the kept renderer is paused —
       // the restore callback owns the return path.
       screen.getByRole('button', { name: '3D view' }).click()
-      expect(holder.querySelectorAll('canvas')).toHaveLength(2)
+      expect(holder.querySelectorAll('canvas')).toHaveLength(3)
       expect(renderer.dispose).not.toHaveBeenCalled()
     } finally {
       view.unmount()
@@ -456,8 +664,13 @@ describe('WebGL context loss and restore (R015)', () => {
 
   it('a restored context resumes the kept 3D renderer and drops the schematic', async () => {
     const renderer = mockInit3DWithRealCanvas()
+    renderer.getViewport = vi.fn(() => ({ x: 18, z: -26, verticalSpan: 150 }))
+    renderer.setViewport = vi.fn()
     const view = await bootCity('simulated')
     try {
+      const holder = document.querySelector('.city-holder') as HTMLElement
+      Object.defineProperty(holder, 'clientWidth', { value: 800, configurable: true })
+      Object.defineProperty(holder, 'clientHeight', { value: 600, configurable: true })
       const canvas = document.querySelector('canvas.city-3d-canvas') as HTMLCanvasElement
       canvas.dispatchEvent(new Event('webglcontextlost'))
       await vi.waitFor(() => {
@@ -469,10 +682,10 @@ describe('WebGL context loss and restore (R015)', () => {
       })
       // The kept renderer resumed: it was never disposed and the schematic
       // canvas is gone — one canvas in the holder, the 3D one.
-      const holder = document.querySelector('.city-holder') as HTMLElement
       expect(holder.querySelectorAll('canvas')).toHaveLength(1)
       expect(holder.querySelector('canvas.city-3d-canvas')).not.toBeNull()
       expect(renderer.dispose).not.toHaveBeenCalled()
+      expect(renderer.setViewport).toHaveBeenCalledWith({ x: 18, z: -26, verticalSpan: 150 })
     } finally {
       view.unmount()
     }
