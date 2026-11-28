@@ -242,6 +242,7 @@ describe('state machine (R006)', () => {
 })
 
 describe('quiet by default (R026)', () => {
+  // spec: OVERSTORY-CITY-R026.1
   it('boots quiet: no auto-task, no wander, no patrol without an operator action', () => {
     boot()
     expect(world.activity).toBe('quiet')

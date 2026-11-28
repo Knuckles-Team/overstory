@@ -42,7 +42,7 @@ describe('per-frame instance writers (R053.1)', () => {
     expect(red).toEqual([false, true, false])
   })
 
-  // spec: OVERSTORY-CITY-R053.1
+  // spec: OVERSTORY-CITY-R053.1, OVERSTORY-CITY-R052
   it('sways every canopy with one reused matrix and moves nothing but height', () => {
     const mesh = instanced(4)
     const originalsY = [1, 2, 3, 4]
@@ -56,7 +56,7 @@ describe('per-frame instance writers (R053.1)', () => {
     }
   })
 
-  // spec: OVERSTORY-CITY-R053.1
+  // spec: OVERSTORY-CITY-R053.1, OVERSTORY-CITY-R053
   it('does no rain work while the rain is hidden', () => {
     const rain = instanced(50)
     rain.visible = false
