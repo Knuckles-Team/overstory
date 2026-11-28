@@ -91,6 +91,10 @@ LAYOUT_TTL_S = 30.0
 LAYOUT_READ_OP = 'fleet.layout.overrides.read'
 LAYOUT_WRITE_OP = 'fleet.layout.overrides.write'
 
+#: The served presence operations (arbora ``api/ops/presence.py``).
+PRESENCE_READ_OP = 'fleet.city.presence'
+PRESENCE_HEARTBEAT_OP = 'fleet.city.presence.heartbeat'
+
 #: A single layout write is bounded; past this it counts as unavailable
 #: (the edit is not saved and nothing changes locally).
 LAYOUT_WRITE_TIMEOUT_S = 10.0
@@ -629,37 +633,59 @@ class CityGateway:
     # City-state (OVERSTORY-CITY-R047)
     # ------------------------------------------------------------------
 
-    async def get_city_state(self) -> dict[str, Any] | None:
-        """Return the city-state snapshot.
+    async def get_city_state(self) -> dict[str, Any]:
+        """The served city-state snapshot (``fleet.city.presence``).
 
-        In LIVE mode this probes the Arbora fleet operations
-        ``fleet.city.presence`` (current snapshot) and
-        ``fleet.city.presence.heartbeat`` (avatar publishing). When the
-        fleet is unavailable the gateway answers ``None`` and the browser
-        falls back to simulated mode.
+        Arbora answers ``{'value': <snapshot>}``; the value is returned
+        with its ``revision``, ``simulated_at``, ``layout_revision`` and
+        ``entities``. An absent, refused or malformed read is the stated
+        :class:`CityUnavailable` (the route answers 503); a typed Arbora
+        refusal passes through with its own code.
         """
 
         try:
-            value = await self._invoke('fleet.city.presence', {})
-        except Exception:
-            # No live city-state — browser will simulate.
-            return None
-        return value if isinstance(value, Mapping) else None  # type: ignore[return-value]
+            value = await self._invoke(PRESENCE_READ_OP, {})
+        except HTTPException as error:
+            if error.status_code in (501, 503):
+                raise CityUnavailable('The city state is not available') from error
+            raise
+        except Exception as error:
+            raise CityUnavailable('The city state is not available') from error
+        snapshot = value.get('value') if isinstance(value, Mapping) else None
+        if not isinstance(snapshot, Mapping) or not isinstance(
+            snapshot.get('revision'), int
+        ):
+            raise CityUnavailable('The city state answer was malformed')
+        return dict(snapshot)
 
     async def publish_heartbeat(
-        self, heartbeat: dict[str, Any]
-    ) -> dict[str, Any] | None:
-        """Publish one avatar heartbeat through the Arbora presence layer.
+        self, *, expected_revision: int, x: float, y: float, heading: float
+    ) -> dict[str, Any]:
+        """Publish the caller's own avatar move through Arbora presence.
 
-        The gateway does not enforce subject-bound rules (the caller
-        verifies that ``avatar_id`` matches the authenticated user). When
-        the fleet is unavailable the gateway answers ``None``.
+        The params are exactly Arbora's ``HeartbeatParams``:
+        ``expected_revision``, ``x``, ``y`` and ``heading``. The subject is
+        the verified caller Arbora binds, never a field of this request. A
+        typed Arbora refusal (revision conflict, rate limit, subject
+        denied) passes through with its own code; an absent presence layer
+        is the stated :class:`CityUnavailable`.
         """
 
+        params = {
+            'expected_revision': expected_revision,
+            'x': x,
+            'y': y,
+            'heading': heading,
+        }
         try:
-            value = await self._invoke(
-                'fleet.city.presence.heartbeat', {'heartbeat': heartbeat}
-            )
-        except Exception:
-            return None
-        return value if isinstance(value, Mapping) else None  # type: ignore[return-value]
+            value = await self._invoke(PRESENCE_HEARTBEAT_OP, params)
+        except HTTPException as error:
+            if error.status_code in (501, 503):
+                raise CityUnavailable('The presence layer is not available') from error
+            raise
+        except Exception as error:
+            raise CityUnavailable('The presence layer is not available') from error
+        receipt = value.get('value') if isinstance(value, Mapping) else None
+        if not isinstance(receipt, Mapping):
+            raise CityUnavailable('The presence receipt was malformed')
+        return dict(receipt)

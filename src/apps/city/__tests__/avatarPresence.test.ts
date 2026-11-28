@@ -13,7 +13,7 @@
  * - Avatar position syncs with camera
  */
 // spec: OVERSTORY-CITY-R023
-import { beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { bus } from '../core/events'
 import { resetSim, world } from '../core/sim'
 import {
@@ -497,5 +497,51 @@ describe('avatar event vocabulary', () => {
     const manager = createAvatarPresenceManager()
     expect(busEvents.some((t) => t.startsWith('avatar.heartbeat') || t === 'presence.update')).toBe(true)
     manager.disconnect()
+  })
+})
+
+// ---- Live mode speaks the host's contract (R047.1) --------------------------
+
+describe('live mode routes and body (R047.1)', () => {
+  afterEach(() => {
+    clearAuth()
+  })
+
+  // spec: OVERSTORY-CITY-R047.1
+  it('reads the snapshot route and fences the heartbeat with exactly the host fields', async () => {
+    setAuth(true, 'me')
+    const calls: { url: string; init?: RequestInit }[] = []
+    const fetchImpl = ((url: string, init?: RequestInit) => {
+      calls.push({ url, init })
+      const body = url.endsWith('/state/heartbeat')
+        ? { accepted: true, revision: 6 }
+        : {
+            revision: 5,
+            live: true,
+            entities: [{ id: 'h9', kind: 'human', x: 3, y: 4, heading: 1 }],
+          }
+      return Promise.resolve(new Response(JSON.stringify(body), { status: 200 }))
+    }) as typeof fetch
+    const manager = createAvatarPresenceManager({ fetchImpl, now: () => 1000 })
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    await manager.publishHeartbeat({
+      avatarId: 'me',
+      position: { x: 10, z: -20 },
+      heading: -1,
+      activity: 'observing',
+      timestamp: 1000,
+      zone: 'central-plaza',
+    })
+    manager.disconnect()
+    expect(calls[0].url).toBe('/api/apps/city/state')
+    const post = calls.find((c) => c.url === '/api/apps/city/state/heartbeat')
+    expect(post).toBeDefined()
+    const sent = JSON.parse(post!.init!.body as string) as Record<string, unknown>
+    expect(Object.keys(sent).sort()).toEqual(['expectedRevision', 'heading', 'x', 'y'])
+    expect(sent.expectedRevision).toBe(5)
+    expect(sent.x).toBe(10)
+    expect(sent.y).toBe(-20)
+    expect(sent.heading as number).toBeGreaterThanOrEqual(0)
+    expect(sent.heading as number).toBeLessThanOrEqual(Math.PI * 2)
   })
 })

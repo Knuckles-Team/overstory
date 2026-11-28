@@ -21,7 +21,7 @@ from __future__ import annotations
 from typing import Any, Literal
 
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from .gateway import CityGateway, CityUnavailable
 
@@ -95,32 +95,20 @@ def _doc_to_dict(doc: LayoutDocIn) -> dict[str, Any]:
 
 
 class HeartbeatIn(BaseModel):
-    """One avatar heartbeat (OVERSTORY-CITY-R047).
+    """One avatar heartbeat (OVERSTORY-CITY-R047): exactly Arbora's fields.
 
-    The gateway stores the heartbeat but does not enforce subject-bound
-    rules here — the caller (CityPage) verifies that avatar_id matches
-    the authenticated user before calling this endpoint.
+    ``expected_revision`` fences the write against the snapshot revision the
+    viewer last read; ``x``, ``y`` and ``heading`` are the move. There is no
+    subject field: Arbora binds the verified caller, and the closed model
+    refuses anything else.
     """
 
-    avatarId: str = Field(min_length=1, max_length=200)
+    model_config = ConfigDict(extra='forbid', populate_by_name=True)
+
+    expectedRevision: int = Field(ge=0)
     x: float = Field(ge=-200, le=200)
-    y: float = Field(ge=0, le=100)
-    z: float = Field(ge=-200, le=200)
+    y: float = Field(ge=-200, le=200)
     heading: float = Field(ge=0, le=6.2832)  # 0..2pi radians
-    activity: str = Field(min_length=0, max_length=100)
-    timestamp: float = Field(ge=0)
-
-
-def _heartbeat_to_wire(body: HeartbeatIn) -> dict[str, Any]:
-    """Convert the Pydantic heartbeat to its snake_case wire shape."""
-
-    return {
-        'avatar_id': body.avatarId,
-        'position': {'x': body.x, 'y': body.y, 'z': body.z},
-        'heading': body.heading,
-        'activity': body.activity,
-        'timestamp': body.timestamp,
-    }
 
 
 def build_city_router(gateway: CityGateway) -> APIRouter:
@@ -199,52 +187,43 @@ def build_city_router(gateway: CityGateway) -> APIRouter:
 
     @router.get('/state')
     async def city_state_read() -> dict[str, Any]:
-        """The current city-state snapshot (LIVE only).
+        """The served city-state snapshot.
 
-        The snapshot carries a revision number, in-game clock, layout
-        revision, and entity list (AI, NPC and avatar positions,
-        headings, activity, provenance). When Arbora is unavailable the
-        route returns a 503 — the browser then shows the labelled
-        simulated fallback.
+        It carries the revision, the simulated time, the layout revision and
+        the entity list. When Arbora is unavailable the route answers the
+        stated 503; the browser then shows the labelled simulated fallback.
         """
 
-        live = await gateway.get_city_state()
-        if live is None:
-            # No live state available — the browser shows simulated fallback.
-            return {
-                'revision': 1,
-                'clock': 32400,
-                'layoutRevision': 1,
-                'entities': [],
-                'live': False,
-            }
-        # Normalise the Arbora city-state response.
+        try:
+            live = await gateway.get_city_state()
+        except CityUnavailable as error:
+            raise HTTPException(status_code=503, detail=str(error)) from error
         return {
-            'revision': live.get('revision', 1),
-            'clock': live.get('clock', 32400),
-            'layoutRevision': live.get('layout_revision', 1),
+            'revision': live['revision'],
+            'simulatedAt': live.get('simulated_at'),
+            'layoutRevision': live.get('layout_revision', 0),
             'entities': live.get('entities', []),
             'live': True,
         }
 
     @router.post('/state/heartbeat')
     async def city_state_heartbeat(body: HeartbeatIn) -> dict[str, Any]:
-        """Publish one avatar heartbeat through the city-state layer
-        (LIVE only; anonymous sandbox receives no write path).
+        """Publish the caller's own avatar move through Arbora presence.
 
-        The gateway relays the heartbeat to Arbora's presence layer.
-        A successful publish stores the heartbeat so other viewers
-        see the avatar update on their next snapshot refresh.
+        The body is forwarded as exactly Arbora's heartbeat params. A typed
+        Arbora refusal passes its code through; an absent presence layer is
+        the stated 503 and nothing is stored.
         """
 
-        wire = _heartbeat_to_wire(body)
-        result = await gateway.publish_heartbeat(wire)
-        if result is None:
-            # Arbora presence unavailable — the heartbeat is not stored.
-            return {'accepted': False, 'reason': 'presence-unavailable'}
-        return {
-            'accepted': True,
-            'avatar_id': body.avatarId,
-        }
+        try:
+            receipt = await gateway.publish_heartbeat(
+                expected_revision=body.expectedRevision,
+                x=body.x,
+                y=body.y,
+                heading=body.heading,
+            )
+        except CityUnavailable as error:
+            raise HTTPException(status_code=503, detail=str(error)) from error
+        return {'accepted': True, 'revision': receipt.get('revision')}
 
     return router

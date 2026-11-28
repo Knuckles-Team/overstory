@@ -437,3 +437,4 @@ For R048.5, exercise a seeded vessel journey between connected berths across mul
 - `OVERSTORY-CITY-R053.1`: proof — `src/apps/city/__tests__/sceneInstances.test.ts::lights the brakes of the car at a stop line and no other`.
 - `OVERSTORY-CITY-R102.1`: proof — `src/apps/city/__tests__/buildingHealth.test.ts::tints once as a multiplier on the archetype colour and never overwrites per frame`.
 - `OVERSTORY-CITY-R101.1`: proof — `src/apps/city/__tests__/buildingHealth.test.ts::are rebuilt each economy tick, never accumulated`.
+- `OVERSTORY-CITY-R047.1`: proof — `agent/overstory/__tests__/test_city_presence.py::test_the_heartbeat_sends_exactly_arboras_params`.
