@@ -52,6 +52,7 @@
     "/arbora-readiness",
     "/observability",
     "/broker",
+    "/host-logs",
     "/usage",
     "/ecosystem",
     "/integrations",
