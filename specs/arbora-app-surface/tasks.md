@@ -472,5 +472,6 @@ R005.4.1 local source work: delete obsolete request-mode controls and state; add
 - [ ] T295 [US1] OVERSTORY-APPS-R030.13.4 Refusal
 - [ ] T296 [US1] OVERSTORY-APPS-R030.13.5 Evidence: measured at scale
 - [ ] T297 [US1] OVERSTORY-APPS-R030.13.6 Hot-path proof
-- [ ] T298 [US1] OVERSTORY-APPS-R030.10.10 Cross-repo: MEDULLA-DURABLE-KERNEL-R876
-- [ ] T299 [US1] OVERSTORY-APPS-R030.11.7 Cross-repo: MEDULLA-ORCH-VOCAB-R817
+- [ ] T298 [US1] OVERSTORY-APPS-R054 Host-log view: metadata, gap marker and access-denied clearing, bound to the host-log browser test.
+- [ ] T299 [US1] OVERSTORY-APPS-R030.10.10 Cross-repo: MEDULLA-DURABLE-KERNEL-R876
+- [ ] T300 [US1] OVERSTORY-APPS-R030.11.7 Cross-repo: MEDULLA-ORCH-VOCAB-R817

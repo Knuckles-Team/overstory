@@ -839,5 +839,12 @@ mutable parent storage alone is not a reason to require a new EG API.
 - `OVERSTORY-APPS-R030.13.4`: planned proof — `src/components/knowledge-graph/__tests__/GraphCanvas.scale.test.tsx::test_cluster_refusal_falls_back_with_reason`.
 - `OVERSTORY-APPS-R030.13.5`: planned proof — `e2e/graph-scale-served.spec.ts::report_records_the_five_measures`.
 - `OVERSTORY-APPS-R030.13.6`: planned proof — `e2e/graph-scale-served.spec.ts::clustered_start_expand_and_frame_target`.
-- `OVERSTORY-APPS-R030.10.10`: audit row for cross-repo dependency MEDULLA-DURABLE-KERNEL-R876; tracked in tasks.md::T298 until the medulla row lands.
-- `OVERSTORY-APPS-R030.11.7`: audit row for cross-repo dependency MEDULLA-ORCH-VOCAB-R817; tracked in tasks.md::T299 until the medulla row lands.
+- `OVERSTORY-APPS-R030.10.10`: audit row for cross-repo dependency MEDULLA-DURABLE-KERNEL-R876; tracked in tasks.md::T299 until the medulla row lands.
+- `OVERSTORY-APPS-R030.11.7`: audit row for cross-repo dependency MEDULLA-ORCH-VOCAB-R817; tracked in tasks.md::T300 until the medulla row lands.
+
+## Host-log view
+
+| Row | Test | Observation |
+|---|---|---|
+| `OVERSTORY-APPS-R054` | `e2e/host-log-view.browser.ts::retention_gap_clears_protected_content` | A real arbora host serves real log files and the browser holds only the sandbox session (cookie and CSRF token); the page has no password or credential input. The view renders host_instance, sequence, request, timestamp and severity. A forced rotation makes the held cursor stale (409 retention_gap): the held text is gone from the page and a gap marker shows. A revoked grant (403 workspace_denied) clears content and shows access denied. Rotated-out text never reappears. |
+| `OVERSTORY-APPS-R054` | `src/lib/__tests__/host-logs.test.ts::version_2_batch_and_refusals` | The client sends the same-origin session (credentials same-origin, no Authorization header). The version-2 batch schema rejects a missing metadata field, and the refusal union maps 409, 403 and 503 to the three closed states. |
