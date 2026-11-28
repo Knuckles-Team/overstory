@@ -31,7 +31,13 @@ import {
 } from './ecosystem'
 import { BUILDING_POS, PLOTS, HOUSES, buildingDoor, plotDoor, findPath, type Vec2 } from './layout'
 import { pathOn, type RoadGraph } from '@/lib/scene3d/roads'
-import { makeTrafficRoutes, tickTraffic, mergeEconomyVehiclesIntoFleet, vehiclesFromEconomy, type TrafficFleet } from './render3d/traffic'
+import {
+  makeTrafficRoutes,
+  tickTraffic,
+  mergeEconomyVehiclesIntoFleet,
+  vehiclesFromEconomy,
+  type TrafficFleet,
+} from './render3d/traffic'
 import { createWaterFleet, tickWaterFleet, type WaterVessel } from './waterways'
 import {
   CITY_WORLD_SEED,
@@ -562,7 +568,12 @@ function applyPolicyConsequences(dtReal: number): void {
       // High commercial tax slowly erodes building health each frame.
       const taxPenaltyPerFrame = (entry.newValue - 0.2) * 0.002 * dtReal
       for (const b of Object.values(world.buildings)) {
-        if (b.kind.includes('store') || b.kind.includes('restaurant') || b.kind.includes('mall') || b.kind.includes('office')) {
+        if (
+          b.kind.includes('store') ||
+          b.kind.includes('restaurant') ||
+          b.kind.includes('mall') ||
+          b.kind.includes('office')
+        ) {
           b.economicHealth = Math.max(0, (b.economicHealth ?? 1) - taxPenaltyPerFrame)
         }
       }

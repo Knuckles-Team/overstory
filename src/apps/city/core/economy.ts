@@ -51,7 +51,7 @@ export interface DemandMarker {
 }
 
 /** Demand markers active this tick (R101). */
-export let demandMarkers: DemandMarker[] = []
+export const demandMarkers: DemandMarker[] = []
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -579,7 +579,7 @@ export interface PolicyChange {
   effectSummary?: string
 }
 
-export let policyTimeline: PolicyChange[] = []
+export const policyTimeline: PolicyChange[] = []
 
 /** Projected treasury over next 50 ticks (R114). */
 export let projectedTreasury: number[] = []
@@ -2466,7 +2466,7 @@ function tickDemandTick(d: DistrictEconomy, _prng: Prng): void {
         if (d.zone === 'commercial' && (plot.zone === 'commercial' || !plot.zone)) matchesZone = true
         if (d.zone === 'industrial' && (plot.zone === 'industrial' || !plot.zone)) matchesZone = true
         if (matchesZone) {
-          demandMarkers.push({ plotIndex: i, zoneType: d.zone as any, demand: d.demand[d.zone] })
+          demandMarkers.push({ plotIndex: i, zoneType: d.zone, demand: d.demand[d.zone] })
         }
       }
     }
@@ -2535,7 +2535,7 @@ function computeNetRevenue(): number {
     for (const d of districts.values()) {
       if (d.zone === 'commercial') {
         const commercialBldgs = Object.values(world.buildings).filter(
-          b => b.role === d.id && (b.kind.includes('store') || b.kind.includes('restaurant')),
+          (b) => b.role === d.id && (b.kind.includes('store') || b.kind.includes('restaurant')),
         )
         if (commercialBldgs.length > 0) {
           totalIncome += world.commercialFootTraffic * 2 * (1 / commercialBldgs.length)
