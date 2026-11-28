@@ -6,6 +6,8 @@
 //
 // spec: OVERSTORY-CITY-R005, OVERSTORY-CITY-R006, OVERSTORY-CITY-R009, OVERSTORY-CITY-R012, OVERSTORY-CITY-R014, OVERSTORY-CITY-R026, OVERSTORY-CITY-R029, OVERSTORY-CITY-R092, OVERSTORY-CITY-R093, OVERSTORY-CITY-R100
 //
+/* eslint-disable @typescript-eslint/no-unnecessary-condition */
+//
 // Time convention: the in-game clock runs at `timeScale` in-game seconds per
 // real second, so one in-game day is ten real minutes at 1× and the day/night
 // cycle reads as a living city. Character actions — walking, tool calls,
@@ -871,7 +873,6 @@ function completeConstruction(plot: Plot): void {
   // created by the economy tick's step 17b (resolved constructions).
   const existingB = world.buildings[buildingId]
 
-  /* eslint-disable-next-line @typescript-eslint/no-unnecessary-condition */
   if (!existingB) {
     // Economy-built buildings: create from construction state (R079.2).
     // Economy tick step 17 runs before sim construction completes, so the

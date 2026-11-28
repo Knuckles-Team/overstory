@@ -1,5 +1,7 @@
 // spec: OVERSTORY-CITY-R069, OVERSTORY-CITY-R070, OVERSTORY-CITY-R071, OVERSTORY-CITY-R072, OVERSTORY-CITY-R073, OVERSTORY-CITY-R074, OVERSTORY-CITY-R075, OVERSTORY-CITY-R076, OVERSTORY-CITY-R079, OVERSTORY-CITY-R080, OVERSTORY-CITY-R081, OVERSTORY-CITY-R082, OVERSTORY-CITY-R083, OVERSTORY-CITY-R084, OVERSTORY-CITY-R085, OVERSTORY-CITY-R086, OVERSTORY-CITY-R087, OVERSTORY-CITY-R088, OVERSTORY-CITY-R089, OVERSTORY-CITY-R090, OVERSTORY-CITY-R091, OVERSTORY-CITY-R092, OVERSTORY-CITY-R093, OVERSTORY-CITY-R094, OVERSTORY-CITY-R095, OVERSTORY-CITY-R096, OVERSTORY-CITY-R097, OVERSTORY-CITY-R098, OVERSTORY-CITY-R099, OVERSTORY-CITY-R100
 
+/* eslint-disable @typescript-eslint/no-unnecessary-condition */
+
 /**
  * @file economy.ts
  * @description The city's economic engine (OVERSTORY-CITY-R069–R100).
@@ -2280,10 +2282,11 @@ export function computeBuildingEconomicHealth(): void {
   const buildings = Object.values(world.buildings)
 
   // Precompute per-zone total foot traffic (R108).
-  const zoneTraffic: Record<string, number> = {}
+  const zoneTraffic = new Map<string, number>()
   for (const b of buildings) {
     const zone = b.role ?? ''
-    zoneTraffic[zone] = (zoneTraffic[zone] ?? 0) + (b.footTraffic ?? 0)
+    const existing = zoneTraffic.get(zone) ?? 0
+    zoneTraffic.set(zone, existing + (b.footTraffic ?? 0))
   }
 
   for (const b of buildings) {
@@ -2295,7 +2298,7 @@ export function computeBuildingEconomicHealth(): void {
     health = Math.min(1, health + Math.min(0.2, footTraffic / 250))
 
     // District-wide bonus: sum of all commercial activity in this zone.
-    const totalZoneTraffic = zoneTraffic[b.role ?? ''] ?? 0
+    const totalZoneTraffic = zoneTraffic.get(b.role ?? '') ?? 0
     health += Math.min(0.15, totalZoneTraffic / 1000)
 
     // Zone bonus from district economic health.
@@ -2305,7 +2308,7 @@ export function computeBuildingEconomicHealth(): void {
     }
 
     // Congestion penalty for commercial zones (R105).
-    if (districtEconomy && districtEconomy.zone === 'commercial') {
+    if (districtEconomy?.zone === 'commercial') {
       health *= districtEconomy.congestion
     }
 

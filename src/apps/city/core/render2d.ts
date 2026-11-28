@@ -368,8 +368,9 @@ export function init2D(
         }
         octx.globalAlpha = 0.35
         for (const marker of demandMarkers) {
-          const plot = world.plots[marker.plotIndex]
-          if (!plot) continue
+          const plotIndex = marker.plotIndex
+          if (plotIndex < 0 || plotIndex >= world.plots.length) continue
+          const plot = world.plots[plotIndex]
           const bx = px(plot.x - PLOT_W / 2)
           const bz = pz(plot.z - PLOT_W / 2)
           const w = PLOT_W * scale
@@ -382,7 +383,7 @@ export function init2D(
           octx.strokeRect(bx, bz, w, h)
           octx.setLineDash([])
           // Demand indicator: brighter fill proportional to demand value
-          const intensity = marker.demand ?? 0.5
+          const intensity = marker.demand
           octx.globalAlpha = 0.15 + intensity * 0.25
           octx.fillStyle = `#${color.toString(16).padStart(6, '0')}`
           octx.fillRect(bx, bz, w, h)
@@ -392,7 +393,7 @@ export function init2D(
           octx.fillStyle = '#e8ecf4'
           octx.font = `${Math.max(7, scale * 1.0)}px system-ui, sans-serif`
           octx.textAlign = 'center'
-          octx.fillText(marker.demand?.toFixed(1) ?? '?', px(plot.x), pz(plot.z))
+          octx.fillText(marker.demand.toFixed(1), px(plot.x), pz(plot.z))
         }
         break
       }
@@ -433,8 +434,9 @@ export function init2D(
           // Find a service building's position for this network.
           let sx = 0
           let sz = 0
-          const bldg = world.buildings[net.buildings[0]]
-          if (bldg) {
+          const firstBldgId = net.buildings[0]
+          if (firstBldgId && firstBldgId in world.buildings) {
+            const bldg = world.buildings[firstBldgId]
             sx = bldg.x
             sz = bldg.z
           }
