@@ -38,6 +38,8 @@ import {
   tickTraffic,
   mergeEconomyVehiclesIntoFleet,
   vehiclesFromEconomy,
+  economyZone,
+  TrafficRouteError,
   type TrafficFleet,
 } from './render3d/traffic'
 import { createWaterFleet, tickWaterFleet, type WaterVessel } from './waterways'
@@ -52,7 +54,7 @@ import {
 } from './worldgen'
 import { applyDocument, derivedRoadGraph, type LayoutOverride } from './layoutEdit'
 import { bus, makeEvent, type CityEvent } from './events'
-import { defaultPrng, type Prng } from './prng'
+import { DEFAULT_SEED, defaultPrng, mulberry32, type Prng } from './prng'
 import * as Economy from './economy'
 
 // ---- Agent state machine (R006) --------------------------------------------
@@ -511,6 +513,38 @@ export function simRandom(): number {
   return rng()
 }
 
+// ---- The traffic stream (R037, R104) ----------------------------------------
+// Traffic draws from its own seeded stream, and only on the fixed economy
+// tick, so the number of frames a run takes never changes what any other
+// system draws.
+const TRAFFIC_SEED_SALT = 0x7472666b
+let trafficRng: Prng = mulberry32(DEFAULT_SEED ^ TRAFFIC_SEED_SALT)
+
+/** Seed the traffic stream (replay, tests). */
+export function setTrafficSeed(seed: number): void {
+  trafficRng = mulberry32(seed ^ TRAFFIC_SEED_SALT)
+}
+
+/** The fleet over a road graph; a leg the lane graph cannot drive leaves the fleet empty and says why. */
+function buildTrafficFleet(graph: RoadGraph): TrafficFleet {
+  const fleet: TrafficFleet = { graph, routes: [], elapsed: 0, positions: [] }
+  try {
+    fleet.routes = makeTrafficRoutes(graph)
+  } catch (error) {
+    if (!(error instanceof TrafficRouteError)) throw error
+    fleet.routeError = error.message
+    console.error(`[city] traffic has no route: ${error.message}`)
+  }
+  return fleet
+}
+
+/** Assign economy vehicles to the fleet; runs on the fixed economy tick and moves no car. */
+function assignEconomyVehicles(): void {
+  if (!world.traffic) return
+  const vehicles = vehiclesFromEconomy(trafficRng, world.buildings, world.plots)
+  mergeEconomyVehiclesIntoFleet(world.traffic, vehicles)
+}
+
 // ---- Under-funding tick tracking (R102/R103) -------------------------------
 // Tracks how many consecutive ticks each district has been under-funding.
 const underfundingTickCount = new Map<string, number>()
@@ -885,13 +919,7 @@ function completeConstruction(plot: Plot): void {
       }
     }
     if (cs) {
-      const zone = cs.archetype
-        ? cs.archetype.includes('factory') || cs.archetype.includes('warehouse')
-          ? 'industrial'
-          : cs.archetype.includes('store') || cs.archetype.includes('restaurant')
-            ? 'commercial'
-            : 'residential'
-        : 'residential'
+      const zone = economyZone(cs.archetype ?? '')
 
       // Create a building from the economy construction state.
       const b: Building = {
@@ -945,9 +973,13 @@ function completeConstruction(plot: Plot): void {
   b.economicHealth = 0.7
   b.occupancyState = 'new' as const
   b.footTraffic = 0
-  world.firstVisit = { buildingId: b.id, age: 0 }
   bus.emit(makeEvent('building.completed', { building: b.id }, `${b.name} is open for business`))
-  bus.emit(makeEvent('connector.joined', { building: b.id }, `${b.id} connected through the fleet boundary`))
+  // Only a connector is owed a first visit and joins the fleet boundary (R008, R026): an
+  // economy-built building has no tools, so nothing may task an agent to it on its own.
+  if (existingB) {
+    world.firstVisit = { buildingId: b.id, age: 0 }
+    bus.emit(makeEvent('connector.joined', { building: b.id }, `${b.id} connected through the fleet boundary`))
+  }
   plot.buildingId = buildingId
 }
 
@@ -1549,20 +1581,9 @@ function tickAgent(ch: Character, dtReal: number): void {
 
 export function tickSim(dtGame: number, dtReal: number, dtWall = dtReal): void {
   if (world.roadGraph && world.traffic?.graph !== world.roadGraph) {
-    world.traffic = { graph: world.roadGraph, routes: makeTrafficRoutes(world.roadGraph), elapsed: 0, positions: [] }
+    world.traffic = buildTrafficFleet(world.roadGraph)
   }
   if (world.traffic) tickTraffic(world.traffic, dtReal)
-  // Merge economy-spawned vehicles into the traffic fleet (R104/R106).
-  if (world.traffic) {
-    const econVehicles = vehiclesFromEconomy(
-      simRandom,
-      world.buildings,
-      world.plots,
-      Object.values(world.buildings).filter((b) => b.kind.includes('store') || b.kind.includes('restaurant')).length,
-      Object.values(world.buildings).filter((b) => b.kind.includes('factory') || b.kind.includes('warehouse')).length,
-    )
-    mergeEconomyVehiclesIntoFleet(world.traffic, econVehicles, simRandom)
-  }
   tickWaterFleet(world.waterFleet, dtWall)
   world.clock += dtGame
   world.absGameS += dtGame
@@ -1576,6 +1597,7 @@ export function tickSim(dtGame: number, dtReal: number, dtWall = dtReal): void {
     if (economyAccum >= Economy.ECONOMY_TICK_GAME_S) {
       economyAccum -= Economy.ECONOMY_TICK_GAME_S
       Economy.tickEconomy()
+      assignEconomyVehicles()
       // Character scaling runs alongside the economy tick (R092, R107).
       adjustCharacterCount(rng)
       world.needsCharacterAdjustment = false
@@ -1759,6 +1781,7 @@ export function resetSim(): void {
   world.overflow = []
   world.roadGraph = null
   world.traffic = null
+  setTrafficSeed(DEFAULT_SEED)
   world.waterFleet = []
   world.districtStyles = {}
   world.layoutDoc = null

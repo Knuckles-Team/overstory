@@ -207,3 +207,12 @@ Producer first: the fleet seam (R003) and the world producers (R002, R004, R005)
 - [ ] T174 [US5] OVERSTORY-CITY-R114 Treasury projection and construction affordability. Touches `src/apps/city/core/economy.ts` (projection logic), `src/apps/city/core/ui.ts` (treasury panel with chart), `src/apps/city/core/events.ts` (deferred events). Bound: `economy.test.ts::treasury_projection`.
 - [ ] T175 [US5] OVERSTORY-CITY-R115 Performance soak with economic activity. Touches `e2e/city-production-world.browser.ts` (economic soak test), performance measurement harness. Bound: `city-production-world.browser.ts::economic_soak`.
 - [ ] T176 [US5] OVERSTORY-CITY-R116 Closed-loop integration tests. Touches `src/apps/city/__tests__/economy.test.ts` (full loop tests), sim.ts (integration harness). Bound: `economy.test.ts::full_loop`.
+
+## Review fixes (2026-11-28)
+
+- [x] T177 [US5] OVERSTORY-CITY-R037.1 Assign economy vehicles on a changed set only; never reset position; whole-word zone classes; the dead duplicate generator in `core/traffic.ts` removed. Bound: `src/apps/city/__tests__/trafficLaneGraph.test.ts::reassigns only when the vehicle set changes and leaves every position alone`.
+- [x] T178 [US5] OVERSTORY-CITY-R014.1 Remove every Math.random and Date.now from core; seed the rain; inject the clocks. Bound: `src/apps/city/__tests__/trafficLaneGraph.test.ts::never calls Math.random or Date.now in src/apps/city/core`.
+- [x] T179 [US5] OVERSTORY-CITY-R037.2 Lane-path geometry for routes and poses. Bound: `src/apps/city/__tests__/trafficLaneGraph.test.ts::moves at most speed x dt x 1.1 between frames around every corner of every route`.
+- [x] T180 [US5] OVERSTORY-CITY-R037.3 Many-block loops from the lane graph; missing leg is an error. Bound: `src/apps/city/__tests__/trafficLaneGraph.test.ts::refuses a missing leg with an error instead of drawing a chord across the blocks`.
+- [x] T181 [US5] OVERSTORY-CITY-R026.1 First visit and connector join only for connectors; growth skips reserved plots. Bound: `src/apps/city/__tests__/sim.test.ts::boots quiet: no auto-task, no wander, no patrol without an operator action`.
+- [x] T182 [US5] OVERSTORY-CITY-R053.1 Per-instance brake lights, scratch matrices, hidden rain skip. Bound: `src/apps/city/__tests__/sceneInstances.test.ts::lights the brakes of the car at a stop line and no other`.

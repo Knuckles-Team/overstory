@@ -15,6 +15,7 @@
  * buildings, characters, labels and picking layers.
  */
 // spec: OVERSTORY-CITY-R031, OVERSTORY-DESIGN-R012.1
+import { mulberry32 } from '../prng'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js'
@@ -51,7 +52,13 @@ import type { world as SimWorld } from '../sim'
 import { derivedRoadGraph } from '../layoutEdit'
 import type { RoadGraph } from '@/lib/scene3d/roads'
 import { createRoads, sampleRoadCurve, type RoadPathSample, type RoadsApi } from './roads'
-import { makeTrafficRoutes, sampleTrafficPose, type TrafficControl, type TrafficMotion } from './traffic'
+import {
+  TrafficRouteError,
+  makeTrafficRoutes,
+  sampleTrafficPose,
+  type TrafficControl,
+  type TrafficMotion,
+} from './traffic'
 import { createJunctionControls } from './junctionControls'
 import { createRiverGeometry } from './river'
 import {
@@ -125,6 +132,79 @@ function createCoastlineRibbon(): THREE.BufferGeometry {
  */
 export const OVERVIEW_CAM = new THREE.Vector3(62, 55, 112)
 export const OVERVIEW_TARGET = new THREE.Vector3(-8, 2, 10)
+
+/** The graph's routes; a leg it cannot drive leaves the layer with no cars and says so (R037.3). */
+function routesOrNone(graph: RoadGraph): ReturnType<typeof makeTrafficRoutes> {
+  try {
+    return makeTrafficRoutes(graph)
+  } catch (error) {
+    if (!(error instanceof TrafficRouteError)) throw error
+    console.error(`[city] traffic has no route: ${error.message}`)
+    return []
+  }
+}
+
+// ---- Per-frame instance writers (module scratch: nothing is allocated per frame) ----
+const TRAFFIC_TRANSFORM = new THREE.Object3D()
+const TRAFFIC_POSE = { x: 0, z: 0, heading: 0 }
+const CANOPY_SCRATCH = new THREE.Matrix4()
+const RAIN_SCRATCH = new THREE.Matrix4()
+const BRAKE_TINT = new THREE.Color(1, 0.18, 0.18)
+const RUNNING_TINT = new THREE.Color(1, 1, 1)
+
+/** Write one instance per route; a car held at a stop line shows brake lights through its own colour. */
+export function writeTrafficInstances(
+  traffic: { body: THREE.InstancedMesh; cabin: THREE.InstancedMesh },
+  fleet: { routes: readonly Parameters<typeof sampleTrafficPose>[0][] } | null,
+  heightAt: (x: number, z: number) => number,
+): void {
+  const routes = fleet?.routes ?? []
+  traffic.body.count = traffic.cabin.count = routes.length
+  for (let i = 0; i < routes.length; i++) {
+    const route = routes[i]
+    if (!sampleTrafficPose(route, TRAFFIC_POSE)) continue
+    traffic.cabin.setColorAt(i, route.motion.waitingAt !== null ? BRAKE_TINT : RUNNING_TINT)
+    const roadY = heightAt(TRAFFIC_POSE.x, TRAFFIC_POSE.z)
+    TRAFFIC_TRANSFORM.position.set(TRAFFIC_POSE.x, roadY + 0.34, TRAFFIC_POSE.z)
+    TRAFFIC_TRANSFORM.rotation.set(0, TRAFFIC_POSE.heading, 0)
+    TRAFFIC_TRANSFORM.updateMatrix()
+    traffic.body.setMatrixAt(i, TRAFFIC_TRANSFORM.matrix)
+    TRAFFIC_TRANSFORM.position.y = roadY + 0.68
+    TRAFFIC_TRANSFORM.updateMatrix()
+    traffic.cabin.setMatrixAt(i, TRAFFIC_TRANSFORM.matrix)
+  }
+  traffic.body.instanceMatrix.needsUpdate = true
+  traffic.cabin.instanceMatrix.needsUpdate = true
+  if (traffic.cabin.instanceColor) traffic.cabin.instanceColor.needsUpdate = true
+}
+
+/** Sway every canopy instance, reusing one matrix. */
+export function swayCanopy(
+  canopy: { mesh: THREE.InstancedMesh; originalsY: ArrayLike<number>; count: number },
+  clockS: number,
+): void {
+  const { mesh, originalsY, count } = canopy
+  if (!originalsY.length) return
+  for (let i = 0; i < count; i++) {
+    mesh.getMatrixAt(i, CANOPY_SCRATCH)
+    CANOPY_SCRATCH.elements[13] = originalsY[i] + Math.sin(clockS * 1.2 + i * 0.37) * 0.06
+    mesh.setMatrixAt(i, CANOPY_SCRATCH)
+  }
+  mesh.instanceMatrix.needsUpdate = true
+}
+
+/** Move the rain; a hidden rain mesh costs nothing. Returns whether any matrix was written. */
+export function fallRain(rain: THREE.InstancedMesh, clockS: number): boolean {
+  if (!rain.visible) return false
+  for (let i = 0; i < rain.count; i++) {
+    const dropX = ((Math.sin(clockS * 2.0 + i * 0.01) * 60) % 120) - 60
+    const dropY = ((clockS * 40 + i * 3.3) % 80) - 40
+    const dropZ = ((Math.cos(clockS * 1.5 + i * 0.013) * 60) % 120) - 60
+    rain.setMatrixAt(i, RAIN_SCRATCH.makeTranslation(dropX, dropY, dropZ))
+  }
+  rain.instanceMatrix.needsUpdate = true
+  return true
+}
 
 /** The day/night factor (0 = full day, 1 = full night) for one in-game clock. */
 export function nightFactor(clock: number): number {
@@ -853,12 +933,12 @@ export function buildCityCore(
     regionalTerrainHeight,
     legacySignals,
   )
-  const traffic = { body: trafficBody, cabin: trafficCabin, routes: makeTrafficRoutes(roadGraph) }
+  const traffic = { body: trafficBody, cabin: trafficCabin, routes: routesOrNone(roadGraph) }
   const roads: RoadsApi = {
     rebuild(nextGraph): void {
       const nextRegionalGraph = 'seed:0' in nextGraph.nodes ? nextGraph : withRegionalRoads(nextGraph, regionalMassing)
       roadLayer.rebuild(nextRegionalGraph)
-      traffic.routes = makeTrafficRoutes(nextRegionalGraph)
+      traffic.routes = routesOrNone(nextRegionalGraph)
       junctionControls.rebuild(nextRegionalGraph)
       rebuildRoadsideProps(nextRegionalGraph)
     },
@@ -1186,22 +1266,22 @@ export function createCityScene(container: HTMLElement, world: World, opts: City
   // Reuse the one transform for every instanced car. Creating even this tiny
   // helper inside the frame loop is enough to become a steady GC source in a
   // scene that is intentionally left open for hours.
-  const trafficTransform = new THREE.Object3D()
   const vesselTransform = new THREE.Object3D()
   // Vehicles use real elapsed time, not the deliberately accelerated
   // simulation clock (which advances a city day in minutes during demo).
-  const trafficPose = { x: 0, z: 0, heading: 0 }
 
   // ---- Per-frame environment (day/night, houses, lamps, ships) --------------
   // Rain drop instanced mesh for atmospheric weather (R053).
   const rainDropGeo = new THREE.SphereGeometry(0.02, 4, 2)
   const rainDropMat = new THREE.MeshBasicMaterial({ color: 0x88aacc, transparent: true, opacity: 0.35 })
   const RAIN_COUNT = 2000
+  const RAIN_SEED = 0x7261696e
   const rainDrops = new THREE.InstancedMesh(rainDropGeo, rainDropMat, RAIN_COUNT)
+  const rainSeed = mulberry32(RAIN_SEED)
   for (let i = 0; i < RAIN_COUNT; i++) {
     rainDrops.setMatrixAt(
       i,
-      new THREE.Matrix4().makeTranslation(Math.random() * 120 - 60, Math.random() * 80 - 40, Math.random() * 120 - 60),
+      RAIN_SCRATCH.makeTranslation(rainSeed() * 120 - 60, rainSeed() * 80 - 40, rainSeed() * 120 - 60),
     )
   }
   scene.add(rainDrops)
@@ -1288,61 +1368,16 @@ export function createCityScene(container: HTMLElement, world: World, opts: City
     const fleet = world.traffic
     core.junctionControls.update(fleet?.elapsed ?? 0)
     core.traffic.body.count = core.traffic.cabin.count = fleet?.routes.length ?? 0
-    for (let i = 0; i < (fleet?.routes.length ?? 0); i++) {
-      const route = fleet!.routes[i]
-      if (!sampleTrafficPose(route, trafficPose)) continue
-      const roadY = regionalTerrainHeight(trafficPose.x, trafficPose.z)
-      trafficTransform.position.set(trafficPose.x, roadY + 0.34, trafficPose.z)
-      trafficTransform.rotation.set(0, trafficPose.heading, 0)
-      trafficTransform.updateMatrix()
-      core.traffic.body.setMatrixAt(i, trafficTransform.matrix)
-      trafficTransform.position.y = roadY + 0.68
-      trafficTransform.updateMatrix()
-      core.traffic.cabin.setMatrixAt(i, trafficTransform.matrix)
-    }
-    core.traffic.body.instanceMatrix.needsUpdate = true
-    core.traffic.cabin.instanceMatrix.needsUpdate = true
+    writeTrafficInstances(core.traffic, fleet, regionalTerrainHeight)
+    // Headlights follow the night for the whole fleet; brake lights are per instance.
+    ;(core.traffic.body.material as THREE.MeshStandardMaterial).emissiveIntensity = 0.3 + 0.7 * night
+    ;(core.traffic.cabin.material as THREE.MeshStandardMaterial).emissiveIntensity = 0.15
 
     // ---- Vegetation wind sway (R052) and weather (R053) ----
-    if (core.canopySway && !core.lowTier) {
-      const { mesh, originalsY, count } = core.canopySway
-      if (originalsY.length) {
-        for (let i = 0; i < count; i++) {
-          const base = originalsY[i]
-          const sway = Math.sin(clockS * 1.2 + i * 0.37) * 0.06
-          const m = new THREE.Matrix4()
-          mesh.getMatrixAt(i, m)
-          m.elements[13] = base + sway
-          mesh.setMatrixAt(i, m)
-        }
-        mesh.instanceMatrix.needsUpdate = true
-      }
-    }
-
-    // ---- Vehicle head and tail lights (R053) ----
-    if (fleet) {
-      const night = nightFactor(clockS)
-      for (const route of fleet.routes) {
-        // Headlights brighten at night; tail lights (brake) pulse on stops
-        const brake = route.motion.waitingAt !== null ? 0.8 : 0
-        const bm = core.traffic.body.material as THREE.MeshStandardMaterial
-        const cm = core.traffic.cabin.material as THREE.MeshStandardMaterial
-        bm.emissiveIntensity = 0.3 + 0.7 * night
-        cm.emissiveIntensity = 0.15 + brake * 0.6
-      }
-    }
+    if (core.canopySway && !core.lowTier) swayCanopy(core.canopySway, clockS)
 
     // ---- Rain particles (R053) ----
-    if (!core.lowTier) {
-      const rainCount = rainDrops.count
-      for (let i = 0; i < rainCount; i++) {
-        const dropX = ((Math.sin(clockS * 2.0 + i * 0.01) * 60) % 120) - 60
-        const dropY = ((clockS * 40 + i * 3.3) % 80) - 40
-        const dropZ = ((Math.cos(clockS * 1.5 + i * 0.013) * 60) % 120) - 60
-        rainDrops.setMatrixAt(i, new THREE.Matrix4().makeTranslation(dropX, dropY, dropZ))
-      }
-      rainDrops.instanceMatrix.needsUpdate = true
-    }
+    if (!core.lowTier) fallRain(rainDrops, clockS)
   }
 
   // Complete disposal at the GPU level (R018): the scene graph is traversed

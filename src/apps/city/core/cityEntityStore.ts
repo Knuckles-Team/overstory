@@ -164,13 +164,13 @@ export function createCityEntityStore(): CityEntityStore {
   }
 
   async function batchQuery(params: MedollaQueryParams): Promise<BatchReadResult> {
-    const startTime = Date.now()
+    const startTime = performance.now()
 
     try {
       // Build Medolla UQL query for batch read
       const query = buildMedollaQuery(params)
       const result = await queryMedolla(query, params)
-      const queryTimeMs = Date.now() - startTime
+      const queryTimeMs = performance.now() - startTime
 
       return {
         totalCount: result.count ?? 0,

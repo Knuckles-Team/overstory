@@ -426,3 +426,12 @@ These cases are planned. Bind tests to the full requirement IDs when implemented
 For R015, R027, R048.8 and R048.9, generate at least two different seeds and compare the complete placement manifest against both views. Verify that map assets originate from the recipe or explicit saved user pins, that changed seeds do not retain legacy fixed placements, and that each building has dry, unobstructed road and pedestrian access. Capture the full island in each view and compare world-coordinate positions and metres per visible span. During movement, switch repeatedly between views and exercise context loss and restoration: assert continuous entity identity, position, route, selection and camera focus; no duplicate tick, renderer or leaked context; and no flash of an empty view. Test reduced-motion mode separately. Measure the transition and normal rendering against the existing 60 FPS budget on the reference device.
 
 For R048.5, exercise a seeded vessel journey between connected berths across multiple water edges. Sample the entire hull envelope for land, depth, channel width and bridge clearances; refuse a route when any constraint fails. Assert bounded speed, acceleration and turn rate in real time at each simulation speed, no fixed-radius ocean orbit or visible reset, and the same vessel state in 2D and 3D across view switches and supported reconnects. Test a landlocked berth and a too-deep draft without inventing a route.
+
+## Review fixes (2026-11-28)
+
+- `OVERSTORY-CITY-R037.1`: proof — `src/apps/city/__tests__/trafficLaneGraph.test.ts::reassigns only when the vehicle set changes and leaves every position alone`.
+- `OVERSTORY-CITY-R014.1`: proof — `src/apps/city/__tests__/trafficLaneGraph.test.ts::never calls Math.random or Date.now in src/apps/city/core`.
+- `OVERSTORY-CITY-R037.2`: proof — `src/apps/city/__tests__/trafficLaneGraph.test.ts::moves at most speed x dt x 1.1 between frames around every corner of every route`.
+- `OVERSTORY-CITY-R037.3`: proof — `src/apps/city/__tests__/trafficLaneGraph.test.ts::refuses a missing leg with an error instead of drawing a chord across the blocks`.
+- `OVERSTORY-CITY-R026.1`: proof — `src/apps/city/__tests__/sim.test.ts::boots quiet: no auto-task, no wander, no patrol without an operator action`.
+- `OVERSTORY-CITY-R053.1`: proof — `src/apps/city/__tests__/sceneInstances.test.ts::lights the brakes of the car at a stop line and no other`.

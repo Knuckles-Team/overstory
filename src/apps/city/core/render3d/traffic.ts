@@ -75,6 +75,8 @@ export interface TrafficRoute {
   laneOffset: number
   phase: number
   speed: number
+  /** The speed before any economy vehicle was assigned to this route. */
+  baseSpeed?: number
   controls: TrafficControl[]
   motion: TrafficMotion
 }
@@ -84,6 +86,10 @@ export interface TrafficFleet {
   routes: TrafficRoute[]
   elapsed: number
   positions: number[]
+  /** The economy vehicle assignment last applied (see mergeEconomyVehiclesIntoFleet). */
+  economyKey?: string
+  /** Set when the lane graph could not give the fleet a route; the city then has no traffic. */
+  routeError?: string
 }
 
 /** Advance the fleet once in the simulation, independently of the active renderer. */
@@ -98,7 +104,7 @@ export function tickTraffic(fleet: TrafficFleet, dt: number): void {
   }
 }
 
-/** Sample a vehicle position with the same lane offset in either renderer. */
+/** Sample a vehicle position on its lane path, the same in either renderer. The path is already offset into the lane. */
 export function sampleTrafficPose(route: TrafficRoute, out: { x: number; z: number; heading: number }): boolean {
   const distance = route.motion.distance
   let segmentIndex = 0
@@ -110,15 +116,11 @@ export function sampleTrafficPose(route: TrafficRoute, out: { x: number; z: numb
   const startDistance = route.distances[segmentIndex] ?? 0
   const endDistance = route.distances[segmentIndex + 1] ?? route.length
   const t = Math.min(1, Math.max(0, (distance - startDistance) / Math.max(0.001, endDistance - startDistance)))
-  const startLength = Math.hypot(start.tangentX, start.tangentZ) || 1
-  const endLength = Math.hypot(end.tangentX, end.tangentZ) || 1
-  const startX = start.x - (start.tangentZ / startLength) * route.laneOffset
-  const startZ = start.z + (start.tangentX / startLength) * route.laneOffset
-  const endX = end.x - (end.tangentZ / endLength) * route.laneOffset
-  const endZ = end.z + (end.tangentX / endLength) * route.laneOffset
-  out.x = startX + (endX - startX) * t
-  out.z = startZ + (endZ - startZ) * t
-  out.heading = Math.atan2(-(end.z - start.z), end.x - start.x)
+  out.x = start.x + (end.x - start.x) * t
+  out.z = start.z + (end.z - start.z) * t
+  const dx = end.x - start.x
+  const dz = end.z - start.z
+  out.heading = Math.hypot(dx, dz) > 1e-6 ? Math.atan2(-dz, dx) : Math.atan2(-start.tangentZ, start.tangentX)
   return true
 }
 
@@ -200,110 +202,252 @@ export function advanceTraffic(
   if (travel > 0) state.passed = null
 }
 
-export function makeTrafficRoutes(liveGraph: RoadGraph): TrafficRoute[] {
-  const nodes = Object.values(liveGraph.nodes)
-  if (!nodes.length) return []
+/** A leg of the lane graph is missing: the city has no honest route to drive. */
+export class TrafficRouteError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'TrafficRouteError'
+  }
+}
+
+/** The lane path of a centreline: each point moved by the lane offset along its own normal. */
+function lanePath(points: readonly RoadPathSample[], laneOffset: number): RoadPathSample[] {
+  return points.map((p) => {
+    const length = Math.hypot(p.tangentX, p.tangentZ) || 1
+    return {
+      x: p.x - (p.tangentZ / length) * laneOffset,
+      z: p.z + (p.tangentX / length) * laneOffset,
+      tangentX: p.tangentX,
+      tangentZ: p.tangentZ,
+    }
+  })
+}
+
+/** Cumulative distance along a path. A vehicle travels these metres, so a frame never moves it further. */
+function pathDistances(points: readonly RoadPathSample[]): number[] {
+  const distances = [0]
+  for (let p = 1; p < points.length; p++) {
+    distances.push((distances[p - 1] ?? 0) + Math.hypot(points[p].x - points[p - 1].x, points[p].z - points[p - 1].z))
+  }
+  return distances
+}
+
+const LANE_OFFSET = -0.72
+const LATTICE = [0.15, 0.5, 0.85]
+/** Lattice cells (column, row) that make one loop; together they cover many blocks of the city. */
+const LOOP_CELLS: readonly (readonly [number, number][])[] = [
+  [
+    [0, 0],
+    [1, 0],
+    [1, 1],
+    [0, 1],
+  ],
+  [
+    [1, 0],
+    [2, 0],
+    [2, 1],
+    [1, 1],
+  ],
+  [
+    [0, 1],
+    [1, 1],
+    [1, 2],
+    [0, 2],
+  ],
+  [
+    [1, 1],
+    [2, 1],
+    [2, 2],
+    [1, 2],
+  ],
+  [
+    [0, 0],
+    [1, 0],
+    [2, 0],
+    [2, 1],
+    [2, 2],
+    [1, 2],
+    [0, 2],
+    [0, 1],
+  ],
+]
+
+/** The node sequences of the closed loops, each leg a shortest path on the lane graph. */
+function loopNodeSequences(liveGraph: RoadGraph): string[][] {
+  const driven = new Set<string>()
+  for (const segment of Object.values(liveGraph.segments)) {
+    driven.add(segment.from)
+    driven.add(segment.to)
+  }
+  const nodes = Object.values(liveGraph.nodes).filter((node) => driven.has(node.id))
+  if (nodes.length < 2) return []
   const minX = Math.min(...nodes.map((node) => node.x))
   const maxX = Math.max(...nodes.map((node) => node.x))
   const minZ = Math.min(...nodes.map((node) => node.z))
   const maxZ = Math.max(...nodes.map((node) => node.z))
   const closestNode = (x: number, z: number): string =>
-    nodes.reduce((best, node) => {
-      const currentDistance = (node.x - x) ** 2 + (node.z - z) ** 2
-      const bestDistance =
-        best in liveGraph.nodes ? (liveGraph.nodes[best].x - x) ** 2 + (liveGraph.nodes[best].z - z) ** 2 : Infinity
-      return currentDistance < bestDistance ? node.id : best
-    }, nodes[0]?.id ?? '')
-  const anchors = [
-    closestNode(minX + (maxX - minX) * 0.18, minZ + (maxZ - minZ) * 0.18),
-    closestNode(minX + (maxX - minX) * 0.82, minZ + (maxZ - minZ) * 0.18),
-    closestNode(minX + (maxX - minX) * 0.82, minZ + (maxZ - minZ) * 0.82),
-    closestNode(minX + (maxX - minX) * 0.18, minZ + (maxZ - minZ) * 0.82),
-  ]
-  const loopNodes: string[] = []
-  for (let i = 0; i < anchors.length; i++) {
-    const from = anchors[i]
-    const to = anchors[(i + 1) % anchors.length]
-    if (!from || !to) continue
-    const leg = route(liveGraph, from, to)
-    if (!leg) continue
-    loopNodes.push(...(i ? leg.slice(1) : leg))
+    nodes.reduce(
+      (best, node) =>
+        (node.x - x) ** 2 + (node.z - z) ** 2 < best.d
+          ? { id: node.id, d: (node.x - x) ** 2 + (node.z - z) ** 2 }
+          : best,
+      {
+        id: nodes[0].id,
+        d: Infinity,
+      },
+    ).id
+  const seen = new Set<string>()
+  const sequences: string[][] = []
+  for (const cells of LOOP_CELLS) {
+    const anchors: string[] = []
+    for (const [column, row] of cells) {
+      const id = closestNode(minX + (maxX - minX) * LATTICE[column], minZ + (maxZ - minZ) * LATTICE[row])
+      if (!anchors.includes(id)) anchors.push(id)
+    }
+    const key = anchors.join('>')
+    if (anchors.length < 2 || seen.has(key)) continue
+    seen.add(key)
+    const loop: string[] = []
+    for (let i = 0; i < anchors.length; i++) {
+      const from = anchors[i]
+      const to = anchors[(i + 1) % anchors.length]
+      const leg = route(liveGraph, from, to)
+      if (!leg) throw new TrafficRouteError(`no lane-graph route from ${from} to ${to}`)
+      loop.push(...(i ? leg.slice(1) : leg))
+    }
+    sequences.push(loop)
   }
-  if (loopNodes.length < 2) return []
-  const loopPoints: RoadPathSample[] = []
+  return sequences
+}
+
+interface LoopGeometry {
+  forward: RoadPathSample[]
+  reverse: RoadPathSample[]
+  forwardDistances: number[]
+  reverseDistances: number[]
+  controlsForward: TrafficControl[]
+  controlsReverse: TrafficControl[]
+}
+
+/** The centreline of one loop, leg by leg; a node without a segment between two path nodes is an error. */
+function loopCentreline(liveGraph: RoadGraph, loopNodes: readonly string[]) {
+  const centre: RoadPathSample[] = []
   const legs: { start: number; end: number; from: string; to: string; width: number }[] = []
-  for (let i = 0; i < loopNodes.length; i++) {
+  for (let i = 0; i + 1 < loopNodes.length; i++) {
     const fromId = loopNodes[i]
-    const toId = loopNodes[(i + 1) % loopNodes.length]
-    if (!fromId || !toId) continue
+    const toId = loopNodes[i + 1]
     const segment = Object.values(liveGraph.segments).find(
       (candidate) =>
         (candidate.from === fromId && candidate.to === toId) || (candidate.from === toId && candidate.to === fromId),
     )
-    if (!segment) continue
-    if (!(segment.from in liveGraph.nodes) || !(segment.to in liveGraph.nodes)) continue
+    if (!segment) throw new TrafficRouteError(`no road segment between ${fromId} and ${toId}`)
+    if (!(segment.from in liveGraph.nodes) || !(segment.to in liveGraph.nodes))
+      throw new TrafficRouteError(`road segment ${segment.id} has an endpoint outside the graph`)
     const a = liveGraph.nodes[segment.from]
     const b = liveGraph.nodes[segment.to]
     const points = sampleRoadCurve(a.x, a.z, b.x, b.z, segment.curve, segment.id, 1.8)
     const directed =
       segment.from === fromId
         ? points
-        : points.reverse().map((p) => ({ ...p, tangentX: -p.tangentX, tangentZ: -p.tangentZ }))
-    const start = loopPoints.length
-    loopPoints.push(...directed)
-    legs.push({ start, end: loopPoints.length - 1, from: fromId, to: toId, width: segment.width })
+        : [...points].reverse().map((p) => ({ ...p, tangentX: -p.tangentX, tangentZ: -p.tangentZ }))
+    const start = centre.length
+    centre.push(...directed)
+    legs.push({ start, end: centre.length - 1, from: fromId, to: toId, width: segment.width })
   }
-  if (loopPoints.length > 0) loopPoints.push({ ...loopPoints[0] })
-  const distances = [0]
-  for (let p = 1; p < loopPoints.length; p++) {
-    const prev = loopPoints[p - 1]
-    const current = loopPoints[p]
-    distances.push((distances[p - 1] ?? 0) + Math.hypot(current.x - prev.x, current.z - prev.z))
-  }
-  const loopLength = distances[distances.length - 1] ?? 1
-  if (loopLength <= 0) return []
-  const reversePoints = [...loopPoints]
+  return { centre, legs }
+}
+
+function loopGeometry(liveGraph: RoadGraph, loopNodes: readonly string[]): LoopGeometry {
+  if (loopNodes.length < 2 || loopNodes[0] !== loopNodes[loopNodes.length - 1])
+    throw new TrafficRouteError('a traffic loop must return to the node it started from')
+  const { centre, legs } = loopCentreline(liveGraph, loopNodes)
+  // The loop closes on the first lane point itself: the last chord runs into the start, never a jump.
+  const forward = lanePath(centre, LANE_OFFSET)
+  forward.push({ ...forward[0] })
+  const reverseCentre = [...centre, centre[0]]
     .reverse()
-    .map((point) => ({ ...point, tangentX: -point.tangentX, tangentZ: -point.tangentZ }))
-  const reverseDistances = [...distances].reverse().map((distance) => loopLength - distance)
-  const forwardControls: TrafficControl[] = []
-  const reverseControls: TrafficControl[] = []
+    .map((p) => ({ ...p, tangentX: -p.tangentX, tangentZ: -p.tangentZ }))
+  const reverse = lanePath(reverseCentre, LANE_OFFSET)
+  reverse[reverse.length - 1] = { ...reverse[0] }
+  const forwardDistances = pathDistances(forward)
+  const reverseDistances = pathDistances(reverse)
+  const controlsForward: TrafficControl[] = []
+  const controlsReverse: TrafficControl[] = []
   if ('seed:0' in liveGraph.nodes) {
     const degrees = new Map<string, number>()
     for (const segment of Object.values(liveGraph.segments)) {
       degrees.set(segment.from, (degrees.get(segment.from) ?? 0) + 1)
       degrees.set(segment.to, (degrees.get(segment.to) ?? 0) + 1)
     }
+    const lastIndex = forward.length - 1
+    const forwardLength = forwardDistances[lastIndex] ?? 1
+    const reverseLength = reverseDistances[lastIndex] ?? 1
     for (const leg of legs) {
-      const startDistance = distances[leg.start] ?? 0
-      const endDistance = distances[leg.end] ?? 0
+      const startDistance = forwardDistances[leg.start] ?? 0
+      const endDistance = forwardDistances[leg.end] ?? 0
       const setback = Math.min(leg.width / 2 + 1, (endDistance - startDistance) / 2)
-      const addControl = (nodeId: string, pointIndex: number, distance: number, out: TrafficControl[]) => {
+      const addControl = (
+        nodeId: string,
+        tangentIndex: number,
+        distance: number,
+        length: number,
+        out: TrafficControl[],
+      ) => {
         const degree = degrees.get(nodeId) ?? 0
-        const tangent = loopPoints.at(pointIndex)
+        const tangent = forward.at(tangentIndex)
         if (degree < 3 || !tangent) return
         out.push({
-          distance: ((distance % loopLength) + loopLength) % loopLength,
+          distance: ((distance % length) + length) % length,
           kind: degree >= 4 ? 'signal' : 'stop',
           axis: Math.abs(tangent.tangentX) >= Math.abs(tangent.tangentZ) ? 'x' : 'z',
         })
       }
-      addControl(leg.to, leg.end, endDistance - setback, forwardControls)
-      addControl(leg.from, leg.start, loopLength - startDistance - setback, reverseControls)
+      addControl(leg.to, leg.end, endDistance - setback, forwardLength, controlsForward)
+      addControl(
+        leg.from,
+        leg.start,
+        (reverseDistances[lastIndex - leg.start] ?? 0) - setback,
+        reverseLength,
+        controlsReverse,
+      )
     }
   }
-  return Array.from({ length: 28 }, (_, i) => {
-    const phase = Math.floor(i / 2) / 14
+  return { forward, reverse, forwardDistances, reverseDistances, controlsForward, controlsReverse }
+}
+
+const FLEET_SIZE = 28
+
+/**
+ * The fleet's routes: closed loops over many blocks of the lane graph. A leg
+ * the lane graph cannot drive is a {@link TrafficRouteError}, never a chord
+ * across the blocks. An empty graph has nothing to drive and yields no routes.
+ */
+export function makeTrafficRoutes(liveGraph: RoadGraph): TrafficRoute[] {
+  const sequences = loopNodeSequences(liveGraph)
+  if (!sequences.length) return []
+  const loops = sequences.map((nodes) => loopGeometry(liveGraph, nodes))
+  const pairs = FLEET_SIZE / 2
+  const slotsPerLoop = Math.ceil(pairs / loops.length)
+  return Array.from({ length: FLEET_SIZE }, (_, i) => {
+    const pair = Math.floor(i / 2)
+    const loopIndex = pair % loops.length
+    const loop = loops[loopIndex]
+    const phase = (Math.floor(pair / loops.length) + loopIndex / loops.length) / slotsPerLoop
+    const reverse = i % 2 === 1
+    const distances = reverse ? loop.reverseDistances : loop.forwardDistances
+    const length = distances[distances.length - 1] ?? 0
+    // metres per real second: readable city movement, not simulation-time warp.
+    const speed = 2.1 + (i % 3) * 0.28
     return {
-      points: i % 2 ? reversePoints : loopPoints,
-      distances: i % 2 ? reverseDistances : distances,
-      length: loopLength,
-      laneOffset: -0.72,
+      points: reverse ? loop.reverse : loop.forward,
+      distances,
+      length,
+      laneOffset: LANE_OFFSET,
       phase,
-      // metres per real second: readable city movement, not simulation-time warp.
-      speed: 2.1 + (i % 3) * 0.28,
-      controls: i % 2 ? reverseControls : forwardControls,
-      motion: { distance: phase * loopLength, waitingAt: null, waited: 0, passed: null },
+      speed,
+      baseSpeed: speed,
+      controls: reverse ? loop.controlsReverse : loop.controlsForward,
+      motion: { distance: phase * length, waitingAt: null, waited: 0, passed: null },
     }
   })
 }
@@ -331,64 +475,62 @@ export interface EconomyVehicle {
   routeIndex?: number
 }
 
+/** The economic zone of a building kind: exact kinds only, so a "storehouse" is never a store. */
+export type EconomyZone = 'commercial' | 'industrial' | 'residential'
+
+const COMMERCIAL_KINDS: ReadonlySet<string> = new Set(['store', 'restaurant', 'mall', 'shop', 'market'])
+const INDUSTRIAL_KINDS: ReadonlySet<string> = new Set(['factory', 'warehouse', 'depot', 'foundry', 'mill'])
+
+/** Classify a building kind into its economic zone by whole-word match, never by substring. */
+export function economyZone(kind: string): EconomyZone {
+  const words = kind.toLowerCase().split(/[^a-z0-9]+/)
+  if (words.some((word) => COMMERCIAL_KINDS.has(word))) return 'commercial'
+  if (words.some((word) => INDUSTRIAL_KINDS.has(word))) return 'industrial'
+  return 'residential'
+}
+
 /**
  * Generate economy-driven vehicles based on economic state (R104).
  * Commuter vehicles for residential↔commercial, freight trucks for
  * industrial→commercial (R106), construction vehicles for active sites.
+ * Every draw comes from the traffic stream the caller passes in.
  */
 export function vehiclesFromEconomy(
   prng: () => number,
   buildings: Record<string, { x: number; z: number; kind: string }>,
   plots: { x: number; z: number; construction: { progress: number } | null }[],
-  commercialCount: number,
-  industrialCount: number,
 ): EconomyVehicle[] {
-  // Reuse the cache so the caller can diff against last frame.
   const vehicles: EconomyVehicle[] = []
   let id = 0
-
-  // Gather building pools by zone.
   const commercialBuildings: { x: number; z: number }[] = []
   const industrialBuildings: { x: number; z: number }[] = []
   const constructionPlots: { x: number; z: number }[] = []
   const residentialBuildings: { x: number; z: number }[] = []
-
   for (const b of Object.values(buildings)) {
-    if (b.kind.includes('store') || b.kind.includes('restaurant') || b.kind.includes('mall')) {
-      commercialBuildings.push({ x: b.x, z: b.z })
-    } else if (b.kind.includes('factory') || b.kind.includes('warehouse')) {
-      industrialBuildings.push({ x: b.x, z: b.z })
-    } else {
-      // Assume residential/other.
-      residentialBuildings.push({ x: b.x, z: b.z })
-    }
+    const zone = economyZone(b.kind)
+    const pool =
+      zone === 'commercial' ? commercialBuildings : zone === 'industrial' ? industrialBuildings : residentialBuildings
+    pool.push({ x: b.x, z: b.z })
   }
-
   for (const p of plots) {
     if (p.construction) constructionPlots.push({ x: p.x, z: p.z })
   }
+  const pick = <T>(pool: readonly T[]): T => pool[Math.floor(prng() * pool.length)]
 
   // R104: commuter vehicles (residential → commercial).
-  const commuterCount = Math.max(0, Math.floor(commercialCount * 0.6))
+  const commuterCount = Math.max(0, Math.floor(commercialBuildings.length * 0.6))
   for (let i = 0; i < commuterCount && residentialBuildings.length > 0; i++) {
-    const from = residentialBuildings[Math.floor(prng() * residentialBuildings.length)]
-    const to = commercialBuildings[Math.floor(prng() * commercialBuildings.length)] ?? from
-    vehicles.push({
-      id: `eco-commuter-${id++}`,
-      type: 'commuter',
-      fromX: from.x,
-      fromZ: from.z,
-      toX: to.x,
-      toZ: to.z,
-    })
+    const from = pick(residentialBuildings)
+    const to = pick(commercialBuildings)
+    vehicles.push({ id: `eco-commuter-${id++}`, type: 'commuter', fromX: from.x, fromZ: from.z, toX: to.x, toZ: to.z })
   }
 
   // R106: freight vehicles (industrial → commercial) carrying goods.
-  const freightCount = Math.max(0, Math.floor(industrialCount * 0.4))
+  const freightCount = Math.max(0, Math.floor(industrialBuildings.length * 0.4))
   const goodsTypes = ['food', 'electronics', 'machinery', 'textiles']
-  for (let i = 0; i < freightCount && industrialBuildings.length > 0; i++) {
-    const from = industrialBuildings[Math.floor(prng() * industrialBuildings.length)]
-    const to = commercialBuildings[Math.floor(prng() * commercialBuildings.length)] ?? from
+  for (let i = 0; i < freightCount; i++) {
+    const from = pick(industrialBuildings)
+    const to = commercialBuildings.length > 0 ? pick(commercialBuildings) : from
     vehicles.push({
       id: `eco-freight-${id++}`,
       type: 'freight',
@@ -396,7 +538,7 @@ export function vehiclesFromEconomy(
       fromZ: from.z,
       toX: to.x,
       toZ: to.z,
-      goodsType: goodsTypes[Math.floor(prng() * goodsTypes.length)],
+      goodsType: pick(goodsTypes),
     })
   }
 
@@ -411,37 +553,34 @@ export function vehiclesFromEconomy(
       toZ: p.z,
     })
   }
-
-  // Cache economy vehicles per frame so callers can diff against last frame.
   return vehicles
 }
 
+const ECONOMY_SPEED: Readonly<Record<EconomyVehicleType, number>> = { freight: 1.6, construction: 1.2, commuter: 2.1 }
+
+/** The identity of one assignment set: change it and the fleet is reassigned, keep it and nothing moves. */
+function assignmentKey(vehicles: readonly EconomyVehicle[]): string {
+  return vehicles.map((v) => `${v.id}:${v.type}`).join('|')
+}
+
 /**
- * Merge economy vehicles into the traffic fleet by assigning routes (R104/R106).
- * Each vehicle is placed at a random phase along a route. Route count is
- * limited to keep per-frame draw calls bounded.
+ * Merge economy vehicles into the traffic fleet (R104/R106). Vehicle i takes
+ * route i's speed for its type. The assignment runs only when the set of
+ * vehicles changes, and it never moves a car: position belongs to the
+ * simulation alone. Routes without an economy vehicle return to their base speed.
+ * Returns whether the assignment changed.
  */
 export function mergeEconomyVehiclesIntoFleet(
-  fleet: { routes: TrafficRoute[] },
-  vehicles: EconomyVehicle[],
-  prng: () => number,
-): void {
-  if (vehicles.length === 0 || fleet.routes.length === 0) return
-  const { routes } = fleet
-  const loopLength = fleet.routes[0]?.length ?? 1
-
-  // Assign vehicles across existing routes (max one economy vehicle per route).
-  const maxRoutes = Math.min(routes.length, vehicles.length)
-  for (let i = 0; i < maxRoutes; i++) {
-    const route = routes[i]
-    const v = vehicles[i]
-    // Place vehicle at a random phase along the route (seeded PRNG).
-    const phase = prng()
-    route.motion.distance = phase * loopLength
-    route.motion.waitingAt = null
-    route.motion.waited = 0
-    route.motion.passed = null
-    // Adjust speed by type.
-    route.speed = v.type === 'freight' ? 1.6 : v.type === 'construction' ? 1.2 : 2.1
-  }
+  fleet: { routes: TrafficRoute[]; economyKey?: string },
+  vehicles: readonly EconomyVehicle[],
+): boolean {
+  const key = assignmentKey(vehicles)
+  if (fleet.economyKey === key) return false
+  fleet.economyKey = key
+  fleet.routes.forEach((route, i) => {
+    const vehicle = vehicles.at(i)
+    route.baseSpeed ??= route.speed
+    route.speed = vehicle ? ECONOMY_SPEED[vehicle.type] : route.baseSpeed
+  })
+  return true
 }

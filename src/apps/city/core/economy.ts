@@ -2100,7 +2100,8 @@ function tickCongestionRead(_prng: Prng): void {
 function tryGrowthPlacements(prng: Prng): void {
   const emptyLots: number[] = []
   for (let i = 0; i < world.plots.length; i++) {
-    if (!world.plots[i].buildingId && !world.plots[i].construction) {
+    // A plot reserved for a connector that is not yet onboarded is not an empty lot (R008).
+    if (!world.plots[i].buildingId && !world.plots[i].construction && !world.plots[i].reservedId) {
       emptyLots.push(i)
     }
   }

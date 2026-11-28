@@ -12,6 +12,7 @@
  */
 // spec: OVERSTORY-CITY-R024
 
+import { epochMs } from './clock'
 import * as THREE from 'three'
 
 import { catalogFamilyCount } from './catalog'
@@ -91,7 +92,7 @@ export function createAssetScaleManager() {
           source: resolveSource(desc.type),
           digest: '',
           status: 'pending',
-          requestedAt: Date.now(),
+          requestedAt: epochMs(),
           completedAt: null,
           sourcePath: `scripts/asset-kit/stage${getNextSeq()}_generated.py`,
         }
@@ -168,7 +169,7 @@ export function completeProvisioning(id: string, digest: string, sourcePath: str
   if (ticket?.status !== 'pending') return false
 
   ticket.status = 'completed'
-  ticket.completedAt = Date.now()
+  ticket.completedAt = epochMs()
   ticket.digest = digest
   ticket.sourcePath = sourcePath
 

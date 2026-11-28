@@ -8,9 +8,12 @@
  *
  * In sandbox mode (unauthenticated), presence is entirely local: heartbeats
  * stay in-process and other visitors are represented as synthetic test avatars.
- * In live mode, heartbeats are POSTed to `/api/apps/city/avatar/heartbeat`
- * and presence updates arrive through an EventSource stream at
- * `/api/apps/city/avatar/presence`.
+ * In live mode, heartbeats are POSTed to `/api/apps/city/state/heartbeat` as
+ * exactly the fields the host forwards to Arbora (`expectedRevision`, `x`,
+ * `y`, `heading`; the subject is the verified session, never a field), and
+ * presence is read by polling the revisioned snapshot at `/api/apps/city/state`.
+ * The module never reads the wall clock or a random source: the clock is
+ * injected and the synthetic visitor draws from the seeded stream.
  *
  * The city's sim layer reads the avatar list from `world.avatars` so both
  * renderers can draw them on top of the sim layer.
@@ -18,6 +21,7 @@
 // spec: OVERSTORY-CITY-R023
 import { bus, makeEvent } from './events'
 import { world } from './sim'
+import { DEFAULT_SEED, mulberry32, type Prng } from './prng'
 import type {
   AvatarHeartbeat,
   AvatarPresenceManager,
@@ -34,14 +38,38 @@ const PROXIMITY_RADIUS_M = 80 // metres — avatars outside this are not "nearby
 const HEARTBEAT_TIMEOUT_MS = 15000 // mark absent after 15 s of silence
 
 /** A synthetic "other visitor" the sandbox uses for testing. */
-function makeSyntheticVisitor(id: string): AvatarState {
+function makeSyntheticVisitor(id: string, rng: Prng, now: number): AvatarState {
   return {
     avatarId: id,
-    position: { x: Math.random() * 60 - 30, z: Math.random() * 60 - 30 },
-    heading: Math.random() * Math.PI * 2,
+    position: { x: rng() * 60 - 30, z: rng() * 60 - 30 },
+    heading: rng() * Math.PI * 2,
     activity: 'observing',
     zone: 'plaza',
-    lastSeen: Date.now(),
+    lastSeen: now,
+  }
+}
+
+/** The injected sources the manager reads time and the network through. */
+export interface PresenceOptions {
+  /** Milliseconds on a monotonic clock. Defaults to the page's performance clock. */
+  now?: () => number
+  fetchImpl?: typeof fetch
+}
+
+const STATE_URL = '/api/apps/city/state'
+const HEARTBEAT_URL = '/api/apps/city/state/heartbeat'
+
+/** One human entity of the served snapshot as an avatar. */
+function avatarFromEntity(entity: Record<string, unknown>, now: number): AvatarState | null {
+  const { id, kind, x, y, heading, activity } = entity
+  if (kind !== 'human' || typeof id !== 'string' || typeof x !== 'number' || typeof y !== 'number') return null
+  return {
+    avatarId: id,
+    position: { x, z: y },
+    heading: typeof heading === 'number' ? heading : 0,
+    activity: typeof activity === 'string' ? activity : 'observing',
+    zone: assignZone(x, y),
+    lastSeen: now,
   }
 }
 
@@ -98,17 +126,24 @@ interface PresenceState {
   myAvatar: AvatarState | null
   remoteAvatars: Map<string, AvatarState>
   disposed: boolean
-  evtSource: EventSource | null
+  pollTimer: ReturnType<typeof setInterval> | null
+  now: () => number
+  fetchImpl: typeof fetch
+  /** The snapshot revision the next heartbeat is fenced against. */
+  revision: number
 }
 
-function makePresenceState(): PresenceState {
+function makePresenceState(options: PresenceOptions): PresenceState {
   return {
+    now: options.now ?? (() => performance.now()),
+    fetchImpl: options.fetchImpl ?? ((input, init) => fetch(input, init)),
+    revision: 0,
     heartbeatTimer: null,
     subscriptions: [],
     myAvatar: null,
     remoteAvatars: new Map(),
     disposed: false,
-    evtSource: null,
+    pollTimer: null,
   }
 }
 
@@ -149,10 +184,16 @@ function handleLeft(state: PresenceState, avatarId: string): void {
 }
 
 function tickTimeouts(state: PresenceState): void {
-  const now = Date.now()
+  const now = state.now()
   for (const [id, avatar] of state.remoteAvatars) {
     if (now - avatar.lastSeen > HEARTBEAT_TIMEOUT_MS) handleLeft(state, id)
   }
+}
+
+/** A heading in [0, 2π], the host's accepted range. */
+function normaliseHeading(heading: number): number {
+  const turn = Math.PI * 2
+  return ((heading % turn) + turn) % turn
 }
 
 function publishHeartbeatFn(state: PresenceState, data: AvatarHeartbeat): Promise<void> {
@@ -168,13 +209,24 @@ function publishHeartbeatFn(state: PresenceState, data: AvatarHeartbeat): Promis
   }
 
   if (!isSandbox()) {
-    fetch('/api/apps/city/avatar/heartbeat', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify(data),
-    }).catch(() => {
-      console.warn('[city] heartbeat POST failed, falling back to local mode')
-    })
+    // The wire body is exactly the host's HeartbeatIn: the fenced revision and the move.
+    state
+      .fetchImpl(HEARTBEAT_URL, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          expectedRevision: state.revision,
+          x: data.position.x,
+          y: data.position.z,
+          heading: normaliseHeading(data.heading),
+        }),
+      })
+      .then((response) => {
+        if (!response.ok) console.warn(`[city] heartbeat refused with status ${response.status}`)
+      })
+      .catch((error: unknown) => {
+        console.warn('[city] heartbeat POST failed', error)
+      })
   }
 
   bus.emit(
@@ -196,12 +248,38 @@ function startHeartbeat(state: PresenceState): void {
       position: state.myAvatar.position,
       heading: state.myAvatar.heading,
       activity: state.myAvatar.activity,
-      timestamp: Date.now(),
+      timestamp: state.now(),
       zone: state.myAvatar.zone,
     }).catch(() => {
       /* heartbeat errors are non-fatal */
     })
   }, HEARTBEAT_INTERVAL_MS)
+}
+
+/** Read the served snapshot once: the revision to fence against and the humans present. */
+async function pollSnapshot(state: PresenceState): Promise<void> {
+  try {
+    const response = await state.fetchImpl(STATE_URL, { headers: { accept: 'application/json' } })
+    if (!response.ok) {
+      console.warn(`[city] presence snapshot unavailable (status ${response.status})`)
+      return
+    }
+    const body = (await response.json()) as { revision?: unknown; entities?: unknown; live?: unknown }
+    if (state.disposed) return
+    if (typeof body.revision === 'number') state.revision = body.revision
+    if (body.live !== true || !Array.isArray(body.entities)) return
+    const now = state.now()
+    const present = new Set<string>()
+    for (const entity of body.entities as Record<string, unknown>[]) {
+      const avatar = avatarFromEntity(entity, now)
+      if (!avatar) continue
+      present.add(avatar.avatarId)
+      handleHeartbeat(state, avatar)
+    }
+    for (const id of [...state.remoteAvatars.keys()]) if (!present.has(id)) handleLeft(state, id)
+  } catch (error) {
+    console.warn('[city] presence snapshot read failed', error)
+  }
 }
 
 // ---- createAvatarPresenceManager -------------------------------------------
@@ -210,12 +288,13 @@ function startHeartbeat(state: PresenceState): void {
  * Create an avatar presence manager.  In sandbox mode, a synthetic other
  * visitor is spawned so the presence layer can be tested without auth.
  */
-export function createAvatarPresenceManager(): AvatarPresenceManager {
-  const state = makePresenceState()
+export function createAvatarPresenceManager(options: PresenceOptions = {}): AvatarPresenceManager {
+  const state = makePresenceState(options)
+  const rng = mulberry32(DEFAULT_SEED)
 
   // In sandbox mode, create a synthetic avatar and register a test visitor.
   if (isSandbox()) {
-    const myId = `avatar-${Date.now()}`
+    const myId = `avatar-${Math.floor(state.now())}`
     setAvatarId(myId)
     state.myAvatar = {
       avatarId: myId,
@@ -223,11 +302,11 @@ export function createAvatarPresenceManager(): AvatarPresenceManager {
       heading: 0,
       activity: 'observing',
       zone: 'central-plaza',
-      lastSeen: Date.now(),
+      lastSeen: state.now(),
     }
 
-    const otherId = `visitor-${Math.floor(Math.random() * 10000)}`
-    handleJoined(state, makeSyntheticVisitor(otherId))
+    const otherId = `visitor-${Math.floor(rng() * 10000)}`
+    handleJoined(state, makeSyntheticVisitor(otherId, rng, state.now()))
     startHeartbeat(state)
 
     let tick = 0
@@ -238,7 +317,7 @@ export function createAvatarPresenceManager(): AvatarPresenceManager {
       if (other) {
         other.position.x += Math.sin(tick * 0.1) * 0.5
         other.position.z += Math.cos(tick * 0.1) * 0.5
-        other.lastSeen = Date.now()
+        other.lastSeen = state.now()
         handleHeartbeat(state, other)
       }
     }, HEARTBEAT_INTERVAL_MS)
@@ -249,7 +328,7 @@ export function createAvatarPresenceManager(): AvatarPresenceManager {
     const myId = getAvatarId()
     if (!myId) {
       console.warn('[city] authenticated mode but no avatar id — falling back to sandbox')
-      const fallbackId = `avatar-${Date.now()}`
+      const fallbackId = `avatar-${Math.floor(state.now())}`
       setAvatarId(fallbackId)
       state.myAvatar = {
         avatarId: fallbackId,
@@ -257,7 +336,7 @@ export function createAvatarPresenceManager(): AvatarPresenceManager {
         heading: 0,
         activity: 'observing',
         zone: 'central-plaza',
-        lastSeen: Date.now(),
+        lastSeen: state.now(),
       }
       startHeartbeat(state)
     } else {
@@ -267,28 +346,16 @@ export function createAvatarPresenceManager(): AvatarPresenceManager {
         heading: 0,
         activity: 'observing',
         zone: 'central-plaza',
-        lastSeen: Date.now(),
+        lastSeen: state.now(),
       }
       startHeartbeat(state)
-      try {
-        const evtSource = new EventSource('/api/apps/city/avatar/presence')
-        evtSource.addEventListener('presence-update', (event: MessageEvent) => {
-          if (state.disposed) {
-            evtSource.close()
-            return
-          }
-          try {
-            const data = JSON.parse(event.data as string) as { type: string; avatar: AvatarState }
-            if (data.type === 'joined' || data.type === 'heartbeat') handleHeartbeat(state, data.avatar)
-            else if (data.type === 'left') handleLeft(state, data.avatar.avatarId)
-          } catch {
-            console.warn('[city] malformed presence event:', event.data)
-          }
+      const poll = (): void => {
+        pollSnapshot(state).catch((error: unknown) => {
+          console.warn('[city] presence poll failed', error)
         })
-        state.evtSource = evtSource
-      } catch {
-        console.warn('[city] presence stream unavailable, local-only mode')
       }
+      poll()
+      state.pollTimer = setInterval(poll, HEARTBEAT_INTERVAL_MS)
     }
   }
 
@@ -354,10 +421,7 @@ export function createAvatarPresenceManager(): AvatarPresenceManager {
       state.subscriptions.length = 0
       state.remoteAvatars.clear()
       state.myAvatar = null
-      if (state.evtSource) {
-        state.evtSource.close()
-        state.evtSource = null
-      }
+      if (state.pollTimer !== null) clearInterval(state.pollTimer)
       bus.emit(makeEvent('avatar.disconnected', {}, 'Avatar presence disconnected'))
     },
   }
@@ -366,7 +430,12 @@ export function createAvatarPresenceManager(): AvatarPresenceManager {
 // ---- Sync the avatar's position to the camera (called by CityPage) ----------
 
 /** Update avatar position and zone from camera position. */
-export function syncAvatarPosition(manager: AvatarPresenceManager | null, camX: number, camZ: number): void {
+export function syncAvatarPosition(
+  manager: AvatarPresenceManager | null,
+  camX: number,
+  camZ: number,
+  nowMs: number = performance.now(),
+): void {
   if (!manager) return
   const myAvatar = manager.getMyAvatar()
   if (!myAvatar) return
@@ -380,7 +449,7 @@ export function syncAvatarPosition(manager: AvatarPresenceManager | null, camX: 
       position: { x: camX, z: camZ },
       heading: 0,
       activity: myAvatar.activity,
-      timestamp: Date.now(),
+      timestamp: nowMs,
       zone: newZone,
     })
     .catch(() => {
@@ -394,7 +463,7 @@ export function syncAvatarPosition(manager: AvatarPresenceManager | null, camX: 
  * Populate world.avatars so both renderers can draw avatars on top of
  * the sim layer.
  */
-export function syncAvatarsToWorld(manager: AvatarPresenceManager | null): void {
+export function syncAvatarsToWorld(manager: AvatarPresenceManager | null, nowMs: number = performance.now()): void {
   if (!manager) return
   const myAvatar = manager.getMyAvatar()
   world.avatars = []
@@ -417,7 +486,7 @@ export function syncAvatarsToWorld(manager: AvatarPresenceManager | null): void 
       heading: avatar.heading,
       activity: 'observing',
       zone: avatar.zone,
-      lastSeen: Date.now(),
+      lastSeen: nowMs,
     })
   }
 }

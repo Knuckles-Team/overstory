@@ -107,10 +107,16 @@ describe('city scene steady state', () => {
     }
     const forward = core.traffic.routes[0]
     const reverse = core.traffic.routes[1]
-    expect(reverse.points[1].x).toBeCloseTo(forward.points.at(-2)!.x)
-    expect(reverse.points[1].z).toBeCloseTo(forward.points.at(-2)!.z)
-    expect(reverse.points[1].tangentX).toBeCloseTo(-forward.points.at(-2)!.tangentX)
-    expect(reverse.points[1].tangentZ).toBeCloseTo(-forward.points.at(-2)!.tangentZ)
+    // The route points are the lane paths: the reverse lane is the mirror of the
+    // forward lane, one lane width (2 x |laneOffset|) to the other side of the same
+    // centreline point, and it runs the other way.
+    const lastForward = forward.points.at(-2)!
+    const tangentLength = Math.hypot(lastForward.tangentX, lastForward.tangentZ)
+    const width = 2 * Math.abs(forward.laneOffset)
+    expect(reverse.points[1].x - lastForward.x).toBeCloseTo((-lastForward.tangentZ / tangentLength) * width)
+    expect(reverse.points[1].z - lastForward.z).toBeCloseTo((lastForward.tangentX / tangentLength) * width)
+    expect(reverse.points[1].tangentX).toBeCloseTo(-lastForward.tangentX)
+    expect(reverse.points[1].tangentZ).toBeCloseTo(-lastForward.tangentZ)
     expect(reverse.laneOffset).toBe(forward.laneOffset)
     core.roads.dispose()
   })
