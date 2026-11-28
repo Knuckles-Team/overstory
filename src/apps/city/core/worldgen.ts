@@ -15,6 +15,30 @@ export interface WorldRect {
   d: number
 }
 
+/** A road span. A span with a curve is the quadratic centreline between its endpoints, not the chord. */
+export interface RoadSpan {
+  x1: number
+  z1: number
+  x2: number
+  z2: number
+  width: number
+  curve?: number
+  id?: string
+}
+
+/** The straight pieces a span really occupies: its curve sampled, or the chord for a straight span. */
+function spanPieces(road: RoadSpan): readonly RoadSpan[] {
+  if (!road.curve) return [road]
+  const samples = sampleRoadCurve(road.x1, road.z1, road.x2, road.z2, road.curve, road.id ?? 'span', 2)
+  return samples.slice(1).map((p, i) => ({
+    x1: samples[i].x,
+    z1: samples[i].z,
+    x2: p.x,
+    z2: p.z,
+    width: road.width,
+  }))
+}
+
 export interface GeneratedRoad {
   id: string
   x1: number
@@ -434,14 +458,12 @@ function pointSegmentDistanceSq(x: number, z: number, ax: number, az: number, bx
 }
 
 /** A prop/building may not enter a road carriageway plus its declared verge. */
-export function clearsRoad(
-  x: number,
-  z: number,
-  roads: readonly { x1: number; z1: number; x2: number; z2: number; width: number }[],
-  margin = 0.75,
-): boolean {
-  return roads.every(
-    (road) => pointSegmentDistanceSq(x, z, road.x1, road.z1, road.x2, road.z2) >= (road.width / 2 + margin) ** 2,
+export function clearsRoad(x: number, z: number, roads: readonly RoadSpan[], margin = 0.75): boolean {
+  return roads.every((road) =>
+    spanPieces(road).every(
+      (piece) =>
+        pointSegmentDistanceSq(x, z, piece.x1, piece.z1, piece.x2, piece.z2) >= (road.width / 2 + margin) ** 2,
+    ),
   )
 }
 
@@ -527,18 +549,15 @@ export function rectSegClearanceM(
 }
 
 /** The whole rotated footprint, not just its centre, clears every road carriageway. */
-export function footprintClearsRoads(
-  rect: WorldRect,
-  yaw: number,
-  roads: readonly { x1: number; z1: number; x2: number; z2: number; width: number }[],
-  margin = 0,
-): boolean {
+export function footprintClearsRoads(rect: WorldRect, yaw: number, roads: readonly RoadSpan[], margin = 0): boolean {
   for (const road of roads) {
-    if (
-      rectSegClearanceM(rect.x, rect.z, rect.w, rect.d, yaw, road.x1, road.z1, road.x2, road.z2) <
-      road.width / 2 + margin
-    )
-      return false
+    for (const piece of spanPieces(road)) {
+      if (
+        rectSegClearanceM(rect.x, rect.z, rect.w, rect.d, yaw, piece.x1, piece.z1, piece.x2, piece.z2) <
+        road.width / 2 + margin
+      )
+        return false
+    }
   }
   return true
 }

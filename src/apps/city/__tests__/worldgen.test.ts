@@ -435,3 +435,31 @@ describe('deterministic world generation', () => {
     }
   })
 })
+
+describe('clearance measures the curve, not the chord (R048.8.1)', () => {
+  // A road bowed 12 m to one side: the chord runs straight through where the carriageway is not.
+  const curved = { x1: -40, z1: 0, x2: 40, z2: 0, width: 8, curve: 12, id: 'bow' }
+  const chord = { x1: -40, z1: 0, x2: 40, z2: 0, width: 8 }
+
+  // spec: OVERSTORY-CITY-R048.8.1
+  it('keeps a point off the real carriageway and lets one through where the chord ran', () => {
+    const bowed = sampleRoadCurve(-40, 0, 40, 0, 12, 'bow', 2)
+    const mid = bowed[Math.floor(bowed.length / 2)]
+    expect(Math.abs(mid.z)).toBeGreaterThan(8)
+    // On the real carriageway: blocked by the curve, though far from the chord.
+    expect(clearsRoad(mid.x, mid.z, [chord])).toBe(true)
+    expect(clearsRoad(mid.x, mid.z, [curved])).toBe(false)
+    // On the chord: clear of the real road, blocked by the chord.
+    expect(clearsRoad(0, 0, [chord])).toBe(false)
+    expect(clearsRoad(0, 0, [curved])).toBe(true)
+  })
+
+  // spec: OVERSTORY-CITY-R048.8.1
+  it('keeps a whole footprint off the real carriageway', () => {
+    const bowed = sampleRoadCurve(-40, 0, 40, 0, 12, 'bow', 2)
+    const mid = bowed[Math.floor(bowed.length / 2)]
+    const rect = { x: mid.x, z: mid.z, w: 6, d: 6 }
+    expect(footprintClearsRoads(rect, 0, [chord], 0.5)).toBe(true)
+    expect(footprintClearsRoads(rect, 0, [curved], 0.5)).toBe(false)
+  })
+})

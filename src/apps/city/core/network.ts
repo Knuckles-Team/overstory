@@ -17,6 +17,7 @@ import {
   isRegionalWater,
   regionalTerrainHeight,
   riverCentreAt,
+  type RoadSpan,
   type WorldRect,
 } from './worldgen'
 
@@ -100,11 +101,11 @@ export function completeRoadCoverage(graph: RoadGraph, seed: number): RoadGraph 
     const distance = Math.hypot(tile.x - origin.x, tile.z - origin.z)
     const steps = Math.max(1, Math.ceil(distance / 8))
     // The spans of the existing network, for clearance.
-    const spans: { x1: number; z1: number; x2: number; z2: number; width: number }[] = []
+    const spans: RoadSpan[] = []
     for (const segment of Object.values(graph.segments)) {
       const a = graph.nodes[segment.from]
       const b = graph.nodes[segment.to]
-      spans.push({ x1: a.x, z1: a.z, x2: b.x, z2: b.z, width: segment.width })
+      spans.push({ x1: a.x, z1: a.z, x2: b.x, z2: b.z, width: segment.width, curve: segment.curve, id: segment.id })
     }
     const dryAt = (x: number, z: number): boolean =>
       isDryFootprint({ x, z, w: 5, d: 5 }, 0, seed) &&

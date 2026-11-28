@@ -439,3 +439,4 @@ For R048.5, exercise a seeded vessel journey between connected berths across mul
 - `OVERSTORY-CITY-R101.1`: proof — `src/apps/city/__tests__/buildingHealth.test.ts::are rebuilt each economy tick, never accumulated`.
 - `OVERSTORY-CITY-R047.1`: proof — `agent/overstory/__tests__/test_city_presence.py::test_the_heartbeat_sends_exactly_arboras_params`.
 - `OVERSTORY-CITY-R013.1`: proof — `src/apps/city/__tests__/CityPage.test.tsx::verifies only the pins the renderer loads at startup; the kit is registered, then verified on demand (R013.1)`.
+- `OVERSTORY-CITY-R048.8.1`: proof — `src/apps/city/__tests__/worldgen.test.ts::keeps a point off the real carriageway and lets one through where the chord ran`.
