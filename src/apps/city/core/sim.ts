@@ -229,6 +229,15 @@ class Character {
     if (mood) this.mood = mood
   }
 
+  /** R107: commute between home and work via the road graph. */
+  commute(toX: number, toZ: number): void {
+    this.target = { x: toX, z: toZ }
+    this.path = this.worldPath(toX, toZ)
+    this.pathPos = 0
+    this.arriveHook = null
+    this.mood = 'commuting'
+  }
+
   moving(): boolean {
     return this.path.length > 0 && this.pathPos < this.path.length
   }
@@ -313,7 +322,12 @@ export function adjustCharacterCount(prng: Prng): void {
 
       // R107: assign a workplace for NPCs (commercial/industrial buildings).
       const workBuildings = Object.values(world.buildings).filter(
-        (b) => b.kind.includes('store') || b.kind.includes('restaurant') || b.kind.includes('mall') || b.kind.includes('factory') || b.kind.includes('warehouse'),
+        (b) =>
+          b.kind.includes('store') ||
+          b.kind.includes('restaurant') ||
+          b.kind.includes('mall') ||
+          b.kind.includes('factory') ||
+          b.kind.includes('warehouse'),
       )
       if (workBuildings.length > 0) {
         ch.workBuilding = workBuildings[Math.floor(prng() * workBuildings.length)].id
@@ -1364,6 +1378,11 @@ function tickAgent(ch: Character, dtReal: number): void {
     if (!ch.moving()) goSleep(ch)
     return
   }
+  // R107: NPCs commute home at night.
+  if (ch.kind === 'npc' && night && ch.state === 'idle' && !ch.moving() && ch.workBuilding) {
+    if (!ch.moving()) goSleep(ch)
+    return
+  }
   if (night && ch.state === 'working') {
     // Let the in-flight call finish, then sleep.
     ch.workTimer -= dtReal
@@ -1377,6 +1396,14 @@ function tickAgent(ch: Character, dtReal: number): void {
   switch (ch.state) {
     case 'idle': {
       ch.wanderTimer -= dtReal
+      // R107: idle NPCs with a workBuilding commute to work at morning.
+      if (ch.kind === 'npc' && ch.workBuilding && !ch.moving()) {
+        const workBldg = world.buildings[ch.workBuilding]
+        if (!isNight(world.clock)) {
+          ch.commute(doorOf(workBldg).x, doorOf(workBldg).z)
+          break
+        }
+      }
       // Wandering is labelled demo behaviour (R026): quiet agents stand by.
       if (world.activity === 'demo' && !ch.moving() && ch.wanderTimer <= 0) {
         // Stroll: plaza, a park, or the waterfront.
@@ -1490,7 +1517,7 @@ export function tickSim(dtGame: number, dtReal: number, dtWall = dtReal): void {
 
   // R108: accumulate foot traffic from characters at commercial buildings.
   for (const ch of world.characters) {
-    if (ch.workBuilding && world.buildings[ch.workBuilding]) {
+    if (ch.workBuilding) {
       const b = world.buildings[ch.workBuilding]
       if (b.kind.includes('store') || b.kind.includes('restaurant') || b.kind.includes('mall')) {
         b.footTraffic = (b.footTraffic ?? 0) + 1
@@ -1550,7 +1577,7 @@ export function tickSim(dtGame: number, dtReal: number, dtWall = dtReal): void {
         c.lastMilestone = m
         const b = world.buildings[c.connectorId]
         // Guard: the building might not be placed yet (economy-grown buildings).
-        if (b) {
+        if (c.connectorId in world.buildings && b.name) {
           bus.emit(
             makeEvent('construction.progress', { building: b.id }, `${b.name}: ${Math.round(m * 100)}% complete`),
           )

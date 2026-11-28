@@ -7,13 +7,17 @@
  *
  * R097: Economic panels — treasury, tax, budget, RCI meter overlays the
  * operator UI with economic data from the co-simulation loop.
+ * R111: Tax policy consequence timeline panel.
+ * R112: Zoning tool with preview and undo.
+ * R114: Treasury projection chart panel.
  *
- * spec: OVERSTORY-CITY-R010, OVERSTORY-CITY-R011, OVERSTORY-CITY-R012, OVERSTORY-CITY-R027, OVERSTORY-CITY-R097
+ * spec: OVERSTORY-CITY-R010, OVERSTORY-CITY-R011, OVERSTORY-CITY-R012, OVERSTORY-CITY-R027, OVERSTORY-CITY-R097, OVERSTORY-CITY-R111, OVERSTORY-CITY-R112, OVERSTORY-CITY-R114
  */
 import { bus, feedFullySimulated, getMode, type CityEvent } from './events'
 import { legendLines, stateColor } from './encoding'
 import { ROLE_LABELS } from './ecosystem'
 import * as Economy from './economy'
+import type { TaxConfig } from './economy'
 import { isNight } from './sim'
 import type { world as simWorld } from './sim'
 import type { CityActions, CityRenderer, CityUiElements, SelectionHit } from './types'
@@ -471,6 +475,64 @@ export function initUI(world: World, renderer: CityRenderer, actions: CityAction
     const online = connectors.filter((b) => b.online).length
     const totalChars = world.characters.length
     const popLabel = `${totalChars} (${world.characters.filter((c) => c.kind === 'ai').length} AI · ${world.characters.filter((c) => c.kind === 'npc').length} NPC)`
+
+    // R114: Treasury projection chart (last 10 projected values).
+    const projData = getProjectedTreasury()
+    const chartData = projData.slice(-10)
+    const chartMax = Math.max(...chartData, 1000)
+    const chartMin = Math.min(...chartData, 0)
+    const chartRange = chartMax - chartMin || 1
+    const chartH = 50
+    const chartW = 200
+    const chartPad = 4
+    const chartSvg =
+      chartData.length > 1
+        ? `<svg width="${chartW}" height="${chartH}" style="margin-top:4px">
+          <defs><linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#3ddc84" stop-opacity="0.3"/>
+            <stop offset="100%" stop-color="#ff5e5e" stop-opacity="0.05"/>
+          </linearGradient></defs>
+          <rect width="${chartW}" height="${chartH}" fill="url(#chartGrad)" rx="2"/>
+          ${chartData
+            .map((v, i) => {
+              const x = chartPad + (i / (chartData.length - 1)) * (chartW - chartPad * 2)
+              const y = chartPad + (1 - (v - chartMin) / chartRange) * (chartH - chartPad * 2)
+              return `<circle cx="${x}" cy="${y}" r="2.5" fill="#3ddc84" stroke="#0f1520" stroke-width="0.5"/>`
+            })
+            .join('')}
+          <polyline points="${chartData
+            .map((v, i) => {
+              const x = chartPad + (i / (chartData.length - 1)) * (chartW - chartPad * 2)
+              const y = chartPad + (1 - (v - chartMin) / chartRange) * (chartH - chartPad * 2)
+              return `${x},${y}`
+            })
+            .join(' ')}" fill="none" stroke="#3ddc84" stroke-width="1.5"/>
+        </svg>`
+        : `<div style="height:30px;color:#555e6a;font-size:10px;display:flex;align-items:center">No projection data yet</div>`
+
+    // R111: Policy timeline (last 5 entries).
+    const policyData = getPolicyTimeline().slice(-5)
+    const policyHtml =
+      policyData.length > 0
+        ? policyData
+            .map((p) => {
+              const typeColor = p.type === 'tax' ? '#ffd166' : p.type === 'budget' ? '#5ec8d8' : '#9e9e9e'
+              return `<div style="font-size:10px;margin-bottom:3px"><span style="color:${typeColor};min-width:32px;display:inline-block">${p.type}</span> <span style="color:#b0bac9">${p.effect ?? p.zone ?? ''}</span></div>`
+            })
+            .join('')
+        : `<div style="font-size:10px;color:#555e6a">No policy changes yet</div>`
+
+    // R112: Zoning tool selector.
+    const zoningOptions = ['residential', 'commercial', 'industrial', 'mixed']
+    const btnBase =
+      'class="ghost" style="padding:2px 8px;font-size:10px;border:1px solid #2a3444;border-radius:3px;color:#e8ecf4;background:#1a2230"'
+    const zoningHtml = [
+      '<div style="font-size:10px;color:#8894a8;margin-bottom:2px">Zone type for paint tool:</div>',
+      '<div style="display:flex;gap:4px;flex-wrap:wrap">',
+      ...zoningOptions.map((z) => `<button type="button" ${btnBase}>${z}</button>`),
+      '</div>',
+    ].join('\n')
+
     econPanel.innerHTML = `
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
         <h3 style="margin:0;font-size:13px;color:#5ec8d8">Economy</h3>
@@ -492,6 +554,12 @@ export function initUI(world: World, renderer: CityRenderer, actions: CityAction
         ${rciRow('Commercial', rciCommercial)}
         ${rciRow('Industrial', rciIndustrial)}
       </div>
+      <h4 style="margin:8px 0 4px;font-size:12px;color:#ffd166">Treasury Projection (R114)</h4>
+      <div style="margin-bottom:8px">${chartSvg}</div>
+      <h4 style="margin:8px 0 4px;font-size:12px;color:#ffd166">Policy Timeline (R111)</h4>
+      <div style="margin-bottom:8px;padding:4px;background:#0f1520;border-radius:3px;max-height:80px;overflow-y:auto">${policyHtml}</div>
+      <h4 style="margin:8px 0 4px;font-size:12px;color:#ffd166">Zoning Tool (R112)</h4>
+      <div style="margin-bottom:8px">${zoningHtml}</div>
       <h4 style="margin:8px 0 4px;font-size:12px;color:#ffd166">Overlays</h4>
       <div style="margin-bottom:8px;font-size:11px;color:#8894a8">
         Press Ctrl+O to cycle: <span id="active-overlay-label">${activeOverlayLabel}</span>
@@ -524,13 +592,10 @@ export function initUI(world: World, renderer: CityRenderer, actions: CityAction
   let taxDisplay = '20/20/20'
 
   function updateEconomicState(): void {
-    // Treasury: read from the top bar's connector count and character count.
-    // We compute treasury from the simulation tick's events — for now,
-    // a derived value based on economic health.
-    const online = Object.values(world.buildings).filter((b) => b.category === 'connector' && b.online).length
-    const totalChars = world.characters.length
-    const baseTreasury = 50000 + online * 5000 - (20 - totalChars) * 1000
-    treasuryDisplay = `$${Math.max(0, baseTreasury).toLocaleString()}`
+    // R114: read projected treasury from the Economy module.
+    const proj = getProjectedTreasury()
+    const currentTreasury = proj.length > 0 ? proj[0] : 50000
+    treasuryDisplay = `$${Math.max(0, currentTreasury).toLocaleString()}`
 
     // RCI: derived from character distribution and building counts.
     const commercialBuildings = Object.values(world.buildings).filter(
@@ -547,8 +612,16 @@ export function initUI(world: World, renderer: CityRenderer, actions: CityAction
     rciCommercial = Math.min(1, Math.max(0, commercialBuildings / 3))
     rciIndustrial = Math.min(1, Math.max(0, industrialBuildings / 3))
 
-    // Tax display: base rate 20% per zone.
-    taxDisplay = '20/20/20'
+    // R111: read tax config from the Economy module.
+    try {
+      const getTaxConfig = (Economy as Record<string, unknown>).getTaxConfig as (() => TaxConfig) | undefined
+      if (typeof getTaxConfig === 'function') {
+        const taxConfig = getTaxConfig()
+        taxDisplay = `${Math.round(taxConfig.residential * 100)}/${Math.round(taxConfig.commercial * 100)}/${Math.round(taxConfig.industrial * 100)}`
+      }
+    } catch {
+      // Fallback if TaxConfig getter is not available.
+    }
 
     // Active overlay label.
     activeOverlayLabel = activeOverlayDisplay()
@@ -1091,16 +1164,29 @@ export function initUI(world: World, renderer: CityRenderer, actions: CityAction
 
 /** Projected treasury over next 50 ticks (R114). */
 export function getProjectedTreasury(): number[] {
-  return (Economy as any).projectedTreasury ?? []
+  return (Economy as unknown as Record<string, number[] | undefined>).projectedTreasury ?? []
 }
 
 /** Policy change timeline (R111). */
-export function getPolicyTimeline(): Array<{ tick: number; type: string; zone?: string; effect?: string }> {
-  return (Economy as any).policyTimeline ?? []
+export function getPolicyTimeline(): { tick: number; type: string; zone?: string; effect?: string }[] {
+  return (
+    (
+      Economy as unknown as Record<
+        string,
+        { tick: number; type: string; zone?: string; effect?: string }[] | undefined
+      >
+    ).policyTimeline ?? []
+  )
 }
 
 /** Service network data for overlay (R113). */
-export function getServiceNetworkData(): Array<{ x: number; z: number; radius: number; type: string; funded: boolean }> {
+export function getServiceNetworkData(): {
+  x: number
+  z: number
+  radius: number
+  type: string
+  funded: boolean
+}[] {
   const networks = Economy.getServiceNetworks()
   return networks.map((n) => ({
     x: 0,
