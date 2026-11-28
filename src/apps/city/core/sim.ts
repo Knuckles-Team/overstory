@@ -104,7 +104,6 @@ export interface Plot {
   construction: { connectorId: string; progress: number; lastMilestone: number } | null
   access?: FrontageSite
   /** Demand marker: ghost building showing pending demand (R101). */
-  demandMarker?: { zoneType: string; demand: number }
   /** Zone policy override: residential/commercial/industrial/mixed (R112). */
   zone?: 'residential' | 'commercial' | 'industrial' | 'mixed'
 }

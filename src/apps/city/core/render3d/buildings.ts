@@ -48,12 +48,21 @@ interface LandmarkBits {
   tip?: THREE.Mesh
 }
 
+/** The wall multiplier for an economic health in [0, 1]: a healthy building keeps its colour, a failing one darkens. */
+export function healthTint(health: number): number {
+  return 0.35 + 0.65 * Math.max(0, Math.min(1, health))
+}
+
 interface BuildingEntry {
   group: THREE.Group
   body: THREE.Object3D
   mats: THREE.MeshStandardMaterial[]
   /** The kit's wall material — the 'lit-windows' channel (R025). */
   wallMat: THREE.MeshStandardMaterial | null
+  /** The archetype wall colour the economic-health tint multiplies (R102). */
+  wallBase?: THREE.Color
+  /** The economic health the wall was last tinted for. */
+  tintedFor?: number
   /** Neutral glass material; the only building surface lit by live work. */
   windowMat?: THREE.MeshStandardMaterial | null
   /** The window-emissive resolver (R066): per-window schedule occupancy. */
@@ -399,6 +408,7 @@ export function createBuildings(
       body,
       mats: [coreMat, wallMat, windowMat, roofMat],
       wallMat,
+      wallBase: wallMat.color.clone(),
       windowMat,
       winEmissive,
       roofMat,
@@ -788,45 +798,6 @@ export function createBuildings(
   })
   const reservedMarkers = new Map<string, THREE.Mesh>()
 
-  // ---- R101: demand-marker ghost buildings on empty lots ----------------------
-  // When demand exceeds the threshold but construction is prevented, the empty
-  // lot displays a ghost building outline (low-opacity, zone-colour filtered).
-  // A Map from `${plot.x}:${plot.z}` → THREE.Object3D for easy sync.
-  const ghostBuildings = new Map<string, THREE.Object3D>()
-  const zoneColorMap: Record<string, number> = {
-    residential: 0x4caf50,
-    commercial: 0x2196f3,
-    industrial: 0xff9800,
-  }
-
-  function syncDemandMarkers(): void {
-    for (const plot of world.plots) {
-      if (!plot.demandMarker || plot.buildingId) continue
-      const key = `${plot.x}:${plot.z}`
-      if (ghostBuildings.has(key)) continue
-      // Create a ghost building matching the zone type.
-      const marker = plot.demandMarker
-      const color = zoneColorMap[marker.zoneType] ?? 0x9e9e9e
-      const ghostGeo = new THREE.BoxGeometry(
-        plot.buildingId ? 8 : PLOT_W - 0.4,
-        5.5,
-        plot.buildingId ? 8 : PLOT_W - 0.4,
-      )
-      const ghostMat = new THREE.MeshStandardMaterial({
-        color,
-        transparent: true,
-        opacity: 0.22,
-        roughness: 1,
-        depthWrite: false,
-      })
-      const ghost = new THREE.Mesh(ghostGeo, ghostMat)
-      ghost.position.set(plot.x, 2.75, plot.z)
-      ghost.userData.marker = 'demand-marker'
-      scene.add(ghost)
-      ghostBuildings.set(key, ghost)
-    }
-  }
-
   // ---- Commit pulses at the vault ---------------------------------------------
   const pulses: { mesh: THREE.Mesh; t: number }[] = []
   // Reuse this small accumulator every frame.  A fresh object at 60 Hz is
@@ -1022,18 +993,12 @@ export function createBuildings(
         while (targetRot - fr < -Math.PI) fr -= Math.PI * 2
         entry.mv = { fx: gpos.x, fz: gpos.z, fr, t: 0, dur: 0.9 }
       }
-      // R102: modulate wall colour by economic health every frame.
-      if (entry.wallMat && b.economicHealth !== undefined) {
-        const health = Math.max(0, Math.min(1, b.economicHealth))
-        const r = Math.round(200 * health + 50 * (1 - health))
-        const g = Math.round(200 * health + 40 * (1 - health))
-        const b2 = Math.round(200 * health + 30 * (1 - health))
-        entry.wallMat.color.setRGB(r / 255, g / 255, b2 / 255)
+      // R102: tint the wall once per change of economic health, as a multiplier on the archetype colour.
+      if (entry.wallMat && entry.wallBase && b.economicHealth !== undefined && entry.tintedFor !== b.economicHealth) {
+        entry.wallMat.color.copy(entry.wallBase).multiplyScalar(healthTint(b.economicHealth))
+        entry.tintedFor = b.economicHealth
       }
     }
-
-    // R101: sync demand-marker ghost buildings.
-    syncDemandMarkers()
 
     // Commit pulses.
     for (let i = pulses.length - 1; i >= 0; i--) {
@@ -1189,22 +1154,6 @@ export function createBuildings(
     queueFigMat.dispose()
     for (const marker of reservedMarkers.values()) scene.remove(marker)
     reservedMarkers.clear()
-    // R101: dispose ghost demand markers.
-    for (const ghost of ghostBuildings.values()) {
-      scene.remove(ghost)
-      const geos = new Set<THREE.BufferGeometry>()
-      const mats = new Set<THREE.Material>()
-      ghost.traverse((obj) => {
-        if (!isMesh(obj)) return
-        geos.add(obj.geometry)
-        const m = obj.material
-        if (Array.isArray(m)) m.forEach((mi) => mats.add(mi))
-        else mats.add(m)
-      })
-      for (const geo of geos) geo.dispose()
-      for (const m of mats) m.dispose()
-    }
-    ghostBuildings.clear()
     for (const g of dressingGroups.values()) scene.remove(g)
     dressingGroups.clear()
     for (const c of constructionGroups.values()) disposeConstruction(c)

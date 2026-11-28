@@ -435,3 +435,5 @@ For R048.5, exercise a seeded vessel journey between connected berths across mul
 - `OVERSTORY-CITY-R037.3`: proof — `src/apps/city/__tests__/trafficLaneGraph.test.ts::refuses a missing leg with an error instead of drawing a chord across the blocks`.
 - `OVERSTORY-CITY-R026.1`: proof — `src/apps/city/__tests__/sim.test.ts::boots quiet: no auto-task, no wander, no patrol without an operator action`.
 - `OVERSTORY-CITY-R053.1`: proof — `src/apps/city/__tests__/sceneInstances.test.ts::lights the brakes of the car at a stop line and no other`.
+- `OVERSTORY-CITY-R102.1`: proof — `src/apps/city/__tests__/buildingHealth.test.ts::tints once as a multiplier on the archetype colour and never overwrites per frame`.
+- `OVERSTORY-CITY-R101.1`: proof — `src/apps/city/__tests__/buildingHealth.test.ts::are rebuilt each economy tick, never accumulated`.

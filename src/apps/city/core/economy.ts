@@ -717,6 +717,8 @@ export function tickEconomy(): void {
   if (!initialised) return
 
   events = []
+  // Demand markers describe this tick only: rebuilt, never accumulated (R101).
+  demandMarkers.length = 0
   const prng = mulberry32(0) // seeded, deterministic within a tick
 
   // === R100 Extended co-simulation loop: 20 sub-steps ===
