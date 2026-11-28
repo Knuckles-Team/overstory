@@ -31,6 +31,8 @@ import {
   remapWindowUvForOccupancy,
   type NightWindowReport,
   type WindowEmissiveHandle,
+  type OccupancyState,
+  occupancyMultiplier,
 } from './windowEmissive'
 import { isScheduledNight } from '../activity'
 import type { world as SimWorld } from '../sim'
@@ -342,6 +344,8 @@ export function createBuildings(
       floors,
       cols: Math.max(baysX, baysZ),
       color: encodingColor('lit-windows'),
+      /** R103: initial occupancy state from the model. */
+      occupancyState: b.occupancyState,
     })
     windowMat.emissiveMap = winEmissive.texture
     const coreGeo = new THREE.BoxGeometry(
@@ -919,10 +923,17 @@ export function createBuildings(
         // from the activity schedule (R050) at frame rate, and the in-flight
         // work lights its deterministic cells on top — a building with live
         // work is never dark.
-        if (entry.winEmissive) entry.winEmissive.update(timeAcc, calls)
+        // R103: tell the emissive to follow the model's occupancy state.
+        if (entry.winEmissive) {
+          entry.winEmissive.setOccupancyState(b.occupancyState)
+          entry.winEmissive.update(timeAcc, calls)
+        }
+        // R103: modulate emissive intensity by occupancy state from the model.
+        // A declining/abandoned building dims regardless of in-flight work.
+        const occMult = occupancyMultiplier(b.occupancyState)
         const scheduleGlow = entry.winEmissive?.anyLit ? 1 : 0
         entry.windowMat.emissiveIntensity =
-          Math.max(scheduleGlow, Math.min(1.5, calls * 0.45)) + (entry.wallBoost ?? 0) * 0.75
+          Math.max(scheduleGlow * occMult, Math.min(1.5, calls * 0.45) * occMult) + (entry.wallBoost ?? 0) * 0.75
       }
       // 'error-flash' channel (R025): while a recent error is fresh the roof
       // lights up in the table's red (the roof sheet is painted in it).
@@ -1154,7 +1165,16 @@ export function createBuildings(
         fingerprint: win.fingerprint,
       })
     }
-    return { clockS, night: isScheduledNight(clockS), samples }
+    return {
+      clockS,
+      night: isScheduledNight(clockS),
+      samples,
+      /** R103: forward occupancy state to the emissive handle. */
+      setOccupancyState(buildingId: string, state: OccupancyState | null): void {
+        const entry = buildingGroups.get(buildingId)
+        if (entry?.winEmissive) entry.winEmissive.setOccupancyState(state)
+      },
+    }
   }
 
   function dispose(): void {

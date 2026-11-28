@@ -1599,21 +1599,10 @@ export function tickSim(dtGame: number, dtReal: number, dtWall = dtReal): void {
     if (b.flash > 0) b.flash = Math.max(0, b.flash - dtReal * 0.8)
   }
 
-  // R102: update economic health based on building state.
-  // R103: occupancy state transitions.
-  for (const b of Object.values(world.buildings)) {
-    const health = b.economicHealth ?? 0.5
-    const target = 0.5 + (b.fresh > 0 ? 0.3 : 0)
-    if (health < target) {
-      b.economicHealth = Math.min(target, health + dtReal * 0.01)
-    } else {
-      b.economicHealth = Math.max(target, health - dtReal * 0.005)
-    }
-    // Occupancy state transitions (R103)
-    if (b.economicHealth < 0.2) b.occupancyState = 'abandoned'
-    else if (b.economicHealth < 0.35) b.occupancyState = 'declining'
-    else if (b.occupancyState === 'new' && b.fresh <= 0) b.occupancyState = 'mature'
-  }
+  // R102/R103: economic health and occupancy state transitions are driven
+  // by the economic model (economy.ts), not by this frame loop. The sim
+  // here only decrements the fresh timer and error-flash timer so the
+  // model can react to them.
 }
 
 // ---- Accessors (selection API, UI, tests) ----------------------------------

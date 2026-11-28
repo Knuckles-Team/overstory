@@ -41,6 +41,11 @@ export interface NightWindowReport {
   /** True while the clock is inside the schedule's night window. */
   night: boolean
   samples: NightWindowSample[]
+  /**
+   * Set the building's occupancy state from the model so emissive tracks
+   * occupancy transitions (R103).  Call each frame before `update`.
+   */
+  setOccupancyState(buildingId: string, state: OccupancyState | null): void
 }
 
 /** The building functions the kit's district archetypes read as. */
@@ -111,17 +116,22 @@ export interface WindowEmissiveHandle {
    * true when the texture was redrawn (schedule slot, occupancy or work
    * changed). The material's intensity must follow `anyLit`.
    */
-  update(clockS: number, inFlightCalls: number): boolean
+  update(clockS: number | undefined, inFlightCalls: number): boolean
+  /**
+   * Update the building's occupancy state from the model so the emissive
+   * follows occupancy transitions (R103).  Must be called each frame.
+   */
+  setOccupancyState(state: OccupancyState | undefined | null): void
   /** True while any window is lit. */
-  anyLit: boolean
+  get anyLit(): boolean
   /** The current per-floor lit fraction (0..1), floor-major. */
-  perFloor: number[]
+  get perFloor(): number[]
   /** A stable fingerprint of the current grid. */
-  fingerprint: number
+  get fingerprint(): number
   /** The schedule occupancy the grid resolved from. */
-  occupancy: number
+  get occupancy(): number
   /** The building's occupancy state (R103). */
-  occupancyState: string
+  get occupancyState(): string
   /** Free the texture. */
   dispose(): void
 }
@@ -137,6 +147,11 @@ const OCCUPANCY_MULTIPLIER: Record<string, number> = {
   mature: 1.0,
   declining: 0.3,
   abandoned: 0.0,
+}
+
+/** Look up the occupancy-state emissive multiplier (R103). */
+export function occupancyMultiplier(state: string | undefined): number {
+  return OCCUPANCY_MULTIPLIER[state ?? 'mature'] ?? 1.0
 }
 
 /**
@@ -172,30 +187,30 @@ export function createWindowEmissive(opts: {
   let perFloor: number[] = []
   let fingerprint = 0
   let occupancy = 0
-  const occState = occupancyState ?? 'mature'
-  const occMult = OCCUPANCY_MULTIPLIER[occState] ?? 1.0
+  let occState = occupancyState ?? 'mature'
+  let occMult = OCCUPANCY_MULTIPLIER[occState] ?? 1.0
+  /** Mutable: set by the caller each frame so the emissive follows the model. */
+  let dirty = true
 
   return {
     floors,
     cols,
     fn,
     texture,
-    get anyLit(): boolean {
-      return anyLit
-    },
-    get perFloor(): number[] {
-      return perFloor
-    },
-    get fingerprint(): number {
-      return fingerprint
-    },
-    get occupancy(): number {
-      return occupancy
-    },
-    get occupancyState(): string {
-      return occState
-    },
-    update(clockS: number, inFlightCalls: number): boolean {
+    /**
+     * Update the emissive from the schedule + live work.  Also re-reads the
+     * occupancy state from the caller so R103 stays in sync with the model.
+     * Pass a falsy clock to skip texture work — only the occupancy flag is
+     * checked.  Returns true when the texture was redrawn.
+     */
+    update(clockS: number | undefined, inFlightCalls: number): boolean {
+      // R103: re-read occupancy state each call so the emissive follows
+      // model transitions (mature → declining → abandoned).
+      if (dirty) {
+        occMult = OCCUPANCY_MULTIPLIER[occState] ?? 1.0
+        dirty = false
+      }
+      if (clockS === undefined) return false
       const occ = occupancyAt(fn, clockS)
       // Occupancy is reported in 5% steps: the grid only redraws when a step,
       // a schedule slot or the work count actually changes.
@@ -223,8 +238,34 @@ export function createWindowEmissive(opts: {
       occupancy = occ
       return true
     },
+    /**
+     * Set the building's occupancy state so the emissive follows the model
+     * (R103).  Must be called each frame before `update`.
+     */
+    setOccupancyState(state: OccupancyState | undefined | null): void {
+      if (state === occState) return
+      occState = state ?? 'mature'
+      occMult = OCCUPANCY_MULTIPLIER[occState] ?? 1.0
+      dirty = true
+    },
     dispose(): void {
       texture.dispose()
+    },
+    // Getters required by the WindowEmissiveHandle interface.
+    get anyLit(): boolean {
+      return anyLit
+    },
+    get perFloor(): number[] {
+      return perFloor
+    },
+    get fingerprint(): number {
+      return fingerprint
+    },
+    get occupancy(): number {
+      return occupancy
+    },
+    get occupancyState(): string {
+      return occState
     },
   }
 }

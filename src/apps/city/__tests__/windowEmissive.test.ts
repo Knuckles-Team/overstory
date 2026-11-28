@@ -144,7 +144,14 @@ describe('window_emissive (R066)', () => {
     expect(a.anyLit).toBe(true)
     expect(a.update(23 * H, 2)).toBe(false)
     // The report seam carries per-floor occupancy and a stable fingerprint.
-    const report: NightWindowReport = { clockS: 23 * H, night: true, samples: [] }
+    const report: NightWindowReport = {
+      clockS: 23 * H,
+      night: true,
+      samples: [],
+      setOccupancyState() {
+        // no-op in test
+      },
+    }
     report.samples.push({
       id: 'a',
       family: 'gateway',
