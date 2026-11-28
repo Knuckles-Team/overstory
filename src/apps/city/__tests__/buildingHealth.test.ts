@@ -61,9 +61,9 @@ describe('demand markers (R101.1)', () => {
   it('are rebuilt each economy tick, never accumulated', () => {
     resetSim()
     initSim(fleetToConnectors(FLEET_SNAPSHOT))
-    demandMarkers.push({ plotIndex: -1, zoneType: 'stale', demand: 9 })
+    demandMarkers.push({ plotIndex: -1, zoneType: 'residential', demand: 9 })
     tickEconomy()
-    expect(demandMarkers.some((marker) => marker.zoneType === 'stale')).toBe(false)
+    expect(demandMarkers.some((marker) => marker.plotIndex === -1)).toBe(false)
     const first = demandMarkers.length
     for (let i = 0; i < 20; i++) tickEconomy()
     expect(demandMarkers.length).toBeLessThanOrEqual(Math.max(first, world.plots.length * 3))

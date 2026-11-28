@@ -16,7 +16,7 @@ import * as THREE from 'three'
 import { GLTFLoader, type GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { zoomBandFor } from '@/lib/scene3d/labels'
 import type { RoadGraph } from '@/lib/scene3d/roads'
-import { pinnedBytes } from './assets'
+import { ensurePinned } from './assets'
 import { allowedAssetPath, tagExempt } from './provenance'
 import { FrameBudgetMonitor, initialLadderState, stepQualityLadder, type FrameBudgetView } from './frameBudget'
 import type { TierName } from '@/lib/scene3d/tiers'
@@ -55,26 +55,31 @@ export async function init3D(
   // ones (OVERSTORY-CITY-R013). The path gate closes the set further
   // (OVERSTORY-CITY-R063): only the catalogued kit and the two exempt
   // non-kit pins may load — no external or hard-coded asset reaches the
-  // scene. There is no render-time fetch fallback: an unverified pin is
-  // rejected at load and the character layer renders its labelled
+  // scene. There is no unverified fallback: a kit pin the renderer asks for is
+  // fetched and verified on demand, and an unverified pin is rejected at load and the character layer renders its labelled
   // placeholder for it — an asset that failed verification never reaches
   // the scene with unverified bytes.
   function loadPinnedGLB(url: string): Promise<GLTF> {
     if (!allowedAssetPath(url)) return Promise.reject(new Error(`asset outside the catalog and exempt pins: ${url}`))
-    const cached = pinnedBytes(url)
-    if (!cached) return Promise.reject(new Error(`pinned asset not verified at startup: ${url}`))
-    return new Promise((resolve, reject) => {
-      loader.parse(
-        cached,
-        '',
-        (gltf) => {
-          resolve(gltf)
-        },
-        (err) => {
-          reject(err instanceof Error ? err : new Error('GLB parse failed'))
-        },
-      )
-    })
+    return ensurePinned(url).then(
+      (cached) =>
+        new Promise<GLTF>((resolve, reject) => {
+          if (!cached) {
+            reject(new Error(`pinned asset not verified: ${url}`))
+            return
+          }
+          loader.parse(
+            cached,
+            '',
+            (gltf) => {
+              resolve(gltf)
+            },
+            (err) => {
+              reject(err instanceof Error ? err : new Error('GLB parse failed'))
+            },
+          )
+        }),
+    )
   }
 
   // The scene core owns the shared pipeline (renderer state, environment,

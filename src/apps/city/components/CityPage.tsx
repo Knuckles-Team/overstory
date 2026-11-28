@@ -23,7 +23,8 @@ import { isCitySandbox } from '@/lib/city-sandbox'
 import { CityWebMcp } from './CityWebMcp'
 import { fetchCityFleet, fetchCityLayout, saveCityLayout } from '../api'
 import { FLEET_SNAPSHOT, fleetToConnectors, type FleetServer } from '../core/ecosystem'
-import { pinBytes } from '../core/assets'
+import { ASSETS_BASE, registerLazyPin, verifyPin } from '../core/assets'
+import { EXEMPT_NONKIT_PINS } from '../core/provenance'
 import { catalogFamilyCount, setCatalog } from '../core/catalog'
 import { BUDGETS } from '../core/budgets'
 import { applyToCity, createEcosystemMirror, type EcosystemEvent } from '../core/ecosystemMirror'
@@ -55,7 +56,6 @@ import { installCityFidelity, type CityFidelityHandle } from '../core/fidelity'
 import type { CityToolController } from '../webmcp'
 import '../city.css'
 
-const ASSETS_BASE = '/city-assets'
 const SPEEDS = [0, 0.5, 1, 1.25, 1.5, 2, 4, 8, 20] as const
 
 /**
@@ -83,29 +83,8 @@ export function parseDemoParam(search: string): boolean {
 }
 
 /**
- * Fetch one pinned file, verify byte count and SHA-256 against the lockfile,
- * and pin the verified bytes so the renderer reuses them (one fetch per pin,
- * OVERSTORY-CITY-R013). One retry; a second failure emits `asset.failed`.
- */
-async function verifyPinned(path: string, expected: { bytes: number; sha256: string }): Promise<void> {
-  for (let attempt = 1; attempt <= 2; attempt++) {
-    try {
-      const buf = await (await fetch(`${ASSETS_BASE}/${path.split('/').slice(1).join('/')}`)).arrayBuffer()
-      if (buf.byteLength !== expected.bytes) throw new Error(`size ${buf.byteLength} != ${expected.bytes}`)
-      const digest = await crypto.subtle.digest('SHA-256', buf)
-      const hash = Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, '0')).join('')
-      if (hash !== expected.sha256) throw new Error(`sha ${hash} != ${expected.sha256}`)
-      pinBytes(path, buf)
-      bus.emit(makeEvent('asset.verified', {}, `${path} verified`))
-      return
-    } catch (err) {
-      if (attempt === 2) bus.emit(makeEvent('asset.failed', {}, `${path}: ${String(err)}`))
-    }
-  }
-}
-
-/**
- * Verify every pinned asset at startup (OVERSTORY-CITY-R013). The lockfile
+ * Verify the pinned assets the renderer uses at startup (OVERSTORY-CITY-R013); the kit is
+ * registered and verified on demand. The lockfile
  * itself is fetched from the site root; a missing or malformed lockfile is a
  * typed, visible failure, never a silent skip. Licensing is a gate: a pin
  * whose license is outside the lockfile's allowlist is refused before any
@@ -152,7 +131,14 @@ async function verifyAssets(): Promise<void> {
       bus.emit(makeEvent('asset.failed', {}, `kit/catalog.json: ${String(err)}`))
     }
   })()
-  await Promise.all([catalogFetch, ...paths.map((path, i) => verifyPinned(path, files[i]))])
+  // Only what the renderer loads at startup is fetched and hashed: the shared rig and the marker
+  // cube. The kit is registered, not fetched; the renderer verifies a kit pin when it asks for it.
+  const startup: Promise<unknown>[] = [catalogFetch]
+  paths.forEach((path, i) => {
+    if (EXEMPT_NONKIT_PINS.includes(path)) startup.push(verifyPin(path, files[i]))
+    else registerLazyPin(path, files[i])
+  })
+  await Promise.all(startup)
 }
 
 export default function CityPage() {

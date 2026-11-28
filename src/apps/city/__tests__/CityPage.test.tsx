@@ -15,6 +15,8 @@
  * world state or in-flight boot leaks into the next test.
  */
 // spec: OVERSTORY-CITY-R012, OVERSTORY-CITY-R013, OVERSTORY-CITY-R014, OVERSTORY-CITY-R015, OVERSTORY-CITY-R018, OVERSTORY-CITY-R026, OVERSTORY-CITY-R027, OVERSTORY-CITY-R029, OVERSTORY-CITY-R030, OVERSTORY-CITY-R063
+import { ensurePinned, lazyPinPaths } from '../core/assets'
+import { EXEMPT_NONKIT_PINS } from '../core/provenance'
 import { readFileSync } from 'node:fs'
 import { webcrypto } from 'node:crypto'
 import { join } from 'node:path'
@@ -335,20 +337,32 @@ describe('mode decision (R014)', () => {
     }
   })
 
-  it('verifies every pinned asset at startup (R013): every lockfile pin verified, no failures', async () => {
+  // spec: OVERSTORY-CITY-R013.1
+  it('verifies only the pins the renderer loads at startup; the kit is registered, then verified on demand (R013.1)', async () => {
     const lock = lockJson() as { files: Record<string, unknown> }
-    const pinCount = Object.keys(lock.files).length
+    const pins = Object.keys(lock.files)
+    const startupPins = pins.filter((path) => EXEMPT_NONKIT_PINS.includes(path))
+    const kitPins = pins.filter((path) => !EXEMPT_NONKIT_PINS.includes(path))
+    expect(kitPins.length).toBeGreaterThan(0)
     const seen: string[] = []
     const unsub = bus.subscribe((e) => {
       seen.push(e.type)
     })
     const view = await bootCity('live')
     try {
-      // Boot awaits verification before it completes, so by here every pin
-      // has been fetched, hashed and matched against the lockfile. The bus
-      // is the authority — the visible feed is a capped, interleaved view.
-      expect(seen.filter((t) => t === 'asset.verified')).toHaveLength(pinCount)
+      // Boot awaits verification before it completes. The bus is the authority.
+      expect(seen.filter((t) => t === 'asset.verified')).toHaveLength(startupPins.length)
       expect(seen.some((t) => t === 'asset.failed')).toBe(false)
+      const glbFetches = (global.fetch as ReturnType<typeof vi.fn>).mock.calls
+        .map(([u]) => String(u))
+        .filter((u) => u.endsWith('.glb'))
+      expect(glbFetches.every((u) => u.includes('/characters/') || u.includes('marker-cube'))).toBe(true)
+      expect(lazyPinPaths()).toHaveLength(kitPins.length)
+      // The renderer asks for one kit pin: it is fetched and verified now, once.
+      expect(await ensurePinned(kitPins[0])).not.toBeNull()
+      expect(await ensurePinned(kitPins[0])).not.toBeNull()
+      expect(seen.filter((t) => t === 'asset.verified')).toHaveLength(startupPins.length + 1)
+      expect(lazyPinPaths()).toHaveLength(kitPins.length - 1)
     } finally {
       unsub()
       view.unmount()
