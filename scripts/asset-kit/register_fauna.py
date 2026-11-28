@@ -3,7 +3,7 @@ import hashlib
 import json
 import os
 
-ROOT = "/home/genius/Workspace/overstory-city-procedural-specs"
+ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 CATALOG_PATH = os.path.join(ROOT, "public/city-assets/kit/catalog.json")
 LOCK_PATH = os.path.join(ROOT, "public/city-assets/assets.lock.json")
 
