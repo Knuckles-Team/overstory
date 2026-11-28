@@ -11,7 +11,7 @@
  * replace it with an identically-seeded instance so every bound is
  * reproducible, and they assert `Math.random` is never called in the sim.
  */
-// spec: OVERSTORY-CITY-R002, OVERSTORY-CITY-R005, OVERSTORY-CITY-R006, OVERSTORY-CITY-R007, OVERSTORY-CITY-R008, OVERSTORY-CITY-R009, OVERSTORY-CITY-R011, OVERSTORY-CITY-R012, OVERSTORY-CITY-R014, OVERSTORY-CITY-R026, OVERSTORY-CITY-R029
+// spec: OVERSTORY-CITY-R002, OVERSTORY-CITY-R005, OVERSTORY-CITY-R006, OVERSTORY-CITY-R007, OVERSTORY-CITY-R008, OVERSTORY-CITY-R009, OVERSTORY-CITY-R011, OVERSTORY-CITY-R012, OVERSTORY-CITY-R014, OVERSTORY-CITY-R026, OVERSTORY-CITY-R029, OVERSTORY-CITY-R107
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { FLEET_SNAPSHOT, connectorsByDomain, fleetToConnectors, type ConnectorDef } from '../core/ecosystem'
 import { EVENT_TYPES, bus, setTimeSource } from '../core/events'
@@ -733,5 +733,24 @@ describe('selection API (R011)', () => {
     expect(building?.tools).toContain('query')
     expect(getCharacter('not-a-citizen')).toBeUndefined()
     expect(getBuilding('not-a-building')).toBeUndefined()
+  })
+})
+
+// R107: Character commute — NPCs get a workBuilding assigned at boot,
+// and the commute method is called from tickSim when night falls.
+describe('character commute (R107)', () => {
+  it('commute() sets target and moves character toward destination', () => {
+    boot()
+    const ch = getCharacter('agent-01')!
+    const startX = ch.pos.x
+    const startZ = ch.pos.z
+    ch.commute(startX + 10, startZ + 10)
+    // commute() should set the target position and compute a path.
+    expect(ch.target).toEqual({ x: startX + 10, z: startZ + 10 })
+    expect(ch.path.length).toBeGreaterThan(0)
+    // The mood should be 'commuting'.
+    expect(ch.mood).toBe('commuting')
+    // The character should be in motion.
+    expect(ch.moving()).toBe(true)
   })
 })

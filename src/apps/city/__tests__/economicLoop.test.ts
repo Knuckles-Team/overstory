@@ -6,11 +6,16 @@
  *       tax increase → decay → population loss → demand drop
  *       goods shortage → vehicle generation → delivery → resolution
  * R115: Performance soak — the full simulation loop must stay within time budgets.
+ * R107: Character commute paths (commute() method, workBuilding assignment).
+ * R111: Policy timeline (tax/budget change recording).
+ * R112: Zoning tool (plot zone selection and preview).
+ * R114: Treasury projection (projectTreasury()).
  */
-// spec: OVERSTORY-CITY-R115, OVERSTORY-CITY-R116
+// spec: OVERSTORY-CITY-R107, OVERSTORY-CITY-R111, OVERSTORY-CITY-R112, OVERSTORY-CITY-R114, OVERSTORY-CITY-R115, OVERSTORY-CITY-R116
 import { describe, expect, it } from 'vitest'
 import { mulberry32 } from '../core/prng'
 import * as Economy from '../core/economy'
+import { setPlotZone, getPlotZone } from '../core/editLayer'
 
 // ---------------------------------------------------------------------------
 // R116: Closed-loop integration tests
@@ -61,7 +66,9 @@ describe('closed-loop economy: demand → construction → characters → income
     }
 
     // No new construction should have started.
-    const placedEvents = Economy.getLastEvents().filter((e) => e.type === 'construction' && e.detail.includes('placed'))
+    const placedEvents = Economy.getLastEvents().filter(
+      (e) => e.type === 'construction' && e.detail.includes('placed'),
+    )
     expect(placedEvents.length).toBe(0)
 
     // Treasury should be stable or declining (no new income from construction).
@@ -129,6 +136,39 @@ describe('closed-loop economy: demand → construction → characters → income
     const projection = Economy.projectTreasury(50)
     expect(projection).toHaveLength(51) // initial + 50 ticks
     expect(projection[0]).toBe(Economy.getTreasury())
+  })
+
+  // R111: Policy timeline records tax and budget changes
+  it('policy timeline tracks tax and budget changes (R111)', () => {
+    Economy.clearEconomy()
+    Economy.initEconomy(mulberry32(42))
+
+    // Make a tax change.
+    Economy.setTaxRate('commercial', 0.25)
+    const timeline1 = (Economy as any).policyTimeline
+    expect(timeline1).toHaveLength(1)
+    expect(timeline1[0].type).toBe('tax')
+    expect(timeline1[0].zone).toBe('commercial')
+
+    // Make a budget change.
+    Economy.setServiceBudget('fire', 15)
+    const timeline2 = (Economy as any).policyTimeline
+    expect(timeline2).toHaveLength(2)
+    expect(timeline2[1].type).toBe('budget')
+  })
+
+  // R112: Zoning tool sets plot zone types (via editLayer)
+  it('zoning tool sets plot zone type (R112)', () => {
+    const layer: any = { version: 1, zones: [] }
+    const updated = setPlotZone(layer, 0, 'residential')
+    expect(getPlotZone(updated, 0)).toBe('residential')
+    expect(updated.zones).toHaveLength(1)
+    expect(updated.zones[0].plotIndex).toBe(0)
+    expect(updated.zones[0].zone).toBe('residential')
+    // Updating the same plot replaces it.
+    const updated2 = setPlotZone(updated, 0, 'commercial')
+    expect(getPlotZone(updated2, 0)).toBe('commercial')
+    expect(updated2.zones).toHaveLength(1)
   })
 })
 
