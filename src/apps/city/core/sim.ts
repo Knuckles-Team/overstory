@@ -31,7 +31,7 @@ import {
 } from './ecosystem'
 import { BUILDING_POS, PLOTS, HOUSES, buildingDoor, plotDoor, findPath, type Vec2 } from './layout'
 import { pathOn, type RoadGraph } from '@/lib/scene3d/roads'
-import { makeTrafficRoutes, tickTraffic, type TrafficFleet } from './render3d/traffic'
+import { makeTrafficRoutes, tickTraffic, mergeEconomyVehiclesIntoFleet, vehiclesFromEconomy, type TrafficFleet } from './render3d/traffic'
 import { createWaterFleet, tickWaterFleet, type WaterVessel } from './waterways'
 import {
   CITY_WORLD_SEED,
@@ -501,6 +501,89 @@ export function setSimRandom(p: Prng): void {
 /** One deterministic draw in [0, 1). */
 export function simRandom(): number {
   return rng()
+}
+
+// ---- Under-funding tick tracking (R102/R103) -------------------------------
+// Tracks how many consecutive ticks each district has been under-funding.
+const underfundingTickCount = new Map<string, number>()
+
+/**
+ * R102/R103: For each building, check if its district (b.role) has
+ * underfunded services.  If so, reduce b.economicHealth by 0.005 × dtReal
+ * per frame.  Abandon below 0.2, decline below 0.35.
+ */
+function applyUnderFundingDecay(dtReal: number): void {
+  // Rebuild the under-funding counter map each tick.
+  const currentUnderfunded = new Set<string>()
+  for (const svc of Economy.getServiceNetworks()) {
+    if (svc.type && Economy.getServiceBudget(svc.type) < 0.8) {
+      currentUnderfunded.add(svc.type)
+    }
+  }
+
+  for (const b of Object.values(world.buildings)) {
+    const district = b.role ?? ''
+    if (currentUnderfunded.has(district)) {
+      const prev = underfundingTickCount.get(district) ?? 0
+      underfundingTickCount.set(district, prev + 1)
+    } else {
+      underfundingTickCount.set(district, 0)
+    }
+
+    const ticks = underfundingTickCount.get(district) ?? 0
+    if (ticks >= 5) {
+      b.economicHealth = Math.max(0, (b.economicHealth ?? 1) - 0.005 * dtReal)
+      if ((b.economicHealth ?? 1) < 0.2) {
+        b.occupancyState = 'abandoned'
+      } else if ((b.economicHealth ?? 1) < 0.35) {
+        b.occupancyState = 'declining'
+      }
+    }
+  }
+}
+
+/**
+ * R111: Policy consequence cascade — read policyTimeline from economy.ts and
+ * apply visible decay when taxes are raised above 30 %.
+ */
+function applyPolicyConsequences(dtReal: number): void {
+  const timeline = Economy.policyTimeline
+  const now = world.absGameS
+  // Keep only entries within a reasonable effect window (50 ticks).
+  const active: typeof timeline = []
+
+  for (const entry of timeline) {
+    // Clean up entries older than 50 ticks (effect window expired).
+    if (now - entry.tick > 50 * Economy.ECONOMY_TICK_GAME_S) continue
+
+    active.push(entry)
+
+    if (entry.type === 'tax' && entry.zone === 'commercial' && entry.newValue > 0.3) {
+      // High commercial tax slowly erodes building health each frame.
+      const taxPenaltyPerFrame = (entry.newValue - 0.2) * 0.002 * dtReal
+      for (const b of Object.values(world.buildings)) {
+        if (b.kind.includes('store') || b.kind.includes('restaurant') || b.kind.includes('mall') || b.kind.includes('office')) {
+          b.economicHealth = Math.max(0, (b.economicHealth ?? 1) - taxPenaltyPerFrame)
+        }
+      }
+    }
+
+    if (entry.type === 'budget') {
+      // Budget changes reduce service coverage in affected districts.
+      // The budget entry's zone field is the service type.
+      // Reduce service coverage proportionally to the budget cut.
+      for (const d of Economy.getDistricts()) {
+        d.serviceCoverage = Math.max(0, d.serviceCoverage - 0.02 * Math.abs(entry.newValue - entry.oldValue))
+      }
+    }
+  }
+
+  // Replace the timeline with only active entries — mutate in place
+  // (ESM prevents reassigning a module export via a named import).
+  Economy.policyTimeline.length = 0
+  for (const entry of active) {
+    Economy.policyTimeline.push(entry)
+  }
 }
 
 /** Set the activity mode (R026): quiet is the default, demo is labelled. */
@@ -1457,6 +1540,17 @@ export function tickSim(dtGame: number, dtReal: number, dtWall = dtReal): void {
     world.traffic = { graph: world.roadGraph, routes: makeTrafficRoutes(world.roadGraph), elapsed: 0, positions: [] }
   }
   if (world.traffic) tickTraffic(world.traffic, dtReal)
+  // Merge economy-spawned vehicles into the traffic fleet (R104/R106).
+  if (world.traffic) {
+    const econVehicles = vehiclesFromEconomy(
+      simRandom,
+      world.buildings,
+      world.plots,
+      Object.values(world.buildings).filter((b) => b.kind.includes('store') || b.kind.includes('restaurant')).length,
+      Object.values(world.buildings).filter((b) => b.kind.includes('factory') || b.kind.includes('warehouse')).length,
+    )
+    mergeEconomyVehiclesIntoFleet(world.traffic, econVehicles, simRandom)
+  }
   tickWaterFleet(world.waterFleet, dtWall)
   world.clock += dtGame
   world.absGameS += dtGame
@@ -1516,12 +1610,19 @@ export function tickSim(dtGame: number, dtReal: number, dtWall = dtReal): void {
   }
 
   // R108: accumulate foot traffic from characters at commercial buildings.
+  // Per-character increment is dt-scaled so it grows smoothly, not by 1/frame.
   for (const ch of world.characters) {
     if (ch.workBuilding) {
       const b = world.buildings[ch.workBuilding]
       if (b.kind.includes('store') || b.kind.includes('restaurant') || b.kind.includes('mall')) {
-        b.footTraffic = (b.footTraffic ?? 0) + 1
+        b.footTraffic = Math.min(500, (b.footTraffic ?? 0) + dtReal * 0.01)
       }
+    }
+  }
+  // Decay: foot traffic drops at 2 units per real second, bounded at 0.
+  for (const b of Object.values(world.buildings)) {
+    if (b.kind.includes('store') || b.kind.includes('restaurant') || b.kind.includes('mall')) {
+      b.footTraffic = Math.max(0, (b.footTraffic ?? 0) - dtReal * 2)
     }
   }
 
@@ -1600,9 +1701,13 @@ export function tickSim(dtGame: number, dtReal: number, dtWall = dtReal): void {
   }
 
   // R102/R103: economic health and occupancy state transitions are driven
-  // by the economic model (economy.ts), not by this frame loop. The sim
-  // here only decrements the fresh timer and error-flash timer so the
-  // model can react to them.
+  // by the economic model (economy.ts), not by this frame loop.
+  applyUnderFundingDecay(dtReal)
+
+  // R111: policy consequence cascade — apply visible decay for high taxes
+  // and budget changes.  Run after building decay so the health delta is
+  // visible on the same tick.
+  applyPolicyConsequences(dtReal)
 }
 
 // ---- Accessors (selection API, UI, tests) ----------------------------------

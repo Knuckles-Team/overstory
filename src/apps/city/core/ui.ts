@@ -1179,6 +1179,247 @@ export function getPolicyTimeline(): { tick: number; type: string; zone?: string
   )
 }
 
+// ===========================================================================
+// R114: TreasuryPanel — projected balance, obligations, construction affordability
+// ===========================================================================
+
+/** Upcoming obligation: a building whose construction/maintenance is due. */
+export interface TreasuryObligation {
+  /** The building id. */
+  buildingId: string
+  /** Maintenance cost per tick. */
+  maintenancePerTick: number
+  /** Name label (from world.buildings if available). */
+  label: string
+}
+
+/**
+ * Compute upcoming obligations: every construction state still active
+ * that will charge maintenance next tick.
+ */
+export function getUpcomingObligations(): TreasuryObligation[] {
+  const obligations: TreasuryObligation[] = []
+  const buildingMap = new Map<string, { name: string }>()
+  // This would normally read from the world — stubbed to empty for headless use.
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const ws = (globalThis as any).__cityWorldOverride
+    if (ws && ws.buildings) {
+      for (const b of Object.values(ws.buildings)) {
+        if (b && typeof b === 'object' && 'id' in b && 'name' in b) {
+          buildingMap.set((b as { id: string }).id, { name: String((b as { name: string }).name) })
+        }
+      }
+    }
+  } catch {
+    /* no-op */
+  }
+  const cs = (Economy as unknown as Record<string, { buildingId: string; maintenancePerTick: number; decayState: string }[] | undefined>)
+    .constructionStates
+  if (cs) {
+    for (const entry of cs) {
+      if (entry.decayState !== 'demolished') {
+        obligations.push({
+          buildingId: entry.buildingId,
+          maintenancePerTick: entry.maintenancePerTick,
+          label: buildingMap.get(entry.buildingId)?.name ?? entry.buildingId,
+        })
+      }
+    }
+  }
+  return obligations
+}
+
+/**
+ * Check whether the treasury can afford the cheapest construction for a zone.
+ * Returns an array of zone types that are currently affordable.
+ */
+export function getAffordableConstructions(): { zone: string; cost: number }[] {
+  const treasuryVal = (Economy as unknown as Record<string, number | undefined>).treasury ?? 0
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const costs: Record<string, number> = (Economy as any).CONSTRUCTION_COSTS ?? {
+    residential: 500,
+    commercial: 750,
+    industrial: 600,
+  }
+  return Object.entries(costs)
+    .map(([zone, cost]) => ({ zone, cost }))
+    .filter((c) => treasuryVal >= c.cost)
+}
+
+/**
+ * Render the mini ASCII-style projection chart (R114).
+ * Returns an HTML string with a simple bar chart of projected treasury.
+ */
+export function renderTreasuryChart(data: number[], width: number, height: number): string {
+  if (data.length < 2) {
+    return '<div style="height:30px;color:#555e6a;font-size:10px;display:flex;align-items:center">No projection data yet</div>'
+  }
+  const max = Math.max(...data, 1)
+  const min = Math.min(...data, 0)
+  const range = max - min || 1
+  const pad = 4
+
+  const bars = data
+    .map((v, i) => {
+      const col = v >= 0 ? '#3ddc84' : '#ff5e5e'
+      const barH = Math.max(1, Math.round(((v - min) / range) * (height - pad * 2)))
+      const x = pad + (i / (data.length - 1)) * (width - pad * 2)
+      return `<rect x="${Math.round(x)}" y="${Math.round(height - pad - barH)}" width="2" height="${barH}" fill="${col}" rx="0.5"/>`
+    })
+    .join('')
+
+  return `<svg width="${width}" height="${height}" style="margin-top:4px" viewBox="0 0 ${width} ${height}">
+    <rect width="${width}" height="${height}" fill="#0f1520" rx="2"/>
+    ${bars}
+  </svg>`
+}
+
+// ===========================================================================
+// R111: PolicyTimelinePanel — detailed policy change timeline
+// ===========================================================================
+
+/**
+ * Format a single policy change entry as an HTML string.
+ * Color-coded: green for increases, red for decreases.
+ * Format: `[tick 42] Commercial tax: 20% → 25% — revenue +$120/tick`
+ */
+export function formatPolicyEntry(
+  entry: { tick: number; type: string; zone?: string; effect?: string; oldValue?: number; newValue?: number },
+): string {
+  const isIncrease = (entry.newValue ?? 0) > (entry.oldValue ?? 0)
+  const arrow = isIncrease ? '↑' : '↓'
+
+  // Build the detail based on type
+  if (entry.type === 'tax' && entry.zone) {
+    const oldPct = entry.oldValue !== undefined ? `${Math.round(entry.oldValue * 100)}%` : '—'
+    const newPct = entry.newValue !== undefined ? `${Math.round(entry.newValue * 100)}%` : '—'
+    const effect = entry.effect
+      ? ` — ${entry.effect}`
+      : entry.oldValue !== undefined && entry.newValue !== undefined
+        ? ` — revenue ${arrow}${entry.newValue > entry.oldValue ? '+' : ''}${Math.round((entry.newValue - entry.oldValue) * 10000)}%`
+        : ''
+    return `[tick ${entry.tick}] ${entry.zone} tax: ${oldPct} → ${newPct} — ${effect}`
+  }
+
+  if (entry.type === 'budget' && entry.zone) {
+    const oldVal = entry.oldValue !== undefined ? entry.oldValue.toFixed(2) : '—'
+    const newVal = entry.newValue !== undefined ? entry.newValue.toFixed(2) : '—'
+    const effect = entry.effect
+      ? ` — ${entry.effect}`
+      : ` — ${entry.zone} budget ${arrow}`
+    return `[tick ${entry.tick}] ${entry.zone} budget: ${oldVal} → ${newVal} — ${effect}`
+  }
+
+  // Fallback
+  return `[tick ${entry.tick}] ${entry.type}${entry.zone ? ` ${entry.zone}` : ''}${entry.effect ? ` — ${entry.effect}` : ''}`
+}
+
+/**
+ * Render the policy timeline panel (last 10 entries) as HTML.
+ */
+export function renderPolicyTimelinePanel(
+  timeline: { tick: number; type: string; zone?: string; effect?: string; oldValue?: number; newValue?: number }[],
+): string {
+  const entries = timeline.slice(-10)
+  if (entries.length === 0) {
+    return '<div style="font-size:10px;color:#555e6a">No policy changes yet</div>'
+  }
+  return entries
+    .map((entry) => {
+      const isIncrease = (entry.newValue ?? 0) > (entry.oldValue ?? 0)
+      const color = isIncrease ? '#3ddc84' : '#ff5e5e'
+      const text = formatPolicyEntry(entry)
+      return `<div style="font-size:10px;margin-bottom:4px;padding:2px 4px;border-left:2px solid ${color};color:#e8ecf4;line-height:1.3">${text}</div>`
+    })
+    .join('')
+}
+
+// ===========================================================================
+// R112: ZoningTool — zone selector, paint preview, undo
+// ===========================================================================
+
+/** Zone types available in the zoning tool. */
+export const ZONE_TYPES: Array<'residential' | 'commercial' | 'industrial' | 'mixed'> = [
+  'residential',
+  'commercial',
+  'industrial',
+  'mixed',
+]
+
+/** Zone color for preview indicators. */
+export const ZONE_COLORS: Record<string, string> = {
+  residential: '#3ddc84',
+  commercial: '#ffd166',
+  industrial: '#ff5e5e',
+  mixed: '#5ec8d8',
+}
+
+/**
+ * The zoning tool state: current selected zone type and undo stack.
+ */
+export interface ZoningToolState {
+  selectedZone: 'residential' | 'commercial' | 'industrial' | 'mixed'
+  /** Stack of { plotIndex, previousZone } for undo. */
+  undoStack: Array<{ plotIndex: number; previousZone: 'residential' | 'commercial' | 'industrial' | 'mixed' | undefined }>
+}
+
+/**
+ * Create a new zoning tool state with the given initial zone.
+ */
+export function createZoningToolState(zone: ZoningToolState['selectedZone'] = 'residential'): ZoningToolState {
+  return {
+    selectedZone: zone,
+    undoStack: [],
+  }
+}
+
+/**
+ * Record a zone change so it can be undone.
+ * Returns a function that, when called, restores the previous zone.
+ */
+export function recordZoneChange(
+  state: ZoningToolState,
+  plotIndex: number,
+  previousZone: ZoningToolState['selectedZone'] | undefined,
+): () => void {
+  state.undoStack.push({ plotIndex, previousZone })
+  return () => {
+    if (state.undoStack.length === 0) return
+    state.undoStack.pop()
+  }
+}
+
+/**
+ * Undo the last zone change applied by this tool.
+ * Returns the old zone value, or undefined if nothing to undo.
+ */
+export function undoLastZoneChange(state: ZoningToolState): ZoningToolState['selectedZone'] | undefined {
+  if (state.undoStack.length === 0) return undefined
+  const last = state.undoStack.pop()!
+  return last.previousZone
+}
+
+/**
+ * Render the zoning tool selector as HTML with active state indicator.
+ */
+export function renderZoningToolSelector(selectedZone: string): string {
+  return ZONE_TYPES.map((z) => {
+    const isActive = z === selectedZone
+    const color = ZONE_COLORS[z]
+    const ring = isActive ? `outline: 2px solid ${color}; outline-offset: 1px;` : ''
+    return `<button type="button" class="zoning-btn ${z}" style="padding:3px 10px;font-size:11px;border:1px solid ${isActive ? color : '#2a3444'};border-radius:3px;color:${isActive ? color : '#e8ecf4'};background:${isActive ? `${color}15` : '#1a2230'};cursor:pointer;min-width:80px;text-align:center;${ring}" data-zone="${z}" aria-pressed="${isActive}">${z.charAt(0).toUpperCase() + z.slice(1)}</button>`
+  }).join('')
+}
+
+/**
+ * Render a zone paint preview indicator for a plot.
+ */
+export function renderZonePreview(zone: string): string {
+  const color = ZONE_COLORS[zone] ?? '#888'
+  return `<div class="zone-preview" style="position:absolute;top:-8px;right:-8px;width:12px;height:12px;border-radius:50%;background:${color};border:1px solid #0f1520;box-shadow:0 0 4px ${color}88;pointer-events:none" title="Zone: ${zone}"></div>`
+}
+
 /** Service network data for overlay (R113). */
 export function getServiceNetworkData(): {
   x: number

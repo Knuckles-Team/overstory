@@ -243,6 +243,8 @@ export interface ServiceNetwork {
   active: boolean
   /** Per-lot coverage fraction. */
   lotCoverages: Map<number, number>
+  /** Budget multiplier (R113) — used by the 2D renderer for circle radius. */
+  budget: number
 }
 
 /** Goods price state (R082). */
@@ -534,6 +536,14 @@ let _buildCounter = 0
 /** Per-plot zoning policies (R087). */
 let plotZones: PlotZonePolicy[] = []
 
+/**
+ * Look up a plot's zone policy override (R112).
+ * Returns undefined when no override is set.
+ */
+function getPlotZoneOverride(plotIndex: number): 'residential' | 'commercial' | 'industrial' | 'mixed' | undefined {
+  return plotZones.find((p) => p.plotIndex === plotIndex)?.zone
+}
+
 /** Service networks (R081). */
 let serviceNetworks: ServiceNetwork[] = []
 
@@ -726,7 +736,18 @@ export function tickEconomy(): void {
       if (d.zone === 'residential' || d.zone === 'commercial') {
         d.inventory = Math.max(0, d.inventory - d.consumption)
         if (d.inventory <= 0 && d.consumption > 0) {
-          d.happiness = Math.max(HAPPINESS_MIN, d.happiness - 0.02)
+          // R106: When goods shortage exists, goods vehicles deliver to resolve it
+          if (goodsPrices.shortage) {
+            // Reduced happiness impact when deliveries are active
+            d.happiness = Math.max(HAPPINESS_MIN, d.happiness - 0.005)
+            // Deliver goods: reduce shortage and replenish inventory
+            const deliveredAmount = Math.min(1, goodsPrices.totalInventory / 10)
+            goodsPrices.shortage = false
+            goodsPrices.totalInventory += deliveredAmount
+          } else {
+            // No delivery available — full impact
+            d.happiness = Math.max(HAPPINESS_MIN, d.happiness - 0.02)
+          }
         }
       }
     }
@@ -1308,6 +1329,7 @@ function buildServiceNetworks(): ServiceNetwork[] {
       coveredLots: 0,
       active: true,
       lotCoverages: new Map<number, number>(),
+      budget: 1.0, // default full budget
     }
 
     // Find buildings providing this service.
@@ -2035,6 +2057,27 @@ function tickCongestionRead(_prng: Prng): void {
       d.congestion = d.congestion * 0.7 + (1 - external) * 0.3
     }
   }
+
+  // R105: Apply external congestion from traffic simulation to commercial districts.
+  // Average the external congestion across all plots that have it, then dampen
+  // commercial district congestion further based on the average.
+  {
+    let sumExternal = 0
+    let count = 0
+    for (const val of externalCongestion.plotCongestion.values()) {
+      sumExternal += val
+      count++
+    }
+    if (count > 0) {
+      const avgExternalCongestion = sumExternal / count
+      for (const d of districts.values()) {
+        if (d.zone === 'commercial') {
+          d.congestion *= 1 - avgExternalCongestion * 0.5
+          d.congestion = Math.max(0, Math.min(1, d.congestion))
+        }
+      }
+    }
+  }
 }
 
 // ===========================================================================
@@ -2073,13 +2116,19 @@ function tryGrowthPlacements(prng: Prng): void {
 
     // If demand is above threshold, try to place a building (R079).
     if (demand > GROWTH_DEMAND_THRESHOLD && emptyLots.length > 0) {
-      const cost = CONSTRUCTION_COSTS[d.zone]
+      // R112: check plot zone override — if the lot has a zone policy,
+      // only place buildings matching that zone.
+      const lotIndex = emptyLots.shift()!
+      const plotZone = getPlotZoneOverride(lotIndex)
+      const effectiveZone = (plotZone ?? d.zone) as 'residential' | 'commercial' | 'industrial'
+
+      const cost = CONSTRUCTION_COSTS[effectiveZone]
       if (treasury >= cost) {
         // Debit treasury (R079).
         treasury -= cost
 
         // Select an archetype from the zone's catalog (R087).
-        const archetypes = CITY_ARCHETYPES[d.zone]
+        const archetypes = CITY_ARCHETYPES[effectiveZone]
         const archetype = archetypes[Math.floor(prng() * archetypes.length)]
 
         // Add a construction state (R079, R087).
@@ -2101,7 +2150,6 @@ function tryGrowthPlacements(prng: Prng): void {
         constructionStates.push(cs)
 
         // Mark the lot as under construction (not yet built).
-        const lotIndex = emptyLots.shift()!
         if (lotIndex < world.plots.length) {
           world.plots[lotIndex].buildingId = cs.buildingId
           world.plots[lotIndex].reservedId = null
@@ -2111,7 +2159,7 @@ function tryGrowthPlacements(prng: Prng): void {
         // Emit the construction start event (R079.2).
         events.push({
           type: 'construction',
-          detail: `${d.id}: placed ${d.zone} building (scaffolding, cost: ${cost})`,
+          detail: `${d.id}: placed ${effectiveZone} building (scaffolding, cost: ${cost})`,
           delta: -cost,
           district: d.id,
         })
@@ -2120,7 +2168,7 @@ function tryGrowthPlacements(prng: Prng): void {
           makeEvent(
             'construction.progress',
             { building: buildId },
-            `Scaffolding raised at ${d.zone} ${archetype.form} ${buildId}`,
+            `Scaffolding raised at ${effectiveZone} ${archetype.form} ${buildId}`,
           ),
         )
       } else {
@@ -2129,12 +2177,12 @@ function tryGrowthPlacements(prng: Prng): void {
           makeEvent(
             'economy.construction_deferred',
             { building: d.id, detail: `treasury ${Math.round(treasury)} insufficient for cost ${cost}` },
-            `Construction of ${d.zone} building deferred: treasury ${Math.round(treasury)} insufficient`,
+            `Construction of ${effectiveZone} building deferred: treasury ${Math.round(treasury)} insufficient`,
           ),
         )
         events.push({
           type: 'construction',
-          detail: `${d.id}: refused ${d.zone} building — insufficient treasury`,
+          detail: `${d.id}: refused ${effectiveZone} building — insufficient treasury`,
           delta: 0,
           district: d.id,
         })
@@ -2208,6 +2256,13 @@ function tickCostTick(_prng: Prng): void {
     d.balance -= totalMaintenance + totalServiceCost
     d.expenses = totalMaintenance + totalServiceCost
 
+    // R111: High tax rates reduce commercial growth (cascade effect).
+    if (d.taxConfig.commercial > 0.3) {
+      // High commercial tax reduces demand and income growth each tick
+      d.demand.commercial *= 0.95
+      d.grossIncome *= 0.98
+    }
+
     if (totalMaintenance > 0 || totalServiceCost > 0) {
       events.push({
         type: 'expense',
@@ -2223,18 +2278,35 @@ function tickCostTick(_prng: Prng): void {
 export function computeBuildingEconomicHealth(): void {
   if (!world.initialized) return
   const buildings = Object.values(world.buildings)
+
+  // Precompute per-zone total foot traffic (R108).
+  const zoneTraffic: Record<string, number> = {}
+  for (const b of buildings) {
+    const zone = b.role ?? ''
+    zoneTraffic[zone] = (zoneTraffic[zone] ?? 0) + (b.footTraffic ?? 0)
+  }
+
   for (const b of buildings) {
     // Base health from fresh status (new buildings are healthier)
     let health = 0.5 + (b.fresh > 0 ? 0.3 : 0)
 
-    // Foot traffic bonus (R108)
+    // Foot traffic bonus (R108): individual building foot traffic.
     const footTraffic = b.footTraffic ?? 0
     health = Math.min(1, health + Math.min(0.2, footTraffic / 250))
 
-    // Zone bonus from economic health of the district
+    // District-wide bonus: sum of all commercial activity in this zone.
+    const totalZoneTraffic = zoneTraffic[b.role ?? ''] ?? 0
+    health += Math.min(0.15, totalZoneTraffic / 1000)
+
+    // Zone bonus from district economic health.
     const districtEconomy = getDistrict(b.role)
     if (districtEconomy) {
       health += districtEconomy.happiness * 0.1
+    }
+
+    // Congestion penalty for commercial zones (R105).
+    if (districtEconomy && districtEconomy.zone === 'commercial') {
+      health *= districtEconomy.congestion
     }
 
     // Clamp
@@ -2443,6 +2515,17 @@ function computeNetRevenue(): number {
   let totalIncome = 0
   let totalExpenses = 0
   for (const d of districts.values()) {
+    // R105: gross income for commercial districts is reduced by congestion
+    if (d.zone === 'commercial') {
+      d.grossIncome = d.population * 0.5 // base commercial income proportional to population
+      d.taxRevenue = d.grossIncome * d.congestion * d.taxConfig.commercial
+    } else if (d.zone === 'industrial') {
+      d.grossIncome = d.production * 2
+      d.taxRevenue = d.grossIncome * d.taxConfig.industrial
+    } else {
+      d.taxRevenue = d.population * 0.1 * d.taxConfig.residential
+    }
+
     totalIncome += d.taxRevenue
     totalExpenses += d.expenses
   }

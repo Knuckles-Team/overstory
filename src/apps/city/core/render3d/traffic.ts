@@ -417,20 +417,26 @@ export function vehiclesFromEconomy(
 }
 
 /**
- * Merge economy vehicles into the traffic fleet by assigning routes (R104).
- * Each vehicle picks a random route from the existing fleet and gets placed
- * at its start position with a phase offset.
+ * Merge economy vehicles into the traffic fleet by assigning routes (R104/R106).
+ * Each vehicle is placed at a random phase along a route. Route count is
+ * limited to keep per-frame draw calls bounded.
  */
-export function mergeEconomyVehiclesIntoFleet(fleet: { routes: TrafficRoute[] }, vehicles: EconomyVehicle[]): void {
+export function mergeEconomyVehiclesIntoFleet(
+  fleet: { routes: TrafficRoute[] },
+  vehicles: EconomyVehicle[],
+  prng: () => number,
+): void {
   if (vehicles.length === 0 || fleet.routes.length === 0) return
   const { routes } = fleet
   const loopLength = fleet.routes[0]?.length ?? 1
-  for (const v of vehicles) {
-    // Pick a random route.
-    const routeIdx = Math.floor(Math.random() * routes.length)
-    const route = routes[routeIdx]
-    // Place vehicle at a random phase along the route.
-    const phase = Math.random()
+
+  // Assign vehicles across existing routes (max one economy vehicle per route).
+  const maxRoutes = Math.min(routes.length, vehicles.length)
+  for (let i = 0; i < maxRoutes; i++) {
+    const route = routes[i]
+    const v = vehicles[i]
+    // Place vehicle at a random phase along the route (seeded PRNG).
+    const phase = prng()
     route.motion.distance = phase * loopLength
     route.motion.waitingAt = null
     route.motion.waited = 0

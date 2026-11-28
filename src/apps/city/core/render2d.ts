@@ -438,10 +438,13 @@ export function init2D(
             sx = bldg.x
             sz = bldg.z
           }
-          // Draw coverage circle
+          // R113: circle radius shrinks when underfunded (budget < 1.0).
+          const effectiveRadius = net.radius * Math.max(0.2, net.budget) * scale
           octx.beginPath()
-          octx.arc(px(sx), pz(sz), net.radius * scale, 0, Math.PI * 2)
-          octx.strokeStyle = net.active ? 'rgba(0, 200, 0, 0.35)' : 'rgba(200, 0, 0, 0.35)'
+          octx.arc(px(sx), pz(sz), effectiveRadius, 0, Math.PI * 2)
+          // Green when active, red when underfunded, yellow when borderline.
+          const color = net.budget < 0.5 ? 'rgba(200, 0, 0, 0.35)' : net.budget < 0.8 ? 'rgba(200, 200, 0, 0.35)' : 'rgba(0, 200, 0, 0.35)'
+          octx.strokeStyle = color
           octx.lineWidth = 1.5
           octx.stroke()
         }

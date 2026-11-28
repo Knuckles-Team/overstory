@@ -934,6 +934,10 @@ export function createBuildings(
         const scheduleGlow = entry.winEmissive?.anyLit ? 1 : 0
         entry.windowMat.emissiveIntensity =
           Math.max(scheduleGlow * occMult, Math.min(1.5, calls * 0.45) * occMult) + (entry.wallBoost ?? 0) * 0.75
+        // R103: abandoned buildings have broken windows (completely dark).
+        if (b.occupancyState === 'abandoned') {
+          entry.windowMat.emissiveIntensity = 0
+        }
       }
       // 'error-flash' channel (R025): while a recent error is fresh the roof
       // lights up in the table's red (the roof sheet is painted in it).
@@ -1018,19 +1022,13 @@ export function createBuildings(
         while (targetRot - fr < -Math.PI) fr -= Math.PI * 2
         entry.mv = { fx: gpos.x, fz: gpos.z, fr, t: 0, dur: 0.9 }
       }
-      // R102: update economic health material per frame.
-      if (!entry.landmark && b.economicHealth !== undefined) {
+      // R102: modulate wall colour by economic health every frame.
+      if (entry.wallMat && b.economicHealth !== undefined) {
         const health = Math.max(0, Math.min(1, b.economicHealth))
-        const r = Math.round(255 * (1 - health * 0.6))
-        const g = Math.round(255 * (0.3 + health * 0.7))
-        const bc = Math.round(255 * (0.3 + health * 0.4))
-        const healthColor = new THREE.Color(`rgb(${r},${g},${bc})`)
-        for (const m of entry.mats) {
-          // Skip window material — it has its own emissive channel (R066).
-          if (m === entry.windowMat) continue
-          m.color.lerp(healthColor, 0.35)
-          m.roughness = 0.94 - health * 0.3
-        }
+        const r = Math.round(200 * health + 50 * (1 - health))
+        const g = Math.round(200 * health + 40 * (1 - health))
+        const b2 = Math.round(200 * health + 30 * (1 - health))
+        entry.wallMat.color.setRGB(r / 255, g / 255, b2 / 255)
       }
     }
 
