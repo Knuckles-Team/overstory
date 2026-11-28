@@ -1202,20 +1202,26 @@ export function getUpcomingObligations(): TreasuryObligation[] {
   const buildingMap = new Map<string, { name: string }>()
   // This would normally read from the world — stubbed to empty for headless use.
   try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
     const ws = (globalThis as any).__cityWorldOverride
-    if (ws && ws.buildings) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    if (ws?.buildings) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument
       for (const b of Object.values(ws.buildings)) {
         if (b && typeof b === 'object' && 'id' in b && 'name' in b) {
-          buildingMap.set((b as { id: string }).id, { name: String((b as { name: string }).name) })
+          buildingMap.set((b as { id: string }).id, { name: (b as { name: string }).name })
         }
       }
     }
   } catch {
     /* no-op */
   }
-  const cs = (Economy as unknown as Record<string, { buildingId: string; maintenancePerTick: number; decayState: string }[] | undefined>)
-    .constructionStates
+  const cs = (
+    Economy as unknown as Record<
+      string,
+      { buildingId: string; maintenancePerTick: number; decayState: string }[] | undefined
+    >
+  ).constructionStates
   if (cs) {
     for (const entry of cs) {
       if (entry.decayState !== 'demolished') {
@@ -1236,7 +1242,7 @@ export function getUpcomingObligations(): TreasuryObligation[] {
  */
 export function getAffordableConstructions(): { zone: string; cost: number }[] {
   const treasuryVal = (Economy as unknown as Record<string, number | undefined>).treasury ?? 0
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
   const costs: Record<string, number> = (Economy as any).CONSTRUCTION_COSTS ?? {
     residential: 500,
     commercial: 750,
@@ -1284,9 +1290,14 @@ export function renderTreasuryChart(data: number[], width: number, height: numbe
  * Color-coded: green for increases, red for decreases.
  * Format: `[tick 42] Commercial tax: 20% → 25% — revenue +$120/tick`
  */
-export function formatPolicyEntry(
-  entry: { tick: number; type: string; zone?: string; effect?: string; oldValue?: number; newValue?: number },
-): string {
+export function formatPolicyEntry(entry: {
+  tick: number
+  type: string
+  zone?: string
+  effect?: string
+  oldValue?: number
+  newValue?: number
+}): string {
   const isIncrease = (entry.newValue ?? 0) > (entry.oldValue ?? 0)
   const arrow = isIncrease ? '↑' : '↓'
 
@@ -1305,9 +1316,7 @@ export function formatPolicyEntry(
   if (entry.type === 'budget' && entry.zone) {
     const oldVal = entry.oldValue !== undefined ? entry.oldValue.toFixed(2) : '—'
     const newVal = entry.newValue !== undefined ? entry.newValue.toFixed(2) : '—'
-    const effect = entry.effect
-      ? ` — ${entry.effect}`
-      : ` — ${entry.zone} budget ${arrow}`
+    const effect = entry.effect ? ` — ${entry.effect}` : ` — ${entry.zone} budget ${arrow}`
     return `[tick ${entry.tick}] ${entry.zone} budget: ${oldVal} → ${newVal} — ${effect}`
   }
 
@@ -1340,7 +1349,7 @@ export function renderPolicyTimelinePanel(
 // ===========================================================================
 
 /** Zone types available in the zoning tool. */
-export const ZONE_TYPES: Array<'residential' | 'commercial' | 'industrial' | 'mixed'> = [
+export const ZONE_TYPES: ('residential' | 'commercial' | 'industrial' | 'mixed')[] = [
   'residential',
   'commercial',
   'industrial',
@@ -1361,7 +1370,7 @@ export const ZONE_COLORS: Record<string, string> = {
 export interface ZoningToolState {
   selectedZone: 'residential' | 'commercial' | 'industrial' | 'mixed'
   /** Stack of { plotIndex, previousZone } for undo. */
-  undoStack: Array<{ plotIndex: number; previousZone: 'residential' | 'commercial' | 'industrial' | 'mixed' | undefined }>
+  undoStack: { plotIndex: number; previousZone: 'residential' | 'commercial' | 'industrial' | 'mixed' | undefined }[]
 }
 
 /**
