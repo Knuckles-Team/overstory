@@ -53,7 +53,7 @@ test('city renders the core navigation without auth (sandbox posture)', async ({
 test('reports browser FPS and the 60 FPS target when debug is enabled', async ({ page }) => {
   await page.goto('/apps/city?demo=1&debug=1')
   const meter = page.getByTestId('city-fps')
-  await expect(meter).toHaveText(/\d+\.\d FPS · 60 target · \d+ slow frames/, { timeout: 45_000 })
+  await expect(meter).toHaveText(/\d+\.\d FPS avg · 60 target · floor \d+ · \d+ slow frames/, { timeout: 45_000 })
   await expect(meter).toHaveAttribute('data-budget', /^(below|met)$/)
   await expect(meter).toHaveAttribute(
     'title',
