@@ -2,7 +2,7 @@
 
 This repository inherits the [organization constitution](https://github.com/Knuckles-Team/pipelines/blob/main/.specify/memory/constitution.md) version 1.6.0. Every article of that constitution applies here. This file adds only the rules and limits of this repository.
 
-**Inherits**: organization constitution v1.6.0 | **Version**: 1.3.0 | **Ratified**: 2026-10-31 | **Last amended**: 2026-11-23
+**Inherits**: organization constitution v1.6.0 | **Version**: 1.4.0 | **Ratified**: 2026-10-31 | **Last amended**: 2026-11-28
 
 ## Organization standards
 
@@ -44,9 +44,17 @@ Every operator-facing capability of an app must be exposed as a WebMCP tool. Cit
 
 **Plan check:** For every new operator-facing capability, does a WebMCP tool reach it through the same dispatch as the UI?
 
+### R-V. The city engine belongs to arbora-city
+
+The city engine, its scene library, its asset kit and its world rows are owned by the arbora-city repository and reach overstory as the `arbora-city` package. Overstory owns only the host: the route and surface, the navigation, the WebMCP tools, the gateway that carries the package's listed Arbora operations, and the response headers that isolate the city page. No new engine, scene or kit work lands in `src/apps/city/core/`, `src/lib/scene3d/` or `scripts/asset-kit/`; it goes to arbora-city's specs. The cutover row deletes those paths.
+
+**Enforced by:** OVERSTORY-CITYHOST-R008 and its bound test `scripts/city-cutover.test.mjs`.
+
+**Plan check:** Does this change touch engine, scene or kit code? If so, is it filed in arbora-city instead?
+
 ### Game principles (the city)
 
-These ten principles bind every row of `specs/arbora-city/`. Each names its enforcing row and its plan check.
+These ten principles bind every row of `specs/arbora-city/` while the city code lives here. The cutover of OVERSTORY-CITYHOST-R008 deletes this section; the arbora-city constitution then governs the city. Each principle names its enforcing row and its plan check.
 
 ### R-G1. The city is a projection
 

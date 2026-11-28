@@ -63,5 +63,6 @@ bootstrap skill, together with the [SDD full lifecycle](https://github.com/Knuck
 - [`OVERSTORY-API`](arbora-api-consumer/spec.md) — OVERSTORY-API-R001–OVERSTORY-API-R004 generated client and domain-family migration.
 - [`OVERSTORY-APPS`](arbora-app-surface/spec.md) — application routes, complete responsive workspace, semantic leaf navigation and native WebMCP action parity. See [coverage and dependency matrix](arbora-app-surface/workspace-coverage.md).
 - [`OVERSTORY-CITY`](arbora-city/spec.md) — Arbora City: the platform as a living city (fleet-driven connector district, deterministic simulation, pinned assets, live/simulated mode).
+- [`OVERSTORY-CITYHOST`](city-host/spec.md) — Overstory hosts the arbora-city package: route, gateway, WebMCP tools and cross-origin isolation.
 - [`OVERSTORY-IDENTITY`](identity-access/spec.md) — explicit no-auth/EG/external OIDC modes, renewal/lifecycle and tenant-safe browser behavior.
 - [`OVERSTORY-DASH`](agent-dashboards/spec.md) — user and agent built dashboards with WebMCP tools, arbora queries and arbora saves.
